@@ -20,7 +20,7 @@
 | S0 접수 | 계획 3: 능력 지식 베이스 YAML 변환(226개 구성 요소), 요구 조건 변환표, S3 적합성, S4 추천, 분석·추천 리포트 |
 | S1 인벤토리: 워크로드, 엔드포인트, 데이터 범위, 현재 구성 요소, 기존 산출물, 기본값 사실, 요청 경로, 미매핑 | |
 | S1이 쓰는 지식: 구성 요소 ID 목록(능력 값 없이), 탐지 시그니처, 기본값 표 | |
-| S0~S1 일관성 검사, 픽스처 F1~F6, 골든 테스트, 단계별 예시 | |
+| S0~S1 일관성 검사, 픽스처 F1~F6(입력), 골든 스냅샷, 단계별 예시 | |
 
 ## Global Constraints
 
@@ -70,8 +70,8 @@ one-click-deploy-agent/
     signatures/datastores.yaml  cache.yaml  queue.yaml  scheduler.yaml  realtime.yaml  files.yaml  watchlist.yaml
     defaults.yaml
   fixtures/
-    f1-simple-web-app/  (simple-web-app develop@6050701 스냅샷) + expected.yaml
-    f2-sqlite-erp/  f3-vibe-shop/  f4-overbuilt-internal/  f5-small-blog/  f6-long-jobs/  (각각 expected.yaml)
+    f1-simple-web-app/repo/  (simple-web-app develop@6050701 스냅샷)
+    f2-sqlite-erp/repo/  f3-vibe-shop/repo/  f4-overbuilt-internal/repo/  f5-small-blog/repo/  f6-long-jobs/repo/
     */golden/intake.json, inventory.json
   schemas/examples/f2-sqlite-erp/intake.json, inventory.json
   scripts/export_f1.sh, update_golden.py
@@ -816,27 +816,17 @@ git commit -m "feat: add repository snapshot, evidence helpers and S0 intake"
 
 ---
 
-### Task 4: 픽스처 저장소와 기대 판정(엔진 실행 전 작성)
+### Task 4: 픽스처 저장소
 
-설계 원칙에 따라 기대 판정은 엔진을 만들기 전에 적고, 엔진 결과에 맞춰 고치지 않는다. 엔진 결과가 다르면 엔진을 고친다. 기대가 틀렸다고 판단되면 고치지 말고 멈춰서 보고한다.
+픽스처는 탐지기와 S1 전체를 실제 코드에 돌려 보기 위한 **입력**이다. 기대 판정은 이 저장소 어디에도 기록하지 않는다. 결과가 맞는지는 구현이 끝난 뒤 사람이 결과를 직접 읽고 판단한다.
 
 **Files:**
-- Create: `scripts/export_f1.sh`, `fixtures/<픽스처>/expected.yaml`, `fixtures/<픽스처>/repo/**`(F1은 스크립트로 생성)
+- Create: `scripts/export_f1.sh`, `fixtures/<픽스처>/repo/**`(F1은 스크립트로 생성)
 
-픽스처의 저장소 내용은 항상 `repo/` 아래에 두고, `expected.yaml`과 `golden/`은 그 바깥에 둔다. 기대 판정이나 골든 파일이 분석 대상에 섞이면 파일 수와 커밋 해시가 바뀌기 때문이다.
+픽스처의 저장소 내용은 항상 `repo/` 아래에 두고, 골든 결과(Task 16)는 그 바깥 `fixtures/<픽스처>/golden/`에 둔다. 다른 파일이 분석 대상에 섞이면 파일 수와 커밋 해시가 바뀌기 때문이다.
 
 **Interfaces:**
-- Produces: 각 픽스처 디렉터리와 `expected.yaml`. 형식은 아래 F2 예와 같고, Task 16의 테스트가 이 형식을 읽는다.
-  - `repo_dir`: 분석할 저장소 디렉터리(픽스처 디렉터리 기준). 항상 `repo`
-  - `match`: `exact`(목록이 정확히 같아야 함) 또는 `subset`(기대 항목이 모두 있으면 됨)
-  - `workloads[]`: `{id, kind}`
-  - `endpoints[]`: `{method, route}` (`exact`면 집합이 같아야 함)
-  - `endpoint_workloads[]`(선택): `{path_contains, workload}` — 핸들러 파일 경로에 문자열이 들어간 엔드포인트 중 하나 이상이 그 워크로드에 배정됨
-  - `datastores[]`: `{id, role, used_by?}` — `used_by`가 있으면 정확히 같아야 함
-  - `current_components[]`: `{scope, component, status}` — 항상 subset
-  - `artifacts[]`: `{kind, path, settings: {키: 값 또는 {value, defaulted}}}` — 항상 subset
-  - `request_paths[]`: `{id, hops: [{kind, component, settings?}]}` — `hops`가 있으면 구간 순서와 종류·구성 요소가 정확히 같아야 함. `hops`를 생략하면 경로 존재만 확인
-  - `unmapped[]`: 라벨 목록(`exact`면 같아야 함)
+- Produces: `fixtures/f1-simple-web-app/repo` … `fixtures/f6-long-jobs/repo` 여섯 개의 저장소
 
 - [ ] **Step 1: F1 스냅샷 스크립트 작성과 실행**
 
@@ -857,48 +847,7 @@ echo "$COMMIT" > fixtures/f1-simple-web-app/SOURCE
 Run: `chmod +x scripts/export_f1.sh && ./scripts/export_f1.sh`
 Expected: `fixtures/f1-simple-web-app/repo/k8s/base/auth.yaml`이 생기고 `SOURCE`에 `6050701`
 
-- [ ] **Step 2: F1 기대 판정**
-
-`fixtures/f1-simple-web-app/expected.yaml`:
-```yaml
-written_at: "2026-10-02"
-note: 엔진 실행 전에 작성. simple-web-app develop@6050701
-repo_dir: repo
-match: subset
-workloads:
-  - {id: w-nginx, kind: web}
-  - {id: w-auth, kind: web}
-  - {id: w-auth-verify, kind: web}
-  - {id: w-board-api, kind: web}
-  - {id: w-board-worker, kind: worker}
-  - {id: w-db-migrate, kind: migration-job}
-workloads_exact: true
-endpoint_workloads:
-  - {path_contains: services/auth/, workload: w-auth}
-  - {path_contains: services/board/, workload: w-board-api}
-datastores:
-  - {id: ds-postgresql, role: primary-db, used_by: [w-auth, w-auth-verify, w-board-api, w-board-worker, w-db-migrate]}
-  - {id: svc-redis, role: cache, used_by: [w-auth, w-auth-verify, w-board-api, w-board-worker, w-db-migrate]}
-  - {id: svc-redis-streams, role: queue, used_by: [w-auth, w-auth-verify, w-board-api, w-board-worker, w-db-migrate]}
-current_components:
-  - {scope: ds-postgresql, component: "ds:unspecified/postgresql/default", status: confirmed}
-  - {scope: svc-redis, component: "ca:unspecified/redis/default", status: confirmed}
-  - {scope: w-auth, component: "cp:k8s/deployment/unspecified-cluster", status: confirmed}
-artifacts:
-  - {kind: dockerfile, path: services/auth/Dockerfile, settings: {cmd: "uvicorn auth.main:app --host 0.0.0.0 --port 8000 --no-access-log"}}
-  - {kind: compose, path: docker-compose.yml, settings: {}}
-  - {kind: k8s, path: k8s/base/auth.yaml, settings: {"Deployment/auth.terminationGracePeriodSeconds": 30, "Deployment/auth.readinessProbe": true}}
-  - {kind: ci, path: .github/workflows/ci.yml, settings: {}}
-request_paths:
-  - id: path-auth
-    hops:
-      - {kind: app-server, component: "nw:app/uvicorn/default", settings: {timeout_keep_alive: {value: 5, defaulted: true}}}
-  - id: path-nginx
-```
-
-> simple-web-app의 base 매니페스트는 `terminationGracePeriodSeconds: 30`을 명시하므로 기본값이 아니라 명시 값으로 기대한다(6050701에서 확인). `k8s/components/`와 `k8s/overlays/`의 패치 파일에도 같은 이름의 Deployment가 있지만, 워크로드는 경로 순 첫 번째(base)를 쓴다.
-
-- [ ] **Step 3: F2 sqlite-erp 작성**
+- [ ] **Step 2: F2 sqlite-erp 작성**
 
 `fixtures/f2-sqlite-erp/repo/README.md`:
 ```markdown
@@ -1028,42 +977,7 @@ def upload():
     return {"ok": True}
 ```
 
-`fixtures/f2-sqlite-erp/expected.yaml`:
-```yaml
-written_at: "2026-10-02"
-note: 엔진 실행 전에 작성
-repo_dir: repo
-match: exact
-workloads:
-  - {id: w-web, kind: web}
-endpoints:
-  - {method: POST, route: /login}
-  - {method: GET, route: /approvals}
-  - {method: POST, route: /approvals}
-  - {method: POST, route: "/approvals/<int:approval_id>/approve"}
-  - {method: GET, route: /export}
-  - {method: POST, route: /attachments}
-datastores:
-  - {id: ds-sqlite, role: primary-db}
-  - {id: svc-container-disk, role: file-storage}
-current_components:
-  - {scope: ds-sqlite, component: "ds:local/sqlite/wal", status: confirmed}
-  - {scope: svc-container-disk, component: "fs:local/container-disk/default", status: candidate}
-  - {scope: w-web, component: "cp:docker/container/unspecified-host", status: confirmed}
-artifacts:
-  - kind: dockerfile
-    path: Dockerfile
-    settings:
-      cmd: "flask run --host=0.0.0.0"
-      user: {value: root, defaulted: true}
-request_paths:
-  - id: path-web
-    hops:
-      - {kind: app-server, component: "nw:app/flask-dev/default"}
-unmapped: []
-```
-
-- [ ] **Step 4: F3 vibe-shop 작성**
+- [ ] **Step 3: F3 vibe-shop 작성**
 
 `fixtures/f3-vibe-shop/repo/package.json`:
 ```json
@@ -1167,38 +1081,7 @@ export async function POST(req: Request) {
 }
 ```
 
-`fixtures/f3-vibe-shop/expected.yaml`:
-```yaml
-written_at: "2026-10-02"
-note: 엔진 실행 전에 작성
-repo_dir: repo
-match: exact
-workloads:
-  - {id: w-web, kind: web}
-endpoints:
-  - {method: GET, route: /api/products}
-  - {method: POST, route: /api/checkout}
-  - {method: POST, route: /api/webhooks/stripe}
-  - {method: POST, route: /api/upload}
-datastores:
-  - {id: ds-sqlite, role: primary-db}
-  - {id: svc-process-memory, role: session}
-  - {id: svc-container-disk, role: file-storage}
-current_components:
-  - {scope: ds-sqlite, component: "ds:local/sqlite/default", status: confirmed}
-  - {scope: svc-process-memory, component: "ca:local/process-memory/default", status: candidate}
-  - {scope: svc-container-disk, component: "fs:local/container-disk/default", status: candidate}
-  - {scope: w-web, component: "cp:vercel/functions/unspecified-plan", status: confirmed}
-artifacts:
-  - {kind: platform-config, path: vercel.json, settings: {regions: [iad1]}}
-request_paths:
-  - id: path-web
-    hops:
-      - {kind: edge-proxy, component: "nw:vercel/edge-proxy/default"}
-unmapped: []
-```
-
-- [ ] **Step 5: F4 overbuilt-internal 작성**
+- [ ] **Step 4: F4 overbuilt-internal 작성**
 
 `fixtures/f4-overbuilt-internal/repo/README.md`:
 ```markdown
@@ -1322,42 +1205,7 @@ resource "aws_db_instance" "replica_us" {
 }
 ```
 
-`fixtures/f4-overbuilt-internal/expected.yaml`:
-```yaml
-written_at: "2026-10-02"
-note: 엔진 실행 전에 작성
-repo_dir: repo
-match: exact
-workloads:
-  - {id: w-internal-reports, kind: web}
-endpoints:
-  - {method: GET, route: /health}
-  - {method: GET, route: /reports}
-datastores:
-  - {id: ds-postgresql, role: primary-db}
-current_components:
-  - {scope: ds-postgresql, component: "ds:aws/rds-postgres/multi-az-instance", status: confirmed}
-  - {scope: w-internal-reports, component: "cp:aws/eks/unspecified", status: confirmed}
-artifacts:
-  - kind: terraform
-    path: terraform/main.tf
-    settings:
-      aws_db_instance.main.multi_az: true
-      aws_db_instance.main.storage_encrypted: {value: false, defaulted: true}
-      provider.aws.us.region: us-east-1
-  - kind: k8s
-    path: k8s/ingress.yaml
-    settings:
-      Ingress/internal-reports.ingressClassName: alb
-request_paths:
-  - id: path-internal-reports
-    hops:
-      - {kind: load-balancer, component: "nw:aws/alb/default", settings: {idle_timeout: {value: 60, defaulted: true}}}
-      - {kind: app-server, component: "nw:app/node-http/default", settings: {keep_alive_timeout: {value: 5, defaulted: true}}}
-unmapped: []
-```
-
-- [ ] **Step 6: F5 small-blog 작성**
+- [ ] **Step 5: F5 small-blog 작성**
 
 `fixtures/f5-small-blog/repo/package.json`:
 ```json
@@ -1416,31 +1264,7 @@ export async function POST() {
 }
 ```
 
-`fixtures/f5-small-blog/expected.yaml`:
-```yaml
-written_at: "2026-10-02"
-note: 엔진 실행 전에 작성
-repo_dir: repo
-match: exact
-workloads:
-  - {id: w-web, kind: web}
-endpoints:
-  - {method: POST, route: /api/revalidate}
-datastores:
-  - {id: ds-supabase-postgres, role: primary-db}
-current_components:
-  - {scope: ds-supabase-postgres, component: "ds:supabase/postgres/unspecified-plan", status: confirmed}
-  - {scope: w-web, component: "cp:vercel/functions/unspecified-plan", status: confirmed}
-artifacts:
-  - {kind: platform-config, path: vercel.json, settings: {}}
-request_paths:
-  - id: path-web
-    hops:
-      - {kind: edge-proxy, component: "nw:vercel/edge-proxy/default"}
-unmapped: []
-```
-
-- [ ] **Step 7: F6 long-jobs 작성**
+- [ ] **Step 6: F6 long-jobs 작성**
 
 `fixtures/f6-long-jobs/repo/package.json`:
 ```json
@@ -1503,36 +1327,11 @@ export async function POST(req: Request) {
 }
 ```
 
-`fixtures/f6-long-jobs/expected.yaml`:
-```yaml
-written_at: "2026-10-02"
-note: 엔진 실행 전에 작성
-repo_dir: repo
-match: exact
-workloads:
-  - {id: w-web, kind: web}
-endpoints:
-  - {method: GET, route: /api/export}
-  - {method: POST, route: /api/signup}
-datastores:
-  - {id: ds-postgresql, role: primary-db}
-current_components:
-  - {scope: ds-postgresql, component: "ds:unspecified/postgresql/default", status: confirmed}
-  - {scope: w-web, component: "cp:vercel/functions/unspecified-plan", status: confirmed}
-artifacts:
-  - {kind: platform-config, path: vercel.json, settings: {"functions.app/api/export/route.ts.maxDuration": 300}}
-request_paths:
-  - id: path-web
-    hops:
-      - {kind: edge-proxy, component: "nw:vercel/edge-proxy/default"}
-unmapped: []
-```
-
-- [ ] **Step 8: 커밋**
+- [ ] **Step 7: 커밋**
 
 ```bash
 git add scripts/export_f1.sh fixtures/
-git commit -m "test: add fixture repositories and expected S1 judgments written before the engine"
+git commit -m "test: add fixture repositories"
 ```
 
 ---
@@ -3816,12 +3615,12 @@ def test_express_django_next(tmp_path):
 
 
 def test_assignment_by_name_tokens(tmp_path):
-    _write(tmp_path, "services/auth/routes.py", "@router.post('/login')\ndef f(): ...\n")
-    _write(tmp_path, "services/board/routes.py", "@router.get('/posts')\ndef f(): ...\n")
-    ws = [_w("w-auth"), _w("w-auth-verify"), _w("w-board-api"), _w("w-nginx")]
+    _write(tmp_path, "apps/billing/handlers.py", "@router.post('/invoices')\ndef f(): ...\n")
+    _write(tmp_path, "apps/catalog/handlers.py", "@router.get('/items')\ndef f(): ...\n")
+    ws = [_w("w-billing"), _w("w-billing-sync"), _w("w-catalog-api"), _w("w-gateway")]
     eps = extract_endpoints(open_snapshot(str(tmp_path), tmp_path / "_w"), ws)
     by_route = {e["route"]: e["workload"] for e in eps}
-    assert by_route == {"/login": "w-auth", "/posts": "w-board-api"}
+    assert by_route == {"/invoices": "w-billing", "/items": "w-catalog-api"}
 ```
 
 - [ ] **Step 2: 테스트가 실패하는지 확인**
@@ -4086,21 +3885,21 @@ def test_hosting_refinement_and_k8s_compute(tmp_path):
 
 def test_used_by_follows_code_roots(tmp_path):
     snap = open_snapshot(str(tmp_path), tmp_path / "_w")
-    ev = ({"path": "services/auth/pyproject.toml", "line": 5, "snippet": "x"},
-          {"path": "services/board/pyproject.toml", "line": 5, "snippet": "x"})
+    ev = ({"path": "apps/billing/requirements.txt", "line": 5, "snippet": "x"},
+          {"path": "apps/catalog/requirements.txt", "line": 5, "snippet": "x"})
     ws = [
-        WorkloadInfo(id="w-auth", kind="web", name="auth", entrypoint=EV[0], status="confirmed",
-                     source="k8s", code_root="services/auth"),
-        WorkloadInfo(id="w-board-worker", kind="worker", name="board-worker", entrypoint=EV[0],
-                     status="confirmed", source="k8s", code_root="services/board"),
-        WorkloadInfo(id="w-nginx", kind="web", name="nginx", entrypoint=EV[0], status="confirmed",
-                     source="k8s", code_root="frontend"),
+        WorkloadInfo(id="w-billing", kind="web", name="billing", entrypoint=EV[0], status="confirmed",
+                     source="k8s", code_root="apps/billing"),
+        WorkloadInfo(id="w-catalog-sync", kind="worker", name="catalog-sync", entrypoint=EV[0],
+                     status="confirmed", source="k8s", code_root="apps/catalog"),
+        WorkloadInfo(id="w-gateway", kind="web", name="gateway", entrypoint=EV[0], status="confirmed",
+                     source="k8s", code_root="web"),
         WorkloadInfo(id="w-unknown", kind="web", name="unknown", entrypoint=EV[0], status="confirmed",
                      source="k8s", code_root=None),
     ]
     ds, _, _ = map_components(snap, [Match("P", "ds:unspecified/postgresql/default", "primary-db", "confirmed", ev)],
                               ws, [])
-    assert ds[0]["used_by"] == ["w-auth", "w-board-worker"]
+    assert ds[0]["used_by"] == ["w-billing", "w-catalog-sync"]
 
 
 def test_platform_config_wins(tmp_path):
@@ -4770,144 +4569,7 @@ git commit -m "feat: assemble S1 inventory with consistency checks and check-run
 
 ---
 
-### Task 16: 픽스처 기대 판정 테스트
-
-**Files:**
-- Create: `tests/test_fixtures.py`
-
-**Interfaces:**
-- Consumes: `analyze` (Task 15), `fixtures/*/expected.yaml` 형식 (Task 4)
-
-- [ ] **Step 1: 테스트 작성**
-
-`tests/test_fixtures.py`:
-```python
-"""엔진 실행 전에 적어 둔 기대 판정(expected.yaml)과 S1 결과를 비교한다.
-
-실패하면 기대를 고치지 말고 엔진을 고친다. 기대가 틀렸다고 판단되면 멈추고 보고한다.
-"""
-
-import json
-from pathlib import Path
-
-import pytest
-import yaml
-
-from infrafit.pipeline import analyze
-
-FIXTURES = Path(__file__).resolve().parent.parent / "fixtures"
-CASES = sorted(p.parent.name for p in FIXTURES.glob("*/expected.yaml"))
-
-
-def _load(name):
-    expected = yaml.safe_load((FIXTURES / name / "expected.yaml").read_text())
-    repo = FIXTURES / name / expected.get("repo_dir", ".")
-    return expected, repo
-
-
-def _settings_match(actual_settings, expected_settings):
-    by_key = {s["key"]: s for s in actual_settings}
-    for key, want in (expected_settings or {}).items():
-        assert key in by_key, f"설정 없음: {key}"
-        if isinstance(want, dict):
-            assert by_key[key]["value"] == want["value"], key
-            assert by_key[key]["defaulted"] == want["defaulted"], key
-        else:
-            assert by_key[key]["value"] == want, key
-
-
-@pytest.fixture(scope="module", params=CASES)
-def case(request, tmp_path_factory):
-    expected, repo = _load(request.param)
-    if not repo.exists():
-        pytest.skip(f"{request.param}: 저장소 없음(scripts/export_f1.sh 실행 필요)")
-    ctx = analyze(str(repo), tmp_path_factory.mktemp("out"), until="S1", run_id="t")
-    inv = json.loads((ctx.out_dir / "inventory.json").read_text())
-    return request.param, expected, inv
-
-
-def test_workloads(case):
-    _, exp, inv = case
-    actual = {(w["id"], w["kind"]) for w in inv["workloads"]}
-    want = {(w["id"], w["kind"]) for w in exp["workloads"]}
-    if exp["match"] == "exact" or exp.get("workloads_exact"):
-        assert actual == want
-    else:
-        assert want <= actual
-
-
-def test_endpoints(case):
-    _, exp, inv = case
-    actual = {(e["method"], e["route"]) for e in inv["endpoints"]}
-    if "endpoints" in exp:
-        want = {(e["method"], e["route"]) for e in exp["endpoints"]}
-        assert actual == want if exp["match"] == "exact" else want <= actual
-    for rule in exp.get("endpoint_workloads", []):
-        assert any(rule["path_contains"] in e["handler"]["path"] and e["workload"] == rule["workload"]
-                   for e in inv["endpoints"]), rule
-
-
-def test_datastores(case):
-    _, exp, inv = case
-    actual = {(d["id"], d["role"]) for d in inv["datastores"]}
-    want = {(d["id"], d["role"]) for d in exp["datastores"]}
-    assert actual == want if exp["match"] == "exact" else want <= actual
-    by_id = {d["id"]: d for d in inv["datastores"]}
-    for d in exp["datastores"]:
-        if "used_by" in d:
-            assert by_id[d["id"]]["used_by"] == d["used_by"], d["id"]
-
-
-def test_current_components(case):
-    _, exp, inv = case
-    actual = {(c["scope"], c["component"], c["status"]) for c in inv["current_components"]}
-    for c in exp["current_components"]:
-        assert (c["scope"], c["component"], c["status"]) in actual, c
-
-
-def test_artifacts(case):
-    _, exp, inv = case
-    by_path = {a["path"]: a for a in inv["existing_artifacts"]}
-    for want in exp.get("artifacts", []):
-        assert want["path"] in by_path, want["path"]
-        assert by_path[want["path"]]["kind"] == want["kind"]
-        _settings_match(by_path[want["path"]]["settings"], want.get("settings"))
-
-
-def test_request_paths(case):
-    _, exp, inv = case
-    by_id = {p["id"]: p for p in inv["request_paths"]}
-    for want in exp.get("request_paths", []):
-        assert want["id"] in by_id, want["id"]
-        if "hops" not in want:
-            continue
-        hops = by_id[want["id"]]["hops"]
-        assert [(h["kind"], h["component"]) for h in hops] == [(h["kind"], h["component"]) for h in want["hops"]]
-        for actual_hop, want_hop in zip(hops, want["hops"]):
-            _settings_match(actual_hop["settings"], want_hop.get("settings"))
-
-
-def test_unmapped(case):
-    _, exp, inv = case
-    if "unmapped" in exp:
-        assert sorted(u["label"] for u in inv["unmapped"]) == sorted(exp["unmapped"])
-```
-
-- [ ] **Step 2: 테스트 실행**
-
-Run: `uv run pytest tests/test_fixtures.py -v`
-Expected: PASS (6개 픽스처 × 7개 검사). 실패하면 실패한 검사의 메시지를 보고 **엔진 코드를 고친다.** `expected.yaml`이 틀렸다고 판단되면 고치지 말고 멈추고 보고한다.
-
-- [ ] **Step 3: 커밋**
-
-```bash
-git add tests/test_fixtures.py
-git commit -m "test: compare S1 output with expected judgments for all fixtures"
-```
-
----
-
-### Task 17: 골든 결과, 결정성, 단계별 예시
+### Task 16: 골든 결과, 결정성, 단계별 예시
 
 **Files:**
 - Create: `scripts/update_golden.py`, `fixtures/*/golden/intake.json`, `fixtures/*/golden/inventory.json`, `schemas/examples/f2-sqlite-erp/intake.json`, `schemas/examples/f2-sqlite-erp/inventory.json`
@@ -4917,16 +4579,13 @@ git commit -m "test: compare S1 output with expected judgments for all fixtures"
 - Consumes: `analyze` (Task 15), `validate` (Task 2), `check_s1` (Task 15)
 - Produces:
   - `scripts/update_golden.normalize(data: dict) -> dict` — `meta` 제거, intake의 `repo`를 `"<repo>"`로 바꿈
-  - 골든은 기대 판정 테스트(Task 16)가 통과한 실행 결과를 고정한 회귀용 기준이다
+  - 골든은 엔진이 낸 결과를 그대로 고정한 회귀용 스냅샷이다. 기대값이 아니며, 맞는지 판단하는 데 쓰지 않는다. 코드가 바뀌어 결과가 달라지면 그 변화가 의도한 것인지 확인하는 용도다
 
 - [ ] **Step 1: 골든 갱신 스크립트 작성**
 
 `scripts/update_golden.py`:
 ```python
-"""픽스처마다 S0~S1을 돌려 골든 결과와 F2 단계별 예시를 갱신한다.
-
-tests/test_fixtures.py가 통과한 상태에서만 실행한다.
-"""
+"""픽스처마다 S0~S1을 돌려 골든 스냅샷과 F2 단계별 예시를 갱신한다."""
 
 from __future__ import annotations
 
@@ -4935,8 +4594,6 @@ import shutil
 import sys
 import tempfile
 from pathlib import Path
-
-import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -4953,10 +4610,8 @@ def normalize(data: dict) -> dict:
 
 
 def main() -> None:
-    for expected_file in sorted((ROOT / "fixtures").glob("*/expected.yaml")):
-        fixture = expected_file.parent
-        expected = yaml.safe_load(expected_file.read_text(encoding="utf-8"))
-        repo = fixture / expected.get("repo_dir", ".")
+    for repo in sorted((ROOT / "fixtures").glob("*/repo")):
+        fixture = repo.parent
         with tempfile.TemporaryDirectory() as tmp:
             ctx = analyze(str(repo), Path(tmp), until="S1", run_id="golden")
             golden = fixture / "golden"
@@ -4988,7 +4643,6 @@ import sys
 from pathlib import Path
 
 import pytest
-import yaml
 
 from infrafit.consistency import check_s1
 from infrafit.pipeline import analyze
@@ -5003,8 +4657,7 @@ FIXTURES = sorted(p.parent for p in (ROOT / "fixtures").glob("*/golden/inventory
 
 @pytest.mark.parametrize("fixture", FIXTURES, ids=lambda p: p.name)
 def test_matches_golden(fixture, tmp_path):
-    expected = yaml.safe_load((fixture / "expected.yaml").read_text())
-    ctx = analyze(str(fixture / expected.get("repo_dir", ".")), tmp_path, until="S1", run_id="t")
+    ctx = analyze(str(fixture / "repo"), tmp_path, until="S1", run_id="t")
     for name in ("intake", "inventory"):
         actual = normalize(json.loads((ctx.out_dir / f"{name}.json").read_text()))
         golden = json.loads((fixture / "golden" / f"{name}.json").read_text())
@@ -5039,7 +4692,7 @@ Expected: FAIL (골든 파일과 예시 파일이 아직 없음 — `test_matche
 Run: `uv run python scripts/update_golden.py`
 Expected: `updated f1-simple-web-app` … `updated f6-long-jobs` 6줄
 
-생성된 `fixtures/f2-sqlite-erp/repo/golden/inventory.json`을 열어 Task 4의 기대 판정과 같은지 눈으로 한 번 확인한다(워크로드 1개, 엔드포인트 6개, `ds-sqlite`가 `ds:local/sqlite/wal`, 요청 경로에 `nw:app/flask-dev/default`).
+모든 픽스처에서 `analyze`가 일관성 오류 없이 끝났다는 뜻이다. 결과 내용이 맞는지는 이 계획에서 판단하지 않는다.
 
 - [ ] **Step 5: 테스트 통과 확인**
 
@@ -5060,7 +4713,6 @@ git commit -m "test: pin golden S0-S1 outputs, check determinism and stage examp
 - `uv run pytest`가 전부 통과한다.
 - `uv run infrafit kb lint`가 `0개 문제`.
 - `uv run infrafit analyze fixtures/f2-sqlite-erp/repo --until S1`이 `out/<run-id>/intake.json`, `inventory.json`을 만들고, `uv run infrafit check-run out/<run-id>`가 `0개 문제`.
-- 기대 판정(`expected.yaml`)은 Task 4에서 쓴 그대로이고, 엔진 결과에 맞춰 고친 흔적이 없다.
 
 ## 다음 계획
 
