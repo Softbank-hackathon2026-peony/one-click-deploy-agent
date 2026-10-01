@@ -47,3 +47,20 @@ def test_platform_configs_and_ci(tmp_path):
 def test_flatten_unquotes_and_skips_metadata():
     data = {"engine": '"postgres"', "__start_line__": 3, "settings": [{"tier": "db-f1", "ip": {"ipv4": True}}]}
     assert flatten(data) == {"engine": "postgres", "settings.tier": "db-f1", "settings.ip.ipv4": True}
+
+
+def test_non_dict_roots_do_not_raise(tmp_path):
+    _write(tmp_path, "compose.yaml", "- a\n- b\n")
+    _write(tmp_path, ".github/workflows/x.yml", "jobs: [1, 2]\n")
+    _write(tmp_path, "vercel.json", "[]")
+    arts = {a.path: a for a in parse_artifacts(open_snapshot(str(tmp_path), tmp_path / "_w"))}
+    assert arts["compose.yaml"].parsed is False
+    assert arts["vercel.json"].parsed is False
+    assert arts[".github/workflows/x.yml"].get("jobs") == []
+
+
+def test_dockerfile_from_flags_skipped(tmp_path):
+    _write(tmp_path, "Dockerfile",
+           "FROM --platform=$BUILDPLATFORM node:22 AS build\nFROM --platform=linux/amd64 python:3.12-slim\n")
+    art = parse_artifacts(open_snapshot(str(tmp_path), tmp_path / "_w"))[0]
+    assert art.get("base_image") == "python:3.12-slim"

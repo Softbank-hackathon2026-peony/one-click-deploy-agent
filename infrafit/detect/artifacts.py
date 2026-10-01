@@ -101,7 +101,7 @@ def parse_dockerfile(snap: Snapshot, rel: str) -> ParsedArtifact:
     art = ParsedArtifact("dockerfile", rel, True, objects=instrs)
     froms = [x for x in instrs if x[0] == "FROM"]
     if froms:
-        art.settings.append(_fact(snap, rel, "base_image", froms[-1][1].split()[0], froms[-1][2]))
+        art.settings.append(_fact(snap, rel, "base_image", next((t for t in froms[-1][1].split() if not t.startswith("--")), ""), froms[-1][2]))
     art.settings.append(_fact(snap, rel, "stages", len(froms)))
     for key, op in (("user", "USER"), ("cmd", "CMD"), ("entrypoint", "ENTRYPOINT"),
                     ("expose", "EXPOSE"), ("healthcheck", "HEALTHCHECK")):
@@ -119,7 +119,11 @@ def parse_compose(snap: Snapshot, rel: str) -> ParsedArtifact:
         data = yaml.safe_load(snap.read(rel)) or {}
     except yaml.YAMLError:
         return ParsedArtifact("compose", rel, False)
-    services = data.get("services") or {}
+    if not isinstance(data, dict):
+        return ParsedArtifact("compose", rel, False)
+    services = data.get("services")
+    if not isinstance(services, dict):
+        services = {}
     art = ParsedArtifact("compose", rel, True,
                          objects=[(n, services[n] if isinstance(services[n], dict) else {}) for n in sorted(services)])
     for name, svc in art.objects:
@@ -150,6 +154,8 @@ def parse_platform(snap: Snapshot, rel: str) -> ParsedArtifact:
             return ParsedArtifact("platform-config", rel, False)
     except (json.JSONDecodeError, tomllib.TOMLDecodeError, yaml.YAMLError):
         return ParsedArtifact("platform-config", rel, False)
+    if not isinstance(data, dict):
+        return ParsedArtifact("platform-config", rel, False)
     art = ParsedArtifact("platform-config", rel, True, objects=[(name, data)])
     for key, value in sorted(flatten(data).items()):
         art.settings.append(_fact(snap, rel, key, value))
@@ -163,9 +169,14 @@ def parse_ci(snap: Snapshot, rel: str) -> ParsedArtifact:
         data = yaml.safe_load(snap.read(rel)) or {}
     except yaml.YAMLError:
         return ParsedArtifact("ci", rel, False)
-    jobs = data.get("jobs") or {}
+    if not isinstance(data, dict):
+        return ParsedArtifact("ci", rel, False)
+    jobs = data.get("jobs")
+    if not isinstance(jobs, dict):
+        jobs = {}
     uses = sorted({step["uses"] for job in jobs.values() if isinstance(job, dict)
-                   for step in job.get("steps") or [] if isinstance(step, dict) and "uses" in step})
+                   for step in (job["steps"] if isinstance(job.get("steps"), list) else [])
+                   if isinstance(step, dict) and "uses" in step})
     art = ParsedArtifact("ci", rel, True, objects=[("workflow", data)])
     art.settings.append(_fact(snap, rel, "jobs", sorted(jobs)))
     art.settings.append(_fact(snap, rel, "uses", uses))
