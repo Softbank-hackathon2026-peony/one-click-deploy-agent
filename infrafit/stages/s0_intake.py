@@ -11,8 +11,18 @@ from infrafit.run import RunContext, code_version, input_hash, now_iso
 def _overrides(snap: Snapshot) -> dict | None:
     if not snap.exists("infrafit.yaml"):
         return None
-    data = yaml.safe_load(snap.read("infrafit.yaml"))
-    return data if isinstance(data, dict) else None
+    content = snap.read("infrafit.yaml").strip()
+    if not content:
+        return None
+    try:
+        data = yaml.safe_load(content)
+    except yaml.YAMLError as e:
+        raise ValueError(f"infrafit.yaml is not valid YAML: {e}")
+    if data is None:
+        return None
+    if not isinstance(data, dict):
+        raise ValueError(f"infrafit.yaml must be a mapping, got {type(data).__name__}")
+    return data
 
 
 def run_s0(ctx: RunContext, snap: Snapshot) -> dict:

@@ -61,22 +61,45 @@ class Snapshot:
         return rel in self._fileset
 
 
-def _walk(root: Path) -> tuple[list[str], list[str], int]:
+def _walk(root: Path, workdir: Path | None = None) -> tuple[list[str], list[str], int]:
     files: list[str] = []
     excluded: list[str] = []
     total = 0
+    # Compute workdir relative path if it's inside root
+    workdir_rel = None
+    if workdir is not None:
+        try:
+            workdir_rel = workdir.resolve().relative_to(root.resolve()).as_posix()
+        except ValueError:
+            pass
+
     for dirpath, dirnames, filenames in os.walk(root):
         rel_dir = Path(dirpath).relative_to(root).as_posix()
         keep = []
         for d in sorted(dirnames):
+            dir_path = Path(dirpath) / d
+            # Skip symlinks to directories
+            if dir_path.is_symlink():
+                continue
+            # Skip excluded directories
             if d in EXCLUDED_DIRS:
                 excluded.append(f"{d}/" if rel_dir == "." else f"{rel_dir}/{d}/")
+            # Skip work directory
+            elif workdir_rel is not None:
+                rel_d = f"{rel_dir}/{d}" if rel_dir != "." else d
+                if rel_d == workdir_rel or workdir_rel.startswith(rel_d + "/"):
+                    continue
+                else:
+                    keep.append(d)
             else:
                 keep.append(d)
         dirnames[:] = keep
         for name in sorted(filenames):
-            total += 1
             path = Path(dirpath) / name
+            # Skip symlinks to files
+            if path.is_symlink():
+                continue
+            total += 1
             if path.suffix.lower() in BINARY_EXTS or path.stat().st_size > MAX_TEXT_BYTES:
                 continue
             files.append(path.relative_to(root).as_posix())
@@ -112,13 +135,7 @@ def open_snapshot(source: str, workdir: Path) -> Snapshot:
         if not root.is_dir():
             raise FileNotFoundError(f"저장소 경로가 없음: {source}")
         repo = str(root)
-    files, excluded, total = _walk(root)
-    # 작업 디렉터리가 저장소 안에 있으면 분석 대상에서 뺀다.
-    try:
-        work_rel = workdir.resolve().relative_to(root).as_posix() + "/"
-        files = [f for f in files if not f.startswith(work_rel)]
-    except ValueError:
-        pass
+    files, excluded, total = _walk(root, workdir)
     return Snapshot(root=root, repo=repo, commit=_commit(root, files), files=files,
                     files_total=total, excluded=excluded)
 

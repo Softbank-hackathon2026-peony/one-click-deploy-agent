@@ -42,3 +42,21 @@ def test_evidence_and_search(tmp_path):
     ev = evidence(snap, "app.py", 2, kind="tech")
     assert ev == {"path": "app.py", "line": 2, "snippet": "conn = sqlite3.connect('x.db')", "kind": "tech"}
     assert evidence(snap, "app.py") == {"path": "app.py", "line": None, "snippet": "app.py"}
+
+
+def test_snapshot_skips_symlinks(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "real.py").write_text("print('real')\n")
+    # Create a dangling symlink file
+    (repo / "broken_link").symlink_to(repo / "nonexistent.txt")
+    # Create a symlink to a file outside the repo
+    outside = tmp_path / "outside.txt"
+    outside.write_text("outside\n")
+    (repo / "external_link").symlink_to(outside)
+    snap = open_snapshot(str(repo), tmp_path / "_work")
+    assert snap.files == ["real.py"]
+    assert "broken_link" not in snap.files
+    assert "external_link" not in snap.files
+    # Verify it doesn't crash on dangling symlinks
+    assert snap.commit.startswith("tree-")
