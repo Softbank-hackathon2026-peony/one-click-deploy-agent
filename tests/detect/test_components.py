@@ -1,5 +1,6 @@
 from infrafit.detect.artifacts import ParsedArtifact
-from infrafit.detect.components import map_components
+from infrafit.detect.components import find_unmapped, map_components
+from infrafit.detect.manifests import parse_manifests
 from infrafit.detect.signatures import Match
 from infrafit.detect.workloads import WorkloadInfo
 from infrafit.repo import open_snapshot
@@ -100,3 +101,29 @@ def test_platform_config_picks_first_by_path(tmp_path):
             ParsedArtifact("platform-config", "a/vercel.json", True)]
     _, _, compute = map_components(snap, [], [_w("w-web")], arts)
     assert compute["w-web"] == "cp:vercel/functions/unspecified-plan"
+
+
+def _unmapped_snap(tmp_path, deps):
+    (tmp_path / "package.json").write_text(
+        '{\n  "dependencies": {\n' + ",\n".join(f'    "{d}": "1.0.0"' for d in deps) + "\n  }\n}\n")
+    snap = open_snapshot(str(tmp_path), tmp_path / "_w")
+    return snap, parse_manifests(snap)
+
+
+def test_find_unmapped_reports_watchlist_dep(tmp_path):
+    snap, mf = _unmapped_snap(tmp_path, ["express", "kafkajs"])
+    out = find_unmapped(snap, mf)
+    assert [o["label"] for o in out] == ["kafkajs"]
+    ev = out[0]["evidence"][0]
+    assert ev["path"] == "package.json" and ev["line"] == 4
+
+
+def test_find_unmapped_ignores_non_watchlist(tmp_path):
+    snap, mf = _unmapped_snap(tmp_path, ["express"])
+    assert find_unmapped(snap, mf) == []
+
+
+def test_find_unmapped_skips_signature_known_dep(tmp_path, monkeypatch):
+    snap, mf = _unmapped_snap(tmp_path, ["redis"])
+    monkeypatch.setattr("infrafit.detect.components.kb.watchlist", lambda: ("redis",))
+    assert find_unmapped(snap, mf) == []
