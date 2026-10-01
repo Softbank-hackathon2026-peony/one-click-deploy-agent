@@ -70,3 +70,13 @@ def test_corrupted_cache_entry_returns_none(tmp_path):
     hit = second.cached("S0", "sha256:h")
     assert hit is None
     assert not (tmp_path / "r2" / "intake.json").exists()
+
+
+@pytest.mark.parametrize("text", ["{not json", "[1, 2]", ""])
+def test_unreadable_cache_entry_is_a_miss(tmp_path, text):
+    ctx = RunContext.create(tmp_path, run_id="r1")
+    cache_file = tmp_path / ".cache" / "S0" / "sha256-h.json"
+    cache_file.parent.mkdir(parents=True)
+    cache_file.write_text(text)
+    assert ctx.cached("S0", "sha256:h") is None
+    assert not (tmp_path / "r1" / "intake.json").exists()

@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass
 from pathlib import PurePosixPath
 
-from infrafit.detect.artifacts import ParsedArtifact, _d, pod_spec
+from infrafit.detect.artifacts import ParsedArtifact, _d, build_source, is_build_path, pod_spec
 from infrafit.detect.manifests import Manifests, parent_dir
 from infrafit.evidence import evidence, line_of
 from infrafit.repo import Snapshot
@@ -122,8 +122,8 @@ def _from_k8s(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[WorkloadI
             else:
                 wkind = "worker" if "worker" in text else "web"
             # 렌더된 kustomize 결과(`...#build`)는 실제 파일이 아니므로 kustomization.yaml을 근거로 쓴다
-            path, built = (art.path.split("#", 1)[0], True) if "#" in art.path else (art.path, False)
-            line = None if built else line_of(snap, path, f"name: {name}")
+            path = build_source(art.path)
+            line = None if is_build_path(art.path) else line_of(snap, path, f"name: {name}")
             seen[name] = WorkloadInfo(
                 id=f"w-{slug(name)}", kind=wkind, name=name, entrypoint=evidence(snap, path, line),
                 status="confirmed", source="k8s", image=image,

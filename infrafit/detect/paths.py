@@ -6,7 +6,7 @@ import re
 from pathlib import PurePosixPath
 
 from infrafit import kb
-from infrafit.detect.artifacts import ParsedArtifact, _d, ingress_backends
+from infrafit.detect.artifacts import ParsedArtifact, _d, build_source, ingress_backends
 from infrafit.detect.defaults import hop_settings
 from infrafit.detect.workloads import WorkloadInfo
 from infrafit.evidence import evidence
@@ -74,11 +74,8 @@ def _load_balancer(snap: Snapshot, w: WorkloadInfo, artifacts: list[ParsedArtifa
             m = _ALB_IDLE.search(str(annotations.get("alb.ingress.kubernetes.io/load-balancer-attributes", "")))
             if comp == "nw:aws/alb/default" and m:
                 explicit["idle_timeout"] = int(m.group(1))
-            if art.path.endswith("#build"):  # 실제 파일이 아니므로 kustomization.yaml을 근거로 쓴다
-                ev = evidence(snap, art.path[: -len("#build")])
-            else:
-                ev = evidence(snap, art.path)
-            return _hop("load-balancer", comp, explicit, [ev])
+            # 렌더 결과(#build)는 실제 파일이 아니므로 kustomization.yaml을 근거로 쓴다
+            return _hop("load-balancer", comp, explicit, [evidence(snap, build_source(art.path))])
     return None
 
 

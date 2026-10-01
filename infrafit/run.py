@@ -75,7 +75,12 @@ class RunContext:
         cache_file = self.cache_dir / stage / (input_hash.replace(":", "-") + ".json")
         if not cache_file.exists():
             return None
-        data = json.loads(cache_file.read_text(encoding="utf-8"))
+        try:
+            data = json.loads(cache_file.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError):
+            return None
+        if not isinstance(data, dict):
+            return None
         started = now_iso()
         data["meta"] = self._meta(stage, input_hash, started)
         name, def_name = STAGES[stage]

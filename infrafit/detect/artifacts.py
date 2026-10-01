@@ -340,6 +340,17 @@ def _classify(rel: str) -> str | None:
 
 KUSTOMIZATION_NAMES = ("kustomization.yaml", "kustomization.yml", "Kustomization")
 KUSTOMIZE_TIMEOUT = 60
+BUILD_SUFFIX = "#build"
+
+
+def is_build_path(path: str) -> bool:
+    """kustomize 렌더 결과의 가상 경로(`<dir>/kustomization.yaml#build`)인가."""
+    return path.endswith(BUILD_SUFFIX)
+
+
+def build_source(path: str) -> str:
+    """렌더 결과면 근거로 쓸 실제 kustomization.yaml 경로, 아니면 그대로."""
+    return path[: -len(BUILD_SUFFIX)] if is_build_path(path) else path
 
 
 def kustomize_binary() -> list[str] | None:
@@ -405,7 +416,7 @@ def build_overlays(snap: Snapshot, runner=subprocess.run) -> list[ParsedArtifact
         return []
     out: list[ParsedArtifact] = []
     for d in kustomize_leaves(snap):
-        rel = f"{d}/kustomization.yaml#build" if d else "kustomization.yaml#build"
+        rel = (f"{d}/kustomization.yaml" if d else "kustomization.yaml") + BUILD_SUFFIX
         result = runner(cmd + [str(snap.root / d)], capture_output=True, text=True)
         if result.returncode != 0:
             out.append(ParsedArtifact("k8s", rel, False))

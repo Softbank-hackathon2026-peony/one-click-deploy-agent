@@ -1,6 +1,6 @@
 import json
 
-from infrafit.detect.artifacts import parse_artifacts
+from infrafit.detect.artifacts import is_build_path, parse_artifacts
 from infrafit.detect.manifests import parse_manifests
 from infrafit.detect.workloads import detect_workloads
 from infrafit.repo import open_snapshot
@@ -125,3 +125,18 @@ def test_malformed_objects_do_not_crash(tmp_path):
     compose = ParsedArtifact("compose", "docker-compose.yml", True,
                              objects=[("a", None), ("b", {"build": 5, "command": {"x": 1}}), "junk", ("c", {"build": {"context": 3, "dockerfile": []}})])
     assert detect_workloads(snap, parse_manifests(snap), [compose])
+
+
+def test_is_build_path():
+    assert is_build_path("k8s/kustomization.yaml#build")
+    assert not is_build_path("k8s/a#b.yaml")
+
+
+def test_k8s_file_with_hash_in_name_keeps_line_evidence(tmp_path):
+    (tmp_path / "k8s").mkdir()
+    (tmp_path / "k8s" / "a#b.yaml").write_text(
+        "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: api\nspec:\n  template:\n    spec:\n"
+        "      containers: [{name: api, image: acme/api:1}]\n")
+    ws = _run(tmp_path)
+    assert ws[0].entrypoint["path"] == "k8s/a#b.yaml"
+    assert ws[0].entrypoint["line"] == 4
