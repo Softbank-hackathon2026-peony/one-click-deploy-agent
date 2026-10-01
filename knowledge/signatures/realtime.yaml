@@ -1,0 +1,14 @@
+signatures:
+  - id: SIG-RT-SOCKETIO
+    component: "rt:lib/socketio/no-adapter"
+    role: realtime
+    status: confirmed
+    when: {any: [{dependency: socket.io}]}
+    refine:
+      - component: "rt:lib/socketio/redis-adapter"
+        when: {any: [{dependency: "@socket.io/redis-adapter"}]}
+  - id: SIG-RT-WS
+    component: "rt:lib/ws/default"
+    role: realtime
+    status: candidate
+    when: {any: [{dependency: ws}]}

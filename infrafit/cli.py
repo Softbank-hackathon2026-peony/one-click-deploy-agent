@@ -17,6 +17,16 @@ def _cmd_analyze(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_kb_lint(args: argparse.Namespace) -> int:
+    from infrafit.kb_lint import lint
+
+    issues = lint()
+    for issue in issues:
+        print(issue)
+    print(f"{len(issues)}개 문제")
+    return 1 if issues else 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="infrafit")
     parser.add_argument("--version", action="version", version=f"infrafit {__version__}")
@@ -28,6 +38,11 @@ def build_parser() -> argparse.ArgumentParser:
     analyze.add_argument("--until", default="S1", help="이 단계까지 실행")
     analyze.add_argument("--run-id", default=None)
     analyze.set_defaults(func=_cmd_analyze)
+
+    kb_cmd = sub.add_parser("kb", help="지식 베이스 도구")
+    kb_sub = kb_cmd.add_subparsers(dest="kb_command")
+    kb_lint = kb_sub.add_parser("lint", help="knowledge/ 형식 검사")
+    kb_lint.set_defaults(func=_cmd_kb_lint)
     return parser
 
 

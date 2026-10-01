@@ -1,0 +1,29 @@
+signatures:
+  - id: SIG-QU-REDIS-STREAMS
+    component: "qu:unspecified/redis-streams/default"
+    role: queue
+    status: confirmed
+    when:
+      any:
+        - {code: {glob: "**/*.py", regex: "\\.xadd\\("}}
+        - {code: {glob: "**/*.ts", regex: "\\.xadd\\("}}
+        - {code: {glob: "**/*.js", regex: "\\.xadd\\("}}
+  - id: SIG-QU-BULLMQ
+    component: "qu:lib/bullmq/default"
+    role: queue
+    status: confirmed
+    when: {any: [{dependency: bullmq}]}
+  - id: SIG-QU-CELERY
+    component: "qu:lib/celery/default"
+    role: queue
+    status: confirmed
+    when: {any: [{dependency: celery}]}
+  - id: SIG-QU-SQS
+    component: "qu:aws/sqs/standard"
+    role: queue
+    status: confirmed
+    when:
+      any:
+        - {code: {glob: "**/*.ts", regex: "SendMessageCommand"}}
+        - {code: {glob: "**/*.js", regex: "SendMessageCommand"}}
+        - {code: {glob: "**/*.py", regex: "\\.send_message\\("}}

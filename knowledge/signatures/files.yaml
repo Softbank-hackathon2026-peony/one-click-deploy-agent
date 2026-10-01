@@ -1,0 +1,36 @@
+signatures:
+  - id: SIG-FS-LOCAL
+    component: "fs:local/container-disk/default"
+    role: file-storage
+    status: candidate
+    when:
+      any:
+        - {code: {glob: "**/*.py", regex: "\\.save\\(\\s*os\\.path\\.join\\("}}
+        - {code: {glob: "**/*.ts", regex: "writeFile(Sync)?\\("}}
+        - {code: {glob: "**/*.js", regex: "writeFile(Sync)?\\("}}
+        - {code: {glob: "**/*.js", regex: "multer\\(\\s*\\{\\s*dest"}}
+        - {code: {glob: "**/*.ts", regex: "multer\\(\\s*\\{\\s*dest"}}
+  - id: SIG-FS-S3
+    component: "fs:aws/s3/default"
+    role: file-storage
+    status: confirmed
+    when:
+      any:
+        - {dependency: "@aws-sdk/client-s3"}
+        - {code: {glob: "**/*.py", regex: "(upload_fileobj|put_object)\\("}}
+  - id: SIG-FS-GCS
+    component: "fs:gcp/gcs/default"
+    role: file-storage
+    status: confirmed
+    when:
+      any:
+        - {dependency: "@google-cloud/storage"}
+        - {dependency: google-cloud-storage}
+  - id: SIG-FS-SUPABASE
+    component: "fs:supabase/storage/default"
+    role: file-storage
+    status: confirmed
+    when:
+      any:
+        - {code: {glob: "**/*.ts", regex: "\\.storage\\s*\\.from\\("}}
+        - {code: {glob: "**/*.js", regex: "\\.storage\\s*\\.from\\("}}

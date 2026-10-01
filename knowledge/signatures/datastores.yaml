@@ -1,0 +1,70 @@
+signatures:
+  - id: SIG-DS-SQLITE
+    component: "ds:local/sqlite/default"
+    role: primary-db
+    status: confirmed
+    when:
+      any:
+        - {dependency: better-sqlite3}
+        - {dependency: sqlite3}
+        - {code: {glob: "**/*.py", regex: "sqlite3\\.connect\\("}}
+        - {code: {glob: "**/schema.prisma", regex: "provider\\s*=\\s*\"sqlite\""}}
+        - {code: {glob: "**/settings*.py", regex: "django\\.db\\.backends\\.sqlite3"}}
+    refine:
+      - component: "ds:local/sqlite/wal"
+        when:
+          any:
+            - {code: {glob: "**/*.py", regex: "journal_mode\\s*=\\s*WAL", flags: i}}
+            - {code: {glob: "**/*.ts", regex: "journal_mode\\s*=\\s*WAL", flags: i}}
+            - {code: {glob: "**/*.js", regex: "journal_mode\\s*=\\s*WAL", flags: i}}
+  - id: SIG-DS-POSTGRES
+    component: "ds:unspecified/postgresql/default"
+    role: primary-db
+    status: confirmed
+    when:
+      any:
+        - {dependency: pg}
+        - {dependency: postgres}
+        - {dependency: psycopg}
+        - {dependency: psycopg2}
+        - {dependency: psycopg2-binary}
+        - {dependency: asyncpg}
+        - {code: {glob: "**/schema.prisma", regex: "provider\\s*=\\s*\"postgresql\""}}
+        - {code: {glob: "**/settings*.py", regex: "django\\.db\\.backends\\.postgresql"}}
+  - id: SIG-DS-MYSQL
+    component: "ds:unspecified/mysql/default"
+    role: primary-db
+    status: confirmed
+    when:
+      any:
+        - {dependency: mysql2}
+        - {dependency: mysqlclient}
+        - {dependency: pymysql}
+        - {code: {glob: "**/schema.prisma", regex: "provider\\s*=\\s*\"mysql\""}}
+  - id: SIG-DS-MONGO
+    component: "ds:unspecified/mongodb/default"
+    role: primary-db
+    status: confirmed
+    when:
+      any:
+        - {dependency: mongodb}
+        - {dependency: mongoose}
+        - {dependency: pymongo}
+        - {dependency: motor}
+  - id: SIG-DS-SUPABASE
+    component: "ds:supabase/postgres/unspecified-plan"
+    role: primary-db
+    status: confirmed
+    when:
+      any:
+        - {dependency: "@supabase/supabase-js"}
+        - {dependency: supabase}
+  - id: SIG-DS-FIRESTORE
+    component: "ds:firebase/firestore/standard"
+    role: primary-db
+    status: confirmed
+    when:
+      any:
+        - {code: {glob: "**/*.ts", regex: "getFirestore\\("}}
+        - {code: {glob: "**/*.js", regex: "getFirestore\\("}}
+        - {code: {glob: "**/*.py", regex: "firestore\\.client\\("}}
