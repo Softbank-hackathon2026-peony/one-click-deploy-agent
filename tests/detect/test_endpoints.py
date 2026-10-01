@@ -78,3 +78,21 @@ def f(): ...
     eps = extract_endpoints(open_snapshot(str(tmp_path), tmp_path / "_w"), [_w("w-web")])
     assert _routes(eps) == [("GET", "/r"), ("POST", "/s")]
     assert extract_endpoints(open_snapshot(str(tmp_path), tmp_path / "_w"), []) == []
+
+
+def test_assignment_uses_code_root_and_marks_fallback_candidate(tmp_path):
+    _write(tmp_path, "services/orders/main.py", "@app.get('/orders')\ndef f(): ...\n")
+    _write(tmp_path, "tools/misc.py", "@app.get('/misc')\ndef g(): ...\n")
+    ws = [WorkloadInfo(id="w-api", kind="web", name="api", entrypoint={"path": "x", "line": None, "snippet": "x"},
+                       status="confirmed", source="k8s", code_root="services/orders"),
+          WorkloadInfo(id="w-zzz", kind="web", name="zzz", entrypoint={"path": "x", "line": None, "snippet": "x"},
+                       status="confirmed", source="k8s", code_root=None)]
+    eps = {e["route"]: e for e in extract_endpoints(open_snapshot(str(tmp_path), tmp_path / "_w"), ws)}
+    assert (eps["/orders"]["workload"], eps["/orders"]["status"]) == ("w-api", "confirmed")
+    assert (eps["/misc"]["workload"], eps["/misc"]["status"]) == ("w-api", "candidate")
+
+
+def test_single_web_workload_assignment_is_confirmed(tmp_path):
+    _write(tmp_path, "tools/misc.py", "@app.get('/misc')\ndef g(): ...\n")
+    eps = extract_endpoints(open_snapshot(str(tmp_path), tmp_path / "_w"), [_w("w-web")])
+    assert eps[0]["status"] == "confirmed"

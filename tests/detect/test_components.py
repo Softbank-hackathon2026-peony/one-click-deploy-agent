@@ -133,12 +133,11 @@ def test_terraform_link_is_candidate_with_two_roots(tmp_path):
     snap = open_snapshot(str(tmp_path), tmp_path / "_w")
     matches = [Match("P", "ds:unspecified/postgresql/default", "primary-db", "confirmed", EV)]
     arts = [_tf("infra/prod/main.tf", PG, ("aws_eks_cluster", "c", {})), _tf("infra/dev/main.tf", ("aws_s3_bucket", "b", {}))]
-    ds, comps, compute = map_components(snap, matches, [_w("w-api", source="k8s")], arts)
+    _, comps, compute = map_components(snap, matches, [_w("w-api", source="k8s")], arts)
     assert compute["w-api"] == "cp:aws/eks/unspecified"
     assert _status(comps, "w-api") == "candidate"
     assert next(c for c in comps if c["scope"] == "ds-postgresql")["component"] == "ds:aws/rds-postgres/single-az"
     assert _status(comps, "ds-postgresql") == "candidate"
-    assert ds[0]["status"] == "confirmed"
 
 
 def test_terraform_link_is_candidate_with_two_matching_resources(tmp_path):
@@ -174,3 +173,18 @@ def test_find_unmapped_skips_signature_known_dep(tmp_path, monkeypatch):
     snap, mf = _unmapped_snap(tmp_path, ["redis"])
     monkeypatch.setattr("infrafit.detect.components.kb.watchlist", lambda: ("redis",))
     assert find_unmapped(snap, mf) == []
+
+
+def test_used_by_fallback_is_candidate(tmp_path):
+    snap = open_snapshot(str(tmp_path), tmp_path / "_w")
+    ws = [WorkloadInfo(id="w-a", kind="web", name="a", entrypoint=EV[0], status="confirmed",
+                       source="k8s", code_root="apps/a"),
+          WorkloadInfo(id="w-b", kind="worker", name="b", entrypoint=EV[0], status="confirmed",
+                       source="k8s", code_root=None)]
+    shared = ({"path": "lib/db.py", "line": 1, "snippet": "x"},)
+    own = ({"path": "apps/a/db.py", "line": 1, "snippet": "x"},)
+    ds, _, _ = map_components(snap, [Match("P", "ds:unspecified/postgresql/default", "primary-db", "confirmed", shared),
+                                     Match("R", "ca:unspecified/redis/default", "cache", "confirmed", own)], ws, [])
+    by_id = {d["id"]: d for d in ds}
+    assert (by_id["ds-postgresql"]["used_by"], by_id["ds-postgresql"]["status"]) == (["w-a", "w-b"], "candidate")
+    assert (by_id["svc-redis"]["used_by"], by_id["svc-redis"]["status"]) == (["w-a"], "confirmed")

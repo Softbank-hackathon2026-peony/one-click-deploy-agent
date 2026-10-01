@@ -126,19 +126,22 @@ def _next(snap: Snapshot) -> list[Raw]:
     return out
 
 
-def _assign(rel: str, webs: list[WorkloadInfo]) -> WorkloadInfo:
+def _assign(rel: str, webs: list[WorkloadInfo]) -> tuple[WorkloadInfo, bool]:
+    """(워크로드, 근거로 정했는가). 아무 근거도 없어 첫 워크로드로 보낸 것은 추측이다."""
     if len(webs) == 1:
-        return webs[0]
+        return webs[0], True
     segments = set(PurePosixPath(rel).parts)
 
     def score(w: WorkloadInfo) -> int:
         s = len(set(w.name.split("-")) & segments)
-        if w.app_dir and rel.startswith(w.app_dir + "/"):
+        if any(root and rel.startswith(root + "/") for root in {w.app_dir, w.code_root}):
             s += 10
         return s
 
     best = max(webs, key=lambda w: (score(w), -len(w.name), [-ord(c) for c in w.id]))
-    return best if score(best) > 0 else sorted(webs, key=lambda w: w.id)[0]
+    if score(best) > 0:
+        return best, True
+    return sorted(webs, key=lambda w: w.id)[0], False
 
 
 def extract_endpoints(snap: Snapshot, workloads: list[WorkloadInfo]) -> list[dict]:
@@ -150,9 +153,9 @@ def extract_endpoints(snap: Snapshot, workloads: list[WorkloadInfo]) -> list[dic
     counters: dict[str, int] = defaultdict(int)
     out: list[dict] = []
     for method, route, rel, line, framework in raw:
-        w = _assign(rel, webs)
+        w, sure = _assign(rel, webs)
         counters[w.id] += 1
         out.append({"id": f"ep-{w.id[2:]}-{counters[w.id]:03d}", "workload": w.id, "method": method,
                     "route": route, "handler": evidence(snap, rel, line), "framework": framework,
-                    "status": "confirmed"})
+                    "status": "confirmed" if sure else "candidate"})
     return out

@@ -117,12 +117,15 @@ def _under(path: str, root: str) -> bool:
     return root == "" or path == root or path.startswith(root + "/")
 
 
-def _users(evidence_items: list[dict], workloads: list[WorkloadInfo]) -> list[str]:
+def _users(evidence_items: list[dict], workloads: list[WorkloadInfo]) -> tuple[list[str], bool]:
+    """(사용하는 워크로드, 코드 위치로 정했는가). 못 정하면 모든 백엔드 워크로드로 추측한다."""
     backend = [w for w in workloads if w.kind != "static-frontend"]
     paths = {e["path"] for e in evidence_items}
     users = sorted(w.id for w in backend
                    if w.code_root is not None and any(_under(p, w.code_root) for p in paths))
-    return users or sorted(w.id for w in backend)
+    if users:
+        return users, True
+    return sorted(w.id for w in backend), False
 
 
 def map_components(snap: Snapshot, matches: list[Match], workloads: list[WorkloadInfo],
@@ -145,8 +148,9 @@ def map_components(snap: Snapshot, matches: list[Match], workloads: list[Workloa
         ev = list(s["evidence"])
         if tf_path:
             ev.append(evidence(snap, tf_path))
-        datastores.append({"id": sid, "role": s["role"], "used_by": _users(s["evidence"], workloads),
-                           "evidence": s["evidence"], "status": s["status"]})
+        used_by, located = _users(s["evidence"], workloads)
+        datastores.append({"id": sid, "role": s["role"], "used_by": used_by,
+                           "evidence": s["evidence"], "status": s["status"] if located else "candidate"})
         comps.append({"scope": sid, "component": component, "label": ",".join(s["signatures"]),
                       "settings": [], "evidence": ev, "status": s["status"] if sure else "candidate"})
 
