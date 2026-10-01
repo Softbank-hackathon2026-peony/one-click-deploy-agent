@@ -44,10 +44,18 @@ def _node(snap: Snapshot, m: Manifests) -> None:
             data = json.loads(snap.read(rel))
         except json.JSONDecodeError:
             continue
+        if not isinstance(data, dict):
+            continue
         for section in ("dependencies", "devDependencies"):
-            for name in sorted(data.get(section) or {}):
+            section_data = data.get(section)
+            if not isinstance(section_data, dict):
+                section_data = {}
+            for name in sorted(section_data):
                 m.add(name.lower(), rel, line_of(snap, rel, f'"{name}"'))
-        for name, cmd in sorted((data.get("scripts") or {}).items()):
+        scripts_data = data.get("scripts")
+        if not isinstance(scripts_data, dict):
+            scripts_data = {}
+        for name, cmd in sorted(scripts_data.items()):
             m.scripts[f"{parent_dir(rel)}:{name}"] = (str(cmd), rel, line_of(snap, rel, f'"{name}"'))
 
 
@@ -57,6 +65,19 @@ def _requirements(snap: Snapshot, m: Manifests) -> None:
             body = text.split("#", 1)[0].strip()
             if not body or body.startswith("-"):
                 continue
+            # Skip URLs, VCS references, paths
+            if body.startswith(("git+", "hg+", "svn+", "bzr+", ".", "/")):
+                continue
+            # Skip lines with :// before @ or name (e.g., https://host/a.whl)
+            scheme_end = body.split("@")[0]
+            if "://" in scheme_end:
+                continue
+            # Handle PEP 508 direct references (name @ url)
+            if " @ " in body:
+                name = body.split(" @ ")[0].strip()
+                m.add(_norm_py(name), rel, i)
+                continue
+            # Standard package requirement
             match = _REQ_NAME.match(body)
             if match:
                 m.add(_norm_py(match.group(1)), rel, i)

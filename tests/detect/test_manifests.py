@@ -38,3 +38,32 @@ def test_locations_keep_every_manifest(tmp_path):
 def test_parent_dir():
     assert parent_dir("package.json") == ""
     assert parent_dir("a/b/package.json") == "a/b"
+
+
+def test_node_tolerates_invalid_json_and_non_dict_structures(tmp_path):
+    # Test with [] at root
+    (tmp_path / "package.json").write_text("[]")
+    # Test with a/package.json having non-dict fields
+    (tmp_path / "a").mkdir()
+    (tmp_path / "a" / "package.json").write_text(json.dumps({
+        "dependencies": ["x"],  # list instead of dict
+        "scripts": [],  # list instead of dict
+    }))
+    m = parse_manifests(open_snapshot(str(tmp_path), tmp_path / "_w"))
+    # Should parse without error and add no deps/scripts from invalid files
+    assert len(m.deps) == 0
+    assert len(m.scripts) == 0
+
+
+def test_requirements_skips_urls_vcs_and_paths(tmp_path):
+    (tmp_path / "requirements.txt").write_text(
+        "git+https://github.com/x/y.git\n"
+        "https://host/a.whl\n"
+        "./local_pkg\n"
+        "mylib @ https://host/mylib.whl\n"
+    )
+    m = parse_manifests(open_snapshot(str(tmp_path), tmp_path / "_w"))
+    # Only mylib should be recorded
+    assert "mylib" in m.deps
+    assert m.deps["mylib"][0] == "requirements.txt"
+    assert len(m.deps) == 1  # Only mylib
