@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 
-from infrafit.schema import validate
+from infrafit.schema import SCHEMA_PATH, SchemaError, validate
 
 STAGES: dict[str, tuple[str, str]] = {
     "S0": ("intake", "Intake"),
@@ -33,6 +33,7 @@ def code_version() -> str:
     for path in sorted(pkg.rglob("*.py")):
         digest.update(path.relative_to(pkg).as_posix().encode("utf-8"))
         digest.update(path.read_bytes())
+    digest.update(SCHEMA_PATH.read_bytes())
     return digest.hexdigest()[:12]
 
 
@@ -77,6 +78,10 @@ class RunContext:
         data = json.loads(cache_file.read_text(encoding="utf-8"))
         started = now_iso()
         data["meta"] = self._meta(stage, input_hash, started)
-        name, _ = STAGES[stage]
+        name, def_name = STAGES[stage]
+        try:
+            validate(def_name, data)
+        except SchemaError:
+            return None
         (self.out_dir / f"{name}.json").write_text(dump_json(data), encoding="utf-8")
         return data

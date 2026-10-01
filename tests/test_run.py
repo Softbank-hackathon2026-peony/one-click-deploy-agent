@@ -44,3 +44,29 @@ def test_cache_returns_body_with_new_meta(tmp_path):
     assert hit["meta"]["run_id"] == "r2"
     assert hit["commit"] == "abc"
     assert second.cached("S0", "sha256:other") is None
+
+
+def test_cache_hit_writes_output_file(tmp_path):
+    first = RunContext.create(tmp_path, run_id="r1")
+    first.write_stage("S0", BODY, input_hash="sha256:h", started_at=now_iso())
+    second = RunContext.create(tmp_path, run_id="r2")
+    hit = second.cached("S0", "sha256:h")
+    assert hit is not None
+    intake_file = tmp_path / "r2" / "intake.json"
+    assert intake_file.exists()
+    written = json.loads(intake_file.read_text())
+    assert written["meta"]["run_id"] == "r2"
+    assert written == hit
+
+
+def test_corrupted_cache_entry_returns_none(tmp_path):
+    first = RunContext.create(tmp_path, run_id="r1")
+    first.write_stage("S0", BODY, input_hash="sha256:h", started_at=now_iso())
+    cache_file = tmp_path / ".cache" / "S0" / "sha256-h.json"
+    cache_data = json.loads(cache_file.read_text())
+    del cache_data["commit"]
+    cache_file.write_text(json.dumps(cache_data))
+    second = RunContext.create(tmp_path, run_id="r2")
+    hit = second.cached("S0", "sha256:h")
+    assert hit is None
+    assert not (tmp_path / "r2" / "intake.json").exists()
