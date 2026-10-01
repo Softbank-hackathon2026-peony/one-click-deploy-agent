@@ -631,32 +631,14 @@
           "value": 2
         },
         {
-          "default_source": {
-            "ref": "docs/research/capabilities/08-artifacts-compute.md"
-          },
-          "defaulted": true,
-          "key": "user",
-          "value": "root"
-        }
-      ]
-    },
-    {
-      "kind": "dockerfile",
-      "parsed": true,
-      "path": "frontend/Dockerfile.dockerignore",
-      "settings": [
-        {
           "defaulted": false,
-          "key": "stages",
-          "value": 0
-        },
-        {
-          "default_source": {
-            "ref": "docs/research/capabilities/08-artifacts-compute.md"
+          "evidence": {
+            "line": 9,
+            "path": "frontend/Dockerfile",
+            "snippet": "FROM nginxinc/nginx-unprivileged:1.27-alpine"
           },
-          "defaulted": true,
-          "key": "user",
-          "value": "root"
+          "key": "user_inherited_from",
+          "value": "nginxinc/nginx-unprivileged:1.27-alpine"
         }
       ]
     },

@@ -46,7 +46,7 @@
       ],
       "id": "ds-postgresql",
       "role": "primary-db",
-      "status": "confirmed",
+      "status": "candidate",
       "used_by": [
         "w-internal-reports"
       ]

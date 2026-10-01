@@ -202,12 +202,14 @@
           "value": 1
         },
         {
-          "default_source": {
-            "ref": "docs/research/capabilities/08-artifacts-compute.md"
+          "defaulted": false,
+          "evidence": {
+            "line": 1,
+            "path": "Dockerfile",
+            "snippet": "FROM python:3.12-slim"
           },
-          "defaulted": true,
-          "key": "user",
-          "value": "root"
+          "key": "user_inherited_from",
+          "value": "python:3.12-slim"
         }
       ]
     }
