@@ -106,6 +106,15 @@ def _walk(root: Path, exclude: Path | None = None) -> tuple[list[str], list[str]
     return sorted(files), sorted(excluded), total
 
 
+def content_digest(root: Path, files: list[str]) -> str:
+    """스캔한 모든 파일의 경로와 내용 해시(커밋되지 않은 변경 포함)."""
+    digest = hashlib.sha256()
+    for rel in files:
+        digest.update(rel.encode("utf-8"))
+        digest.update(hashlib.sha256((root / rel).read_bytes()).digest())
+    return digest.hexdigest()
+
+
 def _commit(root: Path, files: list[str]) -> str:
     try:
         top = subprocess.run(["git", "-C", str(root), "rev-parse", "--show-toplevel"],
@@ -115,11 +124,7 @@ def _commit(root: Path, files: list[str]) -> str:
                                   capture_output=True, text=True, check=True).stdout.strip()
     except (subprocess.CalledProcessError, FileNotFoundError):
         pass
-    digest = hashlib.sha256()
-    for rel in files:
-        digest.update(rel.encode("utf-8"))
-        digest.update(hashlib.sha256((root / rel).read_bytes()).digest())
-    return "tree-" + digest.hexdigest()[:16]
+    return "tree-" + content_digest(root, files)[:16]
 
 
 def open_snapshot(source: str, workdir: Path, exclude: Path | None = None) -> Snapshot:

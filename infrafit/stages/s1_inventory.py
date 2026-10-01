@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from infrafit import kb
-from infrafit.detect.artifacts import parse_artifacts
+from infrafit.detect.artifacts import kustomize_identity, parse_artifacts
 from infrafit.detect.components import find_unmapped, map_components
 from infrafit.detect.defaults import apply_defaults
 from infrafit.detect.endpoints import extract_endpoints
@@ -11,13 +11,15 @@ from infrafit.detect.manifests import parse_manifests
 from infrafit.detect.paths import build_paths
 from infrafit.detect.signatures import match_signatures
 from infrafit.detect.workloads import detect_workloads
-from infrafit.repo import Snapshot
+from infrafit.repo import Snapshot, content_digest
 from infrafit.run import RunContext, code_version, input_hash, now_iso
 
 
 def run_s1(ctx: RunContext, snap: Snapshot) -> dict:
     started = now_iso()
-    h = input_hash("S1", snap.commit, kb.kb_version(), code_version())
+    # 커밋이 아니라 스캔한 파일 내용으로 키를 만든다: 커밋되지 않은 변경도 결과를 바꾼다
+    h = input_hash("S1", content_digest(snap.root, snap.files), kustomize_identity(),
+                   kb.kb_version(), code_version())
     cached = ctx.cached("S1", h)
     if cached is not None:
         return cached

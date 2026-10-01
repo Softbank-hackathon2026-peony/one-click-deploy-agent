@@ -339,6 +339,7 @@ def _classify(rel: str) -> str | None:
 # --- kustomize ----------------------------------------------------------------
 
 KUSTOMIZATION_NAMES = ("kustomization.yaml", "kustomization.yml", "Kustomization")
+KUSTOMIZE_TIMEOUT = 60
 
 
 def kustomize_binary() -> list[str] | None:
@@ -347,6 +348,21 @@ def kustomize_binary() -> list[str] | None:
     if shutil.which("kubectl"):
         return ["kubectl", "kustomize"]
     return None
+
+
+def kustomize_identity() -> str:
+    """캐시 키용: 사용할 kustomize 실행 파일 경로와 버전 출력, 없으면 "none"."""
+    cmd = kustomize_binary()
+    if cmd is None:
+        return "none"
+    path = shutil.which(cmd[0]) or cmd[0]
+    version_cmd = [path, "version"] if cmd[0] == "kustomize" else [path, "version", "--client"]
+    try:
+        result = subprocess.run(version_cmd, capture_output=True, text=True, timeout=KUSTOMIZE_TIMEOUT)
+        version = (result.stdout + result.stderr).strip()
+    except (subprocess.TimeoutExpired, OSError):
+        version = "unknown"
+    return f"{path} {version}"
 
 
 def _kustomization_files(snap: Snapshot) -> dict[str, str]:
