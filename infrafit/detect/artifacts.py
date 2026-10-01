@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import posixpath
+import shutil
+import subprocess
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import PurePosixPath
@@ -10,6 +13,7 @@ from pathlib import PurePosixPath
 import hcl2
 import yaml
 
+from infrafit.detect.manifests import parent_dir
 from infrafit.evidence import evidence, line_of
 from infrafit.repo import Snapshot
 
@@ -332,6 +336,77 @@ def _classify(rel: str) -> str | None:
     return None
 
 
+# --- kustomize ----------------------------------------------------------------
+
+KUSTOMIZATION_NAMES = ("kustomization.yaml", "kustomization.yml", "Kustomization")
+
+
+def kustomize_binary() -> list[str] | None:
+    if shutil.which("kustomize"):
+        return ["kustomize", "build"]
+    if shutil.which("kubectl"):
+        return ["kubectl", "kustomize"]
+    return None
+
+
+def _kustomization_files(snap: Snapshot) -> dict[str, str]:
+    """디렉터리 → kustomization 파일 경로."""
+    out: dict[str, str] = {}
+    for rel in snap.files:
+        if PurePosixPath(rel).name in KUSTOMIZATION_NAMES:
+            out.setdefault(parent_dir(rel), rel)
+    return out
+
+
+def kustomize_leaves(snap: Snapshot) -> list[str]:
+    files = _kustomization_files(snap)
+    referenced: set[str] = set()
+    for d, rel in files.items():
+        try:
+            data = yaml.safe_load(snap.read(rel)) or {}
+        except yaml.YAMLError:
+            continue
+        if not isinstance(data, dict):
+            continue
+        for key in ("resources", "bases", "components"):
+            items = data.get(key)
+            if not isinstance(items, list):
+                continue
+            for item in items:
+                if not isinstance(item, str):
+                    continue
+                target = posixpath.normpath(posixpath.join(d, item))
+                if target == ".":
+                    target = ""
+                if target in files:
+                    referenced.add(target)
+    return sorted(d for d in files if d not in referenced)
+
+
+def build_overlays(snap: Snapshot, runner=subprocess.run) -> list[ParsedArtifact]:
+    cmd = kustomize_binary()
+    if cmd is None:
+        return []
+    out: list[ParsedArtifact] = []
+    for d in kustomize_leaves(snap):
+        rel = f"{d}/kustomization.yaml#build" if d else "kustomization.yaml#build"
+        result = runner(cmd + [str(snap.root / d)], capture_output=True, text=True)
+        if result.returncode != 0:
+            out.append(ParsedArtifact("k8s", rel, False))
+            continue
+        try:
+            docs = [x for x in yaml.safe_load_all(result.stdout)
+                    if isinstance(x, dict) and "kind" in x and "apiVersion" in x]
+        except yaml.YAMLError:
+            out.append(ParsedArtifact("k8s", rel, False))
+            continue
+        art = ParsedArtifact("k8s", rel, True, objects=docs)
+        for doc in docs:
+            art.settings.extend(_k8s_settings(snap, rel, doc))
+        out.append(art)
+    return out
+
+
 def parse_artifacts(snap: Snapshot) -> list[ParsedArtifact]:
     out: list[ParsedArtifact] = []
     for rel in snap.files:
@@ -350,4 +425,5 @@ def parse_artifacts(snap: Snapshot) -> list[ParsedArtifact]:
             art = parse_k8s(snap, rel)
             if art is not None:
                 out.append(art)
+    out.extend(build_overlays(snap))
     return sorted(out, key=lambda a: a.path)
