@@ -104,17 +104,48 @@ def parse_dockerfile(snap: Snapshot, rel: str) -> ParsedArtifact:
         instrs.append((op.upper(), arg.strip(), start))
         buf, start = "", None
     art = ParsedArtifact("dockerfile", rel, True, objects=instrs)
-    froms = [x for x in instrs if x[0] == "FROM"]
-    if froms:
-        art.settings.append(_fact(snap, rel, "base_image", next((t for t in froms[-1][1].split() if not t.startswith("--")), ""), froms[-1][2]))
-    art.settings.append(_fact(snap, rel, "stages", len(froms)))
+    stages = _stages(instrs)
+    if stages:
+        last = stages[-1]
+        art.settings.append(_fact(snap, rel, "base_image", last["image"], last["line"]))
+    art.settings.append(_fact(snap, rel, "stages", len(stages)))
+    # 최종 이미지 설정은 마지막 단계와, 그 단계가 FROM으로 잇는 앞 단계들에서만 온다
+    chain = _final_chain(stages)
+    chain_instrs = [x for st in reversed(chain) for x in st["instrs"]]
     for key, op in (("user", "USER"), ("cmd", "CMD"), ("entrypoint", "ENTRYPOINT"),
                     ("expose", "EXPOSE"), ("healthcheck", "HEALTHCHECK")):
-        found = [x for x in instrs if x[0] == op]
+        found = [x for x in chain_instrs if x[0] == op]
         if found:
             value = _exec_form(found[-1][1]) if op in ("CMD", "ENTRYPOINT") else found[-1][1]
             art.settings.append(_fact(snap, rel, key, value, found[-1][2]))
+    if chain and art.get("user") is None:
+        # USER가 없으면 기반 이미지의 사용자를 그대로 쓴다(root라고 단정할 수 없다)
+        art.settings.append(_fact(snap, rel, "user_inherited_from", chain[-1]["image"], chain[-1]["line"]))
     return art
+
+
+def _stages(instrs: list[tuple[str, str, int]]) -> list[dict]:
+    """FROM마다 단계 하나: 이미지, 별칭, 그 단계의 명령."""
+    stages: list[dict] = []
+    for op, arg, line in instrs:
+        if op == "FROM":
+            tokens = [t for t in arg.split() if not t.startswith("--")]
+            alias = tokens[2].lower() if len(tokens) >= 3 and tokens[1].lower() == "as" else None
+            stages.append({"image": tokens[0] if tokens else "", "alias": alias, "line": line, "instrs": []})
+        elif stages:
+            stages[-1]["instrs"].append((op, arg, line))
+    return stages
+
+
+def _final_chain(stages: list[dict]) -> list[dict]:
+    """마지막 단계부터 FROM <앞 단계 별칭>을 따라간 단계 목록(마지막 단계가 맨 앞)."""
+    chain: list[dict] = []
+    i = len(stages) - 1
+    while i >= 0:
+        chain.append(stages[i])
+        image = stages[i]["image"].lower()
+        i = next((j for j in range(i - 1, -1, -1) if stages[j]["alias"] == image), -1)
+    return chain
 
 
 # --- compose ------------------------------------------------------------------
@@ -321,6 +352,8 @@ def parse_terraform(snap: Snapshot, rel: str) -> ParsedArtifact:
 def _classify(rel: str) -> str | None:
     p = PurePosixPath(rel)
     name = p.name
+    if name.endswith(".dockerignore"):
+        return None
     if name == "Dockerfile" or name.startswith("Dockerfile.") or name.endswith(".Dockerfile"):
         return "dockerfile"
     if name in PLATFORM_FILES or rel == ".railway/railway.ts":
