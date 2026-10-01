@@ -1,0 +1,4 @@
+CREATE TABLE departments (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
+CREATE TABLE users (id INTEGER PRIMARY KEY, email TEXT UNIQUE, department_id INTEGER, role TEXT);
+CREATE TABLE approvals (id INTEGER PRIMARY KEY, doc_no TEXT, title TEXT, requester_id INTEGER, status TEXT);
+CREATE TABLE counters (name TEXT PRIMARY KEY, n INTEGER NOT NULL);
