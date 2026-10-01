@@ -65,8 +65,8 @@
     },
     "ScopeId": {
       "type": "string",
-      "pattern": "^(w|ds|svc|path)-[a-z0-9._-]+$",
-      "description": "w-=워크로드, ds-=저장소, svc-=보조 구성 요소, path-=요청 경로"
+      "pattern": "^(w|ep|ds|svc|path)-[a-z0-9._-]+$",
+      "description": "w-=워크로드, ep-=엔드포인트, ds-=저장소, svc-=보조 구성 요소, path-=요청 경로"
     },
     "RuleId": {
       "type": "string",
@@ -222,13 +222,17 @@
           "items": {
             "$ref": "#/$defs/Evidence"
           }
+        },
+        "status": {
+          "$ref": "#/$defs/FactStatus"
         }
       },
       "additionalProperties": false,
       "required": [
         "id",
         "kind",
-        "entrypoint"
+        "entrypoint",
+        "status"
       ]
     },
     "Datastore": {
@@ -262,13 +266,17 @@
           "items": {
             "$ref": "#/$defs/Evidence"
           }
+        },
+        "status": {
+          "$ref": "#/$defs/FactStatus"
         }
       },
       "additionalProperties": false,
       "required": [
         "id",
         "role",
-        "used_by"
+        "used_by",
+        "status"
       ]
     },
     "SettingFact": {
@@ -327,13 +335,17 @@
           "items": {
             "$ref": "#/$defs/Evidence"
           }
+        },
+        "status": {
+          "$ref": "#/$defs/FactStatus"
         }
       },
       "additionalProperties": false,
       "required": [
         "scope",
         "component",
-        "evidence"
+        "evidence",
+        "status"
       ]
     },
     "ExistingArtifact": {
@@ -427,6 +439,12 @@
           "items": {
             "$ref": "#/$defs/RequestPath"
           }
+        },
+        "endpoints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Endpoint"
+          }
         }
       },
       "additionalProperties": false,
@@ -437,7 +455,8 @@
         "current_components",
         "existing_artifacts",
         "unmapped",
-        "request_paths"
+        "request_paths",
+        "endpoints"
       ]
     },
     "DimensionValue": {
@@ -478,6 +497,12 @@
         },
         "assumption_key": {
           "type": "string"
+        },
+        "aggregated_from": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ScopeId"
+          }
         }
       },
       "additionalProperties": false,
@@ -585,6 +610,12 @@
         },
         "llm_used": {
           "type": "boolean"
+        },
+        "resolutions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Resolution"
+          }
         }
       },
       "additionalProperties": false,
@@ -594,7 +625,8 @@
         "dimensions",
         "assumptions",
         "dropped_inferences",
-        "llm_used"
+        "llm_used",
+        "resolutions"
       ]
     },
     "Violation": {
@@ -865,6 +897,12 @@
         "price_snapshot": {
           "type": "string",
           "format": "date"
+        },
+        "dev_monthly_usd": {
+          "type": [
+            "number",
+            "null"
+          ]
         }
       },
       "additionalProperties": false,
@@ -903,15 +941,6 @@
         "human_steps": {
           "type": "integer"
         },
-        "migration_effort": {
-          "type": "string",
-          "enum": [
-            "none",
-            "small",
-            "medium",
-            "large"
-          ]
-        },
         "rank": {
           "type": "integer"
         },
@@ -929,6 +958,27 @@
           "items": {
             "$ref": "#/$defs/CrossScopeViolation"
           }
+        },
+        "transforms": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sizing": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Sizing"
+          }
+        },
+        "change_effort": {
+          "type": "string",
+          "enum": [
+            "none",
+            "small",
+            "medium",
+            "large"
+          ]
         }
       },
       "additionalProperties": false,
@@ -939,10 +989,12 @@
         "unknown_count",
         "ops_burden",
         "human_steps",
-        "migration_effort",
+        "change_effort",
         "rank",
         "paths",
-        "cross_scope_violations"
+        "cross_scope_violations",
+        "transforms",
+        "sizing"
       ]
     },
     "Rejected": {
@@ -1700,6 +1752,12 @@
               "items": {
                 "$ref": "#/$defs/DroppedInference"
               }
+            },
+            "resolutions": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Resolution"
+              }
             }
           },
           "additionalProperties": false,
@@ -1707,7 +1765,8 @@
             "domain",
             "dimensions",
             "assumptions",
-            "dropped_inferences"
+            "dropped_inferences",
+            "resolutions"
           ]
         },
         "current_state": {
@@ -1910,6 +1969,12 @@
                   "items": {
                     "type": "string"
                   }
+                },
+                "enabling_transforms": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 }
               },
               "additionalProperties": false
@@ -1919,6 +1984,22 @@
                 "string",
                 "null"
               ]
+            },
+            "transforms": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Transform"
+              }
+            },
+            "perspectives": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/Perspectives"
+                }
+              ]
             }
           },
           "additionalProperties": false,
@@ -1927,7 +2008,9 @@
             "recommended",
             "rejected",
             "sensitivity",
-            "scenario_summary"
+            "scenario_summary",
+            "transforms",
+            "perspectives"
           ]
         },
         "decision": {
@@ -1988,6 +2071,12 @@
               ]
             }
           ]
+        },
+        "endpoints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Endpoint"
+          }
         }
       },
       "additionalProperties": false,
@@ -1996,6 +2085,7 @@
         "run",
         "summary",
         "workloads",
+        "endpoints",
         "datastores",
         "request_paths",
         "profile",
@@ -2213,6 +2303,12 @@
               "items": {
                 "type": "string"
               }
+            },
+            "enabling_transforms": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           },
           "additionalProperties": false
@@ -2221,6 +2317,28 @@
           "type": [
             "string",
             "null"
+          ]
+        },
+        "transforms": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Transform"
+          }
+        },
+        "transform_fits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TransformFit"
+          }
+        },
+        "perspectives": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/Perspectives"
+            }
           ]
         }
       },
@@ -2232,7 +2350,10 @@
         "rejected",
         "sensitivity",
         "scenario_summary",
-        "no_feasible"
+        "no_feasible",
+        "transforms",
+        "transform_fits",
+        "perspectives"
       ]
     },
     "Adjustment": {
@@ -2344,6 +2465,306 @@
         "recompute_runs",
         "final_candidate",
         "approved"
+      ]
+    },
+    "FactStatus": {
+      "type": "string",
+      "enum": [
+        "confirmed",
+        "candidate"
+      ]
+    },
+    "Endpoint": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ScopeId"
+        },
+        "workload": {
+          "$ref": "#/$defs/ScopeId"
+        },
+        "method": {
+          "type": "string"
+        },
+        "route": {
+          "type": "string"
+        },
+        "handler": {
+          "$ref": "#/$defs/Evidence"
+        },
+        "framework": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/FactStatus"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "workload",
+        "method",
+        "route",
+        "handler",
+        "status"
+      ]
+    },
+    "Resolution": {
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "string",
+          "description": "S1 사실을 가리키는 JSON 포인터"
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "confirm",
+            "reject"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          }
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "detector",
+            "inference"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "decision",
+        "evidence",
+        "source"
+      ]
+    },
+    "DimensionChange": {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "$ref": "#/$defs/ScopeId"
+        },
+        "dimension": {
+          "$ref": "#/$defs/DimensionId"
+        },
+        "from": {
+          "$ref": "#/$defs/Value"
+        },
+        "to": {
+          "$ref": "#/$defs/Value"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "dimension",
+        "to"
+      ]
+    },
+    "Transform": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^TF-[A-Z0-9-]+$"
+        },
+        "title": {
+          "type": "string"
+        },
+        "applies_to": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ScopeId"
+          }
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DimensionChange"
+          }
+        },
+        "adds_scopes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/ScopeId"
+              },
+              "kind": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "kind"
+            ]
+          }
+        },
+        "new_requirements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DimensionChange"
+          }
+        },
+        "code_effort": {
+          "type": "string",
+          "enum": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        "requires": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "because": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/Source"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "applies_to",
+        "effects",
+        "adds_scopes",
+        "code_effort",
+        "because"
+      ]
+    },
+    "TransformFit": {
+      "type": "object",
+      "properties": {
+        "transform_set": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "matrix": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FitCell"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "transform_set",
+        "matrix"
+      ]
+    },
+    "Sizing": {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "$ref": "#/$defs/ScopeId"
+        },
+        "component": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "env": {
+          "type": "string",
+          "enum": [
+            "prod",
+            "dev"
+          ]
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/Value"
+          }
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "formula": {
+          "type": "string"
+        },
+        "result": {
+          "type": "object",
+          "properties": {
+            "min_instances": {
+              "type": "integer"
+            },
+            "max_instances": {
+              "type": "integer"
+            },
+            "vcpu": {
+              "type": "number"
+            },
+            "memory_gib": {
+              "type": "number"
+            },
+            "class": {
+              "type": "string"
+            },
+            "requests_per_month": {
+              "type": "number"
+            },
+            "notes": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "component",
+        "env",
+        "inputs",
+        "formula",
+        "result"
+      ]
+    },
+    "Perspectives": {
+      "type": "object",
+      "properties": {
+        "balanced": {
+          "type": "string"
+        },
+        "minimal_change": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lowest_cost": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "balanced",
+        "minimal_change",
+        "lowest_cost"
       ]
     }
   },
