@@ -7,6 +7,7 @@ import tomllib
 from dataclasses import dataclass, field
 from pathlib import PurePosixPath
 
+import hcl2
 import yaml
 
 from infrafit.evidence import evidence, line_of
@@ -183,6 +184,134 @@ def parse_ci(snap: Snapshot, rel: str) -> ParsedArtifact:
     return art
 
 
+# --- 쿠버네티스 ---------------------------------------------------------------
+
+def _d(v) -> dict:
+    """dict가 아닌 값(None, 리스트, 문자열 등)은 빈 dict로 본다."""
+    return v if isinstance(v, dict) else {}
+
+
+def pod_spec(doc: dict) -> dict:
+    kind = doc.get("kind")
+    spec = _d(doc.get("spec"))
+    if kind == "CronJob":
+        spec = _d(_d(spec.get("jobTemplate")).get("spec"))
+    if kind in ("Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"):
+        return _d(_d(spec.get("template")).get("spec"))
+    return {}
+
+
+def ingress_backends(doc: dict) -> list[str]:
+    spec = _d(doc.get("spec"))
+    names = set()
+    default = _d(_d(spec.get("defaultBackend")).get("service")).get("name")
+    if isinstance(default, str) and default:
+        names.add(default)
+    rules = spec.get("rules")
+    for rule in rules if isinstance(rules, list) else []:
+        paths = _d(_d(rule).get("http")).get("paths")
+        for path in paths if isinstance(paths, list) else []:
+            name = _d(_d(_d(path).get("backend")).get("service")).get("name")
+            if isinstance(name, str) and name:
+                names.add(name)
+    return sorted(names)
+
+
+def _k8s_settings(snap: Snapshot, rel: str, doc: dict) -> list[dict]:
+    kind = doc["kind"]
+    meta = _d(doc.get("metadata"))
+    prefix = f"{kind}/{meta.get('name', '?')}"
+    spec = _d(doc.get("spec"))
+    out: list[dict] = []
+
+    def add(key: str, value) -> None:
+        out.append(_fact(snap, rel, f"{prefix}.{key}", value))
+
+    if kind in ("Deployment", "StatefulSet") and "replicas" in spec:
+        add("replicas", spec["replicas"])
+    pod = pod_spec(doc)
+    if pod:
+        if "terminationGracePeriodSeconds" in pod:
+            add("terminationGracePeriodSeconds", pod["terminationGracePeriodSeconds"])
+        containers = pod.get("containers")
+        c = containers[0] if isinstance(containers, list) and containers else None
+        if isinstance(c, dict):
+            if c.get("image"):
+                add("image", c["image"])
+            parts = [v if isinstance(v, list) else [] for v in (c.get("command"), c.get("args"))]
+            cmd = [str(x) for x in parts[0] + parts[1]]
+            if cmd:
+                add("command", " ".join(cmd))
+            add("readinessProbe", "readinessProbe" in c)
+            add("livenessProbe", "livenessProbe" in c)
+            add("preStop", bool(_d(c.get("lifecycle")).get("preStop")))
+    if kind == "CronJob":
+        for key in ("schedule", "concurrencyPolicy"):
+            if key in spec:
+                add(key, spec[key])
+    if kind == "Ingress":
+        annotations = _d(meta.get("annotations"))
+        cls = spec.get("ingressClassName") or annotations.get("kubernetes.io/ingress.class")
+        if cls:
+            add("ingressClassName", cls)
+        for k, v in sorted(annotations.items()):
+            add(f"annotations.{k}", v)
+        add("backends", ingress_backends(doc))
+    if kind == "HorizontalPodAutoscaler":
+        for key in ("minReplicas", "maxReplicas"):
+            if key in spec:
+                add(key, spec[key])
+    if kind == "PodDisruptionBudget":
+        for key in ("minAvailable", "maxUnavailable"):
+            if key in spec:
+                add(key, spec[key])
+    return out
+
+
+def parse_k8s(snap: Snapshot, rel: str) -> ParsedArtifact | None:
+    try:
+        docs = [d for d in yaml.safe_load_all(snap.read(rel)) if isinstance(d, dict)]
+    except yaml.YAMLError:
+        return None
+    docs = [d for d in docs if "kind" in d and "apiVersion" in d]
+    if not docs:
+        return None
+    art = ParsedArtifact("k8s", rel, True, objects=docs)
+    for doc in docs:
+        art.settings.extend(_k8s_settings(snap, rel, doc))
+    return art
+
+
+# --- Terraform ----------------------------------------------------------------
+
+def parse_terraform(snap: Snapshot, rel: str) -> ParsedArtifact:
+    try:
+        data = hcl2.loads(snap.read(rel))
+    except Exception:  # python-hcl2는 파싱 오류마다 다른 예외를 낸다
+        return ParsedArtifact("terraform", rel, False)
+    art = ParsedArtifact("terraform", rel, True)
+    for block in data.get("resource") or []:
+        for rtype, named in _d(block).items():
+            rtype = _unquote(rtype)  # 이 버전은 블록 레이블의 따옴표를 유지한다
+            for rname, attrs in _d(named).items():
+                rname = _unquote(rname)
+                attrs = attrs[0] if isinstance(attrs, list) and attrs else attrs
+                art.objects.append((rtype, rname, attrs))
+                for key, value in sorted(flatten(attrs).items()):
+                    art.settings.append(_fact(snap, rel, f"{rtype}.{rname}.{key}", value))
+    for block in data.get("provider") or []:
+        for pname, attrs in _d(block).items():
+            pname = _unquote(pname)
+            attrs = attrs[0] if isinstance(attrs, list) and attrs else attrs
+            attrs = _d(attrs)
+            region = _unquote(attrs.get("region"))
+            alias = _unquote(attrs.get("alias"))
+            if region:
+                key = f"provider.{pname}.{alias}.region" if alias else f"provider.{pname}.region"
+                art.settings.append(_fact(snap, rel, key, region))
+    return art
+
+
 # --- 분류 ---------------------------------------------------------------------
 
 def _classify(rel: str) -> str | None:
@@ -215,4 +344,10 @@ def parse_artifacts(snap: Snapshot) -> list[ParsedArtifact]:
             out.append(parse_platform(snap, rel))
         elif kind == "ci":
             out.append(parse_ci(snap, rel))
+        elif kind == "terraform":
+            out.append(parse_terraform(snap, rel))
+        elif kind == "k8s?":
+            art = parse_k8s(snap, rel)
+            if art is not None:
+                out.append(art)
     return sorted(out, key=lambda a: a.path)
