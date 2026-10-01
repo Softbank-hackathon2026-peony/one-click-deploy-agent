@@ -38,7 +38,7 @@ ID 주의: 이 카탈로그의 `COST-001~009`는 설계 문서 §8.4의 `COST-00
 | 주장 | 결과 | 출처 |
 |---|---|---|
 | Prisma ORM 8은 `$transaction`이 없고 `db.transaction(async (tx) => …)`만 있으며 `isolationLevel`·`timeout`·`maxWait` 옵션이 없다 | 확인 | https://www.prisma.io/docs/orm/prisma-client/queries/transactions |
-| AWS App Runner는 2026-04-30부터 신규 고객을 받지 않고, AWS는 ECS Express Mode를 권장한다 | 확인 | https://docs.aws.amazon.com/apprunner/latest/dg/apprunner-availability-change.html |
+| AWS App Runner는 신규 고객을 받지 않고, AWS는 ECS Express Mode를 권장한다 | 확인 (중단 날짜는 출처마다 달라 미확인: 검색 요약은 4-30, API 문서는 3-31로 보고됨. 공식 안내 페이지에는 날짜 없음) | https://docs.aws.amazon.com/apprunner/latest/dg/apprunner-availability-change.html |
 | Vercel Hobby는 비상업적 개인 용도로 제한된다 | 확인 | https://vercel.com/docs/plans/hobby |
 
 ## 4. 영역을 가로지르는 발견 → 설계 문서 반영 제안
