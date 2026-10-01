@@ -61,15 +61,15 @@ class Snapshot:
         return rel in self._fileset
 
 
-def _walk(root: Path, workdir: Path | None = None) -> tuple[list[str], list[str], int]:
+def _walk(root: Path, exclude: Path | None = None) -> tuple[list[str], list[str], int]:
     files: list[str] = []
     excluded: list[str] = []
     total = 0
-    # Compute workdir relative path if it's inside root
-    workdir_rel = None
-    if workdir is not None:
+    # Compute exclude relative path if it's inside root
+    exclude_rel = None
+    if exclude is not None:
         try:
-            workdir_rel = workdir.resolve().relative_to(root.resolve()).as_posix()
+            exclude_rel = exclude.resolve().relative_to(root.resolve()).as_posix()
         except ValueError:
             pass
 
@@ -84,10 +84,10 @@ def _walk(root: Path, workdir: Path | None = None) -> tuple[list[str], list[str]
             # Skip excluded directories
             if d in EXCLUDED_DIRS:
                 excluded.append(f"{d}/" if rel_dir == "." else f"{rel_dir}/{d}/")
-            # Skip work directory
-            elif workdir_rel is not None:
+            # Skip the exclude directory (exact match only)
+            elif exclude_rel is not None:
                 rel_d = f"{rel_dir}/{d}" if rel_dir != "." else d
-                if rel_d == workdir_rel or workdir_rel.startswith(rel_d + "/"):
+                if rel_d == exclude_rel:
                     continue
                 else:
                     keep.append(d)
@@ -122,7 +122,7 @@ def _commit(root: Path, files: list[str]) -> str:
     return "tree-" + digest.hexdigest()[:16]
 
 
-def open_snapshot(source: str, workdir: Path) -> Snapshot:
+def open_snapshot(source: str, workdir: Path, exclude: Path | None = None) -> Snapshot:
     if source.startswith(("https://", "http://", "git@")):
         dest = workdir / "source"
         if not dest.exists():
@@ -135,7 +135,7 @@ def open_snapshot(source: str, workdir: Path) -> Snapshot:
         if not root.is_dir():
             raise FileNotFoundError(f"저장소 경로가 없음: {source}")
         repo = str(root)
-    files, excluded, total = _walk(root, workdir)
+    files, excluded, total = _walk(root, exclude)
     return Snapshot(root=root, repo=repo, commit=_commit(root, files), files=files,
                     files_total=total, excluded=excluded)
 

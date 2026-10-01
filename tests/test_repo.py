@@ -60,3 +60,28 @@ def test_snapshot_skips_symlinks(tmp_path):
     assert "external_link" not in snap.files
     # Verify it doesn't crash on dangling symlinks
     assert snap.commit.startswith("tree-")
+
+
+def test_snapshot_excludes_specific_directory(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "b.py").write_text("print('b')\n")
+    (repo / "src").mkdir()
+    (repo / "src" / "a.py").write_text("print('a')\n")
+    (repo / "src" / "out").mkdir()
+    (repo / "src" / "out" / "x.json").write_text('{"x": 1}\n')
+    snap = open_snapshot(str(repo), tmp_path / "_work", exclude=repo / "src" / "out")
+    assert sorted(snap.files) == ["b.py", "src/a.py"]
+    assert snap.files_total == 2
+    assert "src/out" not in snap.excluded
+
+
+def test_snapshot_exclude_outside_root_has_no_effect(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "a.py").write_text("print('a')\n")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    snap = open_snapshot(str(repo), tmp_path / "_work", exclude=outside)
+    assert snap.files == ["a.py"]
+    assert snap.files_total == 1

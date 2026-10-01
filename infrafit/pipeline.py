@@ -15,6 +15,6 @@ def analyze(source: str, out_root: Path, until: str = "S1", run_id: str | None =
     if until not in ORDER:
         raise ValueError(f"지원하지 않는 단계: {until}")
     ctx = RunContext.create(out_root, run_id)
-    snap = open_snapshot(source, ctx.out_dir)
+    snap = open_snapshot(source, ctx.out_dir, exclude=out_root)
     run_s0(ctx, snap)
     return ctx

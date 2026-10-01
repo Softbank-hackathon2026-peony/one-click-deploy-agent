@@ -22,16 +22,20 @@ def test_analyze_excludes_workdir_from_counts(tmp_path):
     repo.mkdir()
     (repo / "main.py").write_text("print('hi')\n")
     (repo / "helper.py").write_text("def help(): pass\n")
-    # Analyze twice with different run IDs into subdirectories of the repo
-    ctx1 = analyze(str(repo), repo / "results", until="S0", run_id="r1")
+    # Create tmp subdirectory with out root and a keep.py next to it
+    (repo / "tmp").mkdir()
+    (repo / "tmp" / "keep.py").write_text("def keep(): pass\n")
+    # Analyze twice with different run IDs into subdirectories of repo/tmp
+    ctx1 = analyze(str(repo), repo / "tmp" / "results", until="S0", run_id="r1")
     intake1 = json.loads((ctx1.out_dir / "intake.json").read_text())
-    ctx2 = analyze(str(repo), repo / "results", until="S0", run_id="r2")
+    ctx2 = analyze(str(repo), repo / "tmp" / "results", until="S0", run_id="r2")
     intake2 = json.loads((ctx2.out_dir / "intake.json").read_text())
     # Both should have the same file counts, excluding the results directory
     assert intake1["files_scanned"] == intake2["files_scanned"]
     assert intake1["files_total"] == intake2["files_total"]
-    # Verify the counts are correct (2 files: main.py and helper.py)
-    assert intake1["files_scanned"] == 2
+    # Verify the counts include all files: main.py, helper.py, and tmp/keep.py (3 total)
+    # The results directory under tmp/results should be excluded from both
+    assert intake1["files_scanned"] == 3
 
 
 def test_analyze_rejects_invalid_yaml(tmp_path):
