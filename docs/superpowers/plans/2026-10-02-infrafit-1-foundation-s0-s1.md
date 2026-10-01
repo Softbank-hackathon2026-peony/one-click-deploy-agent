@@ -58,7 +58,7 @@ one-click-deploy-agent/
     detect/
       __init__.py
       manifests.py            package.json, requirements*.txt, pyproject.toml, Procfile
-      artifacts.py            Dockerfile, compose, k8s, Terraform, 플랫폼 설정, CI 파서
+      artifacts.py            Dockerfile, compose, k8s(원문 + kustomize 렌더링), Terraform, 플랫폼 설정, CI 파서
       defaults.py             기본값 사실 적용, 구간(hop) 기본값
       signatures.py           시그니처 매칭
       workloads.py            워크로드 찾기(k8s > compose > 코드)
@@ -832,7 +832,7 @@ git commit -m "feat: add repository snapshot, evidence helpers and S0 intake"
   - `workloads[]`: `{id, kind}`
   - `endpoints[]`: `{method, route}` (`exact`면 집합이 같아야 함)
   - `endpoint_workloads[]`(선택): `{path_contains, workload}` — 핸들러 파일 경로에 문자열이 들어간 엔드포인트 중 하나 이상이 그 워크로드에 배정됨
-  - `datastores[]`: `{id, role}`
+  - `datastores[]`: `{id, role, used_by?}` — `used_by`가 있으면 정확히 같아야 함
   - `current_components[]`: `{scope, component, status}` — 항상 subset
   - `artifacts[]`: `{kind, path, settings: {키: 값 또는 {value, defaulted}}}` — 항상 subset
   - `request_paths[]`: `{id, hops: [{kind, component, settings?}]}` — `hops`가 있으면 구간 순서와 종류·구성 요소가 정확히 같아야 함. `hops`를 생략하면 경로 존재만 확인
@@ -877,9 +877,9 @@ endpoint_workloads:
   - {path_contains: services/auth/, workload: w-auth}
   - {path_contains: services/board/, workload: w-board-api}
 datastores:
-  - {id: ds-postgresql, role: primary-db}
-  - {id: svc-redis, role: cache}
-  - {id: svc-redis-streams, role: queue}
+  - {id: ds-postgresql, role: primary-db, used_by: [w-auth, w-auth-verify, w-board-api, w-board-worker, w-db-migrate]}
+  - {id: svc-redis, role: cache, used_by: [w-auth, w-auth-verify, w-board-api, w-board-worker, w-db-migrate]}
+  - {id: svc-redis-streams, role: queue, used_by: [w-auth, w-auth-verify, w-board-api, w-board-worker, w-db-migrate]}
 current_components:
   - {scope: ds-postgresql, component: "ds:unspecified/postgresql/default", status: confirmed}
   - {scope: svc-redis, component: "ca:unspecified/redis/default", status: confirmed}
@@ -1549,6 +1549,7 @@ git commit -m "test: add fixture repositories and expected S1 judgments written 
   - `infrafit.detect.manifests.Manifests` — 필드
     - `deps: dict[str, tuple[str, int | None]]` — 의존성 이름(소문자, Python은 `_`→`-`) → 처음 나온 (파일, 줄). Node와 Python을 한 사전에 모은다
     - `deps_by_dir: dict[str, set[str]]` — 매니페스트가 있는 디렉터리(`""` = 루트) → 의존성 이름 집합
+    - `locations: dict[str, list[tuple[str, int | None]]]` — 의존성 이름 → 그 의존성이 나온 모든 (파일, 줄). 시그니처 근거와 `used_by` 판정이 이것을 쓴다
     - `scripts: dict[str, tuple[str, str, int | None]]` — `"<디렉터리>:<스크립트 이름>"` → (명령, 파일, 줄)
     - `procfile: dict[str, tuple[str, str, int]]` — `"<디렉터리>:<프로세스 종류>"` → (명령, 파일, 줄)
   - `infrafit.detect.manifests.parse_manifests(snap: Snapshot) -> Manifests`
@@ -1586,6 +1587,15 @@ def test_parses_node_python_and_procfile(tmp_path):
     assert "typing-extensions" in m.deps
     assert m.scripts[":start"][0] == "node index.js"
     assert m.procfile[":worker"] == ("celery -A tasks worker", "Procfile", 2)
+
+
+def test_locations_keep_every_manifest(tmp_path):
+    for d in ("svc-a", "svc-b"):
+        (tmp_path / d).mkdir()
+        (tmp_path / d / "requirements.txt").write_text("asyncpg==0.29\n")
+    m = parse_manifests(open_snapshot(str(tmp_path), tmp_path / "_w"))
+    assert m.deps["asyncpg"] == ("svc-a/requirements.txt", 1)
+    assert m.locations["asyncpg"] == [("svc-a/requirements.txt", 1), ("svc-b/requirements.txt", 1)]
 
 
 def test_parent_dir():
@@ -1636,12 +1646,15 @@ def _norm_py(name: str) -> str:
 class Manifests:
     deps: dict[str, tuple[str, int | None]] = field(default_factory=dict)
     deps_by_dir: dict[str, set[str]] = field(default_factory=dict)
+    locations: dict[str, list[tuple[str, int | None]]] = field(default_factory=dict)
     scripts: dict[str, tuple[str, str, int | None]] = field(default_factory=dict)
     procfile: dict[str, tuple[str, str, int]] = field(default_factory=dict)
 
     def add(self, name: str, rel: str, line: int | None) -> None:
         self.deps.setdefault(name, (rel, line))
         self.deps_by_dir.setdefault(parent_dir(rel), set()).add(name)
+        if (rel, line) not in self.locations.setdefault(name, []):
+            self.locations[name].append((rel, line))
 
 
 def _node(snap: Snapshot, m: Manifests) -> None:
@@ -1703,7 +1716,7 @@ def parse_manifests(snap: Snapshot) -> Manifests:
 - [ ] **Step 4: 테스트 통과 확인**
 
 Run: `uv run pytest tests/detect/test_manifests.py -v`
-Expected: PASS (2 passed)
+Expected: PASS (3 passed)
 
 - [ ] **Step 5: 커밋**
 
@@ -2379,7 +2392,7 @@ git commit -m "feat: add component catalog, detection signatures, defaults table
 - Consumes: `Snapshot`, `evidence` (Task 3), `Manifests` (Task 5), 시그니처 형식 (Task 6)
 - Produces:
   - `infrafit.detect.signatures.Match` — `@dataclass(frozen=True)`: `signature: str`, `component: str`, `role: str`, `status: str`, `evidence: tuple[dict, ...]`
-  - `infrafit.detect.signatures.match_signatures(snap, manifests, sigs) -> list[Match]` — 시그니처 순서대로, 맞은 것만. `code` 조건의 근거는 조건당 최대 5줄
+  - `infrafit.detect.signatures.match_signatures(snap, manifests, sigs) -> list[Match]` — 시그니처 순서대로, 맞은 것만. `dependency` 조건의 근거는 그 의존성이 나온 모든 매니페스트 줄, `code` 조건의 근거는 조건당 최대 5줄
 
 - [ ] **Step 1: 실패하는 테스트 작성**
 
@@ -2465,8 +2478,8 @@ def _eval(cond: dict, snap: Snapshot, manifests: Manifests) -> list[dict]:
         parts = [_eval(child, snap, manifests) for child in cond["all"]]
         return [e for part in parts for e in part] if all(parts) else []
     if "dependency" in cond:
-        hit = manifests.deps.get(cond["dependency"].lower())
-        return [evidence(snap, hit[0], hit[1], "tech")] if hit else []
+        return [evidence(snap, rel, line, "tech")
+                for rel, line in manifests.locations.get(cond["dependency"].lower(), [])]
     if "code" in cond:
         code = cond["code"]
         flags = re.MULTILINE | (re.IGNORECASE if code.get("flags") == "i" else 0)
@@ -3074,6 +3087,185 @@ git commit -m "feat: parse Kubernetes manifests and Terraform resources"
 
 ---
 
+### Task 9b: kustomize overlay 렌더링
+
+kustomize 패치 파일만 원문으로 읽으면 패치에 없는 필드가 "없음"으로 보인다. 그래서 다른 kustomization에서 참조되지 않는 **최종 overlay**마다 `kustomize build`(없으면 `kubectl kustomize`) 결과를 따로 파싱한다. 원문 파싱은 근거 줄을 위해 그대로 둔다.
+
+**Files:**
+- Modify: `infrafit/detect/artifacts.py`
+- Test: `tests/detect/test_kustomize.py`
+
+**Interfaces:**
+- Consumes: `ParsedArtifact`, `_k8s_settings` (Task 9), `parent_dir` (Task 5)
+- Produces:
+  - `infrafit.detect.artifacts.kustomize_binary() -> list[str] | None` — `["kustomize", "build"]` 또는 `["kubectl", "kustomize"]`, 둘 다 없으면 `None`
+  - `infrafit.detect.artifacts.kustomize_leaves(snap) -> list[str]` — kustomization 디렉터리 중 다른 kustomization의 `resources`·`bases`·`components`에서 참조되지 않는 것(정렬)
+  - `infrafit.detect.artifacts.build_overlays(snap, runner=subprocess.run) -> list[ParsedArtifact]` — 최종 overlay마다 kind `k8s`, path `<디렉터리>/kustomization.yaml#build`. 빌드가 실패하면 `parsed: False`
+  - `parse_artifacts`가 렌더링 결과도 함께 낸다
+- 환경: 개발 기계에 `kustomize`가 있어야 F1 골든이 맞는다(`brew install kustomize`). 없으면 렌더링 테스트는 건너뛴다.
+
+- [ ] **Step 1: 실패하는 테스트 작성**
+
+`tests/detect/test_kustomize.py`:
+```python
+import pytest
+
+from infrafit.detect.artifacts import build_overlays, kustomize_binary, kustomize_leaves
+from infrafit.repo import open_snapshot
+
+BASE = """apiVersion: apps/v1
+kind: Deployment
+metadata: {name: api}
+spec:
+  template:
+    spec:
+      containers: [{name: api, image: acme/api:1}]
+"""
+PATCH = """apiVersion: apps/v1
+kind: Deployment
+metadata: {name: api}
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 45
+"""
+
+
+def _tree(tmp_path):
+    files = {
+        "k8s/base/kustomization.yaml": "resources: [api.yaml]\n",
+        "k8s/base/api.yaml": BASE,
+        "k8s/components/extra/kustomization.yaml": "apiVersion: kustomize.config.k8s.io/v1alpha1\nkind: Component\n",
+        "k8s/overlays/prod/kustomization.yaml": "resources: [../../base]\npatches: [{path: patch.yaml}]\n",
+        "k8s/overlays/prod/patch.yaml": PATCH,
+        "k8s/overlays/dev/kustomization.yaml": "resources: [../../base]\ncomponents: [../../components/extra]\n",
+    }
+    for rel, text in files.items():
+        p = tmp_path / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text)
+    return open_snapshot(str(tmp_path), tmp_path / "_w")
+
+
+def test_leaves_exclude_referenced_dirs(tmp_path):
+    assert kustomize_leaves(_tree(tmp_path)) == ["k8s/overlays/dev", "k8s/overlays/prod"]
+
+
+def test_build_failure_is_recorded(tmp_path):
+    class Failed:
+        returncode = 1
+        stdout = ""
+
+    arts = build_overlays(_tree(tmp_path), runner=lambda *a, **k: Failed())
+    if kustomize_binary() is None:
+        assert arts == []
+    else:
+        assert [(a.path, a.parsed) for a in arts] == [
+            ("k8s/overlays/dev/kustomization.yaml#build", False),
+            ("k8s/overlays/prod/kustomization.yaml#build", False)]
+
+
+@pytest.mark.skipif(kustomize_binary() is None, reason="kustomize 없음")
+def test_build_renders_patched_objects(tmp_path):
+    arts = {a.path: a for a in build_overlays(_tree(tmp_path))}
+    prod = arts["k8s/overlays/prod/kustomization.yaml#build"]
+    assert prod.parsed
+    assert prod.get("Deployment/api.terminationGracePeriodSeconds") == 45
+    assert prod.get("Deployment/api.image") == "acme/api:1"
+```
+
+- [ ] **Step 2: 테스트가 실패하는지 확인**
+
+Run: `uv run pytest tests/detect/test_kustomize.py -v`
+Expected: FAIL (`ImportError`)
+
+- [ ] **Step 3: 구현** — `infrafit/detect/artifacts.py`에 추가
+
+파일 위 import에 `import posixpath`, `import shutil`, `import subprocess`, `from infrafit.detect.manifests import parent_dir`를 추가하고, `parse_terraform` 아래에:
+```python
+# --- kustomize ----------------------------------------------------------------
+
+KUSTOMIZATION_NAMES = ("kustomization.yaml", "kustomization.yml", "Kustomization")
+
+
+def kustomize_binary() -> list[str] | None:
+    if shutil.which("kustomize"):
+        return ["kustomize", "build"]
+    if shutil.which("kubectl"):
+        return ["kubectl", "kustomize"]
+    return None
+
+
+def _kustomization_files(snap: Snapshot) -> dict[str, str]:
+    """디렉터리 → kustomization 파일 경로."""
+    out: dict[str, str] = {}
+    for rel in snap.files:
+        if PurePosixPath(rel).name in KUSTOMIZATION_NAMES:
+            out.setdefault(parent_dir(rel), rel)
+    return out
+
+
+def kustomize_leaves(snap: Snapshot) -> list[str]:
+    files = _kustomization_files(snap)
+    referenced: set[str] = set()
+    for d, rel in files.items():
+        try:
+            data = yaml.safe_load(snap.read(rel)) or {}
+        except yaml.YAMLError:
+            continue
+        for key in ("resources", "bases", "components"):
+            for item in data.get(key) or []:
+                target = posixpath.normpath(posixpath.join(d, str(item)))
+                if target in files:
+                    referenced.add(target)
+    return sorted(d for d in files if d not in referenced)
+
+
+def build_overlays(snap: Snapshot, runner=subprocess.run) -> list[ParsedArtifact]:
+    cmd = kustomize_binary()
+    if cmd is None:
+        return []
+    out: list[ParsedArtifact] = []
+    for d in kustomize_leaves(snap):
+        rel = f"{d}/kustomization.yaml#build" if d else "kustomization.yaml#build"
+        result = runner(cmd + [str(snap.root / d)], capture_output=True, text=True)
+        if result.returncode != 0:
+            out.append(ParsedArtifact("k8s", rel, False))
+            continue
+        try:
+            docs = [x for x in yaml.safe_load_all(result.stdout)
+                    if isinstance(x, dict) and "kind" in x and "apiVersion" in x]
+        except yaml.YAMLError:
+            out.append(ParsedArtifact("k8s", rel, False))
+            continue
+        art = ParsedArtifact("k8s", rel, True, objects=docs)
+        for doc in docs:
+            art.settings.extend(_k8s_settings(snap, rel, doc))
+        out.append(art)
+    return out
+```
+
+`parse_artifacts`의 `return sorted(out, key=lambda a: a.path)` 바로 앞에 한 줄 추가:
+```python
+    out.extend(build_overlays(snap))
+```
+
+> `_k8s_settings`는 줄 번호 없이 `_fact`를 부르므로, `#build`가 붙은 가상의 경로를 넘겨도 파일을 읽지 않는다.
+
+- [ ] **Step 4: 테스트 통과 확인**
+
+Run: `uv run pytest tests/detect/ -v`
+Expected: PASS (kustomize가 없으면 `test_build_renders_patched_objects`만 SKIP)
+
+- [ ] **Step 5: 커밋**
+
+```bash
+git add infrafit/detect/artifacts.py tests/detect/test_kustomize.py
+git commit -m "feat: render kustomize leaf overlays and parse the built manifests"
+```
+
+---
+
 ### Task 10: 기본값 사실
 
 **Files:**
@@ -3216,7 +3408,8 @@ git commit -m "feat: record defaulted settings from the defaults table"
 **Interfaces:**
 - Consumes: `Snapshot`, `evidence`, `line_of`; `Manifests`, `parent_dir` (Task 5); `ParsedArtifact`, `pod_spec` (Task 8~9)
 - Produces:
-  - `infrafit.detect.workloads.WorkloadInfo` — `@dataclass`: `id`, `kind`, `name`, `entrypoint: dict`, `status`, `source`(`k8s` | `compose` | `code`), `app_dir: str = ""`, `command: str = ""`, `image: str = ""`; `to_dict()`는 `{id, kind, name, entrypoint, status}`만 낸다
+  - `infrafit.detect.workloads.WorkloadInfo` — `@dataclass`: `id`, `kind`, `name`, `entrypoint: dict`, `status`, `source`(`k8s` | `compose` | `code`), `app_dir: str = ""`, `command: str = ""`, `image: str = ""`, `code_root: str | None = None`; `to_dict()`는 `{id, kind, name, entrypoint, status}`만 낸다
+  - `code_root`(이 워크로드의 코드가 있는 디렉터리, `""` = 저장소 전체, `None` = 모름): 코드 워크로드는 `app_dir`, k8s 워크로드는 이미지 이름의 마지막 조각과 디렉터리 이름이 같은 Dockerfile의 디렉터리, compose 워크로드는 `build`의 Dockerfile 디렉터리(또는 context) → 없으면 이미지 규칙. 데이터 범위의 `used_by` 판정(Task 13)이 쓴다
   - `infrafit.detect.workloads.detect_workloads(snap, manifests, artifacts) -> list[WorkloadInfo]` — id 순 정렬
   - 규칙(우선순위대로 하나만 사용):
     1. k8s에 Deployment·StatefulSet·Job·CronJob이 있으면 그것들. 이름으로 중복 제거(경로 순 첫 번째). 이미지 이름에 `postgres`, `redis`, `mysql`, `mongo`, `valkey`, `memcached`, `rabbitmq`, `minio`, `localstack`이 들어가면 제외. 종류: CronJob → `scheduled`, Job → 이름이나 명령에 `migrat`가 있으면 `migration-job` 아니면 `worker`, 그 외 → 이름이나 명령에 `worker`가 있으면 `worker`, 아니면 `web`
@@ -3257,6 +3450,7 @@ def test_code_workloads_merge_procfile_and_prefer_dockerfile_command(tmp_path):
     web = ws[0]
     assert web.command == "flask run"
     assert web.entrypoint["path"] == "requirements.txt"
+    assert web.code_root == ""
     assert ws[1].command == "python worker.py"
 
 
@@ -3299,6 +3493,22 @@ spec: {template: {spec: {containers: [{name: m, image: acme/api:1}]}}}
     assert ws[0].command == "node server.js"
     assert ws[2].command == "node worker.js"
     assert ws[0].entrypoint["path"] == "k8s/app.yaml"
+    assert ws[0].code_root == "services/api"
+
+
+def test_compose_code_root_from_build(tmp_path):
+    _write(tmp_path, "docker-compose.yml", """services:
+  api:
+    build: {context: ., dockerfile: services/api/Dockerfile}
+  web:
+    build: ./web
+  db:
+    image: postgres:16
+""")
+    ws = {w.id: w for w in _run(tmp_path)}
+    assert set(ws) == {"w-api", "w-web"}
+    assert ws["w-api"].code_root == "services/api"
+    assert ws["w-web"].code_root == "web"
 ```
 
 - [ ] **Step 2: 테스트가 실패하는지 확인**
@@ -3314,6 +3524,7 @@ Expected: FAIL (`ModuleNotFoundError`)
 
 from __future__ import annotations
 
+import posixpath
 import re
 from dataclasses import dataclass
 from pathlib import PurePosixPath
@@ -3343,6 +3554,7 @@ class WorkloadInfo:
     app_dir: str = ""
     command: str = ""
     image: str = ""
+    code_root: str | None = None
 
     def to_dict(self) -> dict:
         return {"id": self.id, "kind": self.kind, "name": self.name,
@@ -3353,12 +3565,37 @@ def _dockerfiles(artifacts: list[ParsedArtifact]) -> list[ParsedArtifact]:
     return [a for a in artifacts if a.kind == "dockerfile"]
 
 
-def _dockerfile_cmd_for_image(image: str, artifacts: list[ParsedArtifact]) -> str:
+def _dockerfile_for_image(image: str, artifacts: list[ParsedArtifact]) -> ParsedArtifact | None:
     last = image.split("/")[-1].split(":")[0].split("@")[0]
     for df in _dockerfiles(artifacts):
-        if PurePosixPath(df.path).parent.name == last and df.get("cmd"):
-            return df.get("cmd")
-    return ""
+        if last and PurePosixPath(df.path).parent.name == last:
+            return df
+    return None
+
+
+def _dockerfile_cmd_for_image(image: str, artifacts: list[ParsedArtifact]) -> str:
+    df = _dockerfile_for_image(image, artifacts)
+    return (df.get("cmd") or "") if df else ""
+
+
+def _code_root_for_image(image: str, artifacts: list[ParsedArtifact]) -> str | None:
+    df = _dockerfile_for_image(image, artifacts)
+    return parent_dir(df.path) if df else None
+
+
+def _compose_code_root(compose_path: str, svc: dict, image: str, artifacts: list[ParsedArtifact]) -> str | None:
+    build = svc.get("build")
+    base = parent_dir(compose_path)
+    if isinstance(build, str):
+        root = posixpath.normpath(posixpath.join(base, build))
+        return "" if root == "." else root
+    if isinstance(build, dict):
+        context = posixpath.normpath(posixpath.join(base, str(build.get("context", "."))))
+        context = "" if context == "." else context
+        if build.get("dockerfile"):
+            return parent_dir(posixpath.normpath(posixpath.join(context, str(build["dockerfile"]))))
+        return context
+    return _code_root_for_image(image, artifacts)
 
 
 def _dockerfile_cmd_for_dir(app_dir: str, artifacts: list[ParsedArtifact]) -> str:
@@ -3402,7 +3639,8 @@ def _from_k8s(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[WorkloadI
             seen[name] = WorkloadInfo(
                 id=f"w-{slug(name)}", kind=wkind, name=name, entrypoint=evidence(snap, art.path, line),
                 status="confirmed", source="k8s", image=image,
-                command=cmd or _dockerfile_cmd_for_image(image, artifacts))
+                command=cmd or _dockerfile_cmd_for_image(image, artifacts),
+                code_root=_code_root_for_image(image, artifacts))
     return list(seen.values())
 
 
@@ -3424,7 +3662,8 @@ def _from_compose(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[Workl
             out.append(WorkloadInfo(
                 id=f"w-{slug(name)}", kind=wkind, name=name,
                 entrypoint=evidence(snap, art.path, line_of(snap, art.path, f"{name}:")),
-                status="confirmed", source="compose", image=image, command=cmd))
+                status="confirmed", source="compose", image=image, command=cmd,
+                code_root=_compose_code_root(art.path, svc, image, artifacts)))
     return out
 
 
@@ -3476,7 +3715,7 @@ def _from_code(snap: Snapshot, manifests: Manifests, artifacts: list[ParsedArtif
         else:
             command = proc_cmd
         out.append(WorkloadInfo(id=wid, kind=wkind, name=wid[2:], entrypoint=entry,
-                                status="confirmed", source="code", app_dir=d, command=command))
+                                status="confirmed", source="code", app_dir=d, command=command, code_root=d))
     return out
 
 
@@ -3490,7 +3729,7 @@ def detect_workloads(snap: Snapshot, manifests: Manifests, artifacts: list[Parse
 - [ ] **Step 4: 테스트 통과 확인**
 
 Run: `uv run pytest tests/detect/test_workloads.py -v`
-Expected: PASS (3 passed)
+Expected: PASS (4 passed)
 
 - [ ] **Step 5: 커밋**
 
@@ -3514,7 +3753,7 @@ git commit -m "feat: detect workloads from k8s, compose or code"
   - 찾는 방법:
     - Python(AST): `@<이름>.get|post|put|delete|patch("경로")`, `@<이름>.route("경로", methods=[...])`(기본 GET), `@<이름>.websocket("경로")` → `WEBSOCKET`. 같은 모듈의 `<이름> = APIRouter(prefix="…")` 또는 `Blueprint(…, url_prefix="…")` 접두어를 붙인다. framework = `python`
     - Django: `urls.py`의 `path("…")` / `re_path("…")` → `ANY`, 경로 앞에 `/`. framework = `django`
-    - Express류: `**/*.js|ts|mjs|cjs`에서 `(app|router|server|api).(get|post|put|delete|patch|all)('경로'` → 메서드 대문자(`all`은 `ANY`). framework = `express`
+    - Express류: `**/*.js|ts|mjs|cjs`에서 같은 파일 안에 `express()`, `express.Router()`, `require('express')`, `Router()`, `fastify()`, `new Koa()`, `new Router()`, `new Hono()`로 **서버 객체를 만든 변수**가 있을 때, 그 변수의 `.get|post|put|delete|patch|all('경로'` 호출만 → 메서드 대문자(`all`은 `ANY`). 서버 객체가 없는 파일(프론트엔드의 `api.get(...)` 같은 클라이언트 호출)은 건너뛴다. framework = `express`
     - Next.js App Router: `**/app/**/route.ts|js|tsx|jsx`의 `export (async) function GET` / `export const GET` → 경로는 `app/` 다음부터 `route.*` 전까지, `(그룹)`과 `@슬롯` 조각 제거. framework = `nextjs`
     - Next.js Pages Router: `**/pages/api/**`의 `.ts|.js` → `ANY`, `index`는 상위 경로. framework = `nextjs`
   - 배정: 웹 워크로드가 하나면 그것. 여럿이면 `app_dir`가 경로의 접두어인 워크로드(점수 +10) 또는 워크로드 이름을 `-`로 나눈 조각과 경로 조각이 겹치는 수가 큰 것. 동점이면 이름이 짧은 것, 그다음 id. 모두 0점이면 id가 가장 앞선 웹 워크로드
@@ -3564,7 +3803,9 @@ async def ws(): ...
 
 
 def test_express_django_next(tmp_path):
-    _write(tmp_path, "server.js", "app.get('/health', h)\nrouter.post(\"/orders\", h)\napp.all('/x', h)\n")
+    _write(tmp_path, "server.js", "const app = express()\nconst router = express.Router()\n"
+                                  "app.get('/health', h)\nrouter.post(\"/orders\", h)\napp.all('/x', h)\n")
+    _write(tmp_path, "web/src/client.ts", "export const load = () => api.get('/api/board/posts')\n")
     _write(tmp_path, "proj/urls.py", "urlpatterns = [path('reports/', v), re_path(r'^old/$', v)]\n")
     _write(tmp_path, "app/(shop)/api/cart/route.ts", "export async function GET() {}\nexport const POST = async () => {}\n")
     _write(tmp_path, "pages/api/users/index.ts", "export default function h() {}\n")
@@ -3607,7 +3848,11 @@ from infrafit.repo import Snapshot
 
 HTTP_METHODS = ("get", "post", "put", "delete", "patch")
 NEXT_METHODS = "GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS"
-_EXPRESS = re.compile(r"\b(?:app|router|server|api)\.(get|post|put|delete|patch|all)\(\s*['\"`]([^'\"`]+)['\"`]")
+_SERVER_VAR = re.compile(
+    r"\b(?:const|let|var)\s+(\w+)\s*=\s*(?:await\s+)?"
+    r"(?:express\s*\(|express\.Router\s*\(|require\(\s*['\"]express['\"]\s*\)(?:\.Router)?\s*\(|Router\s*\("
+    r"|fastify\s*\(|Fastify\s*\(|new\s+Koa\s*\(|new\s+Router\s*\(|new\s+Hono\s*\()")
+_ROUTE_CALL = re.compile(r"\b(\w+)\.(get|post|put|delete|patch|all)\(\s*['\"`]([^'\"`]+)['\"`]")
 _DJANGO = re.compile(r"\b(?:re_)?path\(\s*r?['\"]([^'\"]*)['\"]")
 _NEXT_EXPORT = re.compile(rf"export\s+(?:async\s+)?function\s+({NEXT_METHODS})\b|export\s+const\s+({NEXT_METHODS})\s*=")
 
@@ -3678,10 +3923,15 @@ def _express(snap: Snapshot) -> list[Raw]:
         for rel in snap.glob(pattern):
             if PurePosixPath(rel).name.startswith("route.") and "/app/" in f"/{rel}":
                 continue
+            servers = set(_SERVER_VAR.findall(snap.read(rel)))
+            if not servers:
+                continue
             for i, text in enumerate(snap.lines(rel), 1):
-                for m in _EXPRESS.finditer(text):
-                    method = "ANY" if m.group(1) == "all" else m.group(1).upper()
-                    out.append((method, m.group(2), rel, i, "express"))
+                for m in _ROUTE_CALL.finditer(text):
+                    if m.group(1) not in servers:
+                        continue
+                    method = "ANY" if m.group(2) == "all" else m.group(2).upper()
+                    out.append((method, m.group(3), rel, i, "express"))
     return out
 
 
@@ -3772,7 +4022,7 @@ git commit -m "feat: extract HTTP endpoints for Python, Django, Express and Next
   - `infrafit.detect.components.find_unmapped(snap, manifests) -> list[dict]`
   - 규칙:
     - 범위 ID: 역할이 `primary-db`·`search`면 `ds-`, 그 외 `svc-`. 이름 조각은 구성 요소 ID의 제공자가 `local`, `unspecified`, `lib`이면 제품, 아니면 `<제공자>-<제품>` (예: `ds:local/sqlite/wal` → `ds-sqlite`, `ds:supabase/postgres/…` → `ds-supabase-postgres`). 같은 ID로 두 시그니처가 맞으면 근거를 합치고 상태는 `confirmed`가 우선
-    - `used_by`: `static-frontend`가 아닌 모든 워크로드(이 계획의 단순화; 계획 2에서 근거 기반으로 좁힌다). 그런 워크로드가 없으면 빈 목록
+    - `used_by`: 데이터 범위의 시그니처 근거 파일 중 하나라도 워크로드의 `code_root` 아래(또는 `code_root == ""`)에 있으면 사용 중. `static-frontend`는 제외. 그렇게 찾은 워크로드가 하나도 없으면(예: `code_root`를 모름) `static-frontend`가 아닌 모든 워크로드로 대체한다
     - 호스팅 정교화: `ds:unspecified/postgresql/default`는 Terraform `aws_db_instance`(engine이 `postgres`로 시작)가 있으면 `multi_az`가 참이면 `ds:aws/rds-postgres/multi-az-instance` 아니면 `…/single-az`, `google_sql_database_instance`(database_version이 `POSTGRES`로 시작)가 있으면 `settings.availability_type == "REGIONAL"`이면 `ds:gcp/cloudsql-postgres/ha` 아니면 `…/single`. `ca:unspecified/redis/default`는 `aws_elasticache_*` → `ca:aws/elasticache/node-based`, `google_redis_instance` → `ca:gcp/memorystore/redis`. 정교화 근거로 Terraform 파일을 덧붙인다
     - 컴퓨트: 플랫폼 설정 파일(경로 순 첫 번째) `vercel.json` → `cp:vercel/functions/unspecified-plan`, `netlify.toml` → `cp:netlify/functions/unspecified-plan`, `fly.toml` → `cp:fly/machines/default`, `render.yaml` → `cp:render/web/unspecified-plan`, `railway.json`·`railway.toml`·`.railway/railway.ts` → `cp:railway/service/unspecified-plan`. 없으면 k8s 워크로드는 Terraform `aws_eks_cluster` → `cp:aws/eks/unspecified`, `google_container_cluster` → `cp:gcp/gke/unspecified`, 아니면 `cp:k8s/deployment/unspecified-cluster`. compose 워크로드 → `cp:local/compose/default`. 코드 워크로드는 Dockerfile(`app_dir` 또는 루트)이 있으면 `cp:docker/container/unspecified-host`, 없으면 `unmapped`(label `no deployment config`, 근거 없음)
     - 미매핑: watchlist에 있고 어떤 시그니처의 `dependency` 조건에도 없는 의존성
@@ -3832,6 +4082,25 @@ def test_hosting_refinement_and_k8s_compute(tmp_path):
     assert by_scope["ds-postgresql"]["component"] == "ds:aws/rds-postgres/multi-az-instance"
     assert any(e["path"] == "main.tf" for e in by_scope["ds-postgresql"]["evidence"])
     assert compute["w-api"] == "cp:aws/eks/unspecified"
+
+
+def test_used_by_follows_code_roots(tmp_path):
+    snap = open_snapshot(str(tmp_path), tmp_path / "_w")
+    ev = ({"path": "services/auth/pyproject.toml", "line": 5, "snippet": "x"},
+          {"path": "services/board/pyproject.toml", "line": 5, "snippet": "x"})
+    ws = [
+        WorkloadInfo(id="w-auth", kind="web", name="auth", entrypoint=EV[0], status="confirmed",
+                     source="k8s", code_root="services/auth"),
+        WorkloadInfo(id="w-board-worker", kind="worker", name="board-worker", entrypoint=EV[0],
+                     status="confirmed", source="k8s", code_root="services/board"),
+        WorkloadInfo(id="w-nginx", kind="web", name="nginx", entrypoint=EV[0], status="confirmed",
+                     source="k8s", code_root="frontend"),
+        WorkloadInfo(id="w-unknown", kind="web", name="unknown", entrypoint=EV[0], status="confirmed",
+                     source="k8s", code_root=None),
+    ]
+    ds, _, _ = map_components(snap, [Match("P", "ds:unspecified/postgresql/default", "primary-db", "confirmed", ev)],
+                              ws, [])
+    assert ds[0]["used_by"] == ["w-auth", "w-board-worker"]
 
 
 def test_platform_config_wins(tmp_path):
@@ -3931,9 +4200,20 @@ def _compute_for(w: WorkloadInfo, artifacts: list[ParsedArtifact]) -> tuple[str,
     return "unmapped", None
 
 
+def _under(path: str, root: str) -> bool:
+    return root == "" or path == root or path.startswith(root + "/")
+
+
+def _users(evidence_items: list[dict], workloads: list[WorkloadInfo]) -> list[str]:
+    backend = [w for w in workloads if w.kind != "static-frontend"]
+    paths = {e["path"] for e in evidence_items}
+    users = sorted(w.id for w in backend
+                   if w.code_root is not None and any(_under(p, w.code_root) for p in paths))
+    return users or sorted(w.id for w in backend)
+
+
 def map_components(snap: Snapshot, matches: list[Match], workloads: list[WorkloadInfo],
                    artifacts: list[ParsedArtifact]) -> tuple[list[dict], list[dict], dict[str, str]]:
-    backend = sorted(w.id for w in workloads if w.kind != "static-frontend")
     scopes: dict[str, dict] = {}
     for m in matches:
         sid = scope_id(m.component, m.role)
@@ -3952,8 +4232,8 @@ def map_components(snap: Snapshot, matches: list[Match], workloads: list[Workloa
         ev = list(s["evidence"])
         if tf_path:
             ev.append(evidence(snap, tf_path))
-        datastores.append({"id": sid, "role": s["role"], "used_by": backend, "evidence": s["evidence"],
-                           "status": s["status"]})
+        datastores.append({"id": sid, "role": s["role"], "used_by": _users(s["evidence"], workloads),
+                           "evidence": s["evidence"], "status": s["status"]})
         comps.append({"scope": sid, "component": component, "label": ",".join(s["signatures"]),
                       "settings": [], "evidence": ev, "status": s["status"]})
 
@@ -3986,7 +4266,7 @@ def find_unmapped(snap: Snapshot, manifests: Manifests) -> list[dict]:
 - [ ] **Step 4: 테스트 통과 확인**
 
 Run: `uv run pytest tests/detect/test_components.py -v`
-Expected: PASS (3 passed)
+Expected: PASS (4 passed)
 
 - [ ] **Step 5: 커밋**
 
@@ -4572,6 +4852,10 @@ def test_datastores(case):
     actual = {(d["id"], d["role"]) for d in inv["datastores"]}
     want = {(d["id"], d["role"]) for d in exp["datastores"]}
     assert actual == want if exp["match"] == "exact" else want <= actual
+    by_id = {d["id"]: d for d in inv["datastores"]}
+    for d in exp["datastores"]:
+        if "used_by" in d:
+            assert by_id[d["id"]]["used_by"] == d["used_by"], d["id"]
 
 
 def test_current_components(case):
