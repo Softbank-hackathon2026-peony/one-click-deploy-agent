@@ -1,0 +1,3192 @@
+{
+  "current_components": [
+    {
+      "component": "ds:unspecified/postgresql/default",
+      "evidence": [
+        {
+          "kind": "tech",
+          "line": 9,
+          "path": "services/auth/pyproject.toml",
+          "snippet": "\"asyncpg>=0.29\","
+        },
+        {
+          "kind": "tech",
+          "line": 9,
+          "path": "services/board/pyproject.toml",
+          "snippet": "\"asyncpg>=0.29\","
+        }
+      ],
+      "label": "SIG-DS-POSTGRES",
+      "scope": "ds-postgresql",
+      "settings": [],
+      "status": "confirmed"
+    },
+    {
+      "component": "ca:unspecified/redis/default",
+      "evidence": [
+        {
+          "kind": "tech",
+          "line": 10,
+          "path": "services/auth/pyproject.toml",
+          "snippet": "\"redis>=5.0.4\","
+        },
+        {
+          "kind": "tech",
+          "line": 10,
+          "path": "services/board/pyproject.toml",
+          "snippet": "\"redis>=5.0.4\","
+        }
+      ],
+      "label": "SIG-CA-REDIS",
+      "scope": "svc-redis",
+      "settings": [],
+      "status": "confirmed"
+    },
+    {
+      "component": "qu:unspecified/redis-streams/default",
+      "evidence": [
+        {
+          "kind": "tech",
+          "line": 8,
+          "path": "services/auth/src/auth/events.py",
+          "snippet": "await redis.xadd("
+        },
+        {
+          "kind": "tech",
+          "line": 47,
+          "path": "services/board/src/board/queue.py",
+          "snippet": "pipe.xadd(keys.POSTS_STREAM, fields)"
+        },
+        {
+          "kind": "tech",
+          "line": 205,
+          "path": "services/board/src/board/worker.py",
+          "snippet": "pipe.xadd(keys.POSTS_DLQ, {**fields, \"source_id\": message_id, \"reason\": reason[:500]})"
+        },
+        {
+          "kind": "tech",
+          "line": 22,
+          "path": "services/board/tests/test_worker_events_and_loop.py",
+          "snippet": "await rdb.xadd(\"user:events\", {\"type\": \"user_deleted\", \"user_id\": leaving})"
+        },
+        {
+          "kind": "tech",
+          "line": 34,
+          "path": "services/board/tests/test_worker_events_and_loop.py",
+          "snippet": "await rdb.xadd(\"user:events\", {\"type\": \"user_deleted\", \"user_id\": \"garbage\"})"
+        }
+      ],
+      "label": "SIG-QU-REDIS-STREAMS",
+      "scope": "svc-redis-streams",
+      "settings": [],
+      "status": "confirmed"
+    },
+    {
+      "component": "cp:k8s/deployment/unspecified-cluster",
+      "evidence": [
+        {
+          "line": null,
+          "path": "k8s/base/auth.yaml",
+          "snippet": "k8s/base/auth.yaml"
+        }
+      ],
+      "scope": "w-auth",
+      "settings": [],
+      "status": "confirmed"
+    },
+    {
+      "component": "cp:k8s/deployment/unspecified-cluster",
+      "evidence": [
+        {
+          "line": null,
+          "path": "k8s/base/auth-verify.yaml",
+          "snippet": "k8s/base/auth-verify.yaml"
+        }
+      ],
+      "scope": "w-auth-verify",
+      "settings": [],
+      "status": "confirmed"
+    },
+    {
+      "component": "cp:k8s/deployment/unspecified-cluster",
+      "evidence": [
+        {
+          "line": null,
+          "path": "k8s/base/board-api.yaml",
+          "snippet": "k8s/base/board-api.yaml"
+        }
+      ],
+      "scope": "w-board-api",
+      "settings": [],
+      "status": "confirmed"
+    },
+    {
+      "component": "cp:k8s/deployment/unspecified-cluster",
+      "evidence": [
+        {
+          "line": null,
+          "path": "k8s/base/board-worker.yaml",
+          "snippet": "k8s/base/board-worker.yaml"
+        }
+      ],
+      "scope": "w-board-worker",
+      "settings": [],
+      "status": "confirmed"
+    },
+    {
+      "component": "cp:k8s/deployment/unspecified-cluster",
+      "evidence": [
+        {
+          "line": null,
+          "path": "k8s/base/db-migrate.yaml",
+          "snippet": "k8s/base/db-migrate.yaml"
+        }
+      ],
+      "scope": "w-db-migrate",
+      "settings": [],
+      "status": "confirmed"
+    },
+    {
+      "component": "cp:k8s/deployment/unspecified-cluster",
+      "evidence": [
+        {
+          "line": null,
+          "path": "k8s/base/nginx.yaml",
+          "snippet": "k8s/base/nginx.yaml"
+        }
+      ],
+      "scope": "w-nginx",
+      "settings": [],
+      "status": "confirmed"
+    }
+  ],
+  "datastores": [
+    {
+      "evidence": [
+        {
+          "kind": "tech",
+          "line": 9,
+          "path": "services/auth/pyproject.toml",
+          "snippet": "\"asyncpg>=0.29\","
+        },
+        {
+          "kind": "tech",
+          "line": 9,
+          "path": "services/board/pyproject.toml",
+          "snippet": "\"asyncpg>=0.29\","
+        }
+      ],
+      "id": "ds-postgresql",
+      "role": "primary-db",
+      "status": "confirmed",
+      "used_by": [
+        "w-auth",
+        "w-auth-verify",
+        "w-board-api",
+        "w-board-worker",
+        "w-db-migrate"
+      ]
+    },
+    {
+      "evidence": [
+        {
+          "kind": "tech",
+          "line": 10,
+          "path": "services/auth/pyproject.toml",
+          "snippet": "\"redis>=5.0.4\","
+        },
+        {
+          "kind": "tech",
+          "line": 10,
+          "path": "services/board/pyproject.toml",
+          "snippet": "\"redis>=5.0.4\","
+        }
+      ],
+      "id": "svc-redis",
+      "role": "cache",
+      "status": "confirmed",
+      "used_by": [
+        "w-auth",
+        "w-auth-verify",
+        "w-board-api",
+        "w-board-worker",
+        "w-db-migrate"
+      ]
+    },
+    {
+      "evidence": [
+        {
+          "kind": "tech",
+          "line": 8,
+          "path": "services/auth/src/auth/events.py",
+          "snippet": "await redis.xadd("
+        },
+        {
+          "kind": "tech",
+          "line": 47,
+          "path": "services/board/src/board/queue.py",
+          "snippet": "pipe.xadd(keys.POSTS_STREAM, fields)"
+        },
+        {
+          "kind": "tech",
+          "line": 205,
+          "path": "services/board/src/board/worker.py",
+          "snippet": "pipe.xadd(keys.POSTS_DLQ, {**fields, \"source_id\": message_id, \"reason\": reason[:500]})"
+        },
+        {
+          "kind": "tech",
+          "line": 22,
+          "path": "services/board/tests/test_worker_events_and_loop.py",
+          "snippet": "await rdb.xadd(\"user:events\", {\"type\": \"user_deleted\", \"user_id\": leaving})"
+        },
+        {
+          "kind": "tech",
+          "line": 34,
+          "path": "services/board/tests/test_worker_events_and_loop.py",
+          "snippet": "await rdb.xadd(\"user:events\", {\"type\": \"user_deleted\", \"user_id\": \"garbage\"})"
+        }
+      ],
+      "id": "svc-redis-streams",
+      "role": "queue",
+      "status": "confirmed",
+      "used_by": [
+        "w-auth",
+        "w-auth-verify",
+        "w-board-api",
+        "w-board-worker",
+        "w-db-migrate"
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "framework": "python",
+      "handler": {
+        "line": 11,
+        "path": "services/auth/src/auth/health.py",
+        "snippet": "@router.get(\"/healthz\")"
+      },
+      "id": "ep-auth-001",
+      "method": "GET",
+      "route": "/healthz",
+      "status": "confirmed",
+      "workload": "w-auth"
+    },
+    {
+      "framework": "python",
+      "handler": {
+        "line": 17,
+        "path": "services/auth/src/auth/health.py",
+        "snippet": "@router.get(\"/readyz\")"
+      },
+      "id": "ep-auth-002",
+      "method": "GET",
+      "route": "/readyz",
+      "status": "confirmed",
+      "workload": "w-auth"
+    },
+    {
+      "framework": "python",
+      "handler": {
+        "line": 68,
+        "path": "services/auth/src/auth/observability.py",
+        "snippet": "@app.get(\"/metrics\", include_in_schema=False)"
+      },
+      "id": "ep-auth-003",
+      "method": "GET",
+      "route": "/metrics",
+      "status": "confirmed",
+      "workload": "w-auth"
+    },
+    {
+      "framework": "python",
+      "handler": {
+        "line": 71,
+        "path": "services/auth/src/auth/routes.py",
+        "snippet": "@router.post(\"/api/auth/signup\", status_code=201)"
+      },
+      "id": "ep-auth-004",
+      "method": "POST",
+      "route": "/api/auth/signup",
+      "status": "confirmed",
+      "workload": "w-auth"
+    },
+    {
+      "framework": "python",
+      "handler": {
+        "line": 83,
+        "path": "services/auth/src/auth/routes.py",
+        "snippet": "@router.post(\"/api/auth/login\")"
+      },
+      "id": "ep-auth-005",
+      "method": "POST",
+      "route": "/api/auth/login",
+      "status": "confirmed",
+      "workload": "w-auth"
+    },
+    {
+      "framework": "python",
+      "handler": {
+        "line": 107,
+        "path": "services/auth/src/auth/routes.py",
+        "snippet": "@router.post(\"/api/auth/logout\", status_code=204)"
+      },
+      "id": "ep-auth-006",
+      "method": "POST",
+      "route": "/api/auth/logout",
+      "status": "confirmed",
+      "workload": "w-auth"
+    },
+    {
+      "framework": "python",
+      "handler": {
+        "line": 120,
+        "path": "services/auth/src/auth/routes.py",
+        "snippet": "@router.get(\"/api/auth/me\")"
+      },
+      "id": "ep-auth-007",
+      "method": "GET",
+      "route": "/api/auth/me",
+      "status": "confirmed",
+      "workload": "w-auth"
+    },
+    {
+      "framework": "python",
+      "handler": {
+        "line": 126,
+        "path": "services/auth/src/auth/routes.py",
+        "snippet": "@router.delete(\"/api/auth/me\", status_code=204)"
+      },
+      "id": "ep-auth-008",
+      "method": "DELETE",
+      "route": "/api/auth/me",
+      "status": "confirmed",
+      "workload": "w-auth"
+    },
+    {
+      "framework": "python",
+      "handler": {
+        "line": 142,
+        "path": "services/auth/src/auth/routes.py",
+        "snippet": "@router.get(\"/internal/verify\", include_in_schema=False)"
+      },
+      "id": "ep-auth-009",
+      "method": "GET",
+      "route": "/internal/verify",
+      "status": "confirmed",
+      "workload": "w-auth"
+    },
+    {
+      "framework": "python",
+      "handler": {
+        "line": 11,
+        "path": "services/board/src/board/health.py",
+        "snippet": "@router.get(\"/healthz\")"
+      },
+      "id": "ep-board-api-001",
+      "method": "GET",
+      "route": "/healthz",
+      "status": "confirmed",
+      "workload": "w-board-api"
+    },
+    {
+      "framework": "python",
+      "handler": {
+        "line": 16,
+        "path": "services/board/src/board/health.py",
+        "snippet": "@router.get(\"/readyz\")"
+      },
+      "id": "ep-board-api-002",
+      "method": "GET",
+      "route": "/readyz",
+      "status": "confirmed",
+      "workload": "w-board-api"
+    },
+    {
+      "framework": "python",
+      "handler": {
+        "line": 68,
+        "path": "services/board/src/board/observability.py",
+        "snippet": "@app.get(\"/metrics\", include_in_schema=False)"
+      },
+      "id": "ep-board-api-003",
+      "method": "GET",
+      "route": "/metrics",
+      "status": "confirmed",
+      "workload": "w-board-api"
+    },
+    {
+      "framework": "python",
+      "handler": {
+        "line": 28,
+        "path": "services/board/src/board/routes.py",
+        "snippet": "@router.get(\"/api/board/posts\")"
+      },
+      "id": "ep-board-api-004",
+      "method": "GET",
+      "route": "/api/board/posts",
+      "status": "confirmed",
+      "workload": "w-board-api"
+    },
+    {
+      "framework": "python",
+      "handler": {
+        "line": 46,
+        "path": "services/board/src/board/routes.py",
+        "snippet": "@router.get(\"/api/board/posts/{post_id}\")"
+      },
+      "id": "ep-board-api-005",
+      "method": "GET",
+      "route": "/api/board/posts/{post_id}",
+      "status": "confirmed",
+      "workload": "w-board-api"
+    },
+    {
+      "framework": "python",
+      "handler": {
+        "line": 70,
+        "path": "services/board/src/board/routes.py",
+        "snippet": "@router.post(\"/api/board/posts\", status_code=202)"
+      },
+      "id": "ep-board-api-006",
+      "method": "POST",
+      "route": "/api/board/posts",
+      "status": "confirmed",
+      "workload": "w-board-api"
+    },
+    {
+      "framework": "python",
+      "handler": {
+        "line": 84,
+        "path": "services/board/src/board/routes.py",
+        "snippet": "@router.delete(\"/api/board/posts/{post_id}\", status_code=204)"
+      },
+      "id": "ep-board-api-007",
+      "method": "DELETE",
+      "route": "/api/board/posts/{post_id}",
+      "status": "confirmed",
+      "workload": "w-board-api"
+    }
+  ],
+  "existing_artifacts": [
+    {
+      "kind": "ci",
+      "parsed": true,
+      "path": ".github/workflows/ci.yml",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "jobs",
+          "value": [
+            "backend",
+            "frontend",
+            "images",
+            "k8s"
+          ]
+        },
+        {
+          "defaulted": false,
+          "key": "uses",
+          "value": [
+            "actions/checkout@v4",
+            "actions/setup-node@v4",
+            "astral-sh/setup-uv@v6",
+            "azure/setup-kubectl@v4"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "compose",
+      "parsed": true,
+      "path": "docker-compose.yml",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "services.auth.command",
+          "value": "uvicorn auth.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src"
+        },
+        {
+          "defaulted": false,
+          "evidence": {
+            "line": 50,
+            "path": "docker-compose.yml",
+            "snippet": "image: simple-web-app/auth:dev"
+          },
+          "key": "services.auth.image",
+          "value": "simple-web-app/auth:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "services.board-api.command",
+          "value": "uvicorn board.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src"
+        },
+        {
+          "defaulted": false,
+          "evidence": {
+            "line": 39,
+            "path": "docker-compose.yml",
+            "snippet": "image: simple-web-app/board:dev"
+          },
+          "key": "services.board-api.image",
+          "value": "simple-web-app/board:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "services.board-worker.command",
+          "value": "python -m board.worker"
+        },
+        {
+          "defaulted": false,
+          "evidence": {
+            "line": 39,
+            "path": "docker-compose.yml",
+            "snippet": "image: simple-web-app/board:dev"
+          },
+          "key": "services.board-worker.image",
+          "value": "simple-web-app/board:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "services.migrate.command",
+          "value": "python -m board.migrate"
+        },
+        {
+          "defaulted": false,
+          "evidence": {
+            "line": 39,
+            "path": "docker-compose.yml",
+            "snippet": "image: simple-web-app/board:dev"
+          },
+          "key": "services.migrate.image",
+          "value": "simple-web-app/board:dev"
+        },
+        {
+          "defaulted": false,
+          "evidence": {
+            "line": 98,
+            "path": "docker-compose.yml",
+            "snippet": "image: simple-web-app/frontend:dev"
+          },
+          "key": "services.nginx.image",
+          "value": "simple-web-app/frontend:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "services.nginx.ports",
+          "value": [
+            "8080:8080"
+          ]
+        },
+        {
+          "defaulted": false,
+          "evidence": {
+            "line": 16,
+            "path": "docker-compose.yml",
+            "snippet": "image: postgres:16-alpine"
+          },
+          "key": "services.postgres.image",
+          "value": "postgres:16-alpine"
+        },
+        {
+          "defaulted": false,
+          "evidence": {
+            "line": 30,
+            "path": "docker-compose.yml",
+            "snippet": "image: redis:7-alpine"
+          },
+          "key": "services.redis.image",
+          "value": "redis:7-alpine"
+        }
+      ]
+    },
+    {
+      "kind": "dockerfile",
+      "parsed": true,
+      "path": "frontend/Dockerfile",
+      "settings": [
+        {
+          "defaulted": false,
+          "evidence": {
+            "line": 9,
+            "path": "frontend/Dockerfile",
+            "snippet": "FROM nginxinc/nginx-unprivileged:1.27-alpine"
+          },
+          "key": "base_image",
+          "value": "nginxinc/nginx-unprivileged:1.27-alpine"
+        },
+        {
+          "defaulted": false,
+          "evidence": {
+            "line": 24,
+            "path": "frontend/Dockerfile",
+            "snippet": "EXPOSE 8080"
+          },
+          "key": "expose",
+          "value": "8080"
+        },
+        {
+          "defaulted": false,
+          "key": "stages",
+          "value": 2
+        },
+        {
+          "default_source": {
+            "ref": "docs/research/capabilities/08-artifacts-compute.md"
+          },
+          "defaulted": true,
+          "key": "user",
+          "value": "root"
+        }
+      ]
+    },
+    {
+      "kind": "dockerfile",
+      "parsed": true,
+      "path": "frontend/Dockerfile.dockerignore",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "stages",
+          "value": 0
+        },
+        {
+          "default_source": {
+            "ref": "docs/research/capabilities/08-artifacts-compute.md"
+          },
+          "defaulted": true,
+          "key": "user",
+          "value": "root"
+        }
+      ]
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/base/auth-verify.yaml",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.image",
+          "value": "simple-web-app/auth"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.terminationGracePeriodSeconds",
+          "value": 30
+        }
+      ]
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/base/auth.yaml",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.image",
+          "value": "simple-web-app/auth"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.terminationGracePeriodSeconds",
+          "value": 30
+        }
+      ]
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/base/board-api.yaml",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.image",
+          "value": "simple-web-app/board"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.terminationGracePeriodSeconds",
+          "value": 30
+        }
+      ]
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/base/board-worker.yaml",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.command",
+          "value": "python -m board.worker"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.image",
+          "value": "simple-web-app/board"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.readinessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.terminationGracePeriodSeconds",
+          "value": 30
+        }
+      ]
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/base/db-migrate.yaml",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.command",
+          "value": "python -m board.migrate"
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.image",
+          "value": "simple-web-app/board"
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.readinessProbe",
+          "value": false
+        }
+      ]
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/base/hpa.yaml",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth-verify.maxReplicas",
+          "value": 10
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth-verify.minReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth.maxReplicas",
+          "value": 20
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth.minReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-api.maxReplicas",
+          "value": 20
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-api.minReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-worker.maxReplicas",
+          "value": 10
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-worker.minReplicas",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/nginx.maxReplicas",
+          "value": 10
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/nginx.minReplicas",
+          "value": 2
+        }
+      ]
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/base/kustomization.yaml",
+      "settings": []
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/base/namespace.yaml",
+      "settings": []
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/base/networkpolicy.yaml",
+      "settings": []
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/base/nginx.yaml",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.image",
+          "value": "simple-web-app/frontend"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.terminationGracePeriodSeconds",
+          "value": 30
+        }
+      ]
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/base/pdb.yaml",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/auth-verify.minAvailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/auth.minAvailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/board-api.minAvailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/board-worker.maxUnavailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/nginx.minAvailable",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/components/dev-env/hpa-patch.yaml",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth-verify.maxReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth-verify.minReplicas",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth.maxReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-api.maxReplicas",
+          "value": 3
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-api.minReplicas",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-worker.maxReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/nginx.maxReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/nginx.minReplicas",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/components/dev-env/kustomization.yaml",
+      "settings": []
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/components/dev-env/resources-patch.yaml",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.readinessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.readinessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.readinessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.readinessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.readinessProbe",
+          "value": false
+        }
+      ]
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/components/keda-worker/delete-worker-hpa.yaml",
+      "settings": []
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/components/keda-worker/kustomization.yaml",
+      "settings": []
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/components/keda-worker/scaledobject.yaml",
+      "settings": []
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/kind/cluster.yaml",
+      "settings": []
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/aws/base/ingress.yaml",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.alb.ingress.kubernetes.io/certificate-arn",
+          "value": "arn:aws:acm:ap-northeast-2:123456789012:certificate/00000000-0000-0000-0000-000000000000"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.alb.ingress.kubernetes.io/healthcheck-path",
+          "value": "/nginx-health"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.alb.ingress.kubernetes.io/listen-ports",
+          "value": "[{\"HTTP\": 80}, {\"HTTPS\": 443}]"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.alb.ingress.kubernetes.io/scheme",
+          "value": "internet-facing"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.alb.ingress.kubernetes.io/ssl-redirect",
+          "value": "443"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.alb.ingress.kubernetes.io/target-group-attributes",
+          "value": "deregistration_delay.timeout_seconds=30"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.alb.ingress.kubernetes.io/target-type",
+          "value": "ip"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.backends",
+          "value": [
+            "nginx"
+          ]
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.ingressClassName",
+          "value": "alb"
+        }
+      ]
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/aws/base/kustomization.yaml",
+      "settings": []
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/aws/dev/kustomization.yaml",
+      "settings": []
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/aws/dev/kustomization.yaml#build",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.image",
+          "value": "123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/simple-web-app/auth:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.image",
+          "value": "123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/simple-web-app/auth:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.image",
+          "value": "123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/simple-web-app/board:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.command",
+          "value": "python -m board.worker"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.image",
+          "value": "123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/simple-web-app/board:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.readinessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.image",
+          "value": "123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/simple-web-app/frontend:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth-verify.maxReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth-verify.minReplicas",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth.maxReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth.minReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-api.maxReplicas",
+          "value": 3
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-api.minReplicas",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-worker.maxReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-worker.minReplicas",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/nginx.maxReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/nginx.minReplicas",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.alb.ingress.kubernetes.io/certificate-arn",
+          "value": "arn:aws:acm:ap-northeast-2:123456789012:certificate/11111111-1111-1111-1111-111111111111"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.alb.ingress.kubernetes.io/healthcheck-path",
+          "value": "/nginx-health"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.alb.ingress.kubernetes.io/listen-ports",
+          "value": "[{\"HTTP\": 80}, {\"HTTPS\": 443}]"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.alb.ingress.kubernetes.io/scheme",
+          "value": "internet-facing"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.alb.ingress.kubernetes.io/ssl-redirect",
+          "value": "443"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.alb.ingress.kubernetes.io/target-group-attributes",
+          "value": "deregistration_delay.timeout_seconds=30"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.alb.ingress.kubernetes.io/target-type",
+          "value": "ip"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.backends",
+          "value": [
+            "nginx"
+          ]
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.ingressClassName",
+          "value": "alb"
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.command",
+          "value": "python -m board.migrate"
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.image",
+          "value": "123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/simple-web-app/board:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.readinessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/auth-verify.maxUnavailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/auth.maxUnavailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/board-api.maxUnavailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/board-worker.maxUnavailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/nginx.maxUnavailable",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/aws/prod/kustomization.yaml",
+      "settings": []
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/aws/prod/kustomization.yaml#build",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.image",
+          "value": "123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/simple-web-app/auth:0.1.0"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.image",
+          "value": "123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/simple-web-app/auth:0.1.0"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.image",
+          "value": "123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/simple-web-app/board:0.1.0"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.command",
+          "value": "python -m board.worker"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.image",
+          "value": "123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/simple-web-app/board:0.1.0"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.readinessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.image",
+          "value": "123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/simple-web-app/frontend:0.1.0"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth-verify.maxReplicas",
+          "value": 10
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth-verify.minReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth.maxReplicas",
+          "value": 20
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth.minReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-api.maxReplicas",
+          "value": 20
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-api.minReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-worker.maxReplicas",
+          "value": 10
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-worker.minReplicas",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/nginx.maxReplicas",
+          "value": 10
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/nginx.minReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.alb.ingress.kubernetes.io/certificate-arn",
+          "value": "arn:aws:acm:ap-northeast-2:123456789012:certificate/00000000-0000-0000-0000-000000000000"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.alb.ingress.kubernetes.io/healthcheck-path",
+          "value": "/nginx-health"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.alb.ingress.kubernetes.io/listen-ports",
+          "value": "[{\"HTTP\": 80}, {\"HTTPS\": 443}]"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.alb.ingress.kubernetes.io/scheme",
+          "value": "internet-facing"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.alb.ingress.kubernetes.io/ssl-redirect",
+          "value": "443"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.alb.ingress.kubernetes.io/target-group-attributes",
+          "value": "deregistration_delay.timeout_seconds=30"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.alb.ingress.kubernetes.io/target-type",
+          "value": "ip"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.backends",
+          "value": [
+            "nginx"
+          ]
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.ingressClassName",
+          "value": "alb"
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.command",
+          "value": "python -m board.migrate"
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.image",
+          "value": "123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/simple-web-app/board:0.1.0"
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.readinessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/auth-verify.minAvailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/auth.minAvailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/board-api.minAvailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/board-worker.maxUnavailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/nginx.minAvailable",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/gcp/base/backendconfig.yaml",
+      "settings": []
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/gcp/base/frontendconfig.yaml",
+      "settings": []
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/gcp/base/ingress.yaml",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.kubernetes.io/ingress.class",
+          "value": "gce"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.kubernetes.io/ingress.global-static-ip-name",
+          "value": "simple-web-app-ip"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.networking.gke.io/managed-certificates",
+          "value": "web-cert"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.networking.gke.io/v1beta1.FrontendConfig",
+          "value": "web-frontendconfig"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.backends",
+          "value": [
+            "nginx"
+          ]
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.ingressClassName",
+          "value": "gce"
+        }
+      ]
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/gcp/base/kustomization.yaml",
+      "settings": []
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/gcp/base/nginx-service-patch.yaml",
+      "settings": []
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/gcp/dev/kustomization.yaml",
+      "settings": []
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/gcp/dev/kustomization.yaml#build",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.image",
+          "value": "asia-northeast3-docker.pkg.dev/my-gcp-project/simple-web-app/auth:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.image",
+          "value": "asia-northeast3-docker.pkg.dev/my-gcp-project/simple-web-app/auth:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.image",
+          "value": "asia-northeast3-docker.pkg.dev/my-gcp-project/simple-web-app/board:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.command",
+          "value": "python -m board.worker"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.image",
+          "value": "asia-northeast3-docker.pkg.dev/my-gcp-project/simple-web-app/board:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.readinessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.image",
+          "value": "asia-northeast3-docker.pkg.dev/my-gcp-project/simple-web-app/frontend:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth-verify.maxReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth-verify.minReplicas",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth.maxReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth.minReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-api.maxReplicas",
+          "value": 3
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-api.minReplicas",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-worker.maxReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-worker.minReplicas",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/nginx.maxReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/nginx.minReplicas",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.kubernetes.io/ingress.class",
+          "value": "gce"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.kubernetes.io/ingress.global-static-ip-name",
+          "value": "simple-web-app-dev-ip"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.networking.gke.io/managed-certificates",
+          "value": "web-cert-dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.networking.gke.io/v1beta1.FrontendConfig",
+          "value": "web-frontendconfig"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.backends",
+          "value": [
+            "nginx"
+          ]
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.ingressClassName",
+          "value": "gce"
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.command",
+          "value": "python -m board.migrate"
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.image",
+          "value": "asia-northeast3-docker.pkg.dev/my-gcp-project/simple-web-app/board:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.readinessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/auth-verify.maxUnavailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/auth.maxUnavailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/board-api.maxUnavailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/board-worker.maxUnavailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/nginx.maxUnavailable",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/gcp/dev/managedcertificate.yaml",
+      "settings": []
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/gcp/prod/kustomization.yaml",
+      "settings": []
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/gcp/prod/kustomization.yaml#build",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.image",
+          "value": "asia-northeast3-docker.pkg.dev/my-gcp-project/simple-web-app/auth:0.1.0"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.image",
+          "value": "asia-northeast3-docker.pkg.dev/my-gcp-project/simple-web-app/auth:0.1.0"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.image",
+          "value": "asia-northeast3-docker.pkg.dev/my-gcp-project/simple-web-app/board:0.1.0"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.command",
+          "value": "python -m board.worker"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.image",
+          "value": "asia-northeast3-docker.pkg.dev/my-gcp-project/simple-web-app/board:0.1.0"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.readinessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.image",
+          "value": "asia-northeast3-docker.pkg.dev/my-gcp-project/simple-web-app/frontend:0.1.0"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth-verify.maxReplicas",
+          "value": 10
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth-verify.minReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth.maxReplicas",
+          "value": 20
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth.minReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-api.maxReplicas",
+          "value": 20
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-api.minReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-worker.maxReplicas",
+          "value": 10
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-worker.minReplicas",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/nginx.maxReplicas",
+          "value": 10
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/nginx.minReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.kubernetes.io/ingress.class",
+          "value": "gce"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.kubernetes.io/ingress.global-static-ip-name",
+          "value": "simple-web-app-ip"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.networking.gke.io/managed-certificates",
+          "value": "web-cert"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.annotations.networking.gke.io/v1beta1.FrontendConfig",
+          "value": "web-frontendconfig"
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.backends",
+          "value": [
+            "nginx"
+          ]
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/web.ingressClassName",
+          "value": "gce"
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.command",
+          "value": "python -m board.migrate"
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.image",
+          "value": "asia-northeast3-docker.pkg.dev/my-gcp-project/simple-web-app/board:0.1.0"
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.readinessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/auth-verify.minAvailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/auth.minAvailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/board-api.minAvailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/board-worker.maxUnavailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/nginx.minAvailable",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/gcp/prod/managedcertificate.yaml",
+      "settings": []
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/local-loadtest/kustomization.yaml",
+      "settings": []
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/local-loadtest/kustomization.yaml#build",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.image",
+          "value": "simple-web-app/auth:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.image",
+          "value": "simple-web-app/auth:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.image",
+          "value": "simple-web-app/board:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.command",
+          "value": "python -m board.worker"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.image",
+          "value": "simple-web-app/board:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.readinessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.image",
+          "value": "simple-web-app/frontend:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth-verify.maxReplicas",
+          "value": 4
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth-verify.minReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth.maxReplicas",
+          "value": 4
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth.minReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-api.maxReplicas",
+          "value": 6
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-api.minReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/nginx.maxReplicas",
+          "value": 4
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/nginx.minReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.command",
+          "value": "python -m board.migrate"
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.image",
+          "value": "simple-web-app/board:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.readinessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/auth-verify.minAvailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/auth.minAvailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/board-api.minAvailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/board-worker.maxUnavailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/nginx.minAvailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/postgres.command",
+          "value": "-c max_connections=600"
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/postgres.image",
+          "value": "postgres:16-alpine"
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/postgres.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/postgres.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/postgres.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/postgres.replicas",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/redis.command",
+          "value": "redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy noeviction"
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/redis.image",
+          "value": "redis:7.2-alpine"
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/redis.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/redis.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/redis.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/redis.replicas",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/local-loadtest/laptop-caps-patch.yaml",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.readinessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth-verify.maxReplicas",
+          "value": 4
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth.maxReplicas",
+          "value": 4
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-api.maxReplicas",
+          "value": 6
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/nginx.maxReplicas",
+          "value": 4
+        }
+      ]
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/local/kustomization.yaml",
+      "settings": []
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/local/networkpolicy-data.yaml",
+      "settings": []
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/local/nginx-service-patch.yaml",
+      "settings": []
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/local/postgres.yaml",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "StatefulSet/postgres.command",
+          "value": "-c max_connections=600"
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/postgres.image",
+          "value": "postgres:16-alpine"
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/postgres.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/postgres.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/postgres.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/postgres.replicas",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/local/redis.yaml",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "StatefulSet/redis.command",
+          "value": "redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy noeviction"
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/redis.image",
+          "value": "redis:7.2-alpine"
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/redis.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/redis.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/redis.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/redis.replicas",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/overlays/local/resources-patch.yaml",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.readinessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.readinessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.readinessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.readinessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.readinessProbe",
+          "value": false
+        }
+      ]
+    },
+    {
+      "kind": "dockerfile",
+      "parsed": true,
+      "path": "services/auth/Dockerfile",
+      "settings": [
+        {
+          "defaulted": false,
+          "evidence": {
+            "line": 2,
+            "path": "services/auth/Dockerfile",
+            "snippet": "FROM python:3.12-slim"
+          },
+          "key": "base_image",
+          "value": "python:3.12-slim"
+        },
+        {
+          "defaulted": false,
+          "evidence": {
+            "line": 20,
+            "path": "services/auth/Dockerfile",
+            "snippet": "CMD [\"uvicorn\", \"auth.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\", \"--no-access-log\"]"
+          },
+          "key": "cmd",
+          "value": "uvicorn auth.main:app --host 0.0.0.0 --port 8000 --no-access-log"
+        },
+        {
+          "defaulted": false,
+          "evidence": {
+            "line": 19,
+            "path": "services/auth/Dockerfile",
+            "snippet": "EXPOSE 8000"
+          },
+          "key": "expose",
+          "value": "8000"
+        },
+        {
+          "defaulted": false,
+          "key": "stages",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "evidence": {
+            "line": 18,
+            "path": "services/auth/Dockerfile",
+            "snippet": "USER 10001"
+          },
+          "key": "user",
+          "value": "10001"
+        }
+      ]
+    },
+    {
+      "kind": "dockerfile",
+      "parsed": true,
+      "path": "services/board/Dockerfile",
+      "settings": [
+        {
+          "defaulted": false,
+          "evidence": {
+            "line": 3,
+            "path": "services/board/Dockerfile",
+            "snippet": "FROM python:3.12-slim"
+          },
+          "key": "base_image",
+          "value": "python:3.12-slim"
+        },
+        {
+          "defaulted": false,
+          "evidence": {
+            "line": 23,
+            "path": "services/board/Dockerfile",
+            "snippet": "CMD [\"uvicorn\", \"board.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\", \"--no-access-log\"]"
+          },
+          "key": "cmd",
+          "value": "uvicorn board.main:app --host 0.0.0.0 --port 8000 --no-access-log"
+        },
+        {
+          "defaulted": false,
+          "evidence": {
+            "line": 22,
+            "path": "services/board/Dockerfile",
+            "snippet": "EXPOSE 8000 9100"
+          },
+          "key": "expose",
+          "value": "8000 9100"
+        },
+        {
+          "defaulted": false,
+          "key": "stages",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "evidence": {
+            "line": 21,
+            "path": "services/board/Dockerfile",
+            "snippet": "USER 10001"
+          },
+          "key": "user",
+          "value": "10001"
+        }
+      ]
+    }
+  ],
+  "request_paths": [
+    {
+      "hops": [
+        {
+          "component": "nw:app/uvicorn/default",
+          "evidence": [
+            {
+              "line": 4,
+              "path": "k8s/base/auth.yaml",
+              "snippet": "name: auth"
+            }
+          ],
+          "kind": "app-server",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "timeout_keep_alive",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-auth",
+      "workload": "w-auth"
+    },
+    {
+      "hops": [
+        {
+          "component": "nw:app/uvicorn/default",
+          "evidence": [
+            {
+              "line": 6,
+              "path": "k8s/base/auth-verify.yaml",
+              "snippet": "name: auth-verify"
+            }
+          ],
+          "kind": "app-server",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "timeout_keep_alive",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-auth-verify",
+      "workload": "w-auth-verify"
+    },
+    {
+      "hops": [
+        {
+          "component": "nw:app/uvicorn/default",
+          "evidence": [
+            {
+              "line": 4,
+              "path": "k8s/base/board-api.yaml",
+              "snippet": "name: board-api"
+            }
+          ],
+          "kind": "app-server",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "timeout_keep_alive",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-board-api",
+      "workload": "w-board-api"
+    },
+    {
+      "hops": [
+        {
+          "component": "nw:aws/alb/default",
+          "evidence": [
+            {
+              "line": null,
+              "path": "k8s/overlays/aws/base/ingress.yaml",
+              "snippet": "k8s/overlays/aws/base/ingress.yaml"
+            }
+          ],
+          "kind": "load-balancer",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "idle_timeout",
+              "value": 60
+            }
+          ]
+        }
+      ],
+      "id": "path-nginx",
+      "workload": "w-nginx"
+    }
+  ],
+  "unmapped": [],
+  "workloads": [
+    {
+      "entrypoint": {
+        "line": 4,
+        "path": "k8s/base/auth.yaml",
+        "snippet": "name: auth"
+      },
+      "id": "w-auth",
+      "kind": "web",
+      "name": "auth",
+      "status": "confirmed"
+    },
+    {
+      "entrypoint": {
+        "line": 6,
+        "path": "k8s/base/auth-verify.yaml",
+        "snippet": "name: auth-verify"
+      },
+      "id": "w-auth-verify",
+      "kind": "web",
+      "name": "auth-verify",
+      "status": "confirmed"
+    },
+    {
+      "entrypoint": {
+        "line": 4,
+        "path": "k8s/base/board-api.yaml",
+        "snippet": "name: board-api"
+      },
+      "id": "w-board-api",
+      "kind": "web",
+      "name": "board-api",
+      "status": "confirmed"
+    },
+    {
+      "entrypoint": {
+        "line": 4,
+        "path": "k8s/base/board-worker.yaml",
+        "snippet": "name: board-worker"
+      },
+      "id": "w-board-worker",
+      "kind": "worker",
+      "name": "board-worker",
+      "status": "confirmed"
+    },
+    {
+      "entrypoint": {
+        "line": 4,
+        "path": "k8s/base/db-migrate.yaml",
+        "snippet": "name: db-migrate"
+      },
+      "id": "w-db-migrate",
+      "kind": "migration-job",
+      "name": "db-migrate",
+      "status": "confirmed"
+    },
+    {
+      "entrypoint": {
+        "line": 4,
+        "path": "k8s/base/nginx.yaml",
+        "snippet": "name: nginx"
+      },
+      "id": "w-nginx",
+      "kind": "web",
+      "name": "nginx",
+      "status": "confirmed"
+    }
+  ]
+}

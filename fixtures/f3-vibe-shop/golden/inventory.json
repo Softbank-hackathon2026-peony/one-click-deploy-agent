@@ -1,0 +1,218 @@
+{
+  "current_components": [
+    {
+      "component": "ds:local/sqlite/default",
+      "evidence": [
+        {
+          "kind": "tech",
+          "line": 6,
+          "path": "package.json",
+          "snippet": "\"better-sqlite3\": \"^11.3.0\","
+        }
+      ],
+      "label": "SIG-DS-SQLITE",
+      "scope": "ds-sqlite",
+      "settings": [],
+      "status": "confirmed"
+    },
+    {
+      "component": "fs:local/container-disk/default",
+      "evidence": [
+        {
+          "kind": "tech",
+          "line": 7,
+          "path": "app/api/upload/route.ts",
+          "snippet": "await writeFile(path.join(process.cwd(), \"public/uploads\", file.name), Buffer.from(await file.arrayBuffer()));"
+        }
+      ],
+      "label": "SIG-FS-LOCAL",
+      "scope": "svc-container-disk",
+      "settings": [],
+      "status": "candidate"
+    },
+    {
+      "component": "ca:local/process-memory/default",
+      "evidence": [
+        {
+          "kind": "tech",
+          "line": 1,
+          "path": "lib/session.ts",
+          "snippet": "const sessions = new Map<string, { userId: string }>();"
+        }
+      ],
+      "label": "SIG-CA-SESSION-MAP",
+      "scope": "svc-process-memory",
+      "settings": [],
+      "status": "candidate"
+    },
+    {
+      "component": "cp:vercel/functions/unspecified-plan",
+      "evidence": [
+        {
+          "line": null,
+          "path": "vercel.json",
+          "snippet": "vercel.json"
+        }
+      ],
+      "scope": "w-web",
+      "settings": [],
+      "status": "confirmed"
+    }
+  ],
+  "datastores": [
+    {
+      "evidence": [
+        {
+          "kind": "tech",
+          "line": 6,
+          "path": "package.json",
+          "snippet": "\"better-sqlite3\": \"^11.3.0\","
+        }
+      ],
+      "id": "ds-sqlite",
+      "role": "primary-db",
+      "status": "confirmed",
+      "used_by": [
+        "w-web"
+      ]
+    },
+    {
+      "evidence": [
+        {
+          "kind": "tech",
+          "line": 7,
+          "path": "app/api/upload/route.ts",
+          "snippet": "await writeFile(path.join(process.cwd(), \"public/uploads\", file.name), Buffer.from(await file.arrayBuffer()));"
+        }
+      ],
+      "id": "svc-container-disk",
+      "role": "file-storage",
+      "status": "candidate",
+      "used_by": [
+        "w-web"
+      ]
+    },
+    {
+      "evidence": [
+        {
+          "kind": "tech",
+          "line": 1,
+          "path": "lib/session.ts",
+          "snippet": "const sessions = new Map<string, { userId: string }>();"
+        }
+      ],
+      "id": "svc-process-memory",
+      "role": "session",
+      "status": "candidate",
+      "used_by": [
+        "w-web"
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "framework": "nextjs",
+      "handler": {
+        "line": 6,
+        "path": "app/api/checkout/route.ts",
+        "snippet": "export async function POST(req: Request) {"
+      },
+      "id": "ep-web-001",
+      "method": "POST",
+      "route": "/api/checkout",
+      "status": "confirmed",
+      "workload": "w-web"
+    },
+    {
+      "framework": "nextjs",
+      "handler": {
+        "line": 3,
+        "path": "app/api/products/route.ts",
+        "snippet": "export async function GET() {"
+      },
+      "id": "ep-web-002",
+      "method": "GET",
+      "route": "/api/products",
+      "status": "confirmed",
+      "workload": "w-web"
+    },
+    {
+      "framework": "nextjs",
+      "handler": {
+        "line": 4,
+        "path": "app/api/upload/route.ts",
+        "snippet": "export async function POST(req: Request) {"
+      },
+      "id": "ep-web-003",
+      "method": "POST",
+      "route": "/api/upload",
+      "status": "confirmed",
+      "workload": "w-web"
+    },
+    {
+      "framework": "nextjs",
+      "handler": {
+        "line": 3,
+        "path": "app/api/webhooks/stripe/route.ts",
+        "snippet": "export async function POST(req: Request) {"
+      },
+      "id": "ep-web-004",
+      "method": "POST",
+      "route": "/api/webhooks/stripe",
+      "status": "confirmed",
+      "workload": "w-web"
+    }
+  ],
+  "existing_artifacts": [
+    {
+      "kind": "platform-config",
+      "parsed": true,
+      "path": "vercel.json",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "regions",
+          "value": [
+            "iad1"
+          ]
+        }
+      ]
+    }
+  ],
+  "request_paths": [
+    {
+      "hops": [
+        {
+          "component": "nw:vercel/edge-proxy/default",
+          "evidence": [
+            {
+              "line": null,
+              "path": "vercel.json",
+              "snippet": "vercel.json"
+            }
+          ],
+          "kind": "edge-proxy",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": []
+        }
+      ],
+      "id": "path-web",
+      "workload": "w-web"
+    }
+  ],
+  "unmapped": [],
+  "workloads": [
+    {
+      "entrypoint": {
+        "line": 7,
+        "path": "package.json",
+        "snippet": "\"next\": \"15.0.0\","
+      },
+      "id": "w-web",
+      "kind": "web",
+      "name": "web",
+      "status": "confirmed"
+    }
+  ]
+}

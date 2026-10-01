@@ -1,0 +1,11 @@
+{
+  "commit": "tree-0500fae857a453cf",
+  "excluded": [],
+  "files_scanned": 9,
+  "files_total": 9,
+  "languages": {
+    "typescript": 1.0
+  },
+  "overrides": null,
+  "repo": "<repo>"
+}

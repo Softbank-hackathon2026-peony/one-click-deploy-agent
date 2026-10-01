@@ -1,0 +1,109 @@
+{
+  "current_components": [
+    {
+      "component": "ds:supabase/postgres/unspecified-plan",
+      "evidence": [
+        {
+          "kind": "tech",
+          "line": 6,
+          "path": "package.json",
+          "snippet": "\"@supabase/supabase-js\": \"^2.45.0\","
+        }
+      ],
+      "label": "SIG-DS-SUPABASE",
+      "scope": "ds-supabase-postgres",
+      "settings": [],
+      "status": "confirmed"
+    },
+    {
+      "component": "cp:vercel/functions/unspecified-plan",
+      "evidence": [
+        {
+          "line": null,
+          "path": "vercel.json",
+          "snippet": "vercel.json"
+        }
+      ],
+      "scope": "w-web",
+      "settings": [],
+      "status": "confirmed"
+    }
+  ],
+  "datastores": [
+    {
+      "evidence": [
+        {
+          "kind": "tech",
+          "line": 6,
+          "path": "package.json",
+          "snippet": "\"@supabase/supabase-js\": \"^2.45.0\","
+        }
+      ],
+      "id": "ds-supabase-postgres",
+      "role": "primary-db",
+      "status": "confirmed",
+      "used_by": [
+        "w-web"
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "framework": "nextjs",
+      "handler": {
+        "line": 3,
+        "path": "app/api/revalidate/route.ts",
+        "snippet": "export async function POST() {"
+      },
+      "id": "ep-web-001",
+      "method": "POST",
+      "route": "/api/revalidate",
+      "status": "confirmed",
+      "workload": "w-web"
+    }
+  ],
+  "existing_artifacts": [
+    {
+      "kind": "platform-config",
+      "parsed": true,
+      "path": "vercel.json",
+      "settings": []
+    }
+  ],
+  "request_paths": [
+    {
+      "hops": [
+        {
+          "component": "nw:vercel/edge-proxy/default",
+          "evidence": [
+            {
+              "line": null,
+              "path": "vercel.json",
+              "snippet": "vercel.json"
+            }
+          ],
+          "kind": "edge-proxy",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": []
+        }
+      ],
+      "id": "path-web",
+      "workload": "w-web"
+    }
+  ],
+  "unmapped": [],
+  "workloads": [
+    {
+      "entrypoint": {
+        "line": 7,
+        "path": "package.json",
+        "snippet": "\"next\": \"15.0.0\","
+      },
+      "id": "w-web",
+      "kind": "web",
+      "name": "web",
+      "status": "confirmed"
+    }
+  ]
+}

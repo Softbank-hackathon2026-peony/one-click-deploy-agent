@@ -1,0 +1,337 @@
+{
+  "current_components": [
+    {
+      "component": "ds:aws/rds-postgres/multi-az-instance",
+      "evidence": [
+        {
+          "kind": "tech",
+          "line": 5,
+          "path": "package.json",
+          "snippet": "\"dependencies\": { \"express\": \"^4.21.0\", \"pg\": \"^8.13.0\" }"
+        },
+        {
+          "line": null,
+          "path": "terraform/main.tf",
+          "snippet": "terraform/main.tf"
+        }
+      ],
+      "label": "SIG-DS-POSTGRES",
+      "scope": "ds-postgresql",
+      "settings": [],
+      "status": "confirmed"
+    },
+    {
+      "component": "cp:aws/eks/unspecified",
+      "evidence": [
+        {
+          "line": null,
+          "path": "k8s/deployment.yaml",
+          "snippet": "k8s/deployment.yaml"
+        }
+      ],
+      "scope": "w-internal-reports",
+      "settings": [],
+      "status": "confirmed"
+    }
+  ],
+  "datastores": [
+    {
+      "evidence": [
+        {
+          "kind": "tech",
+          "line": 5,
+          "path": "package.json",
+          "snippet": "\"dependencies\": { \"express\": \"^4.21.0\", \"pg\": \"^8.13.0\" }"
+        }
+      ],
+      "id": "ds-postgresql",
+      "role": "primary-db",
+      "status": "confirmed",
+      "used_by": [
+        "w-internal-reports"
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "framework": "express",
+      "handler": {
+        "line": 7,
+        "path": "index.js",
+        "snippet": "app.get(\"/health\", (req, res) => res.send(\"ok\"));"
+      },
+      "id": "ep-internal-reports-001",
+      "method": "GET",
+      "route": "/health",
+      "status": "confirmed",
+      "workload": "w-internal-reports"
+    },
+    {
+      "framework": "express",
+      "handler": {
+        "line": 9,
+        "path": "index.js",
+        "snippet": "app.get(\"/reports\", async (req, res) => {"
+      },
+      "id": "ep-internal-reports-002",
+      "method": "GET",
+      "route": "/reports",
+      "status": "confirmed",
+      "workload": "w-internal-reports"
+    }
+  ],
+  "existing_artifacts": [
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/deployment.yaml",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "Deployment/internal-reports.command",
+          "value": "node index.js"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/internal-reports.image",
+          "value": "123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/internal-reports:1.0.0"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/internal-reports.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/internal-reports.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/internal-reports.readinessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/internal-reports.replicas",
+          "value": 3
+        },
+        {
+          "default_source": {
+            "checked_at": "2026-10-01",
+            "quote": "The default terminationGracePeriodSeconds setting is 30 seconds.",
+            "ref": "https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/"
+          },
+          "defaulted": true,
+          "key": "Deployment/internal-reports.terminationGracePeriodSeconds",
+          "value": 30
+        }
+      ]
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
+      "path": "k8s/ingress.yaml",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "Ingress/internal-reports.backends",
+          "value": [
+            "internal-reports"
+          ]
+        },
+        {
+          "defaulted": false,
+          "key": "Ingress/internal-reports.ingressClassName",
+          "value": "alb"
+        }
+      ]
+    },
+    {
+      "kind": "terraform",
+      "parsed": true,
+      "path": "terraform/main.tf",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "aws_db_instance.main.backup_retention_period",
+          "value": 7
+        },
+        {
+          "defaulted": false,
+          "key": "aws_db_instance.main.engine",
+          "value": "postgres"
+        },
+        {
+          "defaulted": false,
+          "key": "aws_db_instance.main.instance_class",
+          "value": "db.r6g.large"
+        },
+        {
+          "defaulted": false,
+          "key": "aws_db_instance.main.multi_az",
+          "value": true
+        },
+        {
+          "default_source": {
+            "ref": "docs/research/capabilities/06-artifacts-datastores.md"
+          },
+          "defaulted": true,
+          "key": "aws_db_instance.main.storage_encrypted",
+          "value": false
+        },
+        {
+          "default_source": {
+            "ref": "docs/research/capabilities/06-artifacts-datastores.md"
+          },
+          "defaulted": true,
+          "key": "aws_db_instance.replica_us.backup_retention_period",
+          "value": 0
+        },
+        {
+          "defaulted": false,
+          "key": "aws_db_instance.replica_us.instance_class",
+          "value": "db.r6g.large"
+        },
+        {
+          "default_source": {
+            "ref": "docs/research/capabilities/06-artifacts-datastores.md"
+          },
+          "defaulted": true,
+          "key": "aws_db_instance.replica_us.multi_az",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "aws_db_instance.replica_us.provider",
+          "value": "${aws.us}"
+        },
+        {
+          "defaulted": false,
+          "key": "aws_db_instance.replica_us.replicate_source_db",
+          "value": "main"
+        },
+        {
+          "default_source": {
+            "ref": "docs/research/capabilities/06-artifacts-datastores.md"
+          },
+          "defaulted": true,
+          "key": "aws_db_instance.replica_us.storage_encrypted",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "aws_eks_cluster.main.name",
+          "value": "internal"
+        },
+        {
+          "defaulted": false,
+          "key": "aws_eks_cluster.main.role_arn",
+          "value": "arn:aws:iam::123456789012:role/eks"
+        },
+        {
+          "defaulted": false,
+          "key": "aws_eks_cluster.main.vpc_config.subnet_ids",
+          "value": [
+            "subnet-a",
+            "subnet-b",
+            "subnet-c"
+          ]
+        },
+        {
+          "defaulted": false,
+          "key": "aws_nat_gateway.a.subnet_id",
+          "value": "subnet-a"
+        },
+        {
+          "defaulted": false,
+          "key": "aws_nat_gateway.b.subnet_id",
+          "value": "subnet-b"
+        },
+        {
+          "defaulted": false,
+          "key": "aws_nat_gateway.c.subnet_id",
+          "value": "subnet-c"
+        },
+        {
+          "defaulted": false,
+          "key": "provider.aws.region",
+          "value": "ap-northeast-2"
+        },
+        {
+          "defaulted": false,
+          "key": "provider.aws.us.region",
+          "value": "us-east-1"
+        }
+      ]
+    }
+  ],
+  "request_paths": [
+    {
+      "hops": [
+        {
+          "component": "nw:aws/alb/default",
+          "evidence": [
+            {
+              "line": null,
+              "path": "k8s/ingress.yaml",
+              "snippet": "k8s/ingress.yaml"
+            }
+          ],
+          "kind": "load-balancer",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "idle_timeout",
+              "value": 60
+            }
+          ]
+        },
+        {
+          "component": "nw:app/node-http/default",
+          "evidence": [
+            {
+              "line": 4,
+              "path": "k8s/deployment.yaml",
+              "snippet": "name: internal-reports"
+            }
+          ],
+          "kind": "app-server",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keep_alive_timeout",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-internal-reports",
+      "workload": "w-internal-reports"
+    }
+  ],
+  "unmapped": [],
+  "workloads": [
+    {
+      "entrypoint": {
+        "line": 4,
+        "path": "k8s/deployment.yaml",
+        "snippet": "name: internal-reports"
+      },
+      "id": "w-internal-reports",
+      "kind": "web",
+      "name": "internal-reports",
+      "status": "confirmed"
+    }
+  ]
+}
