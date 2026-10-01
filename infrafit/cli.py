@@ -27,6 +27,18 @@ def _cmd_kb_lint(args: argparse.Namespace) -> int:
     return 1 if issues else 0
 
 
+def _cmd_check_run(args: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from infrafit.consistency import check_run
+
+    issues = check_run(Path(args.run_dir))
+    for issue in issues:
+        print(issue)
+    print(f"{len(issues)}개 문제")
+    return 1 if issues else 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="infrafit")
     parser.add_argument("--version", action="version", version=f"infrafit {__version__}")
@@ -38,6 +50,10 @@ def build_parser() -> argparse.ArgumentParser:
     analyze.add_argument("--until", default="S1", help="이 단계까지 실행")
     analyze.add_argument("--run-id", default=None)
     analyze.set_defaults(func=_cmd_analyze)
+
+    check = sub.add_parser("check-run", help="실행 결과의 스키마·일관성 검사")
+    check.add_argument("run_dir")
+    check.set_defaults(func=_cmd_check_run)
 
     kb_cmd = sub.add_parser("kb", help="지식 베이스 도구")
     kb_sub = kb_cmd.add_subparsers(dest="kb_command")
