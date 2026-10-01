@@ -140,6 +140,32 @@
 | CP.ops_burden | 운영해야 하는 것(노드, 업그레이드, 네트워크) (G2) |
 | CP.cost_floor | 최소 월 고정비, 과금 단위 (G3) |
 
+### 2.8 네트워크 경로 (NW) — 로드밸런서, 인그레스, CDN, DNS, WAF, 출구·사설 연결
+
+요청 경로(사용자 → DNS → CDN·WAF → 로드밸런서·인그레스 → 앱 → 사설 연결 → 데이터)에 놓이는 구성 요소다. 능력 값마다 **OSI 계층**(L3/L4/L7, TLS는 "TLS")을 함께 적는다.
+
+| 키 | 뜻 |
+|---|---|
+| NW.layer | 동작 계층(L3 / L4 / L7)과 프록시 여부(종단 / 통과) |
+| NW.idle_timeout | 유휴 연결 타임아웃 기본값·최대·변경 가능 여부 (앱 keep-alive와의 부등식, A3) |
+| NW.request_timeout | 백엔드 응답 대기 타임아웃 기본값·최대 (A2) |
+| NW.websocket | 웹소켓·SSE 지원과 연결 지속 한도 (A3) |
+| NW.protocols | HTTP/2, gRPC, HTTP/3, 백엔드 쪽 프로토콜 |
+| NW.body_size | 요청·응답 본문·헤더 크기 한도 (A7) |
+| NW.draining | 연결 드레이닝·등록 해제 지연 기본값·최대 (F4) |
+| NW.health_check | 헬스 체크 방식, 주기, 전부 비정상일 때 동작(fail-open 등) |
+| NW.tls | TLS 종단 위치, 관리형 인증서와 자동 갱신 조건, mTLS, 최소 TLS 버전 |
+| NW.client_ip | 클라이언트 IP 전달 방식(`X-Forwarded-For`, PROXY protocol, 원본 IP 보존) |
+| NW.routing | 경로·호스트 라우팅, 가중치 트래픽 분할(카나리), 리다이렉트 |
+| NW.scaling | 처리량 확장 방식, 사전 증설(pre-warm), 한도·쿼터 (D3) |
+| NW.availability | 존 / 리전 / 글로벌(애니캐스트) 범위, SLA |
+| NW.caching | 캐시 키, 기본 TTL, `private`·`no-store` 처리, 무효화 |
+| NW.security | WAF, DDoS 보호, 레이트 리밋, 봇 관리 |
+| NW.dns | TTL, 헬스 체크 기반 장애 조치, 레코드 종류(별칭 등) |
+| NW.egress | 출구 NAT(포트 할당·고갈), 고정 출구 IP, 처리 요금 |
+| NW.private_connectivity | 서버리스·컨테이너에서 VPC 사설 연결, VPC 엔드포인트·PrivateLink·PSC |
+| NW.regions / NW.cost_floor | 지역, 최소 고정비와 과금 단위(시간, LCU, GB 처리) |
+
 ## 3. 파일
 
 | 파일 | 계열 |
@@ -149,6 +175,8 @@
 | [03-cache-queue-scheduler-realtime-storage.md](03-cache-queue-scheduler-realtime-storage.md) | 캐시, 큐, 스케줄러, 실시간, 파일 저장소 |
 | [04-compute-tier0.md](04-compute-tier0.md) | 컴퓨트 티어 0 (PaaS·서버리스 플랫폼) |
 | [05-compute-tier1-2.md](05-compute-tier1-2.md) | 컴퓨트 티어 1·2 (관리형 컨테이너, 함수, 쿠버네티스) |
+| [09-network-lb-ingress.md](09-network-lb-ingress.md) | 네트워크: 로드밸런서, API 게이트웨이, 쿠버네티스 인그레스·Gateway, 플랫폼 내장 엣지 프록시 |
+| [10-network-edge-egress.md](10-network-edge-egress.md) | 네트워크: CDN, DNS, WAF·DDoS, 인증서, 출구 NAT·고정 IP, 사설 연결 |
 
 ## 4. 조사 결과 (2026-10-01)
 

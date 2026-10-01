@@ -46,18 +46,22 @@
 | [docs/research/dimensions.md](../../research/dimensions.md) | 앱 요구 차원 35개. 값의 범위, 코드에서 읽는 법, 맞춰 볼 능력 키 | `knowledge/dimensions.yaml` |
 | [docs/research/capabilities/01~05](../../research/capabilities/README.md) | 구성 요소 148개의 능력. 능력 키 단위, 값마다 공식 출처 | `knowledge/components/*.yaml` |
 | [docs/research/capabilities/06~08](../../research/capabilities/README.md) | 구성 요소별 생성 산출물: Terraform 리소스, 핵심 속성, 앱 계약, 로컬 대응, 검증 명령 | `knowledge/artifacts/*.yaml` |
+| [docs/research/capabilities/09~10](../../research/capabilities/README.md) | 네트워크 경로 구성 요소(로드밸런서, 인그레스, CDN, DNS, WAF, 인증서, 출구 NAT, 사설 연결)의 능력과 생성 산출물. 능력 값마다 OSI 계층 표시 | `knowledge/components/nw-*.yaml` |
+| 요구 조건 변환표 (M1에서 작성) | 차원 값 → 능력 조건 매핑. 비교 규칙은 이 표에서 생성된다(§8.3) | `knowledge/requirements.yaml` |
+| 기본값 표 (M1에서 작성) | 플랫폼·라이브러리·앱 서버 기본값과 출처(§6.4) | `knowledge/defaults.yaml` |
 | 교체 차이 표 (작성 예정) | 구성 요소 A → B로 바꿀 때 코드 변경 항목 (프레임워크별) | `knowledge/swaps/*.yaml` |
 | [docs/research/considerations/](../../research/considerations/README.md) | 고려 요소 878개. 위 문서들과 규칙의 재료 | — |
 | `rules/` | 비교 규칙, 위생 규칙, 비용 규칙 (§15) | `rules/*.yaml` |
 
 ### 3.1 ID 체계
 - 차원: `A1`~`G3` (dimensions.md 그대로)
-- 구성 요소: `{계열}:{제공자}/{제품}/{변형}`. 예: `cp:gcp/cloud-run/request-billing`, `cp:aws/lambda/default`, `cp:aws/ec2/single-vm-compose`, `ds:aws/rds-postgres/multi-az-instance`, `ds:local/sqlite/wal`, `ca:local/process-memory`
+- 구성 요소: `{계열}:{제공자}/{제품}/{변형}`. 계열은 `cp`(컴퓨트), `ds`(저장소), `ca`(캐시), `qu`(큐), `sc`(스케줄러), `rt`(실시간), `fs`(파일 저장소), `nw`(네트워크 경로). 예: `cp:gcp/cloud-run/request-billing`, `cp:aws/lambda/default`, `cp:aws/ec2/single-vm-compose`, `ds:aws/rds-postgres/multi-az-instance`, `ds:local/sqlite/wal`, `ca:local/process-memory`, `nw:aws/alb/default`, `nw:gcp/classic-alb/gke-ingress`, `nw:app/uvicorn/default`
+- 범위(scope): 워크로드 `w-…`, 데이터 `ds-…`, 보조 구성 요소 `svc-…`, 요청 경로 `path-…`
 - 능력 값: `{구성 요소 ID}#{능력 키}`. 예: `ds:local/sqlite/wal#DS.concurrent_writers`
 - 규칙: §15.2
 
 ### 3.2 미확인 값
-능력 값이 `미확인`이면 기계용 YAML에서 `unknown`이다. 비교 결과도 `unknown`이 되고(§8.3), 판정에 쓰였다면 결과 JSON의 `unverified`에 반드시 나온다.
+능력 값이 `미확인`이면 기계용 YAML에서 `unknown`이다. 비교 결과도 `unknown`이 되고(§8.4), 판정에 쓰였다면 결과 JSON의 `unverified`에 반드시 나온다.
 
 ### 3.3 스냅샷
 지식 베이스와 가격은 날짜가 붙은 스냅샷이다. 결과 JSON의 `run`에 사용한 스냅샷 날짜를 적는다. `infrafit kb lint`가 출처 없는 값, 90일 넘게 확인하지 않은 출처를 잡는다.
@@ -118,8 +122,19 @@ Dockerfile, compose, k8s(kustomize는 `kustomize build` 결과), Terraform(HCL �
 ### 6.4 기본값 사실
 설정이 없으면 플랫폼·라이브러리 기본값이 적용된다. 이것이 위험인 경우가 많다(예: Postgres `lock_timeout` 0, ALB 유휴 60초 vs uvicorn keep-alive 5초, `aws_db_instance` 백업 0일). 그래서 설정이 없을 때 "없음"이 아니라 `{value: <기본값>, defaulted: true, default_source: <출처>}`로 기록한다. 기본값 표는 `knowledge/defaults.yaml`.
 
-### 6.5 출력 `inventory.json`
-`workloads[]`, `datastores[]`(저장소마다 ID), `current_components[]`(워크로드·저장소별 매핑), `existing_artifacts[]`(종류, 경로, 파싱된 설정, 기본값 사실), `unmapped[]`.
+### 6.5 요청 경로
+외부에서 요청을 받는 워크로드마다 요청이 지나는 구간(hop)을 순서대로 기록한다. 범위 ID는 `path-<워크로드>`다.
+
+```
+클라이언트 → DNS → CDN·WAF → 로드밸런서·인그레스 → 컨테이너 안 리버스 프록시 → 앱 서버 → (출구 NAT·사설 연결) → 데이터
+```
+
+- 각 구간은 구성 요소 ID(`nw:*`, 앱 서버는 `nw:app/<서버>/…`)와 설정값을 갖는다. 설정이 없으면 §6.4의 기본값 사실로 기록한다.
+- 근거: 플랫폼 설정, Ingress·Service 매니페스트와 어노테이션, Terraform LB 리소스, nginx 설정, 앱 서버 실행 명령(`uvicorn --timeout-keep-alive`, `gunicorn --keep-alive`, Node `server.keepAliveTimeout`).
+- 배포 설정이 없으면 경로는 "앱 서버"만 있는 상태로 기록하고, 나머지 구간은 S4에서 후보 조합이 정해질 때 채워진다.
+
+### 6.6 출력 `inventory.json`
+`workloads[]`, `datastores[]`(저장소마다 ID), `current_components[]`(워크로드·저장소별 매핑), `request_paths[]`(경로별 구간 목록), `existing_artifacts[]`(종류, 경로, 파싱된 설정, 기본값 사실), `unmapped[]`.
 
 ## 7. S2 프로필
 
@@ -161,6 +176,7 @@ S1에서 `unmapped`로 남은 구성 요소는 같은 능력 키로 공식 문�
 - 컴퓨트 워크로드: `cp:*` 전부 — 티어 0 PaaS, Lambda·Cloud Run functions, Cloud Run(과금 모드별), ECS Fargate·Express Mode, VM(단일 + compose, 오토스케일 그룹), GKE, EKS 등
 - 저장소: 같은 질의 모델(C5)을 지원하는 `ds:*` 전부
 - 세션·캐시·큐·스케줄러·실시간·파일: 해당 계열 전부
+- 네트워크 경로: 구간 종류별 `nw:*` 전부(로드밸런서, 인그레스, CDN, WAF, DNS, 출구, 사설 연결). 경로는 컴퓨트 선택에 따라 구성이 달라지므로 단독 비교 결과는 S4에서 경로로 조립된다(§9.2)
 - 제외는 규칙으로만 한다. 예: 서울 리전 필요(D5) + 서울 없음 → 위반
 
 ### 8.2 비교 규칙의 종류
@@ -172,40 +188,78 @@ S1에서 `unmapped`로 남은 구성 요소는 같은 능력 키로 공식 문�
 | combination | 여러 사실의 AND | readiness가 DB 검사 AND 디그레이드 코드 있음 → 디그레이드가 사용자에게 닿지 않음 |
 | overprovision | 능력 ≫ 요구 | D1 = 고정(내부), D2 = 낮음, F1 = 길어도 됨인데 멀티 존 + 노드 3개 이상 |
 
-### 8.3 결과 값
+### 8.3 요구 조건 변환표
+비교 규칙은 손으로 하나씩 쓰지 않고, **차원 값이 어떤 능력 조건을 요구하는지**를 적은 변환표(`knowledge/requirements.yaml`)에서 생성한다. 표의 한 줄이 compare 규칙 하나가 된다. 그래서 "왜 이 차원이 이 능력을 요구하는가"를 표 한 곳에서 검토할 수 있다.
+
+| 차원 = 값 | 요구하는 능력 조건 (예) |
+|---|---|
+| C1 = high | `DS.concurrent_writers` = many |
+| C2 = 있음 | `DS.row_contention` ∋ 행 잠금 또는 원자적 갱신 |
+| C3 = 강한 불변식 | `DS.transactions` ∋ 다중 행 트랜잭션, 쓰기 직후 읽기는 동기 복제 경로 |
+| C7 = 사용자 생성 이상 | `DS.backup` ∋ 자동 백업, 최악 RPO ≤ F3 가정값 |
+| F1 = 짧아야 함 | `DS.availability` ∋ 자동 페일오버 / `CP.availability` ∋ 멀티 존 / `NW.availability` ⊇ 리전 |
+| A2 = 수십 초 이상 | `CP.request_timeout` ≥ A2 / 경로의 모든 `NW.request_timeout` ≥ A2 |
+| A3 = 장시간 연결 | `CP.long_connection` 지원 / 경로의 모든 `NW.websocket` 지원, 지속 한도 ≥ 요구 |
+| A4 = 있음 | `CP.cpu_outside_request` = 예 |
+| A7 = 큼 | `CP.request_size` ≥ 요구 / 경로의 모든 `NW.body_size` ≥ 요구, 아니면 서명 URL 직접 업로드로 A7 자체를 바꿈 |
+| B1 = 있음 | 인스턴스 2개 이상이면 공유 상태 구성 요소(`CA.shared_state`) 필요 (범위 사이 제약, §9.2) |
+| B2 = 있음 | `CP.local_disk` = 영속 + 인스턴스 1개, 아니면 파일 저장소 교체 |
+| D5 = 한국 | 모든 구성 요소 `*.regions` ∋ 서울 (F5가 데이터 위치를 요구하면 위반, 아니면 지연 비용으로 순위 불이익) |
+| E2 = 있음 | 사용자별 한도 장치 필수 (위반이 아니라 S5 변경 항목) |
+
+표의 각 줄은 "왜"와 출처를 갖는다. 표에 없는 차원-능력 쌍은 비교하지 않는다. 즉 비교 범위가 표로 명시된다.
+
+### 8.4 결과 값
 각 (범위, 후보) 쌍은 다음 중 하나다.
 - `feasible`: 모든 규칙 통과
 - `feasible_with_config`: 통과하려면 특정 설정이 필요. 예: Cloud Run은 인스턴스 기반 과금일 때만 A4(응답 후 작업) 통과. 필요한 설정을 `requires_config[]`로 남기고 S5가 반드시 명시한다
 - `infeasible`: 하나 이상의 위반. 위반마다 `{rule, dimension, required, capability_key, actual, source}`
-- `unknown`: 판정에 필요한 능력 값이 `unknown`. 탈락시키지 않고 순위에서 불이익(§9.3)을 주며 `unverified`에 기록
+- `unknown`: 판정에 필요한 능력 값이 `unknown`. 탈락시키지 않고 순위에서 불이익(§9.4)을 주며 `unverified`에 기록
 
-### 8.4 수준과 무관한 위생 규칙
+### 8.5 수준과 무관한 위생 규칙
 인증서·도메인 만료, 타임아웃 기본값, N+1 쿼리, 하드코딩된 비밀처럼 어떤 구성을 고르든 문제가 되는 것은 `hygiene` 결과로 따로 낸다. 후보 비교에는 영향이 없고 S5의 변경 항목이 된다.
 
-### 8.5 출력 `fit.json`
-`matrix[]`(범위, 후보, 결과, 위반[], requires_config[], unknown_keys[]), `current_assessment[]`(현재 구성 요소별: keep / modify / replace / overprovisioned와 근거), `hygiene[]`.
+### 8.6 현재 요청 경로 검사
+S1에서 기록한 현재 경로는 S3에서 timing 규칙으로 검사한다. 예: 앱 서버 keep-alive(uvicorn 기본 5초) < LB 유휴 타임아웃(ALB 기본 60초) → 간헐 502. GKE Ingress 백엔드 타임아웃 기본 30초 < 웹소켓 요구(A3) → 연결 끊김. 결과는 `path_checks[]`이고, 위반은 현재 구성 판정(modify)과 S5 변경 항목이 된다.
+
+### 8.7 출력 `fit.json`
+`matrix[]`(범위, 후보, 결과, 위반[], requires_config[], unknown_keys[]), `current_assessment[]`(현재 구성 요소별: keep / modify / replace / overprovisioned와 근거), `path_checks[]`(현재 경로별 구간과 위반), `hygiene[]`.
 
 ## 9. S4 결정
 
 ### 9.1 조합 후보 만들기
-범위마다 가능한 후보를 모아 아키텍처 후보를 만든다.
-- 제약: 한 저장소는 하나의 구성 요소, 같은 리전, 클라우드는 하나를 우선(섞으면 이그레스·운영 부담 비용을 더함), 컴퓨트와 저장소 사이 사설 연결 가능.
-- 워크로드마다 다른 컴퓨트를 허용한다. 예: 웹은 Cloud Run, 워커는 GKE. 단, 운영 부담 비용(§9.2)에 반영된다.
+범위마다 S3에서 가능(`feasible`, `feasible_with_config`, `unknown`)으로 나온 후보를 모아 아키텍처 후보를 만든다.
+- 워크로드마다 다른 컴퓨트를 허용한다. 예: 웹은 Cloud Run, 워커는 GKE. 단, 운영 부담이 늘어나는 만큼 §9.3 비용에 반영된다.
 - 조합 폭발을 막기 위해 범위마다 비용 하위 k개(기본 5)만 조합한다. 현재 구성 요소는 가능하면 항상 포함한다.
+- 조합마다 아래 범위 사이 제약(§9.2)을 검사한다. 하나라도 위반하면 그 조합은 탈락하고, 탈락 이유는 `cross_scope`로 남는다.
 
-### 9.2 비용과 부담 계산
+### 9.2 범위 사이 제약
+범위 하나만 봐서는 판정할 수 없는 조건이다. 조합이 정해져야 검사할 수 있으므로 S4에서 한다.
+
+| 종류 | 조건 (예) | 근거 능력 |
+|---|---|---|
+| 공유 가능성 | 데이터 구성 요소가 여러 호스트에서 접근할 수 없는데(SQLite 파일, 컨테이너 로컬 디스크, 프로세스 메모리) 그것을 쓰는 컴퓨트의 최대 인스턴스가 2 이상 → 위반 | `DS.multi_host_access`, `FS.shared_access`, `CA.shared_state`, `CP.scaling` |
+| 합산 용량 | Σ(이 저장소를 쓰는 워크로드의 최대 인스턴스 × 인스턴스당 연결 수) ≤ `DS.connections`, 아니면 풀러 필수 / Σ 외부 호출 연결 ≤ NAT 포트 용량 | `DS.connections`, `NW.egress` |
+| 연결성 | 컴퓨트에서 사설 데이터로 닿는 수단이 있어야 함(서버리스 → VPC 연결 수단), 리전 일치 | `NW.private_connectivity`, `*.regions` |
+| 경로 조립 | 컴퓨트 선택이 경로 구간을 정한다(ECS Express → ALB, GKE Ingress → Classic ALB, 서울 Cloud Run 커스텀 도메인 → 전역 LB + 서버리스 NEG). 조립한 경로 전체에 timing·compare 규칙을 적용 | `NW.*`, `CP.*` |
+| 클라우드 혼합 | 서로 다른 클라우드를 섞으면 이그레스 요금과 운영 부담을 더함(위반은 아님) | `NW.egress`, 가격 |
+| 플랫폼 결합 | 한 플랫폼 기능이 다른 구성 요소를 전제(예: Supabase Storage → Supabase 프로젝트) | 능력 표의 전제 조건 |
+
+위반은 `{type: cross_scope, rule, scopes[], detail, source}`로 기록한다. 조립한 경로는 후보마다 `paths[]`에 구간 목록으로 남는다.
+
+### 9.3 비용과 부담 계산
 | 항목 | 계산 |
 |---|---|
-| 평시 월 비용 | 구성 요소별 고정비 + 가정한 평시 부하의 변동비. 가격은 가격 스냅샷(AWS Price List, GCP Billing Catalog) |
+| 평시 월 비용 | 구성 요소별 고정비 + 가정한 평시 부하의 변동비. 네트워크 경로 비용(LB 시간 요금, NAT, 이그레스, 퍼블릭 IPv4, CDN) 포함. 가격은 가격 스냅샷(AWS Price List, GCP Billing Catalog) |
 | 피크 시간당 비용 | 가정한 피크 부하에서의 시간당 비용 |
 | 사용자 1,000명당 월 비용 | 평시 월 비용 / 가정 사용자 수 |
 | 사람이 할 단계 수 | 생성 산출물 표의 "자동화 불가 단계" 합 |
 | 이전 비용 | 현재 → 후보의 교체 차이 표 항목 수와 데이터 이전 필요 여부 |
 | 운영 부담 | 능력 키 `CP.ops_burden` 등. 운영 역량(G2)이 낮으면 가중 |
 
-### 9.3 순위
+### 9.4 순위
 사전식 순서로 정한다. 설명할 수 있어야 하므로 가중합을 쓰지 않는다.
-1. `infeasible`이 하나라도 있는 조합은 제외
+1. `infeasible`이나 범위 사이 제약 위반이 하나라도 있는 조합은 제외
 2. `unknown`이 적은 쪽
 3. 평시 월 비용이 낮은 쪽. 단, 차이가 15% 이내면 동률
 4. 동률이면 운영 부담이 낮은 쪽
@@ -214,10 +268,10 @@ S1에서 `unmapped`로 남은 구성 요소는 같은 능력 키로 공식 문�
 
 예외: 금전·규제 데이터(C7, F5)의 내구성·가용성 통제는 비용 비교에서 빼지 않는다(원칙 6).
 
-### 9.4 민감도
+### 9.5 민감도
 가정마다 값을 바꿔 가며 S3~S4를 다시 계산해서, 선택이 바뀌는 경계값을 찾는다. 예: "평시 동시 접속이 400을 넘으면 C5가 선택됨". 가정이 많으면 선택에 영향을 준 가정만 계산한다.
 
-### 9.5 시나리오 요약 (파생)
+### 9.6 시나리오 요약 (파생)
 요구 차원에서 시나리오 수준을 파생해 리포트와 검증·관측 범위에 쓴다. 판정에는 쓰지 않는다.
 | 요약 | 파생 근거 |
 |---|---|
@@ -228,8 +282,8 @@ S1에서 `unmapped`로 남은 구성 요소는 같은 능력 키로 공식 문�
 | 보안·규제 S | F5 |
 | 관측 O | 위 수준의 최댓값에서 파생(O0~O3) |
 
-### 9.6 출력 `plan.json`
-`candidates[]`(ID, 범위별 배정, 비용{}, unknown 수, 운영 부담, 사람이 할 단계, 이전 비용, 순위), `chosen`, `rejected[]`(ID, 이유[] — 위반 또는 순위 근거), `sensitivity[]`, `scenario_summary{}`, `no_feasible`(가능한 조합이 없을 때 막는 위반 목록).
+### 9.7 출력 `plan.json`
+`candidates[]`(ID, 범위별 배정, 조립한 경로[], 범위 사이 위반[], 비용{}, unknown 수, 운영 부담, 사람이 할 단계, 이전 비용, 순위), `chosen`, `rejected[]`(ID, 이유[] — 위반 또는 순위 근거), `sensitivity[]`, `scenario_summary{}`, `no_feasible`(가능한 조합이 없을 때 막는 위반 목록).
 
 ## 10. S5 변경
 
@@ -269,7 +323,7 @@ S1에서 `unmapped`로 남은 구성 요소는 같은 능력 키로 공식 문�
 
 ## 12. S7 동적 검증
 
-"설정이 있다"와 "실제로 견딘다"는 다르다. 그래서 처방한 구성은 세 단계로 확인한다. 그리고 **관측도 필요한 만큼만 한다**는 원칙(§2-5)을 똑같이 적용한다. 아래의 수준은 §9.5에서 파생한 시나리오 요약이다.
+"설정이 있다"와 "실제로 견딘다"는 다르다. 그래서 처방한 구성은 세 단계로 확인한다. 그리고 **관측도 필요한 만큼만 한다**는 원칙(§2-5)을 똑같이 적용한다. 아래의 수준은 §9.6에서 파생한 시나리오 요약이다.
 
 ### 12.1 세 단계
 
@@ -283,7 +337,7 @@ S1에서 `unmapped`로 남은 구성 요소는 같은 능력 키로 공식 문�
 
 ### 12.2 A. 능동 검증 (시나리오 × 수준)
 
-판정에 쓰인 규칙의 `verify` ID가 가리키는 검증이다. 어느 검증을 얼마나 강하게 할지는 §9.5의 시나리오 요약 수준으로 정하고, 수준이 L0인 시나리오는 검증하지 않는다.
+판정에 쓰인 규칙의 `verify` ID가 가리키는 검증이다. 어느 검증을 얼마나 강하게 할지는 §9.6의 시나리오 요약 수준으로 정하고, 수준이 L0인 시나리오는 검증하지 않는다.
 
 | 시나리오 | 검증 (예) | 통과 기준 (예) |
 |---|---|---|
@@ -344,11 +398,12 @@ S7의 실측값(평시·피크 부하에서의 처리량, 자원 사용량, 확�
 1. 요약: 선택한 구성, 평시 월 비용, 현재 대비 바뀌는 것, 사람이 할 단계
 2. 이렇게 가정했어요: 가정, 근거, 민감도(가정이 틀리면 결론이 바뀌는 지점)
 3. **후보 비교표**: 모든 후보 × 범위. 가능 / 설정 필요 / 불가(위반 근거) / 미확인. 면접 시연의 중심
-4. 현재 구성 판정: 유지 / 부분 수정 / 교체 / 과잉과 근거
-5. 변경 목록: 코드, 산출물, 데이터 이전, 사람이 할 단계
-6. 검증 결과
-7. 시나리오 요약(D/T/U/C/S/O)
-8. 미확인 값과 버린 추론
+4. **요청 경로표**: 선택한 구성의 경로 구간(DNS → CDN → LB → 앱 서버 → 데이터)과 구간별 OSI 계층, 타임아웃·keep-alive·본문 한도, 경로 규칙 검사 결과
+5. 현재 구성 판정: 유지 / 부분 수정 / 교체 / 과잉과 근거
+6. 변경 목록: 코드, 산출물, 데이터 이전, 사람이 할 단계
+7. 검증 결과
+8. 시나리오 요약(D/T/U/C/S/O)
+9. 미확인 값과 버린 추론
 
 설명 문장은 LLM이 쓰되 입력은 판정 결과로 고정한다. 출력 검사기가 문장 속 수치·후보·판정이 result.json과 같은지 확인한다.
 
@@ -365,7 +420,7 @@ preferences:
 
 ## 14. 결과 JSON
 
-스키마 파일: [`schemas/infrafit.schema.json`](../../../schemas/infrafit.schema.json) (JSON Schema 2020-12, `$defs` 43개). 단계 출력은 같은 파일의 `$defs`로 검증한다: `Intake`, `Inventory`, `Profile`, `Fit`, `Plan`, `Changes`, `VerifyStatic`, `VerifyDynamic`, 그리고 최종 `Result`.
+스키마 파일: [`schemas/infrafit.schema.json`](../../../schemas/infrafit.schema.json) (JSON Schema 2020-12). 단계 출력은 같은 파일의 `$defs`로 검증한다: `Intake`, `Inventory`, `Profile`, `Fit`, `Plan`, `Changes`, `VerifyStatic`, `VerifyDynamic`, 그리고 최종 `Result`.
 
 `result.json`의 최상위 구조:
 
@@ -386,6 +441,20 @@ preferences:
 | `errors` | 단계별 오류 |
 
 모든 판정 항목은 근거로 이어진다: 차원 값 → `evidence[]`(파일·줄·인용), 위반 → 규칙 ID와 능력 값의 출처, 변경 → 위반·규칙 ID.
+
+### 14.1 단계 간 일관성 검사
+스키마는 형식만 검사한다. 단계 출력끼리 서로를 올바르게 가리키는지는 `infrafit check-run <run-id>`가 따로 검사하고, 단계가 끝날 때마다 자동으로 돈다.
+- S2 이후의 모든 범위 ID는 S1의 `workloads`, `datastores`, `request_paths`에 있다.
+- `fit.matrix`의 모든 후보 ID는 지식 베이스에 있는 구성 요소다(`provisional` 포함).
+- `fit.matrix`는 각 범위에 대해 해당 계열의 후보를 빠짐없이 갖는다(후보 누락 금지, 원칙 8).
+- 모든 위반의 `rule`은 규칙집에 있고, `source`는 지식 베이스나 공식 URL을 가리킨다.
+- `plan.chosen`은 `plan.candidates`에 있고, 탈락한 후보는 모두 `rejected`에 이유와 함께 있다.
+- `plan.candidates`의 배정은 S3에서 그 범위에 가능으로 나온 후보뿐이다.
+- `changes`의 모든 항목은 근거(위반 ID나 규칙 ID)를 하나 이상 갖고, `requires_config`는 모두 `explicit_settings`로 반영됐다.
+- `result.unverified`는 판정·생성에 쓰인 `unknown` 능력 값을 빠짐없이 담는다.
+
+### 14.2 단계별 예시
+`schemas/examples/<픽스처>/<단계>.json`에 단계마다 예시 출력을 둔다. 스키마 테스트와 일관성 검사 테스트의 입력이 되고, 구현 전에 단계 사이 계약을 사람이 읽고 확인하는 용도다.
 
 ## 15. 규칙집
 
@@ -469,7 +538,9 @@ sources:
 F2~F6은 이 저장소 안에서 만든다.
 
 ### 17.2 테스트 종류
-- 스키마 테스트: 모든 단계 출력이 스키마를 통과
+- 스키마 테스트: 모든 단계 출력과 `schemas/examples/`가 스키마를 통과
+- 일관성 테스트: §14.1 검사가 정상 예시는 통과시키고, 일부러 깨뜨린 예시(범위 ID 누락, 후보 누락, 근거 없는 변경)는 잡아냄
+- 경로 테스트: 앱 서버 keep-alive < LB 유휴 타임아웃 같은 경로 규칙이 픽스처에서 잡힘
 - 결정성 테스트: `--no-llm`으로 S0~S4를 두 번 돌려 출력이 바이트 단위로 같음
 - 골든 테스트: 픽스처 × 단계별 기대 JSON과 비교(시각·실행 ID 제외)
 - 규칙 단위 테스트: 규칙마다 걸리는 경우와 안 걸리는 경우
@@ -481,7 +552,7 @@ F2~F6은 이 저장소 안에서 만든다.
 
 | 단계 | 범위 | 완료 기준 |
 |---|---|---|
-| M1 | 지식 베이스 변환(dimensions, components, artifacts의 YAML화), 스키마, S0·S1 | F1~F6 인벤토리 골든 통과 |
+| M1 | 지식 베이스 변환(dimensions, components, artifacts, 네트워크의 YAML화), 요구 조건 변환표, 기본값 표, 스키마와 단계별 예시, 일관성 검사기, S0·S1(요청 경로 포함) | F1~F6 인벤토리 골든 통과, 단계별 예시가 스키마·일관성 검사 통과 |
 | M2 | S2(탐지기 + 추론 + 가정), S3, S4 | F2(SQLite)가 replace → PostgreSQL로 결정되고 후보 비교표에 모든 컴퓨트가 근거와 함께 나옴 |
 | M3 | 교체 차이 표, S5, S6 | F2의 코드 변경 + Dockerfile + Terraform이 S6 통과 |
 | M4 | S7(배포, 부하·장애·소크, 판정 재실행) | F1을 실제 클라우드에 배포해 검증 결과가 result.json에 들어감 |
@@ -551,4 +622,4 @@ one-click-deploy-agent/
 | S28 | SLO 알림 | 여러 창(window)·여러 소진율(burn rate) 알림 권장: 1시간 창 14.4배(예산 2%) 페이지, 6시간 창 6배(5%) 페이지, 3일 창 1배(10%) 티켓 | https://sre.google/workbook/alerting-on-slos/ |
 | S27 | Vercel Functions | 최대 실행 시간 Hobby 300초, Pro·Enterprise 800초(1800초 베타), 요청·응답 본문 4.5MB 제한 | https://vercel.com/docs/functions/limitations |
 
-가격과 한도 수치는 이 날짜 기준이다. 실제 판정에서는 §9.2의 가격 스냅샷 값을 쓰고, 이 표는 규칙의 근거 설명에만 쓴다.
+가격과 한도 수치는 이 날짜 기준이다. 실제 판정에서는 §9.3의 가격 스냅샷 값을 쓰고, 이 표는 규칙의 근거 설명에만 쓴다.

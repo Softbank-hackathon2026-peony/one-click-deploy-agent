@@ -57,7 +57,7 @@
     },
     "ComponentId": {
       "type": "string",
-      "pattern": "^(cp|ds|ca|qu|sc|rt|fs):[a-z0-9._-]+/[a-z0-9._-]+/[a-z0-9._-]+$"
+      "pattern": "^(cp|ds|ca|qu|sc|rt|fs|nw):[a-z0-9._-]+/[a-z0-9._-]+/[a-z0-9._-]+$"
     },
     "DimensionId": {
       "type": "string",
@@ -65,8 +65,8 @@
     },
     "ScopeId": {
       "type": "string",
-      "pattern": "^(w|ds|svc)-[a-z0-9._-]+$",
-      "description": "w-=워크로드, ds-=저장소, svc-=세션·캐시·큐 등 보조 구성 요소 용도"
+      "pattern": "^(w|ds|svc|path)-[a-z0-9._-]+$",
+      "description": "w-=워크로드, ds-=저장소, svc-=보조 구성 요소, path-=요청 경로"
     },
     "RuleId": {
       "type": "string",
@@ -420,6 +420,12 @@
               "label"
             ]
           }
+        },
+        "request_paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RequestPath"
+          }
         }
       },
       "additionalProperties": false,
@@ -429,7 +435,8 @@
         "datastores",
         "current_components",
         "existing_artifacts",
-        "unmapped"
+        "unmapped",
+        "request_paths"
       ]
     },
     "DimensionValue": {
@@ -799,6 +806,12 @@
           "items": {
             "$ref": "#/$defs/HygieneFinding"
           }
+        },
+        "path_checks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PathCheck"
+          }
         }
       },
       "additionalProperties": false,
@@ -806,7 +819,8 @@
         "meta",
         "matrix",
         "current_assessment",
-        "hygiene"
+        "hygiene",
+        "path_checks"
       ]
     },
     "Cost": {
@@ -902,6 +916,18 @@
         },
         "is_current": {
           "type": "boolean"
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RequestPath"
+          }
+        },
+        "cross_scope_violations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CrossScopeViolation"
+          }
         }
       },
       "additionalProperties": false,
@@ -913,7 +939,9 @@
         "ops_burden",
         "human_steps",
         "migration_effort",
-        "rank"
+        "rank",
+        "paths",
+        "cross_scope_violations"
       ]
     },
     "Rejected": {
@@ -931,6 +959,7 @@
                 "type": "string",
                 "enum": [
                   "violation",
+                  "cross_scope",
                   "rank"
                 ]
               },
@@ -939,6 +968,9 @@
               },
               "violation": {
                 "$ref": "#/$defs/Violation"
+              },
+              "cross_scope": {
+                "$ref": "#/$defs/CrossScopeViolation"
               }
             },
             "additionalProperties": false,
@@ -1778,12 +1810,19 @@
               "items": {
                 "$ref": "#/$defs/HygieneFinding"
               }
+            },
+            "path_checks": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/PathCheck"
+              }
             }
           },
           "additionalProperties": false,
           "required": [
             "matrix",
-            "hygiene"
+            "hygiene",
+            "path_checks"
           ]
         },
         "decision": {
@@ -1941,6 +1980,12 @@
           "items": {
             "$ref": "#/$defs/Error"
           }
+        },
+        "request_paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RequestPath"
+          }
         }
       },
       "additionalProperties": false,
@@ -1950,6 +1995,7 @@
         "summary",
         "workloads",
         "datastores",
+        "request_paths",
         "profile",
         "current_state",
         "fit",
@@ -1958,6 +2004,166 @@
         "verification",
         "unverified",
         "errors"
+      ]
+    },
+    "Hop": {
+      "type": "object",
+      "properties": {
+        "order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "dns",
+            "cdn",
+            "waf",
+            "load-balancer",
+            "ingress",
+            "api-gateway",
+            "edge-proxy",
+            "reverse-proxy",
+            "app-server",
+            "egress",
+            "private-connectivity",
+            "datastore"
+          ]
+        },
+        "component": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ComponentId"
+            },
+            {
+              "const": "unmapped"
+            },
+            {
+              "const": "pending"
+            }
+          ]
+        },
+        "osi_layer": {
+          "type": "string",
+          "enum": [
+            "L3",
+            "L4",
+            "L7",
+            "TLS",
+            "mixed"
+          ]
+        },
+        "settings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SettingFact"
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "order",
+        "kind",
+        "component",
+        "settings"
+      ]
+    },
+    "RequestPath": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ScopeId"
+        },
+        "workload": {
+          "$ref": "#/$defs/ScopeId"
+        },
+        "hops": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Hop"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "workload",
+        "hops"
+      ]
+    },
+    "PathCheck": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/ScopeId"
+        },
+        "hops": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Hop"
+          }
+        },
+        "violations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Violation"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "hops",
+        "violations"
+      ]
+    },
+    "CrossScopeViolation": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "cross_scope"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "sharing",
+            "aggregate-capacity",
+            "connectivity",
+            "path",
+            "cloud-mix",
+            "platform-coupling"
+          ]
+        },
+        "rule": {
+          "$ref": "#/$defs/RuleId"
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ScopeId"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/Source"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "kind",
+        "rule",
+        "scopes",
+        "detail",
+        "source"
       ]
     }
   }
