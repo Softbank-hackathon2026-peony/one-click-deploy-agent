@@ -187,7 +187,6 @@
 | 03-cache-queue-scheduler-realtime-storage.md | 58 | 교체 전 출발점 4(프로세스 메모리, 앱 안 작업 큐, 로컬 디스크, 앱 안 스케줄러), 캐시 12, 큐 17, 스케줄러 7, 실시간 9, 파일 저장소 9 |
 | 04-compute-tier0.md | 29 | Vercel 4, Netlify 3, Cloudflare 4, Railway 3, Render 2, Fly.io, Firebase 2, Supabase Edge 2, Replit 3, Heroku 2, DigitalOcean, Koyeb 2. 생성 도구(v0, Lovable, Bolt, AI Studio)의 기본 배포 대상 포함 |
 | 05-compute-tier1-2.md | 22 | Cloud Run(과금 모드별), ECS Fargate·Express Mode·Spot, App Runner, Lambda, Cloud Run functions, Azure Container Apps, GKE Autopilot·Standard, EKS(노드 그룹, Karpenter, Auto Mode, Fargate), 경량 k8s, 단일 VM + compose |
-
 | 09-network-lb-ingress.md | 32 | AWS 9(ALB, NLB, GWLB, API Gateway 3종, Function URL, Express Mode ALB, LB Controller), GCP 9, Azure 1, 쿠버네티스 3, 자체 프록시 4(nginx, Envoy, Caddy, Traefik), 티어 0 엣지 프록시 6. 앱 서버 기본값 14종, 경로 부등식 규칙 R1~R13 |
 | 10-network-edge-egress.md | 46 | CDN 7, DNS 4, WAF·DDoS 7, 인증서 3, 출구 15(플랫폼별 고정 출구 IP 10 포함), 사설 연결 10. 경로 규칙 후보 18 + 계열별 |
 
