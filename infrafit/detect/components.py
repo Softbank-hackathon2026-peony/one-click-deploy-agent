@@ -39,22 +39,36 @@ def _terraform_objects(artifacts: list[ParsedArtifact]):
                     yield obj[0], obj[1], obj[2], art.path
 
 
-def _refine_hosting(component: str, artifacts: list[ParsedArtifact]) -> tuple[str, str | None]:
-    for rtype, _, attrs, path in _terraform_objects(artifacts):
-        flat = flatten(attrs)
-        if component == "ds:unspecified/postgresql/default":
-            if rtype == "aws_db_instance" and str(flat.get("engine", "")).startswith("postgres"):
-                multi = flat.get("multi_az") in (True, "true")
-                return ("ds:aws/rds-postgres/multi-az-instance" if multi else "ds:aws/rds-postgres/single-az"), path
-            if rtype == "google_sql_database_instance" and str(flat.get("database_version", "")).startswith("POSTGRES"):
-                ha = flat.get("settings.availability_type") == "REGIONAL"
-                return ("ds:gcp/cloudsql-postgres/ha" if ha else "ds:gcp/cloudsql-postgres/single"), path
-        if component == "ca:unspecified/redis/default":
-            if rtype.startswith("aws_elasticache_"):
-                return "ca:aws/elasticache/node-based", path
-            if rtype == "google_redis_instance":
-                return "ca:gcp/memorystore/redis", path
-    return component, None
+def _single_terraform_root(artifacts: list[ParsedArtifact]) -> bool:
+    return len({parent_dir(a.path) for a in artifacts if a.kind == "terraform"}) == 1
+
+
+def _refined(component: str, rtype: str, flat: dict) -> str | None:
+    if component == "ds:unspecified/postgresql/default":
+        if rtype == "aws_db_instance" and str(flat.get("engine", "")).startswith("postgres"):
+            multi = flat.get("multi_az") in (True, "true")
+            return "ds:aws/rds-postgres/multi-az-instance" if multi else "ds:aws/rds-postgres/single-az"
+        if rtype == "google_sql_database_instance" and str(flat.get("database_version", "")).startswith("POSTGRES"):
+            ha = flat.get("settings.availability_type") == "REGIONAL"
+            return "ds:gcp/cloudsql-postgres/ha" if ha else "ds:gcp/cloudsql-postgres/single"
+    if component == "ca:unspecified/redis/default":
+        if rtype.startswith("aws_elasticache_"):
+            return "ca:aws/elasticache/node-based"
+        if rtype == "google_redis_instance":
+            return "ca:gcp/memorystore/redis"
+    return None
+
+
+def _refine_hosting(component: str, artifacts: list[ParsedArtifact]) -> tuple[str, str | None, bool]:
+    """Terraform 자원으로 호스팅을 구체화한다. (구성 요소, 근거 경로, 확정 여부).
+
+    Terraform 디렉터리는 보통 앱과 떨어져 있어 위치로 연결할 수 없다. 그래서 저장소 전체를 보되,
+    Terraform 루트가 하나이고 맞는 자원이 하나일 때만 확정으로 본다."""
+    found = [(refined, path) for rtype, _, attrs, path in _terraform_objects(artifacts)
+             if (refined := _refined(component, rtype, flatten(attrs)))]
+    if not found:
+        return component, None, True
+    return found[0][0], found[0][1], len(found) == 1 and _single_terraform_root(artifacts)
 
 
 def _ep(w: WorkloadInfo) -> str | None:
@@ -62,26 +76,41 @@ def _ep(w: WorkloadInfo) -> str | None:
     return path if isinstance(path, str) else None
 
 
-def _compute_for(w: WorkloadInfo, artifacts: list[ParsedArtifact]) -> tuple[str, str | None]:
-    for art in sorted(artifacts, key=lambda a: a.path):
-        if art.kind == "platform-config":
-            comp = PLATFORM_COMPUTE.get(PurePosixPath(art.path).name)
-            if comp:
-                return comp, art.path
-    tf_types = {rtype for rtype, _, _, _ in _terraform_objects(artifacts)}
+def platform_config_for(w: WorkloadInfo, artifacts: list[ParsedArtifact]) -> ParsedArtifact | None:
+    """코드에서 찾은 워크로드에 적용되는 플랫폼 설정: 코드 루트를 품는 가장 깊은 디렉터리의 설정.
+
+    k8s·compose 워크로드는 배포 방식이 이미 정해져 있으므로 플랫폼 설정을 붙이지 않는다.
+    코드 루트를 모르면 저장소 루트의 설정만 쓴다."""
+    if w.source != "code":
+        return None
+    configs = [a for a in artifacts if a.kind == "platform-config"
+               and PurePosixPath(a.path).name in PLATFORM_COMPUTE
+               and (parent_dir(a.path) == "" or (w.code_root is not None and _under(w.code_root, parent_dir(a.path))))]
+    if not configs:
+        return None
+    return min(configs, key=lambda a: (-len(PurePosixPath(parent_dir(a.path)).parts), a.path))
+
+
+def _compute_for(w: WorkloadInfo, artifacts: list[ParsedArtifact]) -> tuple[str, str | None, str]:
+    config = platform_config_for(w, artifacts)
+    if config is not None:
+        return PLATFORM_COMPUTE[PurePosixPath(config.path).name], config.path, "confirmed"
     if w.source == "k8s":
-        if "aws_eks_cluster" in tf_types:
-            return "cp:aws/eks/unspecified", _ep(w)
-        if "google_container_cluster" in tf_types:
-            return "cp:gcp/gke/unspecified", _ep(w)
-        return "cp:k8s/deployment/unspecified-cluster", _ep(w)
+        clusters = [rtype for rtype, _, _, _ in _terraform_objects(artifacts)
+                    if rtype in ("aws_eks_cluster", "google_container_cluster")]
+        status = "confirmed" if len(clusters) == 1 and _single_terraform_root(artifacts) else "candidate"
+        if "aws_eks_cluster" in clusters:
+            return "cp:aws/eks/unspecified", _ep(w), status
+        if "google_container_cluster" in clusters:
+            return "cp:gcp/gke/unspecified", _ep(w), status
+        return "cp:k8s/deployment/unspecified-cluster", _ep(w), "confirmed"
     if w.source == "compose":
-        return "cp:local/compose/default", _ep(w)
+        return "cp:local/compose/default", _ep(w), "confirmed"
     for target in (w.app_dir, ""):
         for art in artifacts:
             if art.kind == "dockerfile" and parent_dir(art.path) == target:
-                return "cp:docker/container/unspecified-host", art.path
-    return "unmapped", None
+                return "cp:docker/container/unspecified-host", art.path, "confirmed"
+    return "unmapped", None, "confirmed"
 
 
 def _under(path: str, root: str) -> bool:
@@ -112,20 +141,20 @@ def map_components(snap: Snapshot, matches: list[Match], workloads: list[Workloa
     comps: list[dict] = []
     for sid in sorted(scopes):
         s = scopes[sid]
-        component, tf_path = _refine_hosting(s["component"], artifacts)
+        component, tf_path, sure = _refine_hosting(s["component"], artifacts)
         ev = list(s["evidence"])
         if tf_path:
             ev.append(evidence(snap, tf_path))
         datastores.append({"id": sid, "role": s["role"], "used_by": _users(s["evidence"], workloads),
                            "evidence": s["evidence"], "status": s["status"]})
         comps.append({"scope": sid, "component": component, "label": ",".join(s["signatures"]),
-                      "settings": [], "evidence": ev, "status": s["status"]})
+                      "settings": [], "evidence": ev, "status": s["status"] if sure else "candidate"})
 
     compute: dict[str, str] = {}
     for w in sorted(workloads, key=lambda w: w.id):
-        comp, path = _compute_for(w, artifacts)
+        comp, path, status = _compute_for(w, artifacts)
         compute[w.id] = comp
-        entry = {"scope": w.id, "component": comp, "settings": [], "status": "confirmed",
+        entry = {"scope": w.id, "component": comp, "settings": [], "status": status,
                  "evidence": [evidence(snap, path)] if path else []}
         if comp == "unmapped":
             entry["label"] = "no deployment config"

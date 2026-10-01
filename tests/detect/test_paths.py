@@ -4,9 +4,10 @@ from infrafit.detect.workloads import WorkloadInfo
 from infrafit.repo import open_snapshot
 
 
-def _w(wid, command="", kind="web"):
+def _w(wid, command="", kind="web", source="k8s"):
     return WorkloadInfo(id=wid, kind=kind, name=wid[2:], entrypoint={"path": "x", "line": None, "snippet": "x"},
-                        status="confirmed", source="k8s", command=command)
+                        status="confirmed", source=source, command=command,
+                        code_root="" if source == "code" else None)
 
 
 def test_app_server_parsing():
@@ -38,7 +39,8 @@ def test_ingress_and_app_server_hops(tmp_path):
 def test_managed_runtime_skips_app_server(tmp_path):
     snap = open_snapshot(str(tmp_path), tmp_path / "_w")
     vercel = ParsedArtifact("platform-config", "vercel.json", True)
-    paths = build_paths(snap, [_w("w-web", "next start")], [vercel], {"w-web": "cp:vercel/functions/unspecified-plan"})
+    paths = build_paths(snap, [_w("w-web", "next start", source="code")], [vercel],
+                        {"w-web": "cp:vercel/functions/unspecified-plan"})
     assert [(h["kind"], h["component"]) for h in paths[0]["hops"]] == [("edge-proxy", "nw:vercel/edge-proxy/default")]
 
 

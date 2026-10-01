@@ -63,3 +63,44 @@ def test_kustomize_identity_is_part_of_cache_key(tmp_path, monkeypatch):
     hash_a = json.loads((a.out_dir / "inventory.json").read_text())["meta"]["input_hash"]
     hash_b = json.loads((b.out_dir / "inventory.json").read_text())["meta"]["input_hash"]
     assert hash_a != hash_b
+
+
+DEPLOYMENT = """apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  template:
+    spec:
+      containers:
+        - name: api
+          image: acme/api:1
+          command: [uvicorn, main:app]
+"""
+
+
+def test_nested_platform_config_does_not_capture_k8s_workload(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "docs").mkdir(parents=True)
+    (repo / "k8s").mkdir()
+    (repo / "docs" / "vercel.json").write_text("")
+    (repo / "k8s" / "api.yaml").write_text(DEPLOYMENT)
+    ctx = analyze(str(repo), tmp_path / "out", until="S1", run_id="r")
+    inv = json.loads((ctx.out_dir / "inventory.json").read_text())
+    compute = {c["scope"]: c["component"] for c in inv["current_components"]}
+    assert compute["w-api"] == "cp:k8s/deployment/unspecified-cluster"
+    hops = [(h["kind"], h["component"]) for h in inv["request_paths"][0]["hops"]]
+    assert hops == [("app-server", "nw:app/uvicorn/default")]
+
+
+def test_root_platform_config_adds_compute_and_edge(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "vercel.json").write_text("{}")
+    (repo / "package.json").write_text('{"dependencies": {"next": "14"}, "scripts": {"start": "next start"}}')
+    ctx = analyze(str(repo), tmp_path / "out", until="S1", run_id="r")
+    inv = json.loads((ctx.out_dir / "inventory.json").read_text())
+    compute = {c["scope"]: c["component"] for c in inv["current_components"]}
+    assert compute["w-web"] == "cp:vercel/functions/unspecified-plan"
+    hops = [(h["kind"], h["component"]) for h in inv["request_paths"][0]["hops"]]
+    assert hops == [("edge-proxy", "nw:vercel/edge-proxy/default")]

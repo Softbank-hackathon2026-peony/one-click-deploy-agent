@@ -7,6 +7,7 @@ from pathlib import PurePosixPath
 
 from infrafit import kb
 from infrafit.detect.artifacts import ParsedArtifact, _d, build_source, ingress_backends
+from infrafit.detect.components import platform_config_for
 from infrafit.detect.defaults import hop_settings
 from infrafit.detect.workloads import WorkloadInfo
 from infrafit.evidence import evidence
@@ -50,13 +51,11 @@ def _hop(kind: str, component: str, explicit: dict, ev: list[dict]) -> dict:
             "settings": hop_settings(component, explicit, kb.defaults()), "evidence": ev}
 
 
-def _edge(snap: Snapshot, artifacts: list[ParsedArtifact]) -> dict | None:
-    for art in artifacts:
-        if art.kind == "platform-config":
-            comp = EDGE_BY_FILE.get(PurePosixPath(art.path).name)
-            if comp:
-                return _hop("edge-proxy", comp, {}, [evidence(snap, art.path)])
-    return None
+def _edge(snap: Snapshot, w: WorkloadInfo, artifacts: list[ParsedArtifact]) -> dict | None:
+    """이 워크로드의 컴퓨트를 정한 플랫폼 설정이 있을 때만 그 플랫폼의 엣지를 지난다."""
+    config = platform_config_for(w, artifacts)
+    comp = EDGE_BY_FILE.get(PurePosixPath(config.path).name) if config else None
+    return _hop("edge-proxy", comp, {}, [evidence(snap, config.path)]) if comp else None
 
 
 def _load_balancer(snap: Snapshot, w: WorkloadInfo, artifacts: list[ParsedArtifact]) -> dict | None:
@@ -85,7 +84,7 @@ def build_paths(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[P
     for w in sorted(workloads, key=lambda w: w.id):
         if w.kind != "web":
             continue
-        hops = [h for h in (_edge(snap, artifacts), _load_balancer(snap, w, artifacts)) if h]
+        hops = [h for h in (_edge(snap, w, artifacts), _load_balancer(snap, w, artifacts)) if h]
         if not str(compute.get(w.id, "")).startswith(MANAGED_RUNTIME_PREFIXES):
             server = app_server(w.command)
             if server:
