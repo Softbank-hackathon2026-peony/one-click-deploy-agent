@@ -385,39 +385,73 @@ def _kustomization_files(snap: Snapshot) -> dict[str, str]:
     return out
 
 
+def _is_remote(ref: str) -> bool:
+    return "://" in ref or ref.startswith(("github.com/", "git@"))
+
+
+def _kustomization_refs(snap: Snapshot, rel: str) -> list[str]:
+    """kustomization의 resources/bases/components 문자열 항목."""
+    try:
+        data = yaml.safe_load(snap.read(rel)) or {}
+    except yaml.YAMLError:
+        return []
+    if not isinstance(data, dict):
+        return []
+    out: list[str] = []
+    for key in ("resources", "bases", "components"):
+        items = data.get(key)
+        if isinstance(items, list):
+            out.extend(item for item in items if isinstance(item, str))
+    return out
+
+
+def _local_target(d: str, ref: str) -> str:
+    target = posixpath.normpath(posixpath.join(d, ref))
+    return "" if target == "." else target
+
+
 def kustomize_leaves(snap: Snapshot) -> list[str]:
     files = _kustomization_files(snap)
     referenced: set[str] = set()
     for d, rel in files.items():
-        try:
-            data = yaml.safe_load(snap.read(rel)) or {}
-        except yaml.YAMLError:
-            continue
-        if not isinstance(data, dict):
-            continue
-        for key in ("resources", "bases", "components"):
-            items = data.get(key)
-            if not isinstance(items, list):
-                continue
-            for item in items:
-                if not isinstance(item, str):
-                    continue
-                target = posixpath.normpath(posixpath.join(d, item))
-                if target == ".":
-                    target = ""
-                if target in files:
-                    referenced.add(target)
+        for ref in _kustomization_refs(snap, rel):
+            target = _local_target(d, ref)
+            if target in files:
+                referenced.add(target)
     return sorted(d for d in files if d not in referenced)
 
 
+def _uses_remote(snap: Snapshot, files: dict[str, str], leaf: str) -> bool:
+    """leaf에서 따라가는 kustomization 트리 어딘가가 원격 소스를 참조하는가."""
+    stack, seen = [leaf], set()
+    while stack:
+        d = stack.pop()
+        if d in seen or d not in files:
+            continue
+        seen.add(d)
+        for ref in _kustomization_refs(snap, files[d]):
+            if _is_remote(ref):
+                return True
+            stack.append(_local_target(d, ref))
+    return False
+
+
 def build_overlays(snap: Snapshot, runner=subprocess.run) -> list[ParsedArtifact]:
+    """말단 kustomization을 렌더한다. 실패·시간 초과·원격 소스·실행 파일 없음은 parsed: false로 남긴다."""
     cmd = kustomize_binary()
-    if cmd is None:
-        return []
+    files = _kustomization_files(snap)
     out: list[ParsedArtifact] = []
     for d in kustomize_leaves(snap):
         rel = (f"{d}/kustomization.yaml" if d else "kustomization.yaml") + BUILD_SUFFIX
-        result = runner(cmd + [str(snap.root / d)], capture_output=True, text=True)
+        if cmd is None or _uses_remote(snap, files, d):  # 네트워크를 쓰지 않는다
+            out.append(ParsedArtifact("k8s", rel, False))
+            continue
+        try:
+            result = runner(cmd + [str(snap.root / d)], capture_output=True, text=True,
+                            timeout=KUSTOMIZE_TIMEOUT)
+        except (subprocess.TimeoutExpired, OSError):
+            out.append(ParsedArtifact("k8s", rel, False))
+            continue
         if result.returncode != 0:
             out.append(ParsedArtifact("k8s", rel, False))
             continue

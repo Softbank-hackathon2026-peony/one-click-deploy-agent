@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from infrafit.consistency import check_s1
+from infrafit.detect.artifacts import KUSTOMIZATION_NAMES, kustomize_binary
 from infrafit.pipeline import analyze
 from infrafit.schema import validate
 
@@ -17,6 +18,9 @@ FIXTURES = sorted(p.parent.parent for p in (ROOT / "fixtures").glob("*/golden/in
 
 @pytest.mark.parametrize("fixture", FIXTURES, ids=lambda p: p.name)
 def test_matches_golden(fixture, tmp_path):
+    # 골든은 kustomize로 렌더한 결과를 담는다(F1). 실행 파일이 없으면 비교할 수 없다.
+    if kustomize_binary() is None and any(p.name in KUSTOMIZATION_NAMES for p in (fixture / "repo").rglob("*")):
+        pytest.skip("kustomize 없음: 렌더된 오버레이가 골든과 달라진다")
     ctx = analyze(str(fixture / "repo"), tmp_path, until="S1", run_id="t")
     for name in ("intake", "inventory"):
         actual = normalize(json.loads((ctx.out_dir / f"{name}.json").read_text()))

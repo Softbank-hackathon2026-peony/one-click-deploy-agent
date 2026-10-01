@@ -1,3 +1,5 @@
+import subprocess
+
 import pytest
 
 from infrafit.detect.artifacts import build_overlays, kustomize_binary, kustomize_leaves
@@ -61,12 +63,68 @@ def test_build_failure_is_recorded(tmp_path):
         stdout = ""
 
     arts = build_overlays(_tree(tmp_path), runner=lambda *a, **k: Failed())
-    if kustomize_binary() is None:
-        assert arts == []
-    else:
-        assert [(a.path, a.parsed) for a in arts] == [
-            ("k8s/overlays/dev/kustomization.yaml#build", False),
-            ("k8s/overlays/prod/kustomization.yaml#build", False)]
+    assert [(a.path, a.parsed) for a in arts] == LEAVES_FAILED
+
+
+LEAVES_FAILED = [("k8s/overlays/dev/kustomization.yaml#build", False),
+                 ("k8s/overlays/prod/kustomization.yaml#build", False)]
+
+
+@pytest.mark.parametrize("exc", [subprocess.TimeoutExpired(["kustomize"], 60), OSError("exec failed")])
+def test_runner_errors_are_recorded(tmp_path, monkeypatch, exc):
+    monkeypatch.setattr("infrafit.detect.artifacts.kustomize_binary", lambda: ["kustomize", "build"])
+    seen = []
+
+    def runner(*a, **k):
+        seen.append(k.get("timeout"))
+        raise exc
+
+    arts = build_overlays(_tree(tmp_path), runner=runner)
+    assert [(a.path, a.parsed) for a in arts] == LEAVES_FAILED
+    assert seen == [60, 60]
+
+
+def test_missing_binary_records_every_leaf(tmp_path, monkeypatch):
+    monkeypatch.setattr("infrafit.detect.artifacts.kustomize_binary", lambda: None)
+
+    def runner(*a, **k):
+        raise AssertionError("should not run")
+
+    arts = build_overlays(_tree(tmp_path), runner=runner)
+    assert [(a.path, a.parsed) for a in arts] == LEAVES_FAILED
+
+
+@pytest.mark.parametrize("remote", [
+    "https://github.com/acme/deploy//base?ref=v1",
+    "github.com/acme/deploy/base",
+    "git@github.com:acme/deploy.git//base",
+])
+def test_remote_resources_are_not_built(tmp_path, monkeypatch, remote):
+    monkeypatch.setattr("infrafit.detect.artifacts.kustomize_binary", lambda: ["kustomize", "build"])
+    files = {
+        "remote-base/kustomization.yaml": f"resources:\n  - {remote}\n",
+        "overlays/a/kustomization.yaml": "resources: [../../remote-base]\n",
+        "overlays/b/kustomization.yaml": "resources: [api.yaml]\n",
+        "overlays/b/api.yaml": BASE,
+    }
+    for rel, text in files.items():
+        p = tmp_path / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text)
+    built = []
+
+    class Ok:
+        returncode = 0
+        stdout = BASE
+
+    def runner(cmd, **k):
+        built.append(cmd[-1])
+        return Ok()
+
+    arts = build_overlays(open_snapshot(str(tmp_path), tmp_path / "_w"), runner=runner)
+    assert [(a.path, a.parsed) for a in arts] == [("overlays/a/kustomization.yaml#build", False),
+                                                  ("overlays/b/kustomization.yaml#build", True)]
+    assert built == [str(tmp_path / "overlays/b")]
 
 
 @pytest.mark.skipif(kustomize_binary() is None, reason="kustomize 없음")
