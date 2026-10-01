@@ -41,3 +41,19 @@ def test_hop_settings_mix_explicit_and_default():
         {"key": "timeout_keep_alive", "value": 5, "defaulted": True, "default_source": SRC}]
     assert hop_settings("nw:app/uvicorn/default", {"timeout_keep_alive": 75}, ENTRIES) == [
         {"key": "timeout_keep_alive", "value": 75, "defaulted": False}]
+
+
+def test_malformed_k8s_objects_do_not_raise():
+    objs = [
+        {"kind": "Deployment", "metadata": "x",
+         "spec": {"template": {"spec": {"containers": [{"image": "a:1"}]}}}},
+        {"kind": "Deployment", "metadata": {"name": "s"},
+         "spec": {"template": {"spec": {"containers": "abc"}}}},
+        {"kind": "Deployment", "metadata": {"name": "d"},
+         "spec": {"template": {"spec": {"containers": {"a": 1}}}}},
+        {"kind": "CronJob", "metadata": {"name": "c"}, "spec": 5},
+    ]
+    a = ParsedArtifact("k8s", "k.yaml", True, objects=objs)
+    apply_defaults([a], ENTRIES)
+    assert a.get("Deployment/s.terminationGracePeriodSeconds") is None
+    assert a.get("Deployment/d.terminationGracePeriodSeconds") is None
