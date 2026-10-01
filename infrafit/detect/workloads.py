@@ -1,0 +1,215 @@
+"""워크로드(프로세스 단위) 찾기: k8s > compose > 코드 순서로 하나를 쓴다."""
+
+from __future__ import annotations
+
+import posixpath
+import re
+from dataclasses import dataclass
+from pathlib import PurePosixPath
+
+from infrafit.detect.artifacts import ParsedArtifact, _d, pod_spec
+from infrafit.detect.manifests import Manifests, parent_dir
+from infrafit.evidence import evidence, line_of
+from infrafit.repo import Snapshot
+
+INFRA_IMAGE_TOKENS = ("postgres", "redis", "mysql", "mongo", "valkey", "memcached", "rabbitmq", "minio", "localstack")
+WEB_FRAMEWORKS = ("next", "express", "fastify", "koa", "@nestjs/core", "hono", "fastapi", "flask", "django")
+PROC_KINDS = {"web": "web", "worker": "worker", "clock": "scheduled", "release": "migration-job"}
+
+
+def slug(text: str) -> str:
+    return re.sub(r"[^a-z0-9.-]+", "-", text.lower()).strip("-") or "root"
+
+
+@dataclass
+class WorkloadInfo:
+    id: str
+    kind: str
+    name: str
+    entrypoint: dict
+    status: str
+    source: str
+    app_dir: str = ""
+    command: str = ""
+    image: str = ""
+    code_root: str | None = None
+
+    def to_dict(self) -> dict:
+        return {"id": self.id, "kind": self.kind, "name": self.name,
+                "entrypoint": self.entrypoint, "status": self.status}
+
+
+def _dockerfiles(artifacts: list[ParsedArtifact]) -> list[ParsedArtifact]:
+    return [a for a in artifacts if a.kind == "dockerfile"]
+
+
+def _dockerfile_for_image(image: str, artifacts: list[ParsedArtifact]) -> ParsedArtifact | None:
+    last = image.split("/")[-1].split(":")[0].split("@")[0]
+    for df in _dockerfiles(artifacts):
+        if last and PurePosixPath(df.path).parent.name == last:
+            return df
+    return None
+
+
+def _dockerfile_cmd_for_image(image: str, artifacts: list[ParsedArtifact]) -> str:
+    df = _dockerfile_for_image(image, artifacts)
+    return str(df.get("cmd") or "") if df else ""
+
+
+def _code_root_for_image(image: str, artifacts: list[ParsedArtifact]) -> str | None:
+    df = _dockerfile_for_image(image, artifacts)
+    return parent_dir(df.path) if df else None
+
+
+def _compose_code_root(compose_path: str, svc: dict, image: str, artifacts: list[ParsedArtifact]) -> str | None:
+    build = svc.get("build")
+    base = parent_dir(compose_path)
+    if isinstance(build, str):
+        root = posixpath.normpath(posixpath.join(base, build))
+        return "" if root == "." else root
+    if isinstance(build, dict):
+        context = posixpath.normpath(posixpath.join(base, str(build.get("context") or ".")))
+        context = "" if context == "." else context
+        if build.get("dockerfile"):
+            return parent_dir(posixpath.normpath(posixpath.join(context, str(build["dockerfile"]))))
+        return context
+    return _code_root_for_image(image, artifacts)
+
+
+def _dockerfile_cmd_for_dir(app_dir: str, artifacts: list[ParsedArtifact]) -> str:
+    for target in (app_dir, ""):
+        for df in _dockerfiles(artifacts):
+            if parent_dir(df.path) == target and df.get("cmd"):
+                return str(df.get("cmd"))
+    return ""
+
+
+def _as_list(v) -> list:
+    return v if isinstance(v, list) else []
+
+
+def _is_infra(image: str) -> bool:
+    return any(token in image.lower() for token in INFRA_IMAGE_TOKENS)
+
+
+def _from_k8s(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[WorkloadInfo]:
+    seen: dict[str, WorkloadInfo] = {}
+    for art in artifacts:
+        if art.kind != "k8s":
+            continue
+        for doc in art.objects:
+            if not isinstance(doc, dict):
+                continue
+            kind = doc.get("kind")
+            if kind not in ("Deployment", "StatefulSet", "Job", "CronJob"):
+                continue
+            name = _d(doc.get("metadata")).get("name")
+            containers = pod_spec(doc).get("containers")
+            if not isinstance(name, str) or not name or name in seen:
+                continue
+            if not isinstance(containers, list) or not containers or not isinstance(containers[0], dict):
+                continue
+            c = containers[0]
+            image = str(c.get("image") or "")
+            if _is_infra(image):
+                continue
+            cmd = " ".join(str(x) for x in _as_list(c.get("command")) + _as_list(c.get("args")))
+            text = f"{name} {cmd}".lower()
+            if kind == "CronJob":
+                wkind = "scheduled"
+            elif kind == "Job":
+                wkind = "migration-job" if "migrat" in text else "worker"
+            else:
+                wkind = "worker" if "worker" in text else "web"
+            # 렌더된 kustomize 결과(`...#build`)는 실제 파일이 아니므로 kustomization.yaml을 근거로 쓴다
+            path, built = (art.path.split("#", 1)[0], True) if "#" in art.path else (art.path, False)
+            line = None if built else line_of(snap, path, f"name: {name}")
+            seen[name] = WorkloadInfo(
+                id=f"w-{slug(name)}", kind=wkind, name=name, entrypoint=evidence(snap, path, line),
+                status="confirmed", source="k8s", image=image,
+                command=cmd or _dockerfile_cmd_for_image(image, artifacts),
+                code_root=_code_root_for_image(image, artifacts))
+    return list(seen.values())
+
+
+def _from_compose(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[WorkloadInfo]:
+    out: list[WorkloadInfo] = []
+    names: set[str] = set()
+    for art in artifacts:
+        if art.kind != "compose":
+            continue
+        for obj in art.objects:
+            if not isinstance(obj, tuple) or len(obj) != 2 or not isinstance(obj[0], str):
+                continue
+            name, svc = obj[0], _d(obj[1])
+            image = str(svc.get("image") or "")
+            if name in names or _is_infra(image):
+                continue
+            names.add(name)
+            cmd = svc.get("command") or ""
+            cmd = " ".join(str(x) for x in cmd) if isinstance(cmd, list) else str(cmd) if isinstance(cmd, str) else ""
+            text = f"{name} {cmd}".lower()
+            wkind = "migration-job" if "migrat" in text else "worker" if "worker" in text else "web"
+            out.append(WorkloadInfo(
+                id=f"w-{slug(name)}", kind=wkind, name=name,
+                entrypoint=evidence(snap, art.path, line_of(snap, art.path, f"{name}:")),
+                status="confirmed", source="compose", image=image, command=cmd,
+                code_root=_compose_code_root(art.path, svc, image, artifacts)))
+    return out
+
+
+def _from_code(snap: Snapshot, manifests: Manifests, artifacts: list[ParsedArtifact]) -> list[WorkloadInfo]:
+    found: dict[tuple[str, str], dict] = {}
+    for d, deps in sorted(manifests.deps_by_dir.items()):
+        web_fw = next((fw for fw in WEB_FRAMEWORKS if fw in deps), None)
+        if web_fw:
+            found[("web", d)] = {"dep": web_fw}
+        elif "vite" in deps:
+            found[("static-frontend", d)] = {"dep": "vite"}
+    for key, (cmd, rel, line) in sorted(manifests.procfile.items()):
+        d, proc = key.split(":", 1)
+        wkind = PROC_KINDS.get(proc)
+        if not wkind:
+            continue
+        entry = found.setdefault((wkind, d), {})
+        entry.setdefault("proc", (cmd, rel, line))
+
+    by_kind: dict[str, list[str]] = {}
+    for wkind, d in found:
+        by_kind.setdefault(wkind, []).append(d)
+
+    out: list[WorkloadInfo] = []
+    for (wkind, d), info in sorted(found.items()):
+        short = "static" if wkind == "static-frontend" else wkind
+        wid = f"w-{short}" if len(by_kind[wkind]) == 1 else f"w-{short}-{slug(d)}"
+        if "dep" in info:
+            dep = info["dep"]
+            rel, line = manifests.deps[dep]
+            # 같은 의존성이 여러 디렉터리에 있으면 이 디렉터리의 매니페스트 줄을 근거로 쓴다
+            for pattern in ("package.json", "requirements.txt", "pyproject.toml"):
+                local = f"{d}/{pattern}" if d else pattern
+                if snap.exists(local):
+                    ln = line_of(snap, local, f'"{dep}"' if pattern == "package.json" else dep)
+                    if ln:
+                        rel, line = local, ln
+                        break
+            entry = evidence(snap, rel, line)
+        else:
+            _, rel, line = info["proc"]
+            entry = evidence(snap, rel, line)
+        proc_cmd = info["proc"][0] if "proc" in info else ""
+        start = manifests.scripts.get(f"{d}:start")
+        start_cmd = start[0] if start else ""
+        if wkind == "web":
+            # 이미지가 있으면 그 CMD가 실제로 배포되는 실행 명령이다
+            command = _dockerfile_cmd_for_dir(d, artifacts) or proc_cmd or start_cmd
+        else:
+            command = proc_cmd
+        out.append(WorkloadInfo(id=wid, kind=wkind, name=wid[2:], entrypoint=entry,
+                                status="confirmed", source="code", app_dir=d, command=command, code_root=d))
+    return out
+
+
+def detect_workloads(snap: Snapshot, manifests: Manifests, artifacts: list[ParsedArtifact]) -> list[WorkloadInfo]:
+    workloads = _from_k8s(snap, artifacts) or _from_compose(snap, artifacts) or _from_code(snap, manifests, artifacts)
+    return sorted(workloads, key=lambda w: w.id)
