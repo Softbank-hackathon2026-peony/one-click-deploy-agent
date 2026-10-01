@@ -7,10 +7,27 @@ import argparse
 from infrafit import __version__
 
 
+def _cmd_analyze(args: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from infrafit.pipeline import analyze
+
+    ctx = analyze(args.source, Path(args.out), until=args.until, run_id=args.run_id)
+    print(ctx.out_dir)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="infrafit")
     parser.add_argument("--version", action="version", version=f"infrafit {__version__}")
-    parser.add_subparsers(dest="command")
+    sub = parser.add_subparsers(dest="command")
+
+    analyze = sub.add_parser("analyze", help="저장소를 분석한다")
+    analyze.add_argument("source", help="로컬 경로 또는 GitHub URL")
+    analyze.add_argument("--out", default="out", help="실행 결과 디렉터리 루트")
+    analyze.add_argument("--until", default="S1", help="이 단계까지 실행")
+    analyze.add_argument("--run-id", default=None)
+    analyze.set_defaults(func=_cmd_analyze)
     return parser
 
 

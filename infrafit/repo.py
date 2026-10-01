@@ -1,0 +1,130 @@
+"""저장소 스냅샷: 분석 대상 파일 목록과 읽기."""
+
+from __future__ import annotations
+
+import fnmatch
+import hashlib
+import os
+import subprocess
+from collections import Counter
+from dataclasses import dataclass, field
+from pathlib import Path
+
+EXCLUDED_DIRS = frozenset({
+    ".git", "node_modules", ".venv", "venv", "__pycache__", "dist", "build", ".next",
+    ".nuxt", "vendor", ".terraform", "coverage", ".pytest_cache", ".mypy_cache", "out",
+})
+BINARY_EXTS = frozenset({
+    ".png", ".jpg", ".jpeg", ".gif", ".ico", ".webp", ".pdf", ".zip", ".gz", ".tgz",
+    ".woff", ".woff2", ".ttf", ".eot", ".db", ".sqlite", ".sqlite3", ".mp4", ".mp3",
+})
+MAX_TEXT_BYTES = 1_000_000
+LANG_BY_EXT = {
+    ".py": "python", ".ts": "typescript", ".tsx": "typescript", ".js": "javascript",
+    ".jsx": "javascript", ".mjs": "javascript", ".cjs": "javascript", ".go": "go",
+    ".java": "java", ".kt": "kotlin", ".rb": "ruby", ".php": "php", ".rs": "rust",
+    ".cs": "csharp",
+}
+
+
+def match_glob(path: str, pattern: str) -> bool:
+    if fnmatch.fnmatchcase(path, pattern):
+        return True
+    return pattern.startswith("**/") and fnmatch.fnmatchcase(path, pattern[3:])
+
+
+@dataclass
+class Snapshot:
+    root: Path
+    repo: str
+    commit: str
+    files: list[str]
+    files_total: int
+    excluded: list[str]
+    _cache: dict[str, str] = field(default_factory=dict, repr=False)
+
+    def __post_init__(self) -> None:
+        self._fileset = set(self.files)
+
+    def read(self, rel: str) -> str:
+        if rel not in self._cache:
+            self._cache[rel] = (self.root / rel).read_text(encoding="utf-8", errors="replace")
+        return self._cache[rel]
+
+    def lines(self, rel: str) -> list[str]:
+        return self.read(rel).splitlines()
+
+    def glob(self, pattern: str) -> list[str]:
+        return [f for f in self.files if match_glob(f, pattern)]
+
+    def exists(self, rel: str) -> bool:
+        return rel in self._fileset
+
+
+def _walk(root: Path) -> tuple[list[str], list[str], int]:
+    files: list[str] = []
+    excluded: list[str] = []
+    total = 0
+    for dirpath, dirnames, filenames in os.walk(root):
+        rel_dir = Path(dirpath).relative_to(root).as_posix()
+        keep = []
+        for d in sorted(dirnames):
+            if d in EXCLUDED_DIRS:
+                excluded.append(f"{d}/" if rel_dir == "." else f"{rel_dir}/{d}/")
+            else:
+                keep.append(d)
+        dirnames[:] = keep
+        for name in sorted(filenames):
+            total += 1
+            path = Path(dirpath) / name
+            if path.suffix.lower() in BINARY_EXTS or path.stat().st_size > MAX_TEXT_BYTES:
+                continue
+            files.append(path.relative_to(root).as_posix())
+    return sorted(files), sorted(excluded), total
+
+
+def _commit(root: Path, files: list[str]) -> str:
+    try:
+        top = subprocess.run(["git", "-C", str(root), "rev-parse", "--show-toplevel"],
+                             capture_output=True, text=True, check=True).stdout.strip()
+        if Path(top).resolve() == root.resolve():
+            return subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"],
+                                  capture_output=True, text=True, check=True).stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass
+    digest = hashlib.sha256()
+    for rel in files:
+        digest.update(rel.encode("utf-8"))
+        digest.update(hashlib.sha256((root / rel).read_bytes()).digest())
+    return "tree-" + digest.hexdigest()[:16]
+
+
+def open_snapshot(source: str, workdir: Path) -> Snapshot:
+    if source.startswith(("https://", "http://", "git@")):
+        dest = workdir / "source"
+        if not dest.exists():
+            workdir.mkdir(parents=True, exist_ok=True)
+            subprocess.run(["git", "clone", "--depth", "1", source, str(dest)],
+                           capture_output=True, check=True)
+        root, repo = dest, source
+    else:
+        root = Path(source).resolve()
+        if not root.is_dir():
+            raise FileNotFoundError(f"저장소 경로가 없음: {source}")
+        repo = str(root)
+    files, excluded, total = _walk(root)
+    # 작업 디렉터리가 저장소 안에 있으면 분석 대상에서 뺀다.
+    try:
+        work_rel = workdir.resolve().relative_to(root).as_posix() + "/"
+        files = [f for f in files if not f.startswith(work_rel)]
+    except ValueError:
+        pass
+    return Snapshot(root=root, repo=repo, commit=_commit(root, files), files=files,
+                    files_total=total, excluded=excluded)
+
+
+def language_ratios(files: list[str]) -> dict[str, float]:
+    counts = Counter(LANG_BY_EXT[Path(f).suffix.lower()] for f in files
+                     if Path(f).suffix.lower() in LANG_BY_EXT)
+    total = sum(counts.values())
+    return {k: round(v / total, 3) for k, v in sorted(counts.items())} if total else {}
