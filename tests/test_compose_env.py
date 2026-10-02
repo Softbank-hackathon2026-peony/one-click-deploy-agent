@@ -152,8 +152,10 @@ def test_compose_command_falls_back_to_build_dockerfile(tmp_path):
     _write(tmp_path, "k8s/app.yaml", _deploy("app", "acme/app:1"))
     _write(tmp_path, "app/Dockerfile", 'FROM python:3.12\nENTRYPOINT ["uvicorn"]\nCMD ["main:app"]\n')
     _write(tmp_path, "docker-compose.yml", "services:\n  app:\n    build: ./app\n")
-    _, arts, ws, envs, _, _ = _analyze(tmp_path)
+    _, arts, ws, envs, _, paths = _analyze(tmp_path)
     assert env_command(_env(envs, "compose"), ws[0], arts) == "uvicorn main:app"
+    hop = next(p for p in paths if p["id"] == "path-app.compose")["hops"][0]
+    assert [(e["path"], e["line"]) for e in hop["evidence"]] == [("app/Dockerfile", 2), ("app/Dockerfile", 3)]
 
 
 def test_compose_only_repo(tmp_path):
@@ -179,3 +181,35 @@ def test_broken_or_empty_compose_gives_no_environment(tmp_path):
     # 서비스 본문이 dict가 아니어도 서비스는 있다(빈 정의)
     assert _env(envs, "compose/c").services == {"x": {}, "y": {}}
     assert _env(envs, "compose.prod/d").services["api"]["environment"] == 5
+
+
+def _app_server_evidence(paths, pid):
+    hop = next(h for p in paths if p["id"] == pid for h in p["hops"] if h["kind"] == "app-server")
+    return [(e["path"], e["line"]) for e in hop["evidence"]]
+
+
+def test_app_server_evidence_follows_command_source(tmp_path):
+    _mixed_repo(tmp_path)
+    _write(tmp_path, "docker-compose.override.yml",
+           "services:\n  api:\n    environment: [X=1]\n    command: uvicorn main:app --timeout-keep-alive 6\n")
+    _, _, ws, _, _, paths = _analyze(tmp_path)
+    assert _app_server_evidence(paths, "path-api.compose") == [("docker-compose.override.yml", 4)]
+    # 렌더 명령이 워크로드 명령과 다르면 그 환경의 kustomization.yaml
+    assert _app_server_evidence(paths, "path-api.dev") == [("k8s/overlays/dev/kustomization.yaml", None)]
+    verify = next(w for w in ws if w.id == "w-api-verify")
+    assert _app_server_evidence(paths, "path-api-verify.dev") == [
+        (verify.entrypoint["path"], verify.entrypoint["line"])]
+
+
+INGRESS = ("apiVersion: networking.k8s.io/v1\nkind: Ingress\nmetadata:\n  name: api\nspec:\n"
+           "  ingressClassName: nginx\n  defaultBackend:\n    service: {name: api, port: {number: 80}}\n")
+
+
+def test_plain_k8s_workload_keeps_null_path_beside_compose(tmp_path):
+    _write(tmp_path, "k8s/api.yaml", _deploy("api", "acme/api:1", '        command: ["uvicorn", "main:app"]\n'))
+    _write(tmp_path, "k8s/ingress.yaml", INGRESS)
+    _write(tmp_path, "docker-compose.yml", "services:\n  api:\n    image: acme/api:1\n"
+           "    command: uvicorn main:app\n")
+    _, _, _, _, _, paths = _analyze(tmp_path)
+    kinds = {p["id"]: [h["kind"] for h in p["hops"]] for p in paths}
+    assert kinds == {"path-api": ["load-balancer", "app-server"], "path-api.compose": ["app-server"]}

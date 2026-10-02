@@ -6,6 +6,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import PurePosixPath
 
+import yaml
+
 from infrafit.detect.artifacts import ParsedArtifact, as_dict, build_source, is_build_path, pod_spec
 from infrafit.detect.manifests import parent_dir
 from infrafit.detect.workloads import (WorkloadInfo, compose_build, compose_command, image_name, slug,
@@ -29,6 +31,7 @@ class Environment:
     kind: str = "kustomize"  # "kustomize" | "compose"
     services: dict[str, dict] = field(default_factory=dict)  # compose 환경의 병합된 서비스 정의
     members: dict[str, str] = field(default_factory=dict)  # compose 환경: 워크로드 id → 서비스 이름
+    origins: dict[str, dict[str, str]] = field(default_factory=dict)  # 서비스 → 키 → 그 값을 정한 compose 파일
 
     def to_dict(self, snap: Snapshot) -> dict:
         return {"name": self.name, "kind": self.kind, "rendered": self.rendered,
@@ -95,9 +98,11 @@ def _env_vars(value) -> dict | None:
     return None
 
 
-def _merge(files: list[ParsedArtifact]) -> dict[str, dict]:
-    """서비스 단위 병합: 뒤 파일의 키가 앞 파일의 키를 덮고, `environment`는 변수 이름 단위로 합친다."""
+def _merge(files: list[ParsedArtifact]) -> tuple[dict[str, dict], dict[str, dict[str, str]]]:
+    """서비스 단위 병합: 뒤 파일의 키가 앞 파일의 키를 덮고, `environment`는 변수 이름 단위로 합친다.
+    (병합된 서비스, 서비스 → 키 → 마지막으로 그 키를 쓴 파일)."""
     services: dict[str, dict] = {}
+    origins: dict[str, dict[str, str]] = {}
     for art in files:
         if not art.parsed or not isinstance(art.objects, list):
             continue
@@ -105,14 +110,16 @@ def _merge(files: list[ParsedArtifact]) -> dict[str, dict]:
             if not isinstance(obj, tuple) or len(obj) != 2 or not isinstance(obj[0], str):
                 continue
             merged = services.setdefault(obj[0], {})
+            origin = origins.setdefault(obj[0], {})
             for key, value in as_dict(obj[1]).items():
+                origin[str(key)] = art.path
                 new = _env_vars(value) if key == "environment" else None
                 old = _env_vars(merged.get(key)) if key == "environment" and key in merged else None
                 if new is not None:
                     merged[key] = {**old, **new} if old is not None else new
                 else:
                     merged[key] = value
-    return services
+    return services, origins
 
 
 def _compose_environments(artifacts: list[ParsedArtifact]) -> list[Environment]:
@@ -129,11 +136,11 @@ def _compose_environments(artifacts: list[ParsedArtifact]) -> list[Environment]:
         candidates = ([("compose", bases[0], layers)] if bases else []) + [
             (f"compose.{_variant(v.path)}", v, layers + [v]) for v in variants]
         for name, source, chain in candidates:
-            services = _merge(chain)
+            services, origins = _merge(chain)
             if not services:
                 continue
             envs.append(Environment(f"{name}/{d}" if d else name, source.path, True, kind="compose",
-                                    services=services))
+                                    services=services, origins=origins))
     # 이름이 겹치면(docker-compose.x.yml과 compose.x.yml) 경로 순 첫 번째만 둔다
     unique: dict[str, Environment] = {}
     for env in envs:
@@ -206,6 +213,25 @@ def env_service(env: Environment | None, w: WorkloadInfo) -> dict | None:
     return as_dict(env.services.get(env.members[w.id]))
 
 
+def env_scopes(w: WorkloadInfo, environments: list[Environment]) -> list[Environment | None]:
+    """워크로드를 볼 범위(None은 환경 밖). 렌더된 환경 중 워크로드가 있는 것들.
+    k8s 워크로드가 kustomize 환경에 없으면 일반 매니페스트(환경 밖)에도 있으므로 None도 둔다.
+    그 밖의 워크로드는 어느 환경에도 없을 때만 None."""
+    inside = [e for e in environments if e.rendered and workload_in(e, w)]
+    if w.source == "k8s" and not any(e.kind == "kustomize" for e in inside):
+        return [None] + inside
+    return inside or [None]
+
+
+def _rendered_command(env: Environment, w: WorkloadInfo) -> str:
+    doc = next((d for d in env.objects if is_workload_doc(d, w)), None)
+    containers = pod_spec(doc).get("containers") if doc is not None else None
+    containers = [as_dict(c) for c in containers] if isinstance(containers, list) else []
+    c = next((x for x in containers if w.image and x.get("image") == w.image), containers[0] if containers else {})
+    parts = [v if isinstance(v, list) else [] for v in (c.get("command"), c.get("args"))]
+    return " ".join(str(x) for x in parts[0] + parts[1])
+
+
 def env_command(env: Environment | None, w: WorkloadInfo, artifacts: list[ParsedArtifact]) -> str:
     """그 환경에서 워크로드가 실행하는 명령. 환경이 정하지 않으면 워크로드의 명령."""
     cmd = ""
@@ -213,10 +239,46 @@ def env_command(env: Environment | None, w: WorkloadInfo, artifacts: list[Parsed
         svc = env_service(env, w)
         cmd = compose_command(env.source, svc, artifacts) if svc is not None else ""
     elif env is not None:
-        doc = next((d for d in env.objects if is_workload_doc(d, w)), None)
-        containers = pod_spec(doc).get("containers") if doc is not None else None
-        containers = [as_dict(c) for c in containers] if isinstance(containers, list) else []
-        c = next((x for x in containers if w.image and x.get("image") == w.image), containers[0] if containers else {})
-        parts = [v if isinstance(v, list) else [] for v in (c.get("command"), c.get("args"))]
-        cmd = " ".join(str(x) for x in parts[0] + parts[1])
+        cmd = _rendered_command(env, w)
     return cmd or w.command
+
+
+def _compose_key_line(snap: Snapshot, rel: str, service: str, key: str) -> int | None:
+    """compose 파일에서 services.<service>.<key> 키가 있는 줄."""
+    try:
+        root = yaml.compose(snap.read(rel))
+    except yaml.YAMLError:
+        return None
+    for path_key in ("services", service, key):
+        if not isinstance(root, yaml.MappingNode):
+            return None
+        found = next(((k, v) for k, v in root.value if isinstance(k, yaml.ScalarNode) and k.value == path_key), None)
+        if found is None:
+            return None
+        if path_key == key:
+            return found[0].start_mark.line + 1
+        root = found[1]
+    return None
+
+
+def env_command_evidence(snap: Snapshot, env: Environment | None, w: WorkloadInfo,
+                         artifacts: list[ParsedArtifact]) -> list[dict]:
+    """env_command가 어디서 왔는가: compose 서비스 `command` 줄(없으면 빌드 Dockerfile의 ENTRYPOINT·CMD 줄),
+    kustomize 환경의 렌더 명령이 워크로드 명령과 다르면 그 kustomization.yaml, 그 밖에는 워크로드 진입점."""
+    if env is not None and env.kind == "compose":
+        svc = env_service(env, w)
+        name = env.members.get(w.id)
+        if svc is not None and isinstance(svc.get("command"), (str, list)) and svc.get("command"):
+            rel = env.origins.get(name, {}).get("command", env.source)
+            return [evidence(snap, rel, _compose_key_line(snap, rel, name, "command"))]
+        build = compose_build(env.source, svc) if svc is not None else None
+        df = next((a for a in artifacts if a.kind == "dockerfile" and a.path == build[1]), None) if build else None
+        evs = [f["evidence"] for f in (df.settings if df else [])
+               if f.get("key") in ("entrypoint", "cmd") and f.get("evidence")]
+        if evs:
+            return sorted(evs, key=lambda e: e["line"] or 0)
+    elif env is not None:
+        cmd = _rendered_command(env, w)
+        if cmd and cmd != w.command:
+            return [evidence(snap, env.source)]
+    return [w.entrypoint]

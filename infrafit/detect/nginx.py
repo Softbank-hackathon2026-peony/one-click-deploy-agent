@@ -13,7 +13,7 @@ from pathlib import PurePosixPath
 import crossplane
 
 from infrafit.detect.artifacts import ParsedArtifact, as_dict, final_chain, dockerfile_stages, is_build_path, pod_spec
-from infrafit.detect.environments import Environment, env_service, is_workload_doc, workload_in
+from infrafit.detect.environments import Environment, env_scopes, env_service, is_workload_doc
 from infrafit.detect.manifests import parent_dir
 from infrafit.detect.workloads import WorkloadInfo, workload_dockerfile
 from infrafit.evidence import evidence
@@ -579,11 +579,6 @@ def _entries(snap: Snapshot, links: list[tuple[str, str | None, str]], cache: di
     return out
 
 
-def _scopes(w: WorkloadInfo, environments: list[Environment]) -> list[Environment | None]:
-    inside = [e for e in environments if workload_in(e, w)]
-    return inside or [None]
-
-
 def find_proxies(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[ParsedArtifact],
                  environments: list[Environment]) -> tuple[list[ProxyServer], list[ProxyRoute]]:
     cache: dict = {}
@@ -593,7 +588,7 @@ def find_proxies(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[
         return [], []
     dockerfiles = {w.id: workload_dockerfile(w, artifacts) for w in workloads}
     services = _compose_services(artifacts)
-    scopes = {w.id: _scopes(w, environments) for w in workloads}
+    scopes = {w.id: env_scopes(w, environments) for w in workloads}
     mappings: dict[tuple[str, str | None], dict[str, str]] = {}
     for w in workloads:
         image = _dockerfile_mapping(snap, dockerfiles[w.id], w.build_context)

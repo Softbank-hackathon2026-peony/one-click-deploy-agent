@@ -9,7 +9,7 @@ from infrafit import kb
 from infrafit.detect.artifacts import ParsedArtifact, as_dict, build_source, ingress_backends
 from infrafit.detect.components import platform_config_for
 from infrafit.detect.defaults import fact_settings, hop_settings
-from infrafit.detect.environments import Environment, env_command, env_slug, workload_in
+from infrafit.detect.environments import Environment, env_command, env_command_evidence, env_scopes, env_slug
 from infrafit.detect.nginx import ProxyRoute, ProxyServer
 from infrafit.detect.workloads import WorkloadInfo
 from infrafit.evidence import evidence
@@ -117,7 +117,6 @@ def build_paths(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[P
     servers, routes = proxy if proxy else ([], [])
     proxy_ids = {s.proxy for s in servers}
     by_id = {w.id: w for w in workloads}
-    rendered = sorted((e for e in environments if e.rendered), key=lambda e: e.name)
     paths = []
     for w in sorted(workloads, key=lambda w: w.id):
         if w.kind != "web" and w.id not in proxy_ids:
@@ -128,7 +127,8 @@ def build_paths(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[P
             env_name = env.name if env else None
             # 앱 서버 구간은 그 환경에서 실제로 실행하는 명령으로 정한다
             server = app_server(env_command(env, w, artifacts)) if has_app_server else None
-            tail = [_hop("app-server", server[0], server[1], [w.entrypoint])] if server else []
+            tail = ([_hop("app-server", server[0], server[1], env_command_evidence(snap, env, w, artifacts))]
+                    if server else [])
             own = _front(snap, w, artifacts, env)
             if w.id in proxy_ids:
                 mine = [s for s in servers if s.proxy == w.id and s.environment == env_name]
@@ -150,9 +150,6 @@ def build_paths(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[P
                 hop["order"] = i
             return {"id": pid, "workload": w.id, "environment": env.name if env else None, "hops": hops}
 
-        present = [e for e in rendered if workload_in(e, w)]
-        if not present:
-            paths.append(make(f"path-{w.id[2:]}", None))
-        for e in present:
-            paths.append(make(f"path-{w.id[2:]}.{env_slug(e.name)}", e))
+        for e in env_scopes(w, sorted(environments, key=lambda e: e.name)):
+            paths.append(make(f"path-{w.id[2:]}.{env_slug(e.name)}" if e else f"path-{w.id[2:]}", e))
     return paths
