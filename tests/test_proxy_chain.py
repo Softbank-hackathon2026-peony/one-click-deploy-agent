@@ -256,3 +256,23 @@ def test_dense_proxy_mesh_is_bounded(tmp_path):
     _, eps = _analyze(tmp_path)
     assert time.monotonic() - start < 2
     assert set(_exposure(eps).values()) == {"routed"}
+
+
+def test_exposure_in_plain_manifests_and_compose(tmp_path):
+    # F8: 일반 매니페스트(환경 null)와 compose 환경이 함께 있으면 exposure는 null 먼저, 그다음 compose
+    _write(tmp_path, "proxy/Dockerfile", "FROM nginx:1.27\nCOPY nginx/default.conf /etc/nginx/conf.d/default.conf\n")
+    _write(tmp_path, "nginx/default.conf", "server {\n  location / { proxy_pass http://app; }\n}\n")
+    _write(tmp_path, "nginx/compose.conf", "server {\n  location /api/ { proxy_pass http://app; }\n}\n")
+    _write(tmp_path, "k8s/proxy.yaml", _deploy("proxy", "acme/proxy:1"))
+    _write(tmp_path, "k8s/app.yaml", _deploy("app", "acme/app:1", '["uvicorn", "main:app"]'))
+    _write(tmp_path, "k8s/ingress.yaml", INGRESS.replace("name: pa", "name: proxy"))
+    _write(tmp_path, "app/Dockerfile", "FROM python:3.12\nCMD uvicorn main:app\n")
+    _write(tmp_path, "app/main.py", '@app.get("/api/x")\ndef x(): ...\n@app.get("/admin")\ndef a(): ...\n')
+    _write(tmp_path, "docker-compose.yml", "services:\n  proxy:\n    image: acme/proxy:1\n"
+           "    volumes:\n      - ./nginx/compose.conf:/etc/nginx/conf.d/default.conf:ro\n"
+           "  app:\n    image: acme/app:1\n")
+    paths, eps = _analyze(tmp_path)
+    assert sorted(paths) == ["path-app", "path-app.compose", "path-proxy", "path-proxy.compose"]
+    assert {e["route"]: e["exposure"] for e in eps} == {
+        "/api/x": [{"environment": None, "value": "routed"}, {"environment": "compose", "value": "routed"}],
+        "/admin": [{"environment": None, "value": "routed"}, {"environment": "compose", "value": "not-routed"}]}
