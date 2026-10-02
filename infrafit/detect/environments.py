@@ -25,14 +25,22 @@ class Environment:
     source: str  # 실제 kustomization.yaml 경로, compose 환경이면 기본 파일 또는 변형 파일
     rendered: bool
     objects: list[dict] = field(default_factory=list)
-    kind: str = "kustomize"  # "kustomize" | "compose"
+    kind: str = "kustomize"  # "kustomize" | "compose" | "platform" | "ci-deploy"
     services: dict[str, dict] = field(default_factory=dict)  # compose 환경의 병합된 서비스 정의
-    members: dict[str, str] = field(default_factory=dict)  # compose 환경: 워크로드 id → 서비스 이름
+    # compose 환경: 워크로드 id → 서비스 이름. platform·ci-deploy 환경: 배포하는 워크로드 id → ""
+    members: dict[str, str] = field(default_factory=dict)
     origins: dict[str, dict[str, str]] = field(default_factory=dict)  # 서비스 → 키 → 그 값을 정한 compose 파일
+    manual: bool | None = None  # ci-deploy 환경: 워크플로가 수동 실행으로만 돈다
+    source_line: int | None = None  # ci-deploy 환경: 배포 step 줄
 
     def to_dict(self, snap: Snapshot) -> dict:
-        return {"name": self.name, "kind": self.kind, "rendered": self.rendered,
-                "source": evidence(snap, self.source)}
+        out = {"name": self.name, "kind": self.kind, "rendered": self.rendered,
+               "source": evidence(snap, self.source, self.source_line)}
+        if self.kind in ("platform", "ci-deploy"):
+            out["members"] = sorted(self.members)
+        if self.manual is not None:
+            out["manual"] = self.manual
+        return out
 
 
 def _leaf_dir(source: str) -> str:

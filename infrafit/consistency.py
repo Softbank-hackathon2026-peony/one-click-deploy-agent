@@ -59,6 +59,20 @@ def check_s1(inventory: dict, repo_root: Path | None) -> list[str]:
     env_names = set(env_list)
     for dup in sorted({n for n in env_list if env_list.count(n) > 1}):
         issues.append(f"duplicate environment name: {dup}")
+    for e in inventory.get("environments", []):
+        for m in e.get("members", []):
+            if m not in workloads:
+                issues.append(f"environment {e['name']}: unknown member workload {m}")
+    for c in inventory["current_components"]:
+        if "environment" in c and c["environment"] not in env_names:
+            issues.append(f"current component {c['scope']}: unknown environment {c['environment']}")
+    ext_ids = [s["id"] for s in inventory.get("external_services", [])]
+    for dup in sorted({i for i in ext_ids if ext_ids.count(i) > 1}):
+        issues.append(f"duplicate external service id: {dup}")
+    for s in inventory.get("external_services", []):
+        for u in s["used_by"]:
+            if u not in workloads:
+                issues.append(f"external service {s['id']}: unknown workload {u}")
     for e in inventory["endpoints"]:
         seen_env: set = set()
         for x in e.get("exposure", []):

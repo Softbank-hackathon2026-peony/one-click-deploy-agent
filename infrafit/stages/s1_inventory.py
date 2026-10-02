@@ -6,8 +6,10 @@ from infrafit import kb
 from infrafit.detect.artifacts import kustomize_identity, parse_artifacts
 from infrafit.detect.components import find_unmapped, image_unmapped, map_components
 from infrafit.detect.defaults import apply_defaults
+from infrafit.detect.deploy import detect_deploy_targets
 from infrafit.detect.environments import detect_environments
 from infrafit.detect.endpoints import extract_endpoints
+from infrafit.detect.external import find_external_services
 from infrafit.detect.images import image_services
 from infrafit.detect.manifests import parse_manifests
 from infrafit.detect.nginx import find_proxies
@@ -37,14 +39,17 @@ def run_s1(ctx: RunContext, snap: Snapshot) -> dict:
     matches = match_signatures(snap, manifests, kb.signatures())
     services = image_services(snap, artifacts)
     datastores, components, compute = map_components(snap, matches, workloads, artifacts, services)
+    # 환경별 배포 대상(platform·ci-deploy)은 출력에만 더한다: 요청 경로·노출 판단은 기존 환경으로 한다
+    deploy_envs, deploy_components, deploy_unmapped = detect_deploy_targets(snap, artifacts, workloads, environments)
     body = {
         "workloads": [w.to_dict() for w in workloads],
         "endpoints": endpoints,
         "datastores": datastores,
-        "current_components": components,
+        "current_components": components + deploy_components,
+        "external_services": find_external_services(snap, manifests, artifacts, workloads),
         "request_paths": build_paths(snap, workloads, artifacts, compute, environments, (servers, routes)),
-        "environments": [e.to_dict(snap) for e in environments],
+        "environments": [e.to_dict(snap) for e in sorted(environments + deploy_envs, key=lambda e: e.name)],
         "existing_artifacts": [a.to_dict() for a in artifacts],
-        "unmapped": find_unmapped(snap, manifests) + image_unmapped(services),
+        "unmapped": find_unmapped(snap, manifests) + image_unmapped(services) + deploy_unmapped,
     }
     return ctx.write_stage("S1", body, input_hash=h, started_at=started)
