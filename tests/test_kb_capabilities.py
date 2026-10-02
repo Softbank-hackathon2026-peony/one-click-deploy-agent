@@ -32,7 +32,8 @@ def _src(line=2, url="https://docs.aws.amazon.com/lambda/x.html", quote="900 sec
 
 def _entry(**caps):
     return {"id": "cp:aws/lambda/function-url", "target": "aws_lambda", "cloud": "aws", "family": "cp",
-            "capabilities": caps or {"CP.max_request_seconds": {"value": 900, "source": _src()}}}
+            "capabilities": caps or {"CP.max_request_seconds": {"value": 900, "source": _src()},
+                                     "CP.platform_request_timeout": {"value": True, "source": _src()}}}
 
 
 def _lint(research, entry):
@@ -76,7 +77,8 @@ def test_url_not_cited_on_line_fails(research):
 def test_missing_source_field_fails(research, field):
     src = _src()
     del src[field]
-    issues = _lint(research, _entry(**{"CP.max_request_seconds": {"value": 900, "source": src}}))
+    issues = _lint(research, _entry(**{"CP.max_request_seconds": {"value": 900, "source": src},
+                                       "CP.platform_request_timeout": {"value": True, "source": _src()}}))
     assert issues == [f"cp:aws/lambda/function-url#CP.max_request_seconds: source에 {field} 없음"]
 
 
@@ -194,7 +196,7 @@ def test_rule_when_values_follow_s2_vocabulary():
     assert _lint_rule_vocabulary([RULE]) == []
     english = _rule(when={"dimension": "A1", "in": ["워커", "worker"]})
     assert _lint_rule_vocabulary([english]) == [
-        "CAP-WEBSOCKET-001: when 값 'worker'이 A1 어휘 ['웹', '워커', '정기 작업', '실시간 연결', '일회성 실행']에 없음"]
+        "CAP-WEBSOCKET-001: when 값 'worker'이 A1 어휘 ['웹', '워커', '정기 작업', '실시간 연결', '일회성 실행', '리버스 프록시']에 없음"]
     unknown_dim = _rule(when={"dimension": "D5", "equals": "한 지역"})
     assert _lint_rule_vocabulary([unknown_dim]) == [
         "CAP-WEBSOCKET-001: when.dimension D5은 profile_detectors.yaml에 정의되지 않은 차원(S2가 내지 않음)"]
@@ -248,3 +250,44 @@ def test_topology_components_in_knowledge():
         c = caps[cid]["capabilities"]
         assert c["DS.colocated_vm"]["value"] is True and c["COST.monthly_floor_usd"]["value"] == 0
         assert c["DS.backup_config"]["value"]
+
+
+# ---------- 유도 값(정의상/유도) ----------
+
+def _derived(**changes):
+    src = {"basis": "derived", "from": _src(), "reasoning": "한 단계 유도 문장"}
+    src.update(changes)
+    return {"value": False, "source": src}
+
+
+def test_derived_value_with_premise_and_reasoning_passes(research):
+    assert _lint(research, _entry(**{"CP.runs_long_lived_server": _derived()})) == []
+
+
+def test_derived_value_needs_reasoning_and_premise_on_line(research):
+    name = "cp:aws/lambda/function-url#CP.runs_long_lived_server"
+    assert _lint(research, _entry(**{"CP.runs_long_lived_server": _derived(reasoning="")})) == [
+        f"{name}: 유도 값에 reasoning 없음"]
+    issues = _lint(research, _entry(**{"CP.runs_long_lived_server": _derived(**{"from": _src(line=3)})}))
+    assert f"{name} 전제: 인용 문구가 {DOC}:3에 없음" in issues
+    assert _lint(research, _entry(**{"CP.runs_long_lived_server": _derived(**{"from": None})})) == [
+        f"{name} 전제: source 없음"]
+    assert _lint(research, _entry(**{"CP.runs_long_lived_server": _derived(basis="guess")})) == [
+        f"{name}: source.basis는 ['official', 'derived'] 중 하나"]
+
+
+def test_max_request_seconds_requires_platform_request_timeout(research):
+    issues = _lint(research, _entry(**{"CP.max_request_seconds": {"value": 900, "source": _src()}}))
+    assert issues == ["cp:aws/lambda/function-url: CP.max_request_seconds가 있으면 CP.platform_request_timeout: true도 둔다"]
+
+
+def test_knowledge_derived_values_are_marked():
+    caps = kb.capabilities()
+    lam = caps["cp:aws/lambda/function-url"]["capabilities"]["CP.runs_long_lived_server"]
+    assert lam["value"] is False and lam["source"]["basis"] == "derived" and lam["source"]["reasoning"]
+    for cid in ("cp:aws/ecs-fargate/alb", "cp:aws/ec2/docker-compose", "cp:gcp/compute-engine/docker-compose",
+                "cp:gcp/gke/autopilot", "cp:aws/eks/managed-node-group"):
+        entry = caps[cid]["capabilities"]["CP.cpu_after_response"]
+        assert entry["value"] is True and entry["source"]["basis"] == "derived", cid
+    for cid in ("cp:aws/ec2/docker-compose", "cp:gcp/compute-engine/docker-compose"):
+        assert caps[cid]["capabilities"]["CP.platform_request_timeout"]["value"] is False

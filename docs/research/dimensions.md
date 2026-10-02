@@ -135,7 +135,7 @@ D1이 "고정(내부)"이어도 D2와 C1이 높으므로 교체가 나온다. �
 | 세션을 메모리에 둔 앱을 2대로 늘림 | B1 있음 | 인스턴스 간 상태 공유 불가 |
 | Cloud Run에서 웹소켓 채팅 | A3 장시간 연결 | 요청 타임아웃(최대 60분) ⚠️근거없음 |
 | Vercel에서 10분짜리 엑셀 생성 | A2 수 분 | 함수 최대 실행 시간 ⚠️근거없음 |
-| Cloud Run 요청 기반 과금에서 응답 후 메일 발송 | A4 있음 | 요청 밖 CPU 미할당 ⚠️근거없음 |
+| Cloud Run 요청 기반 과금에서 응답 후 메일 발송 | A4 있음 | 요청 밖 CPU 미할당 (https://docs.cloud.google.com/run/docs/tips/general · "If you need to set your service to request-based billing, when the Cloud Run service finishes handling a request, the instance's access to CPU will be disabled or severely limited." · 2026-10-03, [post-response-work.md](post-response-work.md) §1.2) |
 | 사내 도구인데 EKS 3개 존 + NAT | D1 고정, D2 낮음, F1 길어도 됨 | 능력 ≫ 요구 → 과잉, 축소 |
 | 쇼핑몰 재고를 Firestore로 차감 | C2 있음, C3 강한 불변식 | 저장소의 트랜잭션·경합 처리 방식 확인 필요 |
 

@@ -13,6 +13,8 @@ compute 범위는 워크로드마다 하나다(scopes.app_scopes). 조합은 토
 
 비용(월, 서울):
 - 레플리카 수 = 워크로드의 scaling.min(없으면 1). 구성 요소마다 그 구성 요소에 놓인 레플리카 합 N으로 계산한다.
+  Lambda(NO_REPLICA_TARGETS)는 레플리카 개념이 없어(실행 환경당 요청 하나, post-response-work.md §4 D13) 최소 레플리카를
+  비용에 곱하지 않는다: 워크로드마다 1로 센다(바닥 비용이 요청 과금이라 0)이고 고정(pinned) 비용도 쓰지 않는다.
 - 바닥 비용(COST.monthly_floor_usd)은 인스턴스 1개 기준이고 공유 고정비(ECS의 ALB·공인 IP, 클러스터 요금·Ingress)를 이미
   포함한다. N > 1이면 바닥 비용 + COST.per_replica_usd × (N − 1)이고, 단가가 없으면 비용을 모른다(공유 고정비를 두 번
   세지 않도록 바닥 비용 × N을 쓰지 않는다). 바닥 비용이 0이면(요청 과금) 0. vm-compose는 VM 한 대라 N = 1.
@@ -46,6 +48,8 @@ NEEDS_BACKGROUND = {"any": [{"dimension": "A4", "equals": "있음"}, {"dimension
                             {"dimension": "A1", "in": ["워커", "정기 작업"]}]}
 STATIC_KINDS = ("static-frontend",)
 TOPOLOGIES = ("vm-compose", "services", "kubernetes")
+# 레플리카 개념이 없는 대상: 요청마다 실행 환경을 늘리고 줄인다(D13). 비용에 최소 레플리카를 곱하지 않는다
+NO_REPLICA_TARGETS = ("aws_lambda",)
 # AgentCore 대상 → 토폴로지. 능력 표 구성 요소에 `topology`가 있으면 그것이 먼저, 나머지 대상은 services.
 TOPOLOGY_BY_TARGET = {"aws_ec2": "vm-compose", "gcp_compute_engine": "vm-compose",
                       "aws_eks": "kubernetes", "gcp_gke": "kubernetes"}
@@ -182,8 +186,16 @@ class Recommender:
         return cell
 
     # ----- 비용 -----
+    def _replicas(self, scope: Scope, cid: str) -> int:
+        """비용에 쓸 레플리카 수: 저장소의 최소 레플리카, 레플리카 개념이 없는 대상(Lambda)은 1."""
+        if (self.components.get(cid) or {}).get("target") in NO_REPLICA_TARGETS:
+            return 1
+        return scope.min_replicas
+
     def _needs_pin(self, scope: Scope, cid: str, cell: dict) -> bool:
         """services의 scale-to-zero 플랫폼에서 인스턴스를 붙잡아 둬야 하는가(고정 설정 요구 또는 최소 레플리카 ≥ 2)."""
+        if (self.components.get(cid) or {}).get("target") in NO_REPLICA_TARGETS:
+            return False
         if cap_value(self.components.get(cid), "CP.scale_to_zero") is not True:
             return False
         if scope.min_replicas >= 2:
@@ -221,7 +233,7 @@ class Recommender:
         """services 워크로드 하나를 이 플랫폼에 둘 때의 비용(플랫폼 고르기용)."""
         if self._needs_pin(scope, cid, cell):
             return self._compute_cost(cid, 0, scope.min_replicas)[0]
-        return self._compute_cost(cid, scope.min_replicas, 0)[0]
+        return self._compute_cost(cid, self._replicas(scope, cid), 0)[0]
 
     def _mode_key(self, scope: Scope, compute: str) -> int:
         """과금 방식 동점 깨기: 응답 밖 CPU 유무가 그 워크로드의 필요와 맞으면 0."""
@@ -367,7 +379,7 @@ class Recommender:
             elif combo.topology == "services" and self._needs_pin(scope, cid, cells[sid]):
                 pinned[cid] += scope.min_replicas
             else:
-                units[cid] += scope.min_replicas
+                units[cid] += self._replicas(scope, cid)
         total, breakdown, unknown = 0.0, [], []
         for cid in sorted(units):
             cost, items = self._compute_cost(cid, units[cid], pinned[cid])
@@ -422,6 +434,9 @@ class Recommender:
             "paths": [], "cross_scope_violations": [], "sizing": [],
             "transforms": list(combo.transforms),
             "external_scopes": sorted(combo.external),
+            # 판정이 기댄 유도 값(정의상/유도). AgentCore 요약에 그대로 보여 준다
+            "derived_facts": [{"scope": c["scope"], "component": c["candidate"], **p}
+                              for c in combo.cells for p in c.get("derived_passes", [])],
             # 순위에만 쓰고 출력하지 않는다
             "_sort": (combo.evidence_unknown > 0, bool(unknown_cost), len(unknown_cost), total,
                       unknown_cells + len(unknown_cost), configs, combo.name),

@@ -46,31 +46,39 @@ def comp(cid, cloud, target=None, **caps):
 def caps_all(**overrides):
     """토폴로지 셋을 모두 갖춘 합성 능력 표. overrides: {component_id: {key: value | None(삭제)}}."""
     items = [
-        comp(EC2, "aws", "aws_ec2", CP__persistent_local_disk=True, CP__always_on=True, CP__scale_to_zero=False,
+        comp(EC2, "aws", "aws_ec2", CP__platform_request_timeout=False, CP__runs_long_lived_server=True,
+             CP__cpu_after_response=True, CP__persistent_local_disk=True, CP__always_on=True, CP__scale_to_zero=False,
              CP__horizontal_scaling=False, CP__single_instance_config="container_name", COST__monthly_floor_usd=20.7),
-        comp(GCE, "gcp", "gcp_compute_engine", CP__persistent_local_disk=True, CP__always_on=True,
+        comp(GCE, "gcp", "gcp_compute_engine", CP__platform_request_timeout=False, CP__runs_long_lived_server=True,
+             CP__cpu_after_response=True, CP__persistent_local_disk=True, CP__always_on=True,
              CP__horizontal_scaling=False, CP__single_instance_config="container_name",
              COST__monthly_floor_usd=20.64),
-        comp(REQ, "gcp", "gcp_cloud_run", CP__max_request_seconds=3600, CP__websocket=True,
+        comp(REQ, "gcp", "gcp_cloud_run", CP__platform_request_timeout=True, CP__runs_long_lived_server=True,
+             CP__max_request_seconds=3600, CP__websocket=True,
              CP__cpu_after_response=False, CP__persistent_local_disk=False, CP__scale_to_zero=True,
              CP__always_on=False, CP__single_instance_config="--scaling=1", CP__horizontal_scaling=True,
              COST__monthly_floor_usd=0, COST__monthly_pinned_usd=13.8),
-        comp(INS, "gcp", "gcp_cloud_run", CP__max_request_seconds=3600, CP__websocket=True,
+        comp(INS, "gcp", "gcp_cloud_run", CP__platform_request_timeout=True, CP__runs_long_lived_server=True,
+             CP__max_request_seconds=3600, CP__websocket=True,
              CP__cpu_after_response=True, CP__persistent_local_disk=False, CP__scale_to_zero=True,
              CP__always_on=False, CP__always_on_config="min-instances ≥ 1", CP__single_instance_config="--scaling=1",
              CP__horizontal_scaling=True, COST__monthly_floor_usd=0, COST__monthly_pinned_usd=59.9),
-        comp(ECS, "aws", "aws_ecs_fargate", CP__max_request_seconds=60, CP__websocket=True,
+        comp(ECS, "aws", "aws_ecs_fargate", CP__platform_request_timeout=True, CP__runs_long_lived_server=True,
+             CP__max_request_seconds=60, CP__websocket=True,
              CP__cpu_after_response=True, CP__persistent_local_disk=False, CP__always_on=True,
              CP__scale_to_zero=True, CP__horizontal_scaling=True, COST__monthly_floor_usd=37.74),
-        comp(LAMBDA, "aws", "aws_lambda", CP__max_request_seconds=900, CP__cpu_after_response=False,
+        comp(LAMBDA, "aws", "aws_lambda", CP__platform_request_timeout=True, CP__runs_long_lived_server=False,
+             CP__max_request_seconds=900, CP__cpu_after_response=False,
              CP__always_on=False, CP__persistent_local_disk=False, CP__horizontal_scaling=True,
              CP__single_instance_config="reserved concurrency 1", COST__monthly_floor_usd=0),
-        comp(GKE, "gcp", "gcp_gke", CP__max_request_seconds=30, CP__max_request_seconds_config="BackendConfig timeoutSec",
+        comp(GKE, "gcp", "gcp_gke", CP__platform_request_timeout=True, CP__runs_long_lived_server=True,
+             CP__max_request_seconds=30, CP__max_request_seconds_config="BackendConfig timeoutSec",
              CP__websocket=True, CP__always_on=True, CP__single_instance_config="replicas: 1",
              CP__persistent_local_disk=True, CP__scale_to_zero=True, CP__horizontal_scaling=True,
              CP__multi_workload=True, CP__cpu_after_response=True,
              COST__monthly_floor_usd=31.11, COST__per_replica_usd=12.86),
-        comp(EKS, "aws", "aws_eks", CP__max_request_seconds=60, CP__websocket=True, CP__always_on=True,
+        comp(EKS, "aws", "aws_eks", CP__platform_request_timeout=True, CP__runs_long_lived_server=True,
+             CP__max_request_seconds=60, CP__websocket=True, CP__always_on=True,
              CP__single_instance_config="replicas: 1", CP__persistent_local_disk=True, CP__horizontal_scaling=True,
              CP__multi_workload=True, CP__cpu_after_response=True, COST__monthly_floor_usd=140.16),
         comp(RDS, "aws", DS__engine="postgres", COST__monthly_floor_usd=20.9),
@@ -355,3 +363,82 @@ def test_check_s4_flags_mixed_placement_for_single_cluster_topology():
     issues = check_s4(rec, fit, inv, profile(), catalog)
     assert any("several compute components" in i for i in issues)
     assert any("not in assignment" in i for i in issues)
+
+
+# ---------- 유도 값(정의상/유도)·리버스 프록시·Lambda 레플리카 ----------
+
+def derived(value, reasoning="한 단계 유도"):
+    return {"value": value, "source": {"basis": "derived", "reasoning": reasoning,
+                                       "from": {"doc": "post-response-work.md", "line": 74,
+                                                "url": "https://example.com/premise", "quote": "premise quote"}}}
+
+
+def with_derived(caps, cid, key, value, reasoning="한 단계 유도"):
+    next(c for c in caps if c["id"] == cid)["capabilities"][key] = derived(value, reasoning)
+    return caps
+
+
+def test_derived_pass_is_explained_in_fit_and_candidate():
+    caps = with_derived(caps_all(), ECS, "CP.cpu_after_response", True, "태스크 단위 CPU라 응답 뒤에도 쓴다")
+    inv = inventory([workload("w-web")])
+    fit, rec = run(inv, profile(dim("A4", "있음", "w-web")), caps)
+    ecs = cell(fit, "w-web", ECS)
+    assert ecs["result"] == "feasible"
+    [p] = ecs["derived_passes"]
+    assert p["rule"] == "CAP-BGWORK-001" and p["capability_key"] == "CP.cpu_after_response" and p["actual"] is True
+    assert p["source"] == {"ref": "https://example.com/premise", "quote": "premise quote", "basis": "derived",
+                           "reasoning": "태스크 단위 CPU라 응답 뒤에도 쓴다"}
+    assert "정의상/유도: 태스크 단위 CPU라 응답 뒤에도 쓴다" in p["message"]
+    assert "docs/research/post-response-work.md:74" in p["message"]
+    assert cell(fit, "w-web", EKS)["derived_passes"] == []          # 공식 값으로 통과하면 설명 없음
+    aws = [c for c in rec["candidates"] if c["assignment"].get("w-web") == ECS]
+    for cand in aws:
+        assert any(f["component"] == ECS and f["source"]["basis"] == "derived" for f in cand["derived_facts"])
+
+
+def test_derived_violation_and_config_show_reasoning():
+    caps = with_derived(caps_all(), LAMBDA, "CP.cpu_after_response", False, "호출 뒤 동결된다")
+    fit, _ = run(inventory([workload("w-web")]), profile(dim("A4", "있음", "w-web")), caps)
+    [v] = cell(fit, "w-web", LAMBDA)["violations"]
+    assert v["source"]["basis"] == "derived" and v["source"]["reasoning"] == "호출 뒤 동결된다"
+    assert "(정의상/유도: 호출 뒤 동결된다)" in v["message"]
+    # 실패한 값이 유도 값이고 설정으로 풀리면 why에 적는다
+    caps = with_derived(caps_all(**{REQ: {"CP.cpu_after_response_config": "instance billing"}}), REQ,
+                        "CP.cpu_after_response", False, "요청 밖 CPU 없음")
+    fit, _ = run(inventory([workload("w-web")]), profile(dim("A4", "있음", "w-web")), caps)
+    [req] = cell(fit, "w-web", REQ)["requires_config"]
+    assert "정의상/유도: 요청 밖 CPU 없음" in req["why"]
+
+
+def test_timeout_rules_pass_without_platform_request_timeout():
+    inv = inventory([workload("w-web")])
+    for a2 in ("수십 초", "수 분", "그 이상"):
+        fit, _ = run(inv, profile(dim("A2", a2, "w-web")))
+        assert cell(fit, "w-web", EC2)["result"] == "feasible", a2
+        assert cell(fit, "w-web", GCE)["result"] == "feasible", a2
+    fit, _ = run(inv, profile(dim("A2", "그 이상", "w-web")))
+    assert cell(fit, "w-web", REQ)["result"] == "infeasible"
+
+
+def test_reverse_proxy_is_not_placed_on_lambda():
+    inv = inventory([workload("w-web"), workload("w-nginx", "reverse-proxy")])
+    caps = with_derived(caps_all(), LAMBDA, "CP.runs_long_lived_server", False, "환경당 요청 하나, 호출 뒤 동결")
+    fit, rec = run(inv, profile(), caps)
+    lam = cell(fit, "w-nginx", LAMBDA)
+    assert lam["result"] == "infeasible" and lam["violations"][0]["rule"] == "CAP-PROXY-001"
+    assert "정의상/유도: 환경당 요청 하나, 호출 뒤 동결" in lam["violations"][0]["message"]
+    assert cell(fit, "w-web", LAMBDA)["result"] == "feasible"        # 앱 워크로드에는 걸리지 않는다
+    for cand in rec["candidates"]:
+        assert cand["assignment"]["w-nginx"] != LAMBDA
+    aws = next(c for c in rec["candidates"] if c["topology"] == "services" and c["assignment"]["w-web"] in (LAMBDA, ECS))
+    assert aws["assignment"]["w-nginx"] == ECS
+
+
+def test_lambda_cost_is_not_multiplied_by_min_replicas():
+    inv = inventory([workload("w-web", scaling={"min": 3, "max": 3, "autoscale": False})])
+    caps = caps_all(**{LAMBDA: {"COST.monthly_floor_usd": 5, "COST.per_replica_usd": 2, "CP.scale_to_zero": True,
+                                "COST.monthly_pinned_usd": 7}})
+    fit, rec = run(inv, profile(dim("D6", "고정 다중", "w-web")), caps)
+    aws = next(c for c in rec["candidates"] if c["topology"] == "services" and c["assignment"]["w-web"] == LAMBDA)
+    assert aws["cost"]["monthly_baseline_usd"] == 5
+    assert [i["item"] for i in aws["cost"]["breakdown"]] == ["monthly_floor"]

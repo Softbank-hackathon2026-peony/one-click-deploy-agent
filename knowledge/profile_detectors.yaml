@@ -20,7 +20,8 @@ dimensions:
   # 진입점만 있고 스케줄·루프 근거가 없는 batch 워크로드(실행하고 끝나는 배치·CLI). 상시 실행을 요구하지 않는다.
   A1:
     shape: set
-    values: ["웹", "워커", "정기 작업", "실시간 연결", "일회성 실행"]
+    # "리버스 프록시"는 S2가 내지 않는다(프록시는 앱 워크로드가 아님). S3가 reverse-proxy 워크로드 범위에 붙인다(CAP-PROXY-001).
+    values: ["웹", "워커", "정기 작업", "실시간 연결", "일회성 실행", "리버스 프록시"]
     from_kind: {web: "웹", worker: "워커", scheduled: "정기 작업", realtime: "실시간 연결", batch: "일회성 실행"}
   A2:
     shape: ordered

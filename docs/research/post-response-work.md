@@ -158,6 +158,9 @@
 - **D11** 정의상/유도: Node.js SIGTERM 기본 핸들러가 "exiting with code 128 + signal number" + 'exit' 뒤 "any additional work still queued in the event loop to be abandoned" → 핸들러를 달지 않으면 SIGTERM 시 대기 중인 `setTimeout`·Promise 작업은 버려진다.
 - **D12** 정의상/유도: 플랫폼 인용은 CPU를 "execution environment"(Lambda), "instance"(Cloud Run) 단위로 주거나 끊고, Google은 "background threads or routines"를 함께 다룬다 → 스레드·이벤트 루프 같은 프로세스 안 동시성 모델은 응답 후 CPU 유무를 바꾸지 않는다.
 - **D13** 정의상/유도: Lambda "this execution environment is busy and cannot process other requests" → Lambda(기본)에서는 프로세스 안 동시성 모델이 한 환경의 동시 요청 수를 늘리지 않는다.
+- **D14** 정의상/유도: Docker "Compose ... deploys everything to a single node" ([capabilities/05](capabilities/05-compute-tier1-2.md) 1012행, §7.1·§7.2 단일 VM + compose 구성) → VM compose 구성은 요청이 컨테이너로 직접 들어가 플랫폼이 요청 시간을 강제하지 않는다. KB `CP.platform_request_timeout: false`(EC2·Compute Engine compose)로 두고, A2 시간 규칙(`CAP-TIMEOUT-001~003`)은 이 값이 false면 통과한다. 다른 플랫폼은 `CP.max_request_seconds`와 같은 인용으로 `true`(공식). 앞에 LB를 두면 이 유도는 성립하지 않는다(LB 유휴 타임아웃이 생김).
+- **D15** 정의상/유도: D1·D13(Lambda는 환경당 요청 하나, 호출이 끝나면 동결) → Lambda에는 계속 떠서 요청을 받아 넘기는 서버 프로세스(nginx 같은 리버스 프록시·게이트웨이)를 둘 수 없다. KB `CP.runs_long_lived_server: false`(Lambda), 규칙 `CAP-PROXY-001`. 나머지 플랫폼은 각 문서의 "listen for requests"(Cloud Run 05:91), 서비스·Deployment가 태스크·Pod를 "run and maintain"/유지(ECS 05:349, GKE 05:1001, EKS 05:1006), VM은 유휴여도 실행(EC2 05:928, Compute Engine 1.6행)에서 `true`로 유도했다.
+- **D16** 정의상/유도: D13(실행 환경당 요청 하나, 요청에 맞춰 환경 수가 늘고 줄어듦) → Lambda에는 저장소가 밝힌 최소 레플리카(`replicas`·HPA `minReplicas`)에 대응하는 개념이 없다. 추천 비용 계산은 Lambda 비용에 최소 레플리카를 곱하지 않는다(`infrafit/fit/recommend.py` `NO_REPLICA_TARGETS`).
 
 ## 5. 엔진 규칙에 주는 시사점
 
@@ -179,3 +182,20 @@
 | (없는 키) 종료 유예 시간 | §1.2·1.4·1.7: Cloud Run 10초, ECS 기본 30초(최대 120초), Kubernetes 기본 30초, Lambda 종료 단계 0 ms(확장 없음) | 응답 후 작업의 유실 위험을 판정하려면 새 능력 키 후보 |
 
 KB 값과 **정면으로 모순되는 공식 문장은 찾지 못했다.**
+
+## 6. 반영 (2026-10-03, 유도 사실 승인 후)
+
+사람이 "유도 사실"을 공급자 인용 값과 따로 적어 쓰도록 승인했다([README.md](../../README.md) §3). [knowledge/capabilities.yaml](../../knowledge/capabilities.yaml)에 아래를 `source.basis: derived`(전제 인용 `from` + `reasoning`)로 넣었다. 판정 결과(fit.json·recommendation.json)의 근거에는 `basis: derived`와 reasoning이 붙고, 설명 문구에 "정의상/유도"가 들어간다.
+
+| KB 값 | 유도 |
+|---|---|
+| ECS Fargate·EC2·Compute Engine·GKE Autopilot·EKS `CP.cpu_after_response: true` | D5·D6·D7·D8 (전제: 이 문서 1.4~1.7절 행) |
+| EC2·Compute Engine compose `CP.platform_request_timeout: false` | D14 |
+| `CP.runs_long_lived_server` (Lambda false, 나머지 true) | D15 |
+| Lambda 비용에 최소 레플리카를 곱하지 않음 | D16 (코드 규칙) |
+
+같이 바꾼 것(§5 표의 판단을 따름):
+- `CAP-SINGLERUN-002`: 앱 안 스케줄러는 `CP.always_on: true`이거나 붙잡아 두는 설정(`CP.always_on_config`)이 있을 때만 통과(feasible_with_config). `CP.cpu_after_response`만으로는 통과하지 않는다(§1.3 15분 유휴 종료).
+- Cloud Run 인스턴스 기반 `CP.always_on_config` 인용을 about-instance-autoscaling 문장("set minimum instances to at least 1 to ensure that the CPU remains allocated for background processing")으로 바꿨다([capabilities/05](capabilities/05-compute-tier1-2.md) 1014행).
+- [dimensions.md](dimensions.md) 2.2절 "요청 밖 CPU 미할당"에 §1.2 tips/general 인용을 달았다.
+

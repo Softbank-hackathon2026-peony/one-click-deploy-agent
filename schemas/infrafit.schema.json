@@ -48,6 +48,18 @@
         "checked_at": {
           "type": "string",
           "format": "date"
+        },
+        "basis": {
+          "type": "string",
+          "enum": [
+            "official",
+            "derived"
+          ],
+          "description": "official: 공급자 인용이 값을 직접 말함. derived: 인용(전제)에서 한 단계로 이끈 값(정의상/유도)"
+        },
+        "reasoning": {
+          "type": "string",
+          "description": "basis=derived일 때 전제에서 값을 이끈 한 문장"
         }
       },
       "additionalProperties": false,
@@ -1120,6 +1132,38 @@
             "type": "string"
           }
         },
+        "derived_passes": {
+          "type": "array",
+          "description": "유도 값(정의상/유도)으로 통과한 규칙의 설명",
+          "items": {
+            "type": "object",
+            "properties": {
+              "rule": {
+                "$ref": "#/$defs/RuleId"
+              },
+              "capability_key": {
+                "type": "string"
+              },
+              "actual": {
+                "$ref": "#/$defs/Value"
+              },
+              "source": {
+                "$ref": "#/$defs/Source"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "rule",
+              "capability_key",
+              "actual",
+              "source",
+              "message"
+            ]
+          }
+        },
         "is_current": {
           "type": "boolean"
         }
@@ -1424,6 +1468,46 @@
               "component",
               "target",
               "min_replicas"
+            ]
+          }
+        },
+        "derived_facts": {
+          "type": "array",
+          "description": "이 후보의 판정이 기댄 유도 값(정의상/유도): 범위·구성 요소·규칙과 reasoning",
+          "items": {
+            "type": "object",
+            "properties": {
+              "scope": {
+                "$ref": "#/$defs/ScopeId"
+              },
+              "component": {
+                "$ref": "#/$defs/ComponentId"
+              },
+              "rule": {
+                "$ref": "#/$defs/RuleId"
+              },
+              "capability_key": {
+                "type": "string"
+              },
+              "actual": {
+                "$ref": "#/$defs/Value"
+              },
+              "source": {
+                "$ref": "#/$defs/Source"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "scope",
+              "component",
+              "rule",
+              "capability_key",
+              "actual",
+              "source",
+              "message"
             ]
           }
         }

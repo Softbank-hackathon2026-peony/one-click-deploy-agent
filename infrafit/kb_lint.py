@@ -360,6 +360,10 @@ CAPABILITY_KEYS = {
     # 인스턴스(레플리카)를 여러 개로 늘릴 수 있는가 / 한 클러스터·환경에 여러 워크로드를 두는가
     "CP.horizontal_scaling": lambda v: isinstance(v, bool),
     "CP.multi_workload": lambda v: isinstance(v, bool),
+    # 요청과 컨테이너 사이에 요청 시간을 강제하는 플랫폼 계층(LB·프런트엔드)이 있는가. false면 A2 시간 규칙을 통과한다
+    "CP.platform_request_timeout": lambda v: isinstance(v, bool),
+    # 요청이 없을 때도 서버 프로세스(리버스 프록시 등)가 떠 있으며 여러 요청을 받는가
+    "CP.runs_long_lived_server": lambda v: isinstance(v, bool),
     "DS.engine": lambda v: v in DS_ENGINES,
     # compute VM 안에서 함께 돈다(VM compute와만 짝지음)
     "DS.colocated_vm": lambda v: isinstance(v, bool),
@@ -378,7 +382,11 @@ BAD_MARKERS = ("⚠️근거없음", "⚠️출처부적격", "⚠️출처확�
 # 적격(A) 발행처 호스트(README §3, source-audit.md §1). 능력 값에 쓰는 것만 둔다.
 ELIGIBLE_HOSTS = ("docs.aws.amazon.com", "aws.amazon.com", "pricing.us-east-1.amazonaws.com",
                   "cloud.google.com", "docs.cloud.google.com", "www.sqlite.org", "docs.docker.com",
-                  "hub.docker.com")
+                  "hub.docker.com", "kubernetes.io")
+# capabilities/ 밖에서 근거로 쓸 수 있는 조사 문서(docs/research/ 바로 아래)
+TOP_RESEARCH_DOCS = ("post-response-work.md",)
+# source.basis: official(기본, 공급자 인용이 값을 직접 말함) | derived(인용한 사실에서 한 단계로 이끈 값, 정의상/유도)
+BASES = ("official", "derived")
 # [PL] = 문서 머리말에 적은 AWS Price List 오퍼 파일
 PRICE_LIST_PREFIX = "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/"
 DIMENSION_ROW = re.compile(r"^\|\s*([A-G][0-9]+)\s*\|", re.M)
@@ -391,8 +399,8 @@ REQUIRE_OPS = {"equals", "gte", "exists"}
 def _doc_lines(doc: str, research_dir, cache: dict) -> list[str] | None:
     if doc not in cache:
         path = research_dir / doc
-        ok = (isinstance(doc, str) and doc.startswith("capabilities/") and doc.endswith(".md")
-              and ".." not in doc and path.is_file())
+        ok = (isinstance(doc, str) and (doc.startswith("capabilities/") or doc in TOP_RESEARCH_DOCS)
+              and doc.endswith(".md") and ".." not in doc and path.is_file())
         cache[doc] = path.read_text(encoding="utf-8").splitlines() if ok else None
     return cache[doc]
 
@@ -406,7 +414,7 @@ def _lint_source(name: str, src, research_dir, cache: dict) -> list[str]:
         return [f"{name}: source에 {', '.join(missing)} 없음"]
     lines = _doc_lines(src["doc"], research_dir, cache)
     if lines is None:
-        return [f"{name}: 조사 문서 없음 {src['doc']} (docs/research/capabilities/*.md 이어야 함)"]
+        return [f"{name}: 조사 문서 없음 {src['doc']} (docs/research/capabilities/*.md 또는 {', '.join(TOP_RESEARCH_DOCS)})"]
     line = src["line"]
     if not isinstance(line, int) or isinstance(line, bool) or not 1 <= line <= len(lines):
         return [f"{name}: 줄 번호가 범위 밖 {src['doc']}:{line}"]
@@ -426,6 +434,25 @@ def _lint_source(name: str, src, research_dir, cache: dict) -> list[str]:
     if not (on_line or via_price_list):
         issues.append(f"{name}: url이 {src['doc']}:{line}의 인용이 아님 {url}")
     return issues
+
+
+def _lint_value_source(name: str, src, research_dir, cache: dict) -> list[str]:
+    """능력 값의 source. basis: official(기본)은 {doc, line, url, quote}, derived는 {basis, from: {doc, line, url, quote},
+    reasoning}: 전제(from)의 인용이 doc:line에 있어야 하고(공식 값과 같은 검사), 한 단계 유도를 적은 reasoning이 있어야 한다."""
+    if not isinstance(src, dict):
+        return [f"{name}: source 없음"]
+    basis = src.get("basis", "official")
+    if basis not in BASES:
+        return [f"{name}: source.basis는 {list(BASES)} 중 하나"]
+    if basis == "official":
+        return _lint_source(name, {k: v for k, v in src.items() if k != "basis"}, research_dir, cache)
+    issues: list[str] = []
+    extra = set(src) - {"basis", "from", "reasoning"}
+    if extra:
+        issues.append(f"{name}: 유도 값의 source에는 basis·from·reasoning만 둔다 ({', '.join(sorted(extra))})")
+    if not isinstance(src.get("reasoning"), str) or not src["reasoning"].strip():
+        issues.append(f"{name}: 유도 값에 reasoning 없음")
+    return issues + _lint_source(f"{name} 전제", src.get("from"), research_dir, cache)
 
 
 def _lint_capabilities(entries: list[dict] | None = None, catalog: dict | None = None,
@@ -482,7 +509,11 @@ def _lint_capabilities(entries: list[dict] | None = None, catalog: dict | None =
                 continue
             if not CAPABILITY_KEYS[key](entry["value"]):
                 issues.append(f"{name}: 잘못된 값 {entry['value']!r}")
-            issues += _lint_source(name, entry.get("source"), research_dir, cache)
+            issues += _lint_value_source(name, entry.get("source"), research_dir, cache)
+        # 요청 시간 상한 값이 있으면 그 상한을 강제하는 계층이 있다. 없으면 A2 규칙(any)이 실패 대신 모름이 된다
+        prt = caps.get("CP.platform_request_timeout")
+        if "CP.max_request_seconds" in caps and not (isinstance(prt, dict) and prt.get("value") is True):
+            issues.append(f"{cid}: CP.max_request_seconds가 있으면 CP.platform_request_timeout: true도 둔다")
     return issues
 
 

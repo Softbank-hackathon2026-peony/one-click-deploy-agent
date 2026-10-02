@@ -9,6 +9,8 @@ from infrafit.fit.engine import COMPUTE_FAMILIES, DATA_FAMILIES, engine_of
 APP_KINDS = ("web", "worker", "scheduled", "realtime", "batch")
 # 호스팅이 필요한 워크로드 종류: 앱 워크로드 + 리버스 프록시(nginx 등도 어딘가에서 돌아야 한다)
 HOSTED_KINDS = APP_KINDS + ("reverse-proxy",)
+# 리버스 프록시 범위의 A1 값(knowledge/profile_detectors.yaml A1 어휘)
+PROXY_A1 = "리버스 프록시"
 # 엔진만 알려진(호스팅 미확인·로컬) 저장소의 공급자. 이 밖이면서 능력 표의 클라우드도 아닌 공급자(supabase, firebase 등)는
 # BaaS로 보고 같은 엔진의 관리형으로 바꾸지 않는다.
 PLAIN_VENDORS = ("unspecified", "local")
@@ -38,7 +40,8 @@ def app_scopes(inventory: dict, profile: dict) -> list[Scope]:
     차원 값은 그 워크로드 자신의 프로필 행이다. 앱 집계 범위(`w-app`: 워크로드가 아닌 `w-*` 범위)의 값은
     어느 워크로드에도 행이 없는 차원(가정만 있는 D1·G3 등)일 때만 빌려 온다. 그래서 B1·D6처럼 워크로드마다
     정하는 차원은 다른 워크로드의 값이 섞이지 않는다. `w-app`은 설명용이고 판정 범위가 아니다.
-    리버스 프록시는 앱 워크로드가 있을 때만 범위가 된다(프로필 행이 없어 빌려 온 값만 갖는다)."""
+    리버스 프록시는 앱 워크로드가 있을 때만 범위가 된다(프로필 행이 없어 빌려 온 값과, 종류에서 온 A1 "리버스 프록시"를
+    갖는다)."""
     workloads = sorted((w for w in inventory.get("workloads", []) if w["kind"] in HOSTED_KINDS),
                        key=lambda w: w["id"])
     # 앱 워크로드 없이 리버스 프록시만 있으면(정적 파일 서빙 등) compute를 고르지 않는다
@@ -52,6 +55,12 @@ def app_scopes(inventory: dict, profile: dict) -> list[Scope]:
     for w in workloads:
         wid = w["id"]
         own = [d for d in dims if d["scope"] == wid]
+        if w["kind"] == "reverse-proxy" and not any(d["dimension"] == "A1" for d in own):
+            # 프록시는 S2 프로필 행이 없다. 종류(A1)는 인벤토리 워크로드 kind에서 온다(CAP-PROXY-001)
+            ep = w.get("entrypoint") or {}
+            own = own + [{"dimension": "A1", "scope": wid, "value": [PROXY_A1], "source": "detector",
+                          "confidence": "high",
+                          "evidence": [{"path": ep["path"], "line": ep.get("line")}] if ep.get("path") else []}]
         current = sorted({c["component"] for c in inventory.get("current_components", [])
                           if c["scope"] == wid and _family(c["component"]) in COMPUTE_FAMILIES})
         scaling = w.get("scaling") or {}

@@ -58,6 +58,7 @@
 
 - **부적격 출처 주장 삭제:** 부적격 출처에만 기댄 주장은 설득력이 없으므로 조사 문서에서 지웠다(2026-10-02, [source-audit.md §11](docs/research/source-audit.md)). 표시가 붙은 줄 553개를 모두 지웠고, 그 결과 고려 요소 110개(878 → 768)와 능력 근거가 남지 않은 구성 요소 27개(226 → 199, 예: Render·Fly.io·Replit·Koyeb·Appwrite·Convex·Pinecone·Upstash·Caddy·Traefik·Fastly)가 빠졌다. 지운 ID와 절 이름은 각 파일 맨 위에 적었다.
 - **근거 없음 표시:** 출처 없이 사실로 쓴 줄(추론 포함)에는 ` ⚠️근거없음`을 붙였다. 이런 줄은 판정 근거로 쓰지 않는다. 표시 말고 내용은 바꾸지 않았다.
+- **유도 사실(정의상/유도):** 공식 문장이 값을 직접 말하지 않아도, 적격 인용 하나에서 한 단계로 이끌 수 있는 결론은 쓸 수 있다(2026-10-03 승인). 공급자 인용 값과 섞지 않고 `source.basis: derived`, 전제 인용(`from`), 이끈 이유(`reasoning`, 한 문장)로 따로 적는다. `infrafit kb lint`는 전제 인용이 조사 문서 줄에 있는지와 reasoning이 있는지를 검사한다. 판정 결과에서 이런 값을 쓴 위반·설정·통과 설명에는 "정의상/유도"와 reasoning이 붙는다. 목록: [post-response-work.md §4](docs/research/post-response-work.md).
 - **기본값 표:** [knowledge/defaults.yaml](knowledge/defaults.yaml)에서 인용 문서에 그 내용이 없거나, 공식 문서끼리 값이 다르거나, 추론인 값은 뺐다. RDS `multi_az`, 백업 보존 기간, Spring Tomcat keep-alive가 여기에 해당한다.
 - **구성 요소:** 능력 근거가 부적격인 구성 요소는 [knowledge/components/catalog.yaml](knowledge/components/catalog.yaml)에 `recommendable: false`와 이유를 달았다. 예를 들어 저장소가 Fly.io를 쓰고 있으면 그 사실은 현재 상태로 보고한다. 그러나 근거가 없으므로 추천 후보로는 쓰지 않는다.
 - **남은 공백:** 출처 필드가 없는 시그니처·이미지 분류 가정은 감사 보고서 §8에 목록으로 남겼다.

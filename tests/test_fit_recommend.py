@@ -99,7 +99,7 @@ def test_websocket_rejects_candidate_without_websocket():
     v = eks["violations"][0]
     assert v["rule"] == "CAP-WEBSOCKET-001" and v["dimension"] == "A3"
     assert v["capability_key"] == "CP.websocket" and v["actual"] is False
-    assert v["source"] == {"ref": "https://example.com/doc", "quote": "quote False"}
+    assert v["source"] == {"ref": "https://example.com/doc", "quote": "quote False", "basis": "official"}
     assert "app.py:3" in v["message"] and "capabilities/05-compute-tier1-2.md:10" in v["message"]
     assert cell(fit, "w-web", RUN)["result"] == "feasible"
     rec = build_recommendation(inventory(sqlite=False), prof, fit, capabilities(), RULES)
@@ -249,17 +249,21 @@ def test_when_reads_list_membership_and_object_value():
 def test_kb_timeout_rules_by_a2_value():
     from infrafit import kb
     rules = [r for r in kb.rules() if r["id"].startswith("CAP-TIMEOUT-")]
-    caps = [comp(RUN, "gcp", CP__max_request_seconds=3600), comp(ECS, "aws", CP__max_request_seconds=300),
-            comp(EKS, "aws")]
+    caps = [comp(RUN, "gcp", CP__max_request_seconds=3600, CP__platform_request_timeout=True),
+            comp(ECS, "aws", CP__max_request_seconds=300, CP__platform_request_timeout=True),
+            comp(EKS, "aws"), comp(EC2, "aws", CP__platform_request_timeout=False)]
     results = {}
     for value in ("1초 미만", "수십 초", "수 분", "그 이상"):
         fit = build_fit(inventory(sqlite=False), profile(dim("A2", value)), caps, rules)
         results[value] = (cell(fit, "w-web", RUN)["result"], cell(fit, "w-web", ECS)["result"],
-                          cell(fit, "w-web", EKS)["result"])
-    assert results == {"1초 미만": ("feasible", "feasible", "feasible"),
-                       "수십 초": ("feasible", "feasible", "unknown"),
-                       "수 분": ("feasible", "infeasible", "unknown"),
-                       "그 이상": ("infeasible", "infeasible", "unknown")}
+                          cell(fit, "w-web", EKS)["result"], cell(fit, "w-web", EC2)["result"])
+    # 요청 시간을 강제하는 플랫폼 계층이 없으면(EC2 compose) 상한 값 없이도 통과한다
+    assert results == {"1초 미만": ("feasible", "feasible", "feasible", "feasible"),
+                       "수십 초": ("feasible", "feasible", "unknown", "feasible"),
+                       "수 분": ("feasible", "infeasible", "unknown", "feasible"),
+                       "그 이상": ("infeasible", "infeasible", "unknown", "feasible")}
+    v = cell(build_fit(inventory(sqlite=False), profile(dim("A2", "수 분")), caps, rules), "w-web", ECS)["violations"][0]
+    assert v["capability_key"] == "CP.max_request_seconds" and v["actual"] == 300
 
 
 def test_sqlite_kind_stripped_from_b2_object_keeps_other_kinds():
@@ -292,7 +296,8 @@ def test_app_scopes_are_per_workload_and_borrow_only_app_level_dimensions():
     assert sorted(scopes) == ["w-nginx", "w-web", "w-worker"]          # 마이그레이션 작업·w-app은 범위가 아니다
     assert {d["dimension"] for d in scopes["w-web"].dims} == {"A2", "G3"}   # w-app의 B1은 빌려 오지 않는다
     assert {d["dimension"] for d in scopes["w-worker"].dims} == {"B1", "G3"}
-    assert {d["dimension"] for d in scopes["w-nginx"].dims} == {"G3"}
+    assert {d["dimension"] for d in scopes["w-nginx"].dims} == {"A1", "G3"}  # A1은 워크로드 kind에서
+    assert next(d for d in scopes["w-nginx"].dims if d["dimension"] == "A1")["value"] == ["리버스 프록시"]
     assert scopes["w-web"].current == [EC2] and scopes["w-worker"].min_replicas == 3
     assert scopes["w-web"].min_replicas == 1
     # 앱 워크로드 없이 리버스 프록시만 있으면 compute 범위가 없다
@@ -338,13 +343,17 @@ def test_worker_needs_always_on_or_pinning_config_not_cpu_after_response():
     assert {c["result"] for c in fit["matrix"]} == {"feasible"}
 
 
-def test_in_process_scheduler_needs_cpu_outside_requests():
+def test_in_process_scheduler_needs_always_on_or_pinning_config_not_cpu_after_response():
     rules = kb_rules("CAP-SINGLERUN-002")
     caps = [comp(REQ, "gcp", CP__always_on=False, CP__cpu_after_response=False),
             comp(INS, "gcp", CP__always_on=False, CP__cpu_after_response=True),
+            comp(RUN, "gcp", CP__always_on=False, CP__cpu_after_response=True,
+                 CP__always_on_config="min-instances ≥ 1"),
             comp(EC2, "aws", CP__always_on=True)]
     fit = build_fit(inventory(sqlite=False), profile(dim("B3", "있음")), caps, rules)
-    assert [cell(fit, "w-web", c)["result"] for c in (REQ, INS, EC2)] == ["infeasible", "feasible", "feasible"]
+    assert [cell(fit, "w-web", c)["result"] for c in (REQ, INS, RUN, EC2)] == [
+        "infeasible", "infeasible", "feasible_with_config", "feasible"]
+    assert cell(fit, "w-web", RUN)["requires_config"][0]["setting"] == "min-instances ≥ 1"
 
 
 def test_pinned_instance_uses_pinned_cost_on_scale_to_zero_platform():
