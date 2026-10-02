@@ -16,7 +16,8 @@ MAX_CODE_EVIDENCE = 5
 AUX_DIRS = frozenset({"scripts", "qa", "tools", "examples", "bench"})
 
 
-def _is_aux(rel: str) -> bool:
+def is_aux_path(rel: str) -> bool:
+    """보조 코드(스크립트·QA·도구·예제·벤치마크) 디렉터리 아래 파일인가."""
     return bool(set(PurePosixPath(rel).parts[:-1]) & AUX_DIRS)
 
 
@@ -47,7 +48,7 @@ def _eval(cond: dict, snap: Snapshot, manifests: Manifests) -> list[dict]:
         flags = re.MULTILINE | (re.IGNORECASE if code.get("flags") == "i" else 0)
         rx = re.compile(code["regex"], flags)
         out = []
-        for rel in sorted(snap.glob(code["glob"]), key=lambda r: (_is_aux(r), r)):
+        for rel in sorted(snap.glob(code["glob"]), key=lambda r: (is_aux_path(r), r)):
             if is_test_path(rel):  # 테스트 코드의 흔적은 실제 배포 구성의 근거가 아니다
                 continue
             for i, text in enumerate(snap.lines(rel), 1):
@@ -75,6 +76,6 @@ def match_signatures(snap: Snapshot, manifests: Manifests, sigs) -> list[Match]:
                 break
         # 조건 여러 개가 같은 줄을 가리킬 수 있다(같은 근거는 하나만), 보조 코드 근거는 뒤로
         unique = [e for i, e in enumerate(ev) if e not in ev[:i]]
-        unique.sort(key=lambda e: _is_aux(e["path"]))
+        unique.sort(key=lambda e: is_aux_path(e["path"]))
         out.append(Match(sig["id"], component, sig["role"], status, tuple(unique)))
     return out

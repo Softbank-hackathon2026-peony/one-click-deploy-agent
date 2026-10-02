@@ -8,7 +8,7 @@ from infrafit import kb
 from infrafit.detect.artifacts import ParsedArtifact, as_dict, flatten
 from infrafit.detect.images import ImageService
 from infrafit.detect.manifests import Manifests
-from infrafit.detect.signatures import Match
+from infrafit.detect.signatures import Match, is_aux_path
 from infrafit.detect.workloads import WorkloadInfo, slug
 from infrafit.evidence import evidence
 from infrafit.repo import Snapshot, parent_dir
@@ -163,7 +163,11 @@ def map_components(snap: Snapshot, matches: list[Match], workloads: list[Workloa
                    artifacts: list[ParsedArtifact],
                    services: list[ImageService] | None = None) -> tuple[list[dict], list[dict], dict[str, str]]:
     scopes: dict[str, dict] = {}
+    # 근거가 모두 보조 코드에 있는 매치는 범위를 만들지 않고, 다른 근거로 만든 범위에 근거만 더한다
+    aux_only = [m for m in matches if m.evidence and all(is_aux_path(e["path"]) for e in m.evidence)]
     for m in matches:
+        if m in aux_only:
+            continue
         sid = scope_id(m.component, m.role)
         entry = scopes.setdefault(sid, {"role": m.role, "component": m.component, "status": m.status,
                                         "signatures": [], "evidence": []})
@@ -172,6 +176,11 @@ def map_components(snap: Snapshot, matches: list[Match], workloads: list[Workloa
         if m.status == "confirmed":
             entry["status"] = "confirmed"
     _add_image_services(scopes, services or [], workloads)
+    for m in aux_only:
+        entry = scopes.get(scope_id(m.component, m.role))
+        if entry is not None:
+            entry["signatures"].append(m.signature)
+            entry["evidence"].extend(e for e in m.evidence if e not in entry["evidence"])
 
     datastores: list[dict] = []
     comps: list[dict] = []
