@@ -21,3 +21,16 @@ def test_iter_conditions_flattens_tree():
 
 def test_kb_version_is_short_hash():
     assert len(kb.kb_version()) == 12
+
+
+def test_component_id_constants_in_detect_code_exist_in_catalog():
+    import re
+    from pathlib import Path
+
+    import infrafit.detect
+
+    rx = re.compile(r"""["']((?:cp|ds|ca|qu|sc|rt|fs|nw):[a-z0-9._-]+/[a-z0-9._-]+/[a-z0-9._-]+)["']""")
+    found = {(path.name, cid) for path in Path(infrafit.detect.__file__).parent.glob("*.py")
+             for cid in rx.findall(path.read_text(encoding="utf-8"))}
+    assert len(found) > 20  # 정규식이 실제로 상수를 찾는지
+    assert sorted((name, cid) for name, cid in found if cid not in kb.catalog()) == []

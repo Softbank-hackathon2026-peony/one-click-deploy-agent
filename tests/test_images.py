@@ -329,3 +329,21 @@ def test_single_web_workload_endpoints_confirmed_despite_guessed_root(tmp_path):
     inv = _inventory(tmp_path)
     assert sorted((e["route"], e["workload"], e["status"]) for e in inv["endpoints"]) == [
         ("/in", "w-api", "confirmed"), ("/out", "w-api", "confirmed")]
+
+
+def test_lint_images_shadowed_duplicate_family_and_keys():
+    issues = _lint_images([{"match": ["redis*"], "role": "cache"},
+                           {"match": ["redis-stack", "acme/redis-x"], "role": "cache"},
+                           {"match": ["foo", "foo"], "role": "infra"},
+                           {"match": ["pg"], "role": "datastore", "component": "ca:unspecified/redis/default"},
+                           {"match": ["q"], "role": "queue", "component": "ds:unspecified/postgresql/default"},
+                           {"match": ["px"], "role": "reverse-proxy", "component": "ca:unspecified/redis/default"},
+                           {"match": ["c"], "role": "cache", "component": "ds:unspecified/postgresql/default"},
+                           {"match": ["k"], "role": "infra", "hostnig_hint": "x"}])
+    text = "\n".join(issues)
+    assert "redis-stack" in text and "acme/redis-x" in text  # 앞 패턴 redis*에 가려진다
+    assert "foo" in text
+    for name in ("pg", "q", "px", "c"):
+        assert any(f"image {name}:" in i and "family" in i for i in issues), name
+    assert "hostnig_hint" in text
+    assert len(issues) == 8
