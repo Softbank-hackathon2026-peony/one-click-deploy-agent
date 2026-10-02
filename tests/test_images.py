@@ -41,7 +41,8 @@ def test_classify_image_names():
         "infra", "ds:gcp/cloudsql-postgres/single", "cloud-sql-proxy")
     assert classify_image("dpage/pgadmin4:8")["role"] == "dev-tool"
     assert classify_image("acme/nginx-app:1") is None
-    assert classify_image("acme/redis-exporter:1")["role"] == "infra"
+    assert classify_image("acme/redis-exporter:1") is None
+    assert classify_image("acme/data-exporter:2") is None  # 사용자 이미지 이름의 -exporter는 앱이다(FC3)
     assert classify_image("") is None
 
 
@@ -368,12 +369,15 @@ def test_manifests_and_build_dirs_under_test_paths_do_not_create_workloads(tmp_p
 
 
 def test_monitoring_images_are_infra():
-    for image, label in (("prom/prometheus:v2", "prom/prometheus"), ("prom/node-exporter", "node-exporter"),
+    for image, label in (("prom/prometheus:v2", "prom/prometheus"), ("prom/node-exporter", "prom/node-exporter"),
                          ("grafana/grafana:11", "grafana/grafana"), ("grafana/loki:3", "grafana/loki"),
                          ("otel/opentelemetry-collector-contrib:0.100", "otel/opentelemetry-collector-contrib"),
-                         ("prometheuscommunity/postgres-exporter", "postgres-exporter"),
-                         ("oliver006/redis_exporter:v1", "redis_exporter"),
-                         ("percona/mongodb_exporter:0.40", "mongodb_exporter")):
+                         ("prometheuscommunity/postgres-exporter", "prometheuscommunity/postgres-exporter"),
+                         ("oliver006/redis_exporter:v1", "oliver006/redis_exporter"),
+                         ("percona/mongodb_exporter:0.40", "percona/mongodb_exporter"),
+                         ("quay.io/prometheuscommunity/postgres-exporter:v0.15", "prometheuscommunity/postgres-exporter"),
+                         ("bitnami/redis-exporter:1", "bitnami/redis-exporter"),
+                         ("quay.io/prometheus/node-exporter:v1", "prometheus/node-exporter")):
         c = classify_image(image)
         assert (c["role"], c["component"], c["label"]) == ("infra", None, label), image
 
@@ -385,7 +389,7 @@ def test_monitoring_compose_services_are_unmapped_not_workloads(tmp_path):
                                        "  pgx:\n    image: prometheuscommunity/postgres-exporter\n")
     inv = _inventory(tmp_path)
     assert [w["id"] for w in inv["workloads"]] == ["w-api"]
-    assert [u["label"] for u in inv["unmapped"]] == ["image:postgres-exporter", "image:prom/prometheus"]
+    assert [u["label"] for u in inv["unmapped"]] == ["image:prom/prometheus", "image:prometheuscommunity/postgres-exporter"]
 
 
 def test_app_server_evidence_falls_back_to_linked_dockerfile_command(tmp_path):

@@ -3,8 +3,10 @@
 #       dev-tool(개발용 도구, 무시).
 # component: 카탈로그 ID(선택). hosting_hint: 함께 쓰인 저장소의 호스팅 후보 카탈로그 ID(선택, 판단은 S2·S3).
 images:
-  # 관측(메트릭·로그·트레이스) 도구: 저장소 이름이 들어간 익스포터(`mongodb_exporter` 등)를 먼저 잡도록 맨 앞에 둔다
-  - {match: ["*-exporter", "*_exporter", "prom/*", "grafana/*", "otel/*"], role: infra}
+  # 관측(메트릭·로그·트레이스) 도구: 알려진 배포처의 이미지만 본다(사용자 이미지 `acme/data-exporter`는 앱이다).
+  # 저장소 이름이 들어간 익스포터(`percona/mongodb_exporter` 등)를 먼저 잡도록 맨 앞에 둔다
+  - {match: ["prom/*", "prometheuscommunity/*", "oliver006/redis_exporter", "percona/mongodb_exporter",
+             "*/postgres-exporter", "bitnami/*-exporter", "*/node-exporter", "grafana/*", "otel/*"], role: infra}
   # 리버스 프록시
   - {match: [nginx, nginx-unprivileged, openresty], role: reverse-proxy, component: "nw:proxy/nginx/default"}
   - {match: [caddy, traefik, haproxy, envoy], role: reverse-proxy}
