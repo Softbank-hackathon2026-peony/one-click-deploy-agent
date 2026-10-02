@@ -81,6 +81,7 @@ S1이 `inventory.json`에 기록하는 것:
   - CI 배포 워크플로(Cloud Run, ECS, EC2/SSM 등). 환경별 compute를 따로 기록한다.
 - **요청 경로:** `LB → nginx(다단 체인) → 앱 서버` 구간과 구간별 설정을 기록한다. 설정에는 근거 줄을 달고, 없으면 출처 있는 기본값을 쓴다.
 - **기존 산출물:** Dockerfile, compose, k8s(kustomize 렌더 포함), Terraform, CI, 플랫폼 설정. 매핑하지 못한 의존성도 남긴다.
+- **배포 단위(`deploy_units`):** 프로젝트가 정의한 "같이 떠야 하는 컨테이너 묶음"([다중 컨테이너 계약 §1](docs/superpowers/specs/2026-10-03-multi-container-contract.md)). 출처는 compose(기본 파일 + override) → k8s → 코드 순이다. 빌드마다 이미지 하나, 서비스 이름 그대로의 컨테이너, 저장소 컨테이너, 진입 컨테이너(entry)를 적는다. 비밀값([knowledge/secrets.yaml](knowledge/secrets.yaml))은 이름만 남기고, 정하지 못한 값은 `unresolved`에 적는다.
 
 ## 5. 검증 방법
 

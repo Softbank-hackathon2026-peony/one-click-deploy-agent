@@ -1,5 +1,5 @@
 from infrafit import kb
-from infrafit.kb_lint import _lint_catalog, lint
+from infrafit.kb_lint import _lint_catalog, _lint_images, _lint_secrets, lint
 
 
 def test_knowledge_files_pass_lint():
@@ -48,3 +48,10 @@ def test_component_id_constants_in_detect_code_exist_in_catalog():
              for cid in rx.findall(path.read_text(encoding="utf-8"))}
     assert len(found) > 20  # 정규식이 실제로 상수를 찾는지
     assert sorted((name, cid) for name, cid in found if cid not in kb.catalog()) == []
+
+
+def test_secrets_and_image_port_lint():
+    assert _lint_secrets({"key": ["KEY"], "value": ["("]})[0].startswith("secrets: value 정규식 오류")
+    assert _lint_secrets({"key": [], "value": ["x"]}) == ["secrets: key 정규식 목록이 비었음"]
+    issues = _lint_images([{"match": ["pg"], "role": "datastore", "port": "5432"}])
+    assert issues == ["image pg: port는 1~65535 정수여야 함 '5432'"]

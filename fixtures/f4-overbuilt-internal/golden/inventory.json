@@ -52,6 +52,40 @@
       ]
     }
   ],
+  "deploy_units": {
+    "containers": [
+      {
+        "depends_on": [],
+        "entrypoint": "node index.js",
+        "env": {},
+        "env_names": [],
+        "evidence": {
+          "line": 4,
+          "path": "k8s/deployment.yaml",
+          "snippet": "name: internal-reports"
+        },
+        "id": "internal-reports",
+        "one_shot": false,
+        "ports": [
+          3000
+        ],
+        "registry_image": "123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/internal-reports:1.0.0",
+        "workload": "w-internal-reports"
+      }
+    ],
+    "datastores": [],
+    "entry": {
+      "container": "internal-reports",
+      "port": 3000,
+      "why": "유일하게 Ingress·LoadBalancer·NodePort로 공개한 web/proxy 컨테이너"
+    },
+    "images": [],
+    "source": {
+      "kind": "k8s",
+      "path": "k8s/deployment.yaml"
+    },
+    "unresolved": []
+  },
   "endpoints": [
     {
       "framework": "express",

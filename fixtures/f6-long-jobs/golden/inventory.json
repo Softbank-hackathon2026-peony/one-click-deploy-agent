@@ -61,6 +61,53 @@
       ]
     }
   ],
+  "deploy_units": {
+    "containers": [
+      {
+        "command": "next start",
+        "depends_on": [],
+        "env": {},
+        "env_names": [],
+        "evidence": {
+          "line": 7,
+          "path": "package.json",
+          "snippet": "\"next\": \"15.0.0\","
+        },
+        "id": "web",
+        "image": "web",
+        "one_shot": false,
+        "ports": [],
+        "workload": "w-web"
+      }
+    ],
+    "datastores": [],
+    "entry": null,
+    "images": [
+      {
+        "context": "",
+        "evidence": {
+          "line": 7,
+          "path": "package.json",
+          "snippet": "\"next\": \"15.0.0\","
+        },
+        "id": "web"
+      }
+    ],
+    "source": {
+      "kind": "code",
+      "path": "package.json"
+    },
+    "unresolved": [
+      {
+        "field": "images.web.dockerfile",
+        "why": "Dockerfile이 없다"
+      },
+      {
+        "field": "containers.web.ports",
+        "why": "듣는 포트를 정하는 설정이 없다"
+      }
+    ]
+  },
   "endpoints": [
     {
       "framework": "nextjs",

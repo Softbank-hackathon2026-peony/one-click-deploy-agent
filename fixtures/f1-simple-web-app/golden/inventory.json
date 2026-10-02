@@ -290,6 +290,236 @@
       ]
     }
   ],
+  "deploy_units": {
+    "containers": [
+      {
+        "command": "python -m board.migrate",
+        "depends_on": [
+          "postgres"
+        ],
+        "env": {
+          "COOKIE_SECURE": "false",
+          "LOG_LEVEL": "INFO",
+          "REDIS_URL": "redis://redis:6379/0"
+        },
+        "env_names": [
+          "COOKIE_SECURE",
+          "DATABASE_URL",
+          "LOG_LEVEL",
+          "REDIS_URL"
+        ],
+        "evidence": {
+          "line": 37,
+          "path": "docker-compose.yml",
+          "snippet": "migrate:"
+        },
+        "id": "migrate",
+        "image": "board",
+        "one_shot": true,
+        "ports": [],
+        "workload": "w-db-migrate"
+      },
+      {
+        "command": "uvicorn auth.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src",
+        "depends_on": [
+          "migrate",
+          "redis"
+        ],
+        "env": {
+          "COOKIE_SECURE": "false",
+          "LOG_LEVEL": "INFO",
+          "PYTHONPATH": "/app/src",
+          "REDIS_URL": "redis://redis:6379/0"
+        },
+        "env_names": [
+          "COOKIE_SECURE",
+          "DATABASE_URL",
+          "LOG_LEVEL",
+          "PYTHONPATH",
+          "REDIS_URL"
+        ],
+        "evidence": {
+          "line": 46,
+          "path": "docker-compose.yml",
+          "snippet": "auth:"
+        },
+        "id": "auth",
+        "image": "auth",
+        "one_shot": false,
+        "ports": [
+          8000
+        ],
+        "workload": "w-auth"
+      },
+      {
+        "command": "uvicorn board.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src",
+        "depends_on": [
+          "migrate",
+          "redis"
+        ],
+        "env": {
+          "COOKIE_SECURE": "false",
+          "LOG_LEVEL": "INFO",
+          "PYTHONPATH": "/app/src",
+          "REDIS_URL": "redis://redis:6379/0"
+        },
+        "env_names": [
+          "COOKIE_SECURE",
+          "DATABASE_URL",
+          "LOG_LEVEL",
+          "PYTHONPATH",
+          "REDIS_URL"
+        ],
+        "evidence": {
+          "line": 64,
+          "path": "docker-compose.yml",
+          "snippet": "board-api:"
+        },
+        "id": "board-api",
+        "image": "board",
+        "one_shot": false,
+        "ports": [
+          8000
+        ],
+        "workload": "w-board-api"
+      },
+      {
+        "command": "python -m board.worker",
+        "depends_on": [
+          "migrate",
+          "redis"
+        ],
+        "env": {
+          "COOKIE_SECURE": "false",
+          "LOG_LEVEL": "INFO",
+          "PYTHONPATH": "/app/src",
+          "REDIS_URL": "redis://redis:6379/0"
+        },
+        "env_names": [
+          "COOKIE_SECURE",
+          "DATABASE_URL",
+          "LOG_LEVEL",
+          "PYTHONPATH",
+          "REDIS_URL"
+        ],
+        "evidence": {
+          "line": 79,
+          "path": "docker-compose.yml",
+          "snippet": "board-worker:"
+        },
+        "id": "board-worker",
+        "image": "board",
+        "one_shot": false,
+        "ports": [],
+        "workload": "w-board-worker"
+      },
+      {
+        "depends_on": [
+          "auth",
+          "board-api"
+        ],
+        "env": {
+          "REAL_IP_FROM": "127.0.0.1/32"
+        },
+        "env_names": [
+          "REAL_IP_FROM"
+        ],
+        "evidence": {
+          "line": 94,
+          "path": "docker-compose.yml",
+          "snippet": "nginx:"
+        },
+        "id": "nginx",
+        "image": "frontend",
+        "one_shot": false,
+        "ports": [
+          8080
+        ],
+        "workload": "w-nginx"
+      }
+    ],
+    "datastores": [
+      {
+        "datastore": "ds-postgresql",
+        "env": {
+          "POSTGRES_DB": "app",
+          "POSTGRES_USER": "app"
+        },
+        "env_names": [
+          "POSTGRES_DB",
+          "POSTGRES_PASSWORD",
+          "POSTGRES_USER"
+        ],
+        "evidence": {
+          "line": 15,
+          "path": "docker-compose.yml",
+          "snippet": "postgres:"
+        },
+        "id": "postgres",
+        "image": "postgres:16-alpine",
+        "ports": [
+          5432
+        ]
+      },
+      {
+        "datastore": "svc-redis",
+        "env": {},
+        "env_names": [],
+        "evidence": {
+          "line": 29,
+          "path": "docker-compose.yml",
+          "snippet": "redis:"
+        },
+        "id": "redis",
+        "image": "redis:7-alpine",
+        "ports": [
+          6379
+        ]
+      }
+    ],
+    "entry": {
+      "container": "nginx",
+      "port": 8080,
+      "why": "유일하게 호스트 포트를 연 web/proxy 컨테이너"
+    },
+    "images": [
+      {
+        "context": "",
+        "dockerfile": "services/board/Dockerfile",
+        "evidence": {
+          "line": 38,
+          "path": "docker-compose.yml",
+          "snippet": "build: *board-build"
+        },
+        "id": "board"
+      },
+      {
+        "context": "",
+        "dockerfile": "services/auth/Dockerfile",
+        "evidence": {
+          "line": 47,
+          "path": "docker-compose.yml",
+          "snippet": "build:"
+        },
+        "id": "auth"
+      },
+      {
+        "context": "",
+        "dockerfile": "frontend/Dockerfile",
+        "evidence": {
+          "line": 95,
+          "path": "docker-compose.yml",
+          "snippet": "build:"
+        },
+        "id": "frontend"
+      }
+    ],
+    "source": {
+      "kind": "compose",
+      "path": "docker-compose.yml"
+    },
+    "unresolved": []
+  },
   "endpoints": [
     {
       "exposure": [
