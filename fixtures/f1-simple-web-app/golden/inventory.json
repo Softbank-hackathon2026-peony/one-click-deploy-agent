@@ -4268,6 +4268,14 @@
               "value": "64k"
             },
             {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
               "defaulted": false,
               "evidence": {
                 "line": 7,
@@ -4296,6 +4304,14 @@
               },
               "key": "proxy_read_timeout",
               "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             },
             {
               "defaulted": false,
@@ -4386,6 +4402,14 @@
               "value": "64k"
             },
             {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
               "defaulted": false,
               "evidence": {
                 "line": 7,
@@ -4414,6 +4438,14 @@
               },
               "key": "proxy_read_timeout",
               "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             },
             {
               "defaulted": false,
@@ -4486,6 +4518,14 @@
               "value": "64k"
             },
             {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
               "defaulted": false,
               "evidence": {
                 "line": 7,
@@ -4514,6 +4554,14 @@
               },
               "key": "proxy_read_timeout",
               "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             },
             {
               "defaulted": false,
@@ -4604,6 +4652,14 @@
               "value": "64k"
             },
             {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
               "defaulted": false,
               "evidence": {
                 "line": 7,
@@ -4632,6 +4688,14 @@
               },
               "key": "proxy_read_timeout",
               "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             },
             {
               "defaulted": false,
@@ -4722,6 +4786,14 @@
               "value": "64k"
             },
             {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
               "defaulted": false,
               "evidence": {
                 "line": 7,
@@ -4750,6 +4822,14 @@
               },
               "key": "proxy_read_timeout",
               "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             },
             {
               "defaulted": false,
@@ -4817,6 +4897,14 @@
               "value": "64k"
             },
             {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
               "defaulted": false,
               "evidence": {
                 "line": 7,
@@ -4845,6 +4933,14 @@
               },
               "key": "proxy_read_timeout",
               "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             },
             {
               "defaulted": false,
@@ -4912,6 +5008,14 @@
               "value": "64k"
             },
             {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
               "defaulted": false,
               "evidence": {
                 "line": 7,
@@ -4940,6 +5044,14 @@
               },
               "key": "proxy_read_timeout",
               "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             },
             {
               "defaulted": false,
@@ -5030,6 +5142,14 @@
               "value": "64k"
             },
             {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
               "defaulted": false,
               "evidence": {
                 "line": 7,
@@ -5058,6 +5178,14 @@
               },
               "key": "proxy_read_timeout",
               "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             },
             {
               "defaulted": false,
@@ -5148,6 +5276,14 @@
               "value": "64k"
             },
             {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
               "defaulted": false,
               "evidence": {
                 "line": 7,
@@ -5176,6 +5312,14 @@
               },
               "key": "proxy_read_timeout",
               "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             },
             {
               "defaulted": false,
@@ -5266,6 +5410,14 @@
               "value": "64k"
             },
             {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
               "defaulted": false,
               "evidence": {
                 "line": 7,
@@ -5294,6 +5446,14 @@
               },
               "key": "proxy_read_timeout",
               "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             },
             {
               "defaulted": false,
@@ -5384,6 +5544,14 @@
               "value": "64k"
             },
             {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
               "defaulted": false,
               "evidence": {
                 "line": 7,
@@ -5412,6 +5580,14 @@
               },
               "key": "proxy_read_timeout",
               "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             },
             {
               "defaulted": false,
@@ -5479,6 +5655,14 @@
               "value": "64k"
             },
             {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
               "defaulted": false,
               "evidence": {
                 "line": 7,
@@ -5507,6 +5691,14 @@
               },
               "key": "proxy_read_timeout",
               "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             },
             {
               "defaulted": false,
@@ -5574,6 +5766,14 @@
               "value": "64k"
             },
             {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
               "defaulted": false,
               "evidence": {
                 "line": 7,
@@ -5602,6 +5802,14 @@
               },
               "key": "proxy_read_timeout",
               "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             },
             {
               "defaulted": false,
@@ -5692,6 +5900,14 @@
               "value": "64k"
             },
             {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
               "defaulted": false,
               "evidence": {
                 "line": 7,
@@ -5720,6 +5936,14 @@
               },
               "key": "proxy_read_timeout",
               "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             },
             {
               "defaulted": false,
@@ -5810,6 +6034,14 @@
               "value": "64k"
             },
             {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
               "defaulted": false,
               "evidence": {
                 "line": 7,
@@ -5838,6 +6070,14 @@
               },
               "key": "proxy_read_timeout",
               "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             },
             {
               "defaulted": false,
@@ -5905,6 +6145,14 @@
               "value": "64k"
             },
             {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
               "defaulted": false,
               "evidence": {
                 "line": 7,
@@ -5933,6 +6181,14 @@
               },
               "key": "proxy_read_timeout",
               "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             },
             {
               "defaulted": false,
@@ -6023,6 +6279,14 @@
               "value": "64k"
             },
             {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
               "defaulted": false,
               "evidence": {
                 "line": 7,
@@ -6051,6 +6315,14 @@
               },
               "key": "proxy_read_timeout",
               "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             },
             {
               "defaulted": false,
@@ -6141,6 +6413,14 @@
               "value": "64k"
             },
             {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
               "defaulted": false,
               "evidence": {
                 "line": 7,
@@ -6169,6 +6449,14 @@
               },
               "key": "proxy_read_timeout",
               "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             },
             {
               "defaulted": false,
@@ -6236,6 +6524,14 @@
               "value": "64k"
             },
             {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
               "defaulted": false,
               "evidence": {
                 "line": 7,
@@ -6264,6 +6560,14 @@
               },
               "key": "proxy_read_timeout",
               "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             },
             {
               "defaulted": false,
@@ -6331,6 +6635,14 @@
               "value": "64k"
             },
             {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
               "defaulted": false,
               "evidence": {
                 "line": 7,
@@ -6359,6 +6671,14 @@
               },
               "key": "proxy_read_timeout",
               "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             },
             {
               "defaulted": false,
@@ -6447,6 +6767,38 @@
               },
               "key": "client_max_body_size",
               "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_connect_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_read_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             }
           ]
         }
@@ -6502,6 +6854,38 @@
               },
               "key": "client_max_body_size",
               "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_connect_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_read_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             }
           ]
         }
@@ -6534,6 +6918,38 @@
               },
               "key": "client_max_body_size",
               "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_connect_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_read_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             }
           ]
         }
@@ -6589,6 +7005,38 @@
               },
               "key": "client_max_body_size",
               "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_connect_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_read_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             }
           ]
         }
@@ -6644,6 +7092,38 @@
               },
               "key": "client_max_body_size",
               "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_connect_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_read_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             }
           ]
         }
@@ -6676,6 +7156,38 @@
               },
               "key": "client_max_body_size",
               "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_connect_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_read_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             }
           ]
         }
@@ -6708,6 +7220,38 @@
               },
               "key": "client_max_body_size",
               "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_connect_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_read_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
             }
           ]
         }
