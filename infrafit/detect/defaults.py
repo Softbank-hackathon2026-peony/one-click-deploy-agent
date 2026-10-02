@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 from infrafit.detect.artifacts import ParsedArtifact, _d, pod_spec
 
 
@@ -46,3 +48,15 @@ def hop_settings(component: str, explicit: dict, entries) -> list[dict]:
             out.append({"key": entry["key"], "value": entry["value"], "defaulted": True,
                         "default_source": entry["source"]})
     return sorted(out, key=lambda s: s["key"])
+
+
+def fact_settings(component: str, facts: list[dict], entries) -> list[dict]:
+    """근거가 달린 설정 사실 + 기본값. 같은 (키, 값)은 처음 것 하나로 합치고, 값이 다르면 값마다 따로 둔다.
+    기본값은 명시된 적 없는 키에만 붙인다. 정렬은 (키, 값의 문자열)."""
+    merged: dict[tuple[str, str], dict] = {}
+    for f in facts:
+        merged.setdefault((f["key"], json.dumps(f["value"], sort_keys=True)), dict(f))
+    out = list(merged.values())
+    present = {f["key"] for f in out}
+    out += [d for d in hop_settings(component, {}, entries) if d["key"] not in present]
+    return sorted(out, key=lambda s: (s["key"], str(s["value"])))

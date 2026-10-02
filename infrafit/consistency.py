@@ -38,9 +38,14 @@ def check_s1(inventory: dict, repo_root: Path | None) -> list[str]:
         issues.append(f"duplicate scope id: {dup}")
     scopes = set(ids)
     catalog = kb.catalog()
+    seen_endpoints: set[tuple] = set()
     for e in inventory["endpoints"]:
         if e["workload"] not in workloads:
             issues.append(f"endpoint {e['id']}: unknown workload {e['workload']}")
+        key = (e["workload"], e["method"], e["route"], e["handler"]["path"], e["handler"]["line"])
+        if key in seen_endpoints:
+            issues.append(f"endpoint {e['id']}: duplicate of another endpoint in {e['workload']}")
+        seen_endpoints.add(key)
     for d in inventory["datastores"]:
         for u in d["used_by"]:
             if u not in workloads:

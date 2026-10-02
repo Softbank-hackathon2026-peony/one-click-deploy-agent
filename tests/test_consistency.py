@@ -47,3 +47,12 @@ def test_evidence_line_out_of_range_and_null_line(tmp_path):
     inv["endpoints"][0]["handler"] = {"path": "app.py", "line": None, "snippet": "x"}
     issues = check_s1(inv, tmp_path)
     assert issues == ["evidence line out of range: app.py:9"]
+
+
+def test_duplicate_endpoint_in_same_workload(tmp_path):
+    (tmp_path / "app.py").write_text("x\n")
+    inv = _inv()
+    inv["endpoints"].append(dict(inv["endpoints"][0], id="ep-web-002"))
+    assert check_s1(inv, tmp_path) == ["endpoint ep-web-002: duplicate of another endpoint in w-web"]
+    inv["endpoints"][1]["route"] = "/other"
+    assert check_s1(inv, tmp_path) == []

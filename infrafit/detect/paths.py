@@ -1,4 +1,4 @@
-"""요청 경로: 엣지 → 로드밸런서 → 앱 서버 (설계 §6.6)."""
+"""요청 경로: 엣지 → 로드밸런서 → 리버스 프록시 → 앱 서버 (설계 §6.6)."""
 
 from __future__ import annotations
 
@@ -8,8 +8,9 @@ from pathlib import PurePosixPath
 from infrafit import kb
 from infrafit.detect.artifacts import ParsedArtifact, _d, build_source, ingress_backends
 from infrafit.detect.components import platform_config_for
-from infrafit.detect.defaults import hop_settings
+from infrafit.detect.defaults import fact_settings, hop_settings
 from infrafit.detect.environments import Environment, env_slug, workload_in
+from infrafit.detect.nginx import ProxyRoute, ProxyServer
 from infrafit.detect.workloads import WorkloadInfo
 from infrafit.evidence import evidence
 from infrafit.repo import Snapshot
@@ -25,6 +26,7 @@ EDGE_BY_FILE = {
 }
 LB_BY_CLASS = {"alb": "nw:aws/alb/default", "gce": "nw:gcp/classic-alb/gke-ingress", "nginx": "nw:k8s/ingress-nginx/default"}
 MANAGED_RUNTIME_PREFIXES = ("cp:vercel/", "cp:netlify/")
+NGINX_PROXY = "nw:proxy/nginx/default"
 _ALB_IDLE = re.compile(r"idle_timeout\.timeout_seconds=(\d+)")
 
 
@@ -86,31 +88,70 @@ def _load_balancer(snap: Snapshot, w: WorkloadInfo, artifacts: list[ParsedArtifa
     return None
 
 
+def _proxy_hop(facts: list[dict], evs: list[dict | None]) -> dict:
+    """리버스 프록시 구간: 설정은 근거가 달린 사실 그대로(같은 키도 값마다 하나씩) + 기본값."""
+    seen, ev = set(), []
+    for e in evs:
+        if e and (e["path"], e["line"]) not in seen:
+            seen.add((e["path"], e["line"]))
+            ev.append(e)
+    ev.sort(key=lambda e: (e["path"], e["line"] or 0))
+    return {"order": 0, "kind": "reverse-proxy", "component": NGINX_PROXY, "osi_layer": "L7",
+            "settings": fact_settings(NGINX_PROXY, facts, kb.defaults()), "evidence": ev}
+
+
+def _front(snap: Snapshot, w: WorkloadInfo, artifacts: list[ParsedArtifact], env: Environment | None) -> list[dict]:
+    """워크로드의 앞 구간(엣지·로드밸런서). env가 None이면 환경 밖 매니페스트에서 찾는다."""
+    lb = _load_balancer(snap, w, artifacts) if env is None else _ingress_hop(snap, w, env.objects, env.source)
+    return [h for h in (_edge(snap, w, artifacts), lb) if h]
+
+
 def build_paths(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[ParsedArtifact],
-                compute: dict[str, str], environments: list[Environment], proxy=None) -> list[dict]:
-    """워크로드마다, 그 워크로드가 있는 렌더된 환경마다 경로 하나. 어느 환경에도 없으면 environment null 경로 하나."""
+                compute: dict[str, str], environments: list[Environment],
+                proxy: tuple[list[ProxyServer], list[ProxyRoute]] | None = None) -> list[dict]:
+    """워크로드마다, 그 워크로드가 있는 렌더된 환경마다 경로 하나. 어느 환경에도 없으면 environment null 경로 하나.
+    nginx 프록시 워크로드도 경로를 갖고, 자기 앞 구간이 없는 프록시 대상은 프록시를 거치는 경로를 갖는다."""
+    servers, routes = proxy if proxy else ([], [])
+    proxy_ids = {s.proxy for s in servers}
+    by_id = {w.id: w for w in workloads}
     rendered = sorted((e for e in environments if e.rendered), key=lambda e: e.name)
     paths = []
     for w in sorted(workloads, key=lambda w: w.id):
-        if w.kind != "web":
+        if w.kind != "web" and w.id not in proxy_ids:
             continue
-        edge = _edge(snap, w, artifacts)
         tail = []
-        if not str(compute.get(w.id, "")).startswith(MANAGED_RUNTIME_PREFIXES):
+        if w.id not in proxy_ids and not str(compute.get(w.id, "")).startswith(MANAGED_RUNTIME_PREFIXES):
             server = app_server(w.command)
             if server:
                 tail.append(_hop("app-server", server[0], server[1], [w.entrypoint]))
 
-        def make(pid: str, env_name: str | None, lb: dict | None) -> dict:
-            hops = [dict(h) for h in (edge, lb, *tail) if h]
+        def hops_for(env: Environment | None) -> list[dict]:
+            env_name = env.name if env else None
+            own = _front(snap, w, artifacts, env)
+            if w.id in proxy_ids:
+                mine = [s for s in servers if s.proxy == w.id and s.environment == env_name]
+                if not mine:
+                    return own
+                return own + [_proxy_hop([f for s in mine for f in s.settings], [s.evidence for s in mine])]
+            incoming = [r for r in routes if r.target == w.id and r.environment == env_name and r.proxy != w.id
+                        and r.proxy in by_id]
+            if own or not incoming:
+                return own + tail
+            # 프록시가 여럿이면 프록시 워크로드 id 순 첫 번째
+            pid = min(r.proxy for r in incoming)
+            mine = [r for r in incoming if r.proxy == pid]
+            return (_front(snap, by_id[pid], artifacts, env)
+                    + [_proxy_hop([f for r in mine for f in r.settings], [r.evidence for r in mine])] + tail)
+
+        def make(pid: str, env: Environment | None) -> dict:
+            hops = [dict(h) for h in hops_for(env)]
             for i, hop in enumerate(hops):
                 hop["order"] = i
-            return {"id": pid, "workload": w.id, "environment": env_name, "hops": hops}
+            return {"id": pid, "workload": w.id, "environment": env.name if env else None, "hops": hops}
 
         present = [e for e in rendered if workload_in(e, w)]
         if not present:
-            paths.append(make(f"path-{w.id[2:]}", None, _load_balancer(snap, w, artifacts)))
+            paths.append(make(f"path-{w.id[2:]}", None))
         for e in present:
-            paths.append(make(f"path-{w.id[2:]}.{env_slug(e.name)}", e.name,
-                              _ingress_hop(snap, w, e.objects, e.source)))
+            paths.append(make(f"path-{w.id[2:]}.{env_slug(e.name)}", e))
     return paths

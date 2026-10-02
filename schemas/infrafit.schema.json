@@ -2528,6 +2528,14 @@
         },
         "status": {
           "$ref": "#/$defs/FactStatus"
+        },
+        "exposure": {
+          "type": "string",
+          "enum": [
+            "routed",
+            "not-routed"
+          ],
+          "description": "프록시가 이 워크로드로 보내는 route가 있을 때만: 외부 요청이 프록시를 거쳐 이 엔드포인트에 닿는가"
         }
       },
       "additionalProperties": false,

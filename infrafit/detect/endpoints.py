@@ -7,6 +7,7 @@ import re
 from collections import defaultdict
 from pathlib import PurePosixPath
 
+from infrafit.detect.nginx import LocationInfo, ProxyRoute, ProxyServer
 from infrafit.detect.workloads import WorkloadInfo
 from infrafit.evidence import evidence
 from infrafit.repo import Snapshot
@@ -20,6 +21,10 @@ _SERVER_VAR = re.compile(
 _ROUTE_CALL = re.compile(r"\b(\w+)\.(get|post|put|delete|patch|all)\(\s*['\"`]([^'\"`]+)['\"`]")
 _DJANGO = re.compile(r"\b(?:re_)?path\(\s*r?['\"]([^'\"]*)['\"]")
 _NEXT_EXPORT = re.compile(rf"export\s+(?:async\s+)?function\s+({NEXT_METHODS})\b|export\s+const\s+({NEXT_METHODS})\s*=")
+
+# 경로 매개변수: {x}, :x, [x](·[...x]·[[...x]]), <x>, <int:x>
+_PARAM = re.compile(r"\{[^}/]*\}|<[^>/]*>|\[\[?[^\]/]*\]?\]|:[A-Za-z_]\w*")
+PREFIX_MODIFIERS = ("", "^~")
 
 Raw = tuple[str, str, str, int, str]  # (메서드, 경로, 파일, 줄, 프레임워크)
 
@@ -281,18 +286,118 @@ def _assign(rel: str, webs: list[WorkloadInfo]) -> tuple[WorkloadInfo, bool]:
     return sorted(webs, key=lambda w: w.id)[0], False
 
 
-def extract_endpoints(snap: Snapshot, workloads: list[WorkloadInfo]) -> list[dict]:
+def _owners(rel: str, webs: list[WorkloadInfo]) -> list[WorkloadInfo]:
+    """핸들러 파일을 app_dir 또는 code_root 아래에 둔 web 워크로드들(id 순)."""
+    return sorted((w for w in webs if any(root and rel.startswith(root + "/") for root in {w.app_dir, w.code_root})),
+                  key=lambda w: w.id)
+
+
+# --- nginx location 선택과 노출 판정 -------------------------------------------
+
+def _matches(loc: LocationInfo, path: str) -> bool:
+    flags = re.IGNORECASE if loc.modifier == "~*" else 0
+    try:
+        return re.search(loc.pattern, path, flags) is not None
+    except re.error:  # PCRE 전용 문법 등은 건너뛴다
+        return False
+
+
+def select_location(locations: list[LocationInfo], request_path: str) -> LocationInfo | None:
+    """nginx 규칙: `=` 정확 일치 → 가장 긴 접두어(`^~`면 확정) → 설정 순서상 첫 정규식 → 기억한 접두어.
+    명명·internal location은 외부 요청 대상이 아니다. 고른 location 안의 중첩 location에 같은 규칙을 다시 적용한다."""
+    cands = [loc for loc in locations if loc.modifier != "@" and not loc.internal]
+    chosen = next((loc for loc in cands if loc.modifier == "=" and loc.pattern == request_path), None)
+    if chosen is None:
+        prefixes = [loc for loc in cands if loc.modifier in PREFIX_MODIFIERS and request_path.startswith(loc.pattern)]
+        best = max(prefixes, key=lambda loc: (len(loc.pattern), -loc.order), default=None)
+        if best is not None and best.modifier == "^~":
+            chosen = best
+        else:
+            regexes = sorted((loc for loc in cands if loc.modifier in ("~", "~*")), key=lambda loc: loc.order)
+            chosen = next((loc for loc in regexes if _matches(loc, request_path)), best)
+    if chosen is not None and chosen.children:
+        return select_location(chosen.children, request_path) or chosen
+    return chosen
+
+
+def _request_path(route: str) -> str:
+    path = _PARAM.sub("x1", route)
+    return path if path.startswith("/") else "/" + path
+
+
+def _forwarded(loc: LocationInfo, uri: str | None, path: str) -> str:
+    """location이 uri를 가진 proxy_pass로 넘길 때 upstream이 받는 경로."""
+    if uri is None:
+        return path
+    rest = path[len(loc.pattern):] if loc.modifier in PREFIX_MODIFIERS and path.startswith(loc.pattern) else ""
+    return uri + rest
+
+
+def _all_locations(locations: list[LocationInfo]) -> list[LocationInfo]:
+    out = []
+    for loc in locations:
+        out.append(loc)
+        out.extend(_all_locations(loc.children))
+    return out
+
+
+def _reached(server: ProxyServer, path: str) -> set[tuple[str, str]]:
+    """외부 요청 path가 이 server에서 닿는 (워크로드 id, 전달 경로)들. 하위 요청(auth_request)도 포함한다."""
+    loc = select_location(server.locations, path)
+    if loc is None:
+        return set()
+    out = {(t, _forwarded(loc, uri, path)) for t, uri in loc.proxies if t}
+    internal = [x for x in _all_locations(server.locations) if x.internal]
+    for name in loc.subrequests:
+        for sub in (x for x in internal if x.pattern == name):
+            out |= {(t, _forwarded(sub, uri, name)) for t, uri in sub.proxies if t}
+    return out
+
+
+def _mark_exposure(out: list[dict], routes: list[ProxyRoute], servers: list[ProxyServer]) -> None:
+    routed = {r.target for r in routes if r.target}
+    proxies_of: dict[str, set[str]] = defaultdict(set)
+    for r in routes:
+        if r.target:
+            proxies_of[r.target].add(r.proxy)
+    reached: set[tuple[str, str]] = set()
+    for ep in out:
+        if ep["workload"] not in routed:
+            continue
+        path = _request_path(ep["route"])
+        for server in servers:
+            if server.proxy in proxies_of[ep["workload"]]:
+                reached |= _reached(server, path)
+    for ep in out:
+        if ep["workload"] in routed:
+            ep["exposure"] = "routed" if (ep["workload"], _request_path(ep["route"])) in reached else "not-routed"
+
+
+def extract_endpoints(snap: Snapshot, workloads: list[WorkloadInfo], routes: list[ProxyRoute] | None = None,
+                      servers: list[ProxyServer] | None = None) -> list[dict]:
     webs = [w for w in workloads if w.kind == "web"]
     if not webs:
         return []
-    raw = sorted(set(_python(snap) + _django(snap) + _express(snap) + _next(snap)),
-                 key=lambda r: (r[2], r[3], r[0], r[1]))
+    found = sorted(set(_python(snap) + _django(snap) + _express(snap) + _next(snap)),
+                   key=lambda r: (r[2], r[3], r[0], r[1], r[4]))
+    # 같은 (메서드, 경로, 파일, 줄)은 하나만 둔다
+    seen: set[tuple[str, str, str, int]] = set()
+    raw = []
+    for r in found:
+        if r[:4] not in seen:
+            seen.add(r[:4])
+            raw.append(r)
     counters: dict[str, int] = defaultdict(int)
     out: list[dict] = []
     for method, route, rel, line, framework in raw:
-        w, sure = _assign(rel, webs)
-        counters[w.id] += 1
-        out.append({"id": f"ep-{w.id[2:]}-{counters[w.id]:03d}", "workload": w.id, "method": method,
-                    "route": route, "handler": evidence(snap, rel, line), "framework": framework,
-                    "status": "confirmed" if sure else "candidate"})
+        # 여러 워크로드가 같은 코드를 쓰면 근거가 있는 워크로드마다 하나씩, 없으면 점수·대체 규칙
+        owners = _owners(rel, webs)
+        targets = [(w, True) for w in owners] if owners else [_assign(rel, webs)]
+        for w, sure in targets:
+            counters[w.id] += 1
+            out.append({"id": f"ep-{w.id[2:]}-{counters[w.id]:03d}", "workload": w.id, "method": method,
+                        "route": route, "handler": evidence(snap, rel, line), "framework": framework,
+                        "status": "confirmed" if sure else "candidate"})
+    if routes:
+        _mark_exposure(out, routes, servers or [])
     return out

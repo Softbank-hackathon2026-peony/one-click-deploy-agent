@@ -9,6 +9,7 @@ from infrafit.detect.defaults import apply_defaults
 from infrafit.detect.environments import detect_environments
 from infrafit.detect.endpoints import extract_endpoints
 from infrafit.detect.manifests import parse_manifests
+from infrafit.detect.nginx import find_proxies
 from infrafit.detect.paths import build_paths
 from infrafit.detect.signatures import match_signatures
 from infrafit.detect.workloads import detect_workloads
@@ -28,16 +29,17 @@ def run_s1(ctx: RunContext, snap: Snapshot) -> dict:
     artifacts = parse_artifacts(snap)
     apply_defaults(artifacts, kb.defaults())
     workloads = detect_workloads(snap, manifests, artifacts)
-    endpoints = extract_endpoints(snap, workloads)
+    environments = detect_environments(artifacts)
+    servers, routes = find_proxies(snap, workloads, artifacts, environments)
+    endpoints = extract_endpoints(snap, workloads, routes, servers)
     matches = match_signatures(snap, manifests, kb.signatures())
     datastores, components, compute = map_components(snap, matches, workloads, artifacts)
-    environments = detect_environments(artifacts)
     body = {
         "workloads": [w.to_dict() for w in workloads],
         "endpoints": endpoints,
         "datastores": datastores,
         "current_components": components,
-        "request_paths": build_paths(snap, workloads, artifacts, compute, environments),
+        "request_paths": build_paths(snap, workloads, artifacts, compute, environments, (servers, routes)),
         "environments": [e.to_dict(snap) for e in environments],
         "existing_artifacts": [a.to_dict() for a in artifacts],
         "unmapped": find_unmapped(snap, manifests),
