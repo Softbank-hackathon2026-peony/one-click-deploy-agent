@@ -22,6 +22,8 @@ PLATFORM_COMPUTE = {
     "railway.toml": "cp:railway/service/unspecified-plan",
     "railway.ts": "cp:railway/service/unspecified-plan",
 }
+# 정적 프런트엔드에는 함수 컴퓨트로 매핑하지 않는 플랫폼 설정(정적 호스팅 구성 요소는 아직 능력 표에 없다)
+STATIC_HOSTING_FILES = ("vercel.json", "netlify.toml")
 GENERIC_PROVIDERS = {"local", "unspecified", "lib"}
 # 이미지 분류 role → 데이터 범위 role. infra는 구성 요소가 있을 때만 범위(other)를 만든다
 IMAGE_SCOPE_ROLES = {"datastore": "primary-db", "cache": "cache", "queue": "queue", "infra": "other"}
@@ -98,7 +100,10 @@ def platform_config_for(w: WorkloadInfo, artifacts: list[ParsedArtifact]) -> Par
 def _compute_for(w: WorkloadInfo, artifacts: list[ParsedArtifact]) -> tuple[str, str | None, str]:
     config = platform_config_for(w, artifacts)
     if config is not None:
-        return PLATFORM_COMPUTE[PurePosixPath(config.path).name], config.path, "confirmed"
+        name = PurePosixPath(config.path).name
+        if w.kind == "static-frontend" and name in STATIC_HOSTING_FILES:  # 정적 호스팅이지 함수 컴퓨트가 아니다
+            return "unmapped", config.path, "confirmed"
+        return PLATFORM_COMPUTE[name], config.path, "confirmed"
     if w.source == "k8s":
         clusters = [rtype for rtype, _, _, _ in _terraform_objects(artifacts)
                     if rtype in ("aws_eks_cluster", "google_container_cluster")]
@@ -110,7 +115,8 @@ def _compute_for(w: WorkloadInfo, artifacts: list[ParsedArtifact]) -> tuple[str,
         return "cp:k8s/deployment/unspecified-cluster", _ep(w), "confirmed"
     if w.source == "compose":
         return "cp:local/compose/default", _ep(w), "confirmed"
-    for target in (w.app_dir, ""):
+    # 저장소 루트 Dockerfile로 대신 정하는 규칙은 정적 프런트엔드에 쓰지 않는다(그 이미지는 다른 앱의 것이다)
+    for target in (w.app_dir,) if w.kind == "static-frontend" else (w.app_dir, ""):
         for art in artifacts:
             if art.kind == "dockerfile" and parent_dir(art.path) == target:
                 return "cp:docker/container/unspecified-host", art.path, "confirmed"
@@ -190,7 +196,7 @@ def map_components(snap: Snapshot, matches: list[Match], workloads: list[Workloa
         entry = {"scope": w.id, "component": comp, "settings": [], "status": status,
                  "evidence": [evidence(snap, path)] if path else []}
         if comp == "unmapped":
-            entry["label"] = "no deployment config"
+            entry["label"] = f"static hosting ({PurePosixPath(path).name})" if path else "no deployment config"
         comps.append(entry)
     return datastores, comps, compute
 

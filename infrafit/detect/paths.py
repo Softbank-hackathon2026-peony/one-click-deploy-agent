@@ -228,9 +228,14 @@ def build_paths(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[P
     fronted = fronted_proxies(snap, workloads, artifacts, environments, servers)
     paths = []
     for w in sorted(workloads, key=lambda w: w.id):
-        if w.kind not in ("web", "reverse-proxy") and w.id not in proxy_ids:
+        static = w.kind == "static-frontend" and w.id not in proxy_ids
+        # 정적 프런트엔드는 플랫폼 설정이 정한 엣지가 있을 때만 경로(엣지 구간 하나)를 갖는다
+        if static and _edge(snap, w, artifacts) is None:
             continue
-        has_app_server = w.id not in proxy_ids and not str(compute.get(w.id, "")).startswith(MANAGED_RUNTIME_PREFIXES)
+        if not static and w.kind not in ("web", "reverse-proxy") and w.id not in proxy_ids:
+            continue
+        has_app_server = (not static and w.id not in proxy_ids
+                          and not str(compute.get(w.id, "")).startswith(MANAGED_RUNTIME_PREFIXES))
 
         def hops_for(env: Environment | None) -> list[dict]:
             env_name = env.name if env else None

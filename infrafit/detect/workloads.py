@@ -23,6 +23,7 @@ from infrafit.repo import Snapshot, parent_dir
 WEB_FRAMEWORKS = ("next", "express", "fastify", "koa", "@nestjs/core", "hono", "fastapi", "flask", "django")
 # 개발·테스트용 Dockerfile(배포하지 않는 이미지): 파일 이름의 변형 부분 조각, 경로 조각
 DEV_DOCKERFILE_PARTS = {"dev", "development", "test", "tests", "testing", "ci", "local", "debug", "e2e"}
+STATIC_OUTPUT_DIRS = ("dist", "build", "out")  # 정적 프런트엔드 빌드 결과 디렉터리
 PROC_KINDS = {"web": "web", "worker": "worker", "clock": "scheduled", "release": "migration-job"}
 # 워커 프로세스를 뜻하는 토큰 끝(`board.worker`, `jobs/worker.py` 등). `--workers 4`, `uvicorn.workers.UvicornWorker`는 아니다
 WORKER_SUFFIXES = (".worker", "/worker", ":worker", "worker.py", "worker.js", "worker.ts")
@@ -424,6 +425,27 @@ def _spring_framework_at_root(snap: Snapshot, manifests: Manifests, workloads: l
             w.framework, w.framework_evidence = web[1], evidence(snap, *loc)
 
 
+def _bundled_static(workloads: list[WorkloadInfo], artifacts: list[ParsedArtifact]) -> set[str]:
+    """빌드 결과 디렉터리(dist·build·out)가 다른 워크로드의 Dockerfile에 COPY되는 정적 프런트엔드 id들:
+    그 이미지의 일부이지 따로 배포되는 워크로드가 아니다. COPY 원본은 그 워크로드의 빌드 컨텍스트,
+    Dockerfile 디렉터리, 저장소 루트 기준으로 본다."""
+    copied: set[str] = set()
+    for w in workloads:
+        df = workload_dockerfile(w, artifacts) if w.kind != "static-frontend" else None
+        if df is None:
+            continue
+        contexts = {c for c in (w.build_context, parent_dir(df.path), "") if c is not None}
+        copied |= {posixpath.normpath(posixpath.join(c, src)) for c in contexts for src in _copy_sources(df)}
+    out: set[str] = set()
+    for w in workloads:
+        if w.kind != "static-frontend":
+            continue
+        outputs = [posixpath.join(w.app_dir, o) if w.app_dir else o for o in STATIC_OUTPUT_DIRS]
+        if any(p == o or p.startswith(o + "/") for p in copied for o in outputs):
+            out.add(w.id)
+    return out
+
+
 def detect_workloads(snap: Snapshot, manifests: Manifests, artifacts: list[ParsedArtifact]) -> list[WorkloadInfo]:
     workloads = _from_k8s(snap, artifacts) or _from_compose(snap, artifacts)
     if not any(is_app(w) for w in workloads):
@@ -439,5 +461,7 @@ def detect_workloads(snap: Snapshot, manifests: Manifests, artifacts: list[Parse
     if not any(is_app(w) for w in workloads):
         workloads += _from_dockerfiles(snap, workloads, artifacts)
     _link_single_dockerfile(workloads, artifacts)
+    bundled = _bundled_static(workloads, artifacts)
+    workloads = [w for w in workloads if w.id not in bundled]
     _spring_framework_at_root(snap, manifests, workloads)
     return sorted(workloads, key=lambda w: w.id)
