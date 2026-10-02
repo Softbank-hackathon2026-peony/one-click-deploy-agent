@@ -91,3 +91,31 @@
 - Task 3: minor (deferred): env-null raw k8s may read overlay patches; mutually-including entries vanish; proxy_pass inside if/limit_except; module split and private helper imports
 - Task 4: minor (deferred): no multi-proxy chaining (proxy behind proxy)
 - Task 4: minor (deferred): Django nested-paren groups and ^ inside char classes in request-path normalisation
+
+# 계획 1c: 판정과 후속 과제
+
+계획: docs/superpowers/plans/2026-10-02-infrafit-1c-compose-env-exposure-chains.md
+
+1c로 해소된 1b 보류 항목: 환경을 합친 exposure(→ 환경별 exposure), k8s가 있을 때 compose 구성 소실(→ compose 환경), 다단 프록시 미지원(→ 체인).
+
+## 판정
+- Ruling: P1 (T1 concern 1) a k8s-sourced workload that is in no kustomize environment keeps its environment-null path from the plain manifests even when it is also in a compose environment; null scope for compose/code workloads stays "in no environment" — plain manifests are a deployment of their own — cost if wrong: an extra null path
+- Ruling: P2 (T1 concern 2) app-server hop evidence follows where the command came from: compose environment → the compose file line holding the service `command` (or the Dockerfile CMD/ENTRYPOINT line when taken from the Dockerfile); kustomize environment → the kustomization.yaml of that environment (build_source) when the rendered command differs from w.command, else w.entrypoint — evidence must point at the fact's source — cost if wrong: none
+- Ruling: P3 cycle handling skips proxies already in the chain and continues with the next-lowest id (instead of stopping) — paths and exposure agree; strictly more information — cost if wrong: none
+- Ruling: F1 a variant file creates an environment only if it parsed and contributes ≥1 service
+- Ruling: F2 compose merge follows docker: `volumes` merged by container path, `ports`/`expose` appended unique, `environment` by variable name, other keys replaced
+- Ruling: F3 (changes plan 1c rule 2) variant environment = base + variant (no override file); the override merges only into the plain base environment — matches `docker compose -f base -f variant`; overrides hold dev settings — cost if wrong: none
+- Ruling: F4 compose workloads take facts from base files first, then override, then variants (environments' naming rules decide the order); workload kind classification is token-based: worker iff a non-option token equals `worker` or ends with `.worker`, `/worker`, `:worker`, `worker.py`, `worker.js`, `worker.ts` (option tokens starting with `-` and option values like `uvicorn.workers.UvicornWorker` never count) — `--workers 4` and gunicorn worker classes are not worker processes — cost if wrong: some real workers classified web
+- Ruling: F5 args-only kustomize overlays: when the container has no `command`, prefix the image's final-chain ENTRYPOINT; with neither args nor command use CMD
+- Ruling: F6 one proxy-graph module (`infrafit/detect/proxy_graph.py`) holds chain finding, fronted proxies and caps used by both paths and endpoints; one compose `environment` parser; one container selection helper
+- Ruling: F7 no environment from `.devcontainer/` compose files, and no compose environment with zero matched workloads; dash-named `docker-compose-<x>.yml` are variants named like dot variants; `compose.override.*` merges only onto `compose.*` bases and `docker-compose.override.*` only onto `docker-compose.*` bases
+- Ruling: F8 add the mixed null-scope + compose exposure test
+- Ruling: F4a workload names also signal worker: a name segment (split on - _ .) equal to worker or workers makes it a worker (k8s/compose deployments named e.g. email-worker often run generic commands) — cost if wrong: an oddly named web service classified worker
+
+## 보류된 항목 (다음 계획에서 처리)
+- Final: parked — inner proxy server selection by listen/server_name (union of server blocks may over-report routed); compose `profiles:` ignored; compose `entrypoint:` key ignored; namePrefix overlays split workloads; nginx.py size
+- 워크로드 kind 판정이 이름·명령 토큰 규칙에 의존한다(S2에서 확정 필요)
+
+## 미뤄 둔 작은 항목
+- Task 1: minor (deferred): nginx.py size
+- Task 2: minor (deferred): no test mixing null scope with named environments for one workload
