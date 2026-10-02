@@ -230,6 +230,17 @@ def _route_calls(tree: ast.AST):
             yield node, _kw_methods(node)
 
 
+def _py_framework(tree: ast.AST) -> str:
+    """파일이 import하는 웹 프레임워크(fastapi, flask). 둘 다 없으면 `python`."""
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            names |= {a.name.split(".")[0] for a in node.names}
+        elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
+            names.add(node.module.split(".")[0])
+    return next((fw for fw in ("fastapi", "flask") if fw in names), "python")
+
+
 def _python(snap: Snapshot) -> list[Raw]:
     trees: dict[str, ast.AST] = {}
     for rel in _code_files(snap, "**/*.py"):
@@ -242,13 +253,14 @@ def _python(snap: Snapshot) -> list[Raw]:
     out: list[Raw] = []
     for rel, tree in trees.items():
         prefixes = _prefixes(tree)
+        framework = _py_framework(tree)
         for call, methods in _route_calls(tree):
             owner = call.func.value.id if isinstance(call.func.value, ast.Name) else ""
             own = _join(prefixes.get(owner, ""), _str_arg(call))
             incs = _include_prefixes((rel, owner), mounts, own_prefix) if owner else {""}
             for inc in sorted(incs):
                 path = _join(inc, own)
-                out += [(m, path, rel, call.lineno, "python") for m in methods]
+                out += [(m, path, rel, call.lineno, framework) for m in methods]
     return out
 
 

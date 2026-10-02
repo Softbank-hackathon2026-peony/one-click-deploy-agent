@@ -57,7 +57,7 @@ def test_compose_nginx_is_reverse_proxy_not_endpoint_owner(tmp_path):
     inv = _inventory(tmp_path)
     kinds = {w["id"]: w["kind"] for w in inv["workloads"]}
     assert kinds == {"w-nginx": "reverse-proxy", "w-web": "web"}
-    assert {(e["workload"], e["status"]) for e in inv["endpoints"] if e["framework"] != "fastapi"} == {("w-web", "confirmed")}
+    assert {(e["workload"], e["status"]) for e in inv["endpoints"] if e["route"] not in ("/docs", "/redoc", "/openapi.json")} == {("w-web", "confirmed")}
     ds = next(d for d in inv["datastores"] if d["id"] == "ds-postgresql")
     assert ds["used_by"] == ["w-web"]
     nginx_path = next(p for p in inv["request_paths"] if p["workload"] == "w-nginx")

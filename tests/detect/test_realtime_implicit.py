@@ -102,7 +102,7 @@ def mine(): ...
 """)
     _write(tmp_path, "admin.py", "from fastapi import FastAPI\nsub = FastAPI(openapi_url=None)\n")
     assert _rows(_eps(tmp_path)) == [
-        ("GET", "/openapi.json", "python", "confirmed", "main.py", 9),
+        ("GET", "/openapi.json", "fastapi", "confirmed", "main.py", 9),
         ("GET", "/api/docs", "fastapi", "candidate", "main.py", 2),
         ("GET", "/metrics", "fastapi", "candidate", "main.py", 7)]
 

@@ -79,7 +79,7 @@ def test_worker_http_routes_are_not_given_to_the_web_workload(tmp_path):
     _two_dirs(tmp_path / "repo", '["celery", "-A", "tasks", "worker"]')
     inv = _inventory(tmp_path)
     assert [(w["id"], w["kind"]) for w in inv["workloads"]] == [("w-server", "web"), ("w-worker", "worker")]
-    assert [(e["workload"], e["route"]) for e in inv["endpoints"] if e["framework"] != "fastapi"] == [("w-server", "/api/items")]
+    assert [(e["workload"], e["route"]) for e in inv["endpoints"] if e["route"] not in ("/docs", "/redoc", "/openapi.json")] == [("w-server", "/api/items")]
 
 
 def _two_dirs(repo, worker_cmd):
@@ -115,4 +115,4 @@ def test_routes_kept_when_web_workload_has_no_code_root(tmp_path):
                                        "  worker:\n    build: .\n    command: celery -A tasks worker\n")
     inv = _inventory(tmp_path)
     assert [(w["id"], w["kind"]) for w in inv["workloads"]] == [("w-api", "web"), ("w-worker", "worker")]
-    assert [(e["workload"], e["route"], e["status"]) for e in inv["endpoints"] if e["framework"] != "fastapi"] == [("w-api", "/items", "confirmed")]
+    assert [(e["workload"], e["route"], e["status"]) for e in inv["endpoints"] if e["route"] not in ("/docs", "/redoc", "/openapi.json")] == [("w-api", "/items", "confirmed")]
