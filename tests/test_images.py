@@ -229,3 +229,32 @@ def test_single_dockerfile_not_linked_to_different_images(tmp_path):
                                        "  admin:\n    image: registry/admin:latest\n")
     ws = _workloads(repo)
     assert [(w.dockerfile, w.code_root, w.root_guessed) for w in ws] == [(None, None, False)] * 2
+
+
+def test_dev_and_test_dockerfiles_do_not_become_workloads(tmp_path):
+    repo = tmp_path / "repo"
+    cmd = 'FROM node:20\nCMD ["node", "server.js"]\n'
+    _write(repo, "docker-compose.yml", "services:\n  postgres:\n    image: postgres:16\n")
+    _write(repo, "Dockerfile", cmd)
+    _write(repo, "Dockerfile.dev", cmd)
+    _write(repo, "ci.Dockerfile", cmd)
+    _write(repo, "tests/Dockerfile", cmd)
+    assert [(w.name, w.dockerfile) for w in _workloads(repo)] == [("root", "Dockerfile")]
+
+
+def test_test_dockerfile_does_not_block_single_link(tmp_path):
+    repo = tmp_path / "repo"
+    _write(repo, "Dockerfile", 'FROM python:3.12\nCMD ["uvicorn", "main:app"]\n')
+    _write(repo, "Dockerfile.test", 'FROM python:3.12\nCMD ["pytest"]\n')
+    _write(repo, "docker-compose.yml", "services:\n  web:\n    image: reg/b:1\n")
+    [w] = _workloads(repo)
+    assert (w.id, w.dockerfile, w.command) == ("w-web", "Dockerfile", "uvicorn main:app")
+
+
+def test_dev_dockerfile_name_parts():
+    from infrafit.detect.workloads import _is_dev_dockerfile
+    assert all(_is_dev_dockerfile(p) for p in ("Dockerfile.dev", "app/local.Dockerfile", "e2e/Dockerfile",
+                                               "x/Dockerfile.debug", "spec/Dockerfile", "a/__tests__/Dockerfile",
+                                               "test.dockerfile"))
+    assert not any(_is_dev_dockerfile(p) for p in ("Dockerfile", "api/Dockerfile.prod", "docker/worker.Dockerfile",
+                                                   "devtools/Dockerfile", "latest/Dockerfile"))

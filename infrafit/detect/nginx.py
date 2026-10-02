@@ -16,7 +16,7 @@ from infrafit.detect.artifacts import ParsedArtifact, as_dict, final_chain, dock
 from infrafit.detect.environments import (Environment, compose_env, env_scopes, env_service, is_workload_doc,
                                           workload_container)
 from infrafit.detect.manifests import parent_dir
-from infrafit.detect.workloads import WorkloadInfo, workload_dockerfile
+from infrafit.detect.workloads import WorkloadInfo, classify_image, workload_dockerfile
 from infrafit.evidence import evidence
 from infrafit.repo import Snapshot
 
@@ -26,6 +26,7 @@ TIME_KEYS = ("proxy_read_timeout", "proxy_send_timeout", "proxy_connect_timeout"
 SETTING_KEYS = TIME_KEYS + ("client_max_body_size", "proxy_http_version")
 NGINX_ROOT = "/etc/nginx/"
 NGINX_MAIN = "/etc/nginx/nginx.conf"
+NGINX_COMPONENT = "nw:proxy/nginx/default"
 TEMPLATE_DIR = "/etc/nginx/templates/"
 CONFD_DIR = "/etc/nginx/conf.d"
 MAX_INCLUDE_DEPTH = 10
@@ -126,6 +127,12 @@ def _chain_instrs(df: ParsedArtifact | None) -> list[tuple[str, str, int]]:
         return []
     instrs = [x for x in df.objects if isinstance(x, tuple) and len(x) == 3]
     return [x for st in reversed(final_chain(dockerfile_stages(instrs))) for x in st["instrs"]]
+
+
+def _is_nginx_image(image: str) -> bool:
+    """이미지 분류가 nginx 리버스 프록시(knowledge/images.yaml)인가."""
+    cls = classify_image(image)
+    return bool(cls) and cls["role"] == "reverse-proxy" and cls["component"] == NGINX_COMPONENT
 
 
 def _final_image(df: ParsedArtifact | None) -> str:
@@ -557,7 +564,7 @@ def _links(workloads: list[WorkloadInfo], configs: list[str], proxy_configs: lis
     컨테이너에 들어간 설정은 프록시 지시어가 없어도(http 설정만 있는 nginx.conf 등) 연결하고,
     어느 범위에도 들어가지 않은 설정을 하나뿐인 nginx 워크로드에 붙이는 대체 규칙은 프록시 지시어가 있는 설정만 쓴다."""
     nginx_based = [w for w in workloads
-                   if "nginx" in w.image.lower() or "nginx" in _final_image(dockerfiles[w.id]).lower()]
+                   if any(_is_nginx_image(i) for i in [w.image] + _final_image(dockerfiles[w.id]).split())]
     nginx_ids = {w.id for w in nginx_based}
     links: dict[tuple[str, str | None], list[tuple[str, str | None, str]]] = {key: [] for key in mappings}
     linked: set[str] = set()

@@ -15,7 +15,10 @@ from infrafit.evidence import evidence, line_of
 from infrafit.repo import Snapshot
 
 WEB_FRAMEWORKS = ("next", "express", "fastify", "koa", "@nestjs/core", "hono", "fastapi", "flask", "django")
-DEVCONTAINER = ".devcontainer"  # 개발 컨테이너용 compose는 배포 대상(워크로드·환경)이 아니다
+DEVCONTAINER = ".devcontainer"
+# 개발·테스트용 Dockerfile(배포하지 않는 이미지): 파일 이름의 변형 부분 조각, 경로 조각
+DEV_DOCKERFILE_PARTS = {"dev", "test", "tests", "ci", "local", "debug", "e2e"}
+TEST_PATH_SEGMENTS = {"test", "tests", "__tests__", "e2e", "spec"}  # 개발 컨테이너용 compose는 배포 대상(워크로드·환경)이 아니다
 PROC_KINDS = {"web": "web", "worker": "worker", "clock": "scheduled", "release": "migration-job"}
 # 워커 프로세스를 뜻하는 토큰 끝(`board.worker`, `jobs/worker.py` 등). `--workers 4`, `uvicorn.workers.UvicornWorker`는 아니다
 WORKER_SUFFIXES = (".worker", "/worker", ":worker", "worker.py", "worker.js", "worker.ts")
@@ -105,9 +108,19 @@ def _dockerfiles(artifacts: list[ParsedArtifact]) -> list[ParsedArtifact]:
     return [a for a in artifacts if a.kind == "dockerfile"]
 
 
+def _image_keys(image: str) -> list[str]:
+    """분류에 쓰는 이름들: 레지스트리·태그·다이제스트를 뗀 마지막 이름, 그리고 `저장소/이름`."""
+    parts = image.strip().lower().split("@")[0].split("/")
+    parts[-1] = parts[-1].split(":")[0]
+    if not parts[-1]:
+        return []
+    return [parts[-1]] + (["/".join(parts[-2:])] if len(parts) >= 2 else [])
+
+
 def image_name(image: str) -> str:
     """레지스트리·태그·다이제스트를 뗀 이미지의 마지막 이름."""
-    return image.split("/")[-1].split(":")[0].split("@")[0]
+    keys = _image_keys(image)
+    return keys[0] if keys else ""
 
 
 def dockerfile_for_image(image: str, artifacts: list[ParsedArtifact]) -> ParsedArtifact | None:
@@ -193,15 +206,6 @@ def _dockerfile_cmd_for_dir(app_dir: str, artifacts: list[ParsedArtifact]) -> st
 
 def _as_list(v) -> list:
     return v if isinstance(v, list) else []
-
-
-def _image_keys(image: str) -> list[str]:
-    """분류에 쓰는 이름들: 레지스트리·태그·다이제스트를 뗀 마지막 이름, 그리고 `저장소/이름`."""
-    parts = image.strip().lower().split("@")[0].split("/")
-    parts[-1] = parts[-1].split(":")[0]
-    if not parts[-1]:
-        return []
-    return [parts[-1]] + (["/".join(parts[-2:])] if len(parts) >= 2 else [])
 
 
 def classify_image(image) -> dict | None:
@@ -421,12 +425,27 @@ def _from_code(snap: Snapshot, manifests: Manifests, artifacts: list[ParsedArtif
     return out
 
 
+def _is_dev_dockerfile(path: str) -> bool:
+    """`Dockerfile.<x>`·`<x>.Dockerfile`·`<x>.dockerfile`의 x를 `.`·`-`·`_`로 나눈 조각이 개발·테스트용이거나,
+    디렉터리 조각이 테스트 디렉터리인 Dockerfile."""
+    p = PurePosixPath(path)
+    name = p.name
+    variant = ""
+    if name.startswith("Dockerfile."):
+        variant = name[len("Dockerfile."):]
+    elif name.lower().endswith(".dockerfile"):
+        variant = name[:-len(".dockerfile")]
+    parts = set(re.split(r"[._-]", variant.lower())) if variant else set()
+    return bool(parts & DEV_DOCKERFILE_PARTS) or bool(set(p.parts[:-1]) & TEST_PATH_SEGMENTS)
+
+
 def _app_dockerfiles(workloads: list[WorkloadInfo], artifacts: list[ParsedArtifact]) -> list[ParsedArtifact]:
     """어떤 워크로드에도 연결되지 않은 앱 Dockerfile: 마지막 체인에 CMD나 ENTRYPOINT가 있고, 마지막 FROM이
-    리버스 프록시 이미지가 아니며, 개발 컨테이너용이 아닌 것. 경로 순."""
+    리버스 프록시 이미지가 아니며, 개발 컨테이너용·개발·테스트용이 아닌 것. 경로 순."""
     linked = {df.path for w in workloads if (df := workload_dockerfile(w, artifacts))}
     return [df for df in _dockerfiles(artifacts)
             if df.path not in linked and DEVCONTAINER not in PurePosixPath(df.path).parts
+            and not _is_dev_dockerfile(df.path)
             and (df.get("cmd") or df.get("entrypoint"))
             and (_base_class(df) or {}).get("role") != "reverse-proxy"]
 
