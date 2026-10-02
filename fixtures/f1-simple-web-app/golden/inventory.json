@@ -14,6 +14,11 @@
           "line": 9,
           "path": "services/board/pyproject.toml",
           "snippet": "\"asyncpg>=0.29\","
+        },
+        {
+          "line": 15,
+          "path": "docker-compose.yml",
+          "snippet": "postgres:"
         }
       ],
       "label": "SIG-DS-POSTGRES",
@@ -35,6 +40,11 @@
           "line": 10,
           "path": "services/board/pyproject.toml",
           "snippet": "\"redis>=5.0.4\","
+        },
+        {
+          "line": 29,
+          "path": "docker-compose.yml",
+          "snippet": "redis:"
         }
       ],
       "label": "SIG-CA-REDIS",
@@ -62,18 +72,6 @@
           "line": 205,
           "path": "services/board/src/board/worker.py",
           "snippet": "pipe.xadd(keys.POSTS_DLQ, {**fields, \"source_id\": message_id, \"reason\": reason[:500]})"
-        },
-        {
-          "kind": "tech",
-          "line": 22,
-          "path": "services/board/tests/test_worker_events_and_loop.py",
-          "snippet": "await rdb.xadd(\"user:events\", {\"type\": \"user_deleted\", \"user_id\": leaving})"
-        },
-        {
-          "kind": "tech",
-          "line": 34,
-          "path": "services/board/tests/test_worker_events_and_loop.py",
-          "snippet": "await rdb.xadd(\"user:events\", {\"type\": \"user_deleted\", \"user_id\": \"garbage\"})"
         }
       ],
       "label": "SIG-QU-REDIS-STREAMS",
@@ -174,6 +172,11 @@
           "line": 9,
           "path": "services/board/pyproject.toml",
           "snippet": "\"asyncpg>=0.29\","
+        },
+        {
+          "line": 15,
+          "path": "docker-compose.yml",
+          "snippet": "postgres:"
         }
       ],
       "id": "ds-postgresql",
@@ -200,6 +203,11 @@
           "line": 10,
           "path": "services/board/pyproject.toml",
           "snippet": "\"redis>=5.0.4\","
+        },
+        {
+          "line": 29,
+          "path": "docker-compose.yml",
+          "snippet": "redis:"
         }
       ],
       "id": "svc-redis",
@@ -232,18 +240,6 @@
           "line": 205,
           "path": "services/board/src/board/worker.py",
           "snippet": "pipe.xadd(keys.POSTS_DLQ, {**fields, \"source_id\": message_id, \"reason\": reason[:500]})"
-        },
-        {
-          "kind": "tech",
-          "line": 22,
-          "path": "services/board/tests/test_worker_events_and_loop.py",
-          "snippet": "await rdb.xadd(\"user:events\", {\"type\": \"user_deleted\", \"user_id\": leaving})"
-        },
-        {
-          "kind": "tech",
-          "line": 34,
-          "path": "services/board/tests/test_worker_events_and_loop.py",
-          "snippet": "await rdb.xadd(\"user:events\", {\"type\": \"user_deleted\", \"user_id\": \"garbage\"})"
         }
       ],
       "id": "svc-redis-streams",
@@ -7291,7 +7287,7 @@
         "snippet": "name: nginx"
       },
       "id": "w-nginx",
-      "kind": "web",
+      "kind": "reverse-proxy",
       "name": "nginx",
       "status": "confirmed"
     }
