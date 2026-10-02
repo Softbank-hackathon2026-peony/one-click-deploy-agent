@@ -34,10 +34,15 @@ def _lint_catalog() -> list[str]:
     return issues
 
 
-def _lint_condition(sig_id: str, cond: dict) -> list[str]:
+def _lint_condition(sig_id: str, cond: dict, allow_env: bool = False) -> list[str]:
     issues: list[str] = []
     for leaf in kb.iter_conditions(cond):
-        if "dependency" in leaf:
+        if allow_env and "env" in leaf:
+            try:
+                re.compile(leaf["env"])
+            except (re.error, TypeError) as e:
+                issues.append(f"{sig_id}: env 정규식 오류 {e}")
+        elif "dependency" in leaf:
             if not isinstance(leaf["dependency"], str) or not leaf["dependency"]:
                 issues.append(f"{sig_id}: dependency가 비었음")
         elif "code" in leaf:
@@ -45,6 +50,8 @@ def _lint_condition(sig_id: str, cond: dict) -> list[str]:
             if not code.get("glob") or not code.get("regex"):
                 issues.append(f"{sig_id}: code에 glob 또는 regex 없음")
                 continue
+            if isinstance(code["glob"], list) and not all(isinstance(g, str) and g for g in code["glob"]):
+                issues.append(f"{sig_id}: code glob 목록에 빈 값")
             try:
                 re.compile(code["regex"])
             except re.error as e:
@@ -143,5 +150,70 @@ def _lint_images(entries: list[dict] | None = None) -> list[str]:
     return issues
 
 
+EXTERNAL_KINDS = {"llm-api", "auth", "payments", "messaging", "email", "push", "maps", "video", "webhook", "other"}
+EXTERNAL_ID = re.compile(r"^ext:[a-z0-9-]+$")
+DEPLOY_TARGETS = {"source", "image", "job-build", "workflow-build", "compose", "cwd", "manifest", "name"}
+
+
+def _lint_external(entries: list[dict] | None = None) -> list[str]:
+    """외부 서비스: id 형식·중복, label, kind, when.any(dependency·code·env)."""
+    issues: list[str] = []
+    seen: set[str] = set()
+    for i, e in enumerate(kb.external() if entries is None else entries):
+        if not isinstance(e, dict):
+            issues.append(f"external {i}: 항목이 매핑이 아님")
+            continue
+        eid = str(e.get("id", f"external {i}"))
+        if not EXTERNAL_ID.match(eid):
+            issues.append(f"{eid}: 잘못된 외부 서비스 ID 형식")
+        if eid in seen:
+            issues.append(f"external: 중복 ID {eid}")
+        seen.add(eid)
+        if not e.get("label"):
+            issues.append(f"{eid}: label 없음")
+        if e.get("kind") not in EXTERNAL_KINDS:
+            issues.append(f"{eid}: 잘못된 kind {e.get('kind')}")
+        when = e.get("when")
+        if not isinstance(when, dict) or set(when) != {"any"} or not isinstance(when["any"], list) or not when["any"]:
+            issues.append(f"{eid}: when은 any 목록이어야 함")
+        else:
+            issues += _lint_condition(eid, when, allow_env=True)
+    return issues
+
+
+def _lint_deploy(entries: list[dict] | None = None) -> list[str]:
+    """CI 배포 패턴: match(run 정규식 또는 uses), compute(카탈로그 ID 또는 unmapped + label), target."""
+    issues: list[str] = []
+    catalog = kb.catalog()
+    seen: set[str] = set()
+    for i, d in enumerate(kb.deploy() if entries is None else entries):
+        if not isinstance(d, dict):
+            issues.append(f"deploy {i}: 항목이 매핑이 아님")
+            continue
+        did = str(d.get("id", f"deploy {i}"))
+        if did in seen:
+            issues.append(f"deploy: 중복 ID {did}")
+        seen.add(did)
+        match = d.get("match")
+        if not isinstance(match, dict) or len(match) != 1 or not set(match) <= {"run", "uses"}:
+            issues.append(f"{did}: match는 run 또는 uses 하나")
+        elif "run" in match:
+            try:
+                re.compile(match["run"])
+            except (re.error, TypeError) as e:
+                issues.append(f"{did}: run 정규식 오류 {e}")
+        compute = d.get("compute")
+        if compute == "unmapped":
+            if not d.get("label"):
+                issues.append(f"{did}: compute가 unmapped이면 label 필요")
+        elif compute not in catalog:
+            issues.append(f"{did}: catalog에 없는 compute {compute}")
+        target = d.get("target")
+        if not isinstance(target, list) or not target or not set(target) <= DEPLOY_TARGETS:
+            issues.append(f"{did}: 잘못된 target {target}")
+    return issues
+
+
 def lint() -> list[str]:
-    return _lint_catalog() + _lint_signatures() + _lint_defaults() + _lint_images()
+    return (_lint_catalog() + _lint_signatures() + _lint_defaults() + _lint_images() + _lint_external()
+            + _lint_deploy())

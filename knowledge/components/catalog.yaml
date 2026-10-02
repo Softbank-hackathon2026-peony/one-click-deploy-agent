@@ -46,6 +46,10 @@ components:
   - {id: "cp:gcp/gke/unspecified", family: cp, name: "GKE (구성 미확인)", source: docs/research/capabilities/05-compute-tier1-2.md}
   - {id: "cp:local/compose/default", family: cp, name: "docker compose", source: docs/research/capabilities/05-compute-tier1-2.md}
   - {id: "cp:docker/container/unspecified-host", family: cp, name: "컨테이너 (실행 환경 미확인)", source: docs/research/capabilities/05-compute-tier1-2.md}
+  # CI 배포 명령이 가리키는 compute(05 §2 Cloud Run, §3 ECS, §7.1 EC2 + compose)
+  - {id: "cp:gcp/cloud-run/unspecified", family: cp, name: "Cloud Run 서비스 (과금 방식 미확인)", source: docs/research/capabilities/05-compute-tier1-2.md}
+  - {id: "cp:aws/ecs/unspecified", family: cp, name: "Amazon ECS (시작 유형 미확인)", source: docs/research/capabilities/05-compute-tier1-2.md}
+  - {id: "cp:aws/ec2/docker-compose", family: cp, name: "단일 EC2 + docker compose", source: docs/research/capabilities/05-compute-tier1-2.md}
   # 네트워크 경로
   - {id: "nw:app/uvicorn/default", family: nw, name: "uvicorn", source: docs/research/capabilities/09-network-lb-ingress.md}
   - {id: "nw:app/gunicorn/default", family: nw, name: "gunicorn", source: docs/research/capabilities/09-network-lb-ingress.md}
