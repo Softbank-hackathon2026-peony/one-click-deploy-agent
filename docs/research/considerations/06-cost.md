@@ -169,7 +169,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 티어 2: T≤2면 `OPTIMIZE_UTILIZATION`/`WhenEmptyOrUnderutilized` + PDB로 안전 확보 / T=3이면 balanced + 자리표시 Pod.
 - **검증:** 일 평균 노드 수 vs 일 평균 requests 합.
 - **비용 영향:** 유휴 노드 시간 × 노드 단가. 예: m7g.large 2대가 하루 12시간 놀면 월 약 $73.
-- **출처:** https://docs.cloud.google.com/kubernetes-engine/docs/concepts/cluster-autoscaler ; https://karpenter.sh/docs/concepts/disruption/ ⚠️출처확인필요
+- **출처:** https://docs.cloud.google.com/kubernetes-engine/docs/concepts/cluster-autoscaler ; https://karpenter.sh/docs/concepts/disruption/
 
 ### COST-015 고정 크기 노드 그룹 (오토스케일 없음)
 - **무엇/왜:** `min = max = desired`인 노드 그룹은 피크 기준으로 상시 운영된다.
@@ -837,7 +837,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 모델 계층화(간단한 작업은 작은 모델), `max_tokens` 상한, 대화 요약·컨텍스트 자르기, 프롬프트 캐싱(COST-080), 비실시간 작업은 Batch API(50% 할인).
 - **검증:** P4에서 요청당 토큰 사용량 측정 × 가정 트래픽.
 - **비용 영향:** Anthropic API(2026-10-01) 100만 토큰당 입력/출력: Haiku 4.5 $1/$5, Sonnet 5 $2/$10, Sonnet 4.6 $3/$15, Opus 5.5 $4/$20. Batch 50% 할인. 4.7 이후 모델은 같은 텍스트에 토큰이 약 30% 더 나온다는 공식 언급.
-- **출처:** https://platform.claude.com/docs/en/about-claude/pricing ⚠️출처확인필요
+- **출처:** https://platform.claude.com/docs/en/about-claude/pricing ⚠️출처부적격
 
 ### COST-079 사용자별·키별 사용량 한도 부재
 - **무엇/왜:** 유료 외부 API를 쓰는 기능에 사용자별 한도가 없으면, 악성 사용자 한 명이나 스크립트가 월 예산을 하루에 쓴다. 레이트 리밋(T-CTL-007)은 초 단위, 비용 한도는 일·월 단위다.
@@ -857,7 +857,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 고정 접두사를 앞에 두고 캐시 지정(5분 캐시 쓰기 1.25배, 1시간 2배이므로 재사용 빈도 확인).
 - **검증:** 응답 `usage.cache_read_input_tokens` 비율.
 - **비용 영향:** 캐시 읽기 0.1× 입력 단가(Opus 5.5 0.05×, Fable·Mythos 5.1 0.025×). 5분 캐시는 1회 재사용부터 이득.
-- **출처:** https://platform.claude.com/docs/en/about-claude/pricing ⚠️출처확인필요
+- **출처:** https://platform.claude.com/docs/en/about-claude/pricing ⚠️출처부적격
 
 ### COST-081 SMS·전화 인증 비용과 SMS 펌핑
 - **무엇/왜:** SMS는 건당 과금이고 국가별 단가 차이가 크다. 공격자가 가입·OTP 엔드포인트로 고가 국가 번호에 대량 발송시키는 "SMS 펌핑"이 알려진 수법이다. Supabase MFA Phone은 스펜드 캡 밖이다.
@@ -971,7 +971,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 리포트에 고정비/변동비 분리, 사용자 1,000명당·요청 100만 건당 비용, 변동비 중 외부 API 비중 표시.
 - **검증:** P4 실측으로 갱신.
 - **비용 영향:** 판단 지표.
-- **출처:** https://www.finops.org/framework/capabilities/unit-economics/ ; 설계 §9.3 ⚠️출처확인필요
+- **출처:** https://www.finops.org/framework/capabilities/unit-economics/ ; 설계 §9.3 ⚠️출처부적격
 
 ### COST-092 무료 등급·크레딧 함정
 - **무엇/왜:** AWS 신규 무료 플랜은 크레딧($100 + 최대 $100) 기반이고, 무료 플랜 계정은 6개월 또는 크레딧 소진 시 닫힌다. 유료 플랜으로 바꾸면 크레딧 이후 종량 과금. GKE 무료 크레딧은 존 클러스터 1개 상당뿐이고, Cloud Run 무료 등급은 요청 기반·결제 계정 합산이다. 견적이 무료 등급에 의존하면 성장 즉시 비용이 튄다.

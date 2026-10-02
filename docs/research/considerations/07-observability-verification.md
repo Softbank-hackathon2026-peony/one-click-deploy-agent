@@ -103,7 +103,7 @@
 - **처방:** 티어0/1/2 공통: 코드에서 허용 목록 로깅 + 에러 추적 SDK 스크러빙. 추가로 AWS는 CloudWatch Logs 데이터 보호 정책(수집 시점 마스킹, `logs:Unmask` 권한자만 원문), GCP는 Sensitive Data Protection 연동.
 - **검증:** 테스트 계정으로 가입·로그인·결제 흐름을 실행하고 로그·에러 추적에서 해당 비밀번호·이메일·토큰 문자열을 검색해 0건인지 확인. AWS는 `LogEventsWithFindings` 지표가 0인지.
 - **비용 영향:** 소폭 증가(데이터 보호 정책은 스캔 과금). 유출 사고 비용은 크게 감소.
-- **출처:** https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html (제외할 데이터 목록), https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/mask-sensitive-log-data.html (수집 시점 마스킹, 정책 설정 이전 로그는 마스킹 안 됨), https://docs.sentry.io/platforms/python/data-management/sensitive-data/ (SDK에서 보내기 전에 스크러빙 권장), 2026-10-01 확인 ⚠️출처확인필요
+- **출처:** https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html (제외할 데이터 목록), https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/mask-sensitive-log-data.html (수집 시점 마스킹, 정책 설정 이전 로그는 마스킹 안 됨), https://docs.sentry.io/platforms/python/data-management/sensitive-data/ (SDK에서 보내기 전에 스크러빙 권장), 2026-10-01 확인
 
 ### O-008 로그 주입 방지와 외부 입력 상관 ID 검증
 - **무엇/왜:** 사용자 입력(헤더·경로·본문)을 로그에 넣을 때 CR/LF·구분자를 제거하거나 JSON 인코딩한다. 클라이언트가 보낸 `X-Request-ID`도 외부 입력이므로 길이·문자 집합을 제한한다.
@@ -153,7 +153,7 @@
 - **처방:** 티어0: 해당 없음(플랫폼 지표 사용). 티어1: ALB 액세스 로그(S3) 또는 Cloud Run 요청 로그의 `latency` 필드. 티어2: 인그레스 nginx `log_format` 확장.
 - **검증:** P4 부하 중 `rt - urt` 분포를 계산해 프록시 대기 시간이 따로 보이는지 확인. 앱 Server-Timing 합계(O-024)와 `urt`가 대체로 일치하는지 교차 확인.
 - **비용 영향:** 소폭 증가(로그 필드).
-- **출처:** https://nginx.org/en/docs/http/ngx_http_upstream_module.html (`$upstream_response_time`, `$upstream_connect_time` 정의, 2026-10-01 확인)
+- **출처:** https://nginx.org/en/docs/http/ngx_http_upstream_module.html (`$upstream_response_time`, `$upstream_connect_time` 정의, 2026-10-01 확인) ⚠️출처부적격
 
 ## A2. 지표
 
@@ -367,7 +367,7 @@
 - **처방:** 티어0/1/2 공통: 관리형 에러 추적 SaaS 무료 등급 또는 GCP Error Reporting(로그 기반, 별도 SDK 불필요)·CloudWatch Logs 패턴. PII 스크러빙(O-007) 함께.
 - **검증:** 배포 직후 테스트 예외를 일부러 던지는 비공개 경로(또는 SDK 테스트 이벤트)로 이슈가 생성되고 알림이 오는지 확인.
 - **비용 영향:** 소폭 증가(무료 등급 초과 시).
-- **출처:** https://docs.sentry.io/product/issues/ (지문 기반 이슈 그룹화, 2026-10-01 확인) ⚠️출처확인필요
+- **출처:** https://docs.sentry.io/product/issues/ (지문 기반 이슈 그룹화, 2026-10-01 확인) ⚠️출처부적격
 
 ### O-034 릴리스 버전 태깅과 릴리스 건강도
 - **무엇/왜:** 모든 로그·지표·오류에 배포 버전(커밋 SHA)을 붙이면 "이 버전부터 오류가 늘었다"를 즉시 안다. 카나리·자동 롤백 판단의 전제다.
@@ -377,7 +377,7 @@
 - **처방:** 공통: CI가 SHA를 빌드 인자·환경변수로 주입, 모든 텔레메트리 리소스 속성(`service.version`)에 포함.
 - **검증:** 배포 직후 지표·오류 화면에서 새 버전 값으로 필터가 되는지 확인.
 - **비용 영향:** 중립.
-- **출처:** https://docs.sentry.io/product/releases/health/ (crash-free sessions·users, 릴리스 채택, 2026-10-01 확인) ⚠️출처확인필요
+- **출처:** https://docs.sentry.io/product/releases/health/ (crash-free sessions·users, 릴리스 채택, 2026-10-01 확인) ⚠️출처부적격
 
 ### O-035 연속 프로파일링
 - **무엇/왜:** 운영 중 CPU·힙 프로파일을 저오버헤드로 계속 수집해 "어느 함수가 CPU를 먹나"를 본다. 비용 최적화(right-sizing)와 성능 회귀 원인 찾기에 쓴다.
@@ -531,7 +531,7 @@
 - **처방:** 티어0: 플랫폼 내장(Vercel Speed Insights 등). 티어1/2: `web-vitals` → 자체 수집 엔드포인트 또는 CloudWatch RUM. 수집 엔드포인트도 레이트 리밋 대상.
 - **검증:** 배포 후 테스트 브라우저 세션에서 지표 이벤트가 수집 저장소에 들어오는지 확인. 75퍼센타일이 모바일·데스크톱으로 나뉘어 계산되는지.
 - **비용 영향:** 소폭 증가.
-- **출처:** https://web.dev/articles/vitals (세 지표 임계값, 75퍼센타일), https://github.com/GoogleChrome/web-vitals (실사용자 측정 라이브러리, sendBeacon 예), 2026-10-01 확인 ⚠️출처확인필요
+- **출처:** https://web.dev/articles/vitals (세 지표 임계값, 75퍼센타일), https://github.com/GoogleChrome/web-vitals (실사용자 측정 라이브러리, sendBeacon 예), 2026-10-01 확인 ⚠️출처부적격
 
 ### O-050 프론트엔드 오류 수집
 - **무엇/왜:** 브라우저 JS 예외, 청크 로딩 실패, API 호출 실패를 수집한다. 서버 로그에는 절대 나타나지 않는 오류다.
@@ -783,7 +783,7 @@
 - **처방:** 공통: P4 첫 단계로 스모크 → 통과해야 다음 단계. 검사 항목: 헬스, 핵심 읽기·쓰기, 외부 비공개 경로 404(O-029).
 - **검증:** 스모크 자체를 일부러 깨진 배포(잘못된 환경변수)에 돌려 실패를 내는지 확인(음성 대조).
 - **비용 영향:** 중립.
-- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (스모크 테스트 정의, 2026-10-01 확인)
+- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (스모크 테스트 정의, 2026-10-01 확인) ⚠️출처부적격
 
 ### V-002 평균 부하 테스트
 - **무엇/왜:** 가정한 평시 부하(T L1 기본 평시 동시 50)로 일정 시간 돌려 평상시 지연·오류·자원 사용량의 기준선을 만든다. right-sizing(COST-006)과 소크 비교의 기준이다.
@@ -793,7 +793,7 @@
 - **처방:** 공통: 10~15분, 평시 요청률, 결과는 p50/p95/p99·오류율·Pod당 CPU·메모리.
 - **검증:** 같은 조건 2회 반복 결과의 p95 차이가 10% 안인지(재현성, V-024).
 - **비용 영향:** 테스트 자원만큼 일시 증가.
-- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (average-load, 2026-10-01 확인)
+- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (average-load, 2026-10-01 확인) ⚠️출처부적격
 
 ### V-003 스텝 부하(가정 피크까지 계단식)
 - **무엇/왜:** 평시에서 가정 피크(T L1 = 평시×3, L2 = ×10)까지 계단식으로 올리며 각 단계에서 안정 상태를 본다. 오토스케일이 따라오는지, 어느 단계에서 지연이 꺾이는지 보인다.
@@ -803,7 +803,7 @@
 - **처방:** 공통: 단계 4~6개, 단계당 3~5분(HPA 안정화 창보다 길게), 단계 태그를 요청 헤더로 보내 서버 로그와 결합.
 - **검증:** 단계별 p95·오류율 표가 나오고, 서버 쪽 로그도 같은 단계 태그로 집계되는지 확인.
 - **비용 영향:** 일시 증가.
-- **출처:** 일반 원칙(출처 미확인). 단계(stages) 구성은 https://grafana.com/docs/k6/latest/using-k6/scenarios/executors/ 의 ramping 실행기 범위. ⚠️근거없음
+- **출처:** 일반 원칙(출처 미확인). 단계(stages) 구성은 https://grafana.com/docs/k6/latest/using-k6/scenarios/executors/ 의 ramping 실행기 범위. ⚠️출처부적격 ⚠️근거없음
 
 ### V-004 스파이크 테스트(1분 안에 20배)
 - **무엇/왜:** 예고 없는 폭증(T L3: 평시×20, 1분 안)을 재현한다. 확장 지연 동안 큐·백프레셔·리밋·최소 인스턴스가 사용자 영향을 막는지 본다. 두 번째 스파이크로 축소 후 재확장도 본다.
@@ -813,7 +813,7 @@
 - **처방:** 공통: 오픈 모델(V-008), 2회 스파이크, 설계된 거절(V-016) 분리 집계.
 - **검증:** 통과 기준(§17.2): 피크 p95 < 1초, 서버 오류율 < 1%, 확장 완료 시간 기록. 생성기 포화가 없었음을 함께 증명(V-010).
 - **비용 영향:** 일시 증가(피크 자원).
-- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (spike, 2026-10-01 확인)
+- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (spike, 2026-10-01 확인) ⚠️출처부적격
 
 ### V-005 스트레스 테스트(가정 초과 부하)
 - **무엇/왜:** 가정 피크를 넘는 부하로 시스템이 어떻게 무너지는지 본다. 목표는 "우아한 실패": 오류가 무작위로 퍼지지 않고 설계된 거절(503+Retry-After, 429)로 나오고, 부하가 빠지면 스스로 회복하는지.
@@ -823,7 +823,7 @@
 - **처방:** 공통: 가정 피크의 1.5~2배, 이후 평시로 복귀하는 구간 포함.
 - **검증:** 초과 구간의 응답 분포(설계된 거절 비율 vs 기타 5xx), 부하 감소 후 오류율이 평시로 돌아오는 시간 측정.
 - **비용 영향:** 일시 증가.
-- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (stress, 2026-10-01 확인)
+- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (stress, 2026-10-01 확인) ⚠️출처부적격
 
 ### V-006 브레이크포인트 테스트("동시 N명까지")
 - **무엇/왜:** 부하를 서서히 올려 SLO가 깨지는 지점을 찾는다. P4 리포트의 "동시 N명까지, 월 $X"의 N이 여기서 나온다. 오토스케일 상한을 일시적으로 풀지, 상한 그대로 잴지를 명시한다.
@@ -833,7 +833,7 @@
 - **처방:** 공통: `ramping-arrival-rate`로 선형 증가, SLO 위반 시 중단(`abortOnFail` + `delayAbortEval`), 깨진 지점의 요청률을 동시 사용자 수로 환산(생각 시간 가정 명시).
 - **검증:** 같은 구성에서 2회 측정한 한계 차이가 10% 안인지. 한계 지점에서 병목 자원(USE)이 식별되는지.
 - **비용 영향:** 일시 증가.
-- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (breakpoint), https://grafana.com/docs/k6/latest/using-k6/thresholds/ (`abortOnFail`, `delayAbortEval`), 2026-10-01 확인
+- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (breakpoint), https://grafana.com/docs/k6/latest/using-k6/thresholds/ (`abortOnFail`, `delayAbortEval`), 2026-10-01 확인 ⚠️출처부적격
 
 ### V-007 소크 테스트(평시 + 주기적 폭증, 2~24시간)
 - **무엇/왜:** 긴 시간 부하를 유지해 짧은 테스트에서 안 보이는 문제(메모리 누수, 커넥션 증가, 큐 지연 누적, 디스크·로그 증가, 실제 시간당 비용)를 찾는다. 길이는 최대 필요 수준으로: L1 2시간, L2 6시간, L3 24시간(§17.3).
@@ -843,7 +843,7 @@
 - **처방:** 공통: 평시 부하 + 1시간마다 피크. 생성기는 별도 장기 실행 VM/Job.
 - **검증:** 처음 30분 vs 마지막 30분의 메모리(O-023), DB 커넥션(O-018), 큐 lag(O-020), p95. 추세가 계속 오르면 실패. 자원 사용량 기반 비용 vs 견적.
 - **비용 영향:** 증가(최대 24시간 운영 비용). 수준별 길이로 통제.
-- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (soak, 2026-10-01 확인)
+- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (soak, 2026-10-01 확인) ⚠️출처부적격
 
 ## B2. 부하 모델·생성기·데이터
 
@@ -855,7 +855,7 @@
 - **처방:** 공통: P4 표준 시나리오는 arrival-rate 실행기. 클로즈드 모델은 "세션 수 고정" 사내 도구(T=L0~L1 사내)에만.
 - **검증:** 같은 목표 요청률에서 서버에 인위적 지연(HTTPChaos 500ms)을 넣었을 때 실제 달성 요청률이 유지되는지(오픈) 확인.
 - **비용 영향:** 중립.
-- **출처:** https://grafana.com/docs/k6/latest/using-k6/scenarios/concepts/open-vs-closed/ (클로즈드 모델의 조정 누락, 오픈 모델은 응답 시간이 부하에 영향 없음), https://grafana.com/docs/k6/latest/using-k6/scenarios/executors/ (arrival-rate 실행기), 2026-10-01 확인
+- **출처:** https://grafana.com/docs/k6/latest/using-k6/scenarios/concepts/open-vs-closed/ (클로즈드 모델의 조정 누락, 오픈 모델은 응답 시간이 부하에 영향 없음), https://grafana.com/docs/k6/latest/using-k6/scenarios/executors/ (arrival-rate 실행기), 2026-10-01 확인 ⚠️출처부적격
 
 ### V-009 미발사 요청(dropped_iterations) 감시와 VU 여유
 - **무엇/왜:** 오픈 모델에서도 VU가 모자라면 목표 도착률을 못 채우고 그 요청은 "보내지 않은 것"이 된다. `dropped_iterations`가 0이 아니면 그 테스트는 목표 부하를 걸지 못한 것이다.
@@ -865,7 +865,7 @@
 - **처방:** 공통: `maxVUs ≥ 목표 RPS × 예상 최악 응답 시간(초) × 1.5`, `dropped_iterations: ['count==0']` 임계 추가(또는 목표 대비 1% 미만).
 - **검증:** 결과 요약에서 실제 달성 RPS(`iterations` rate)와 목표 RPS 비교를 판정에 포함.
 - **비용 영향:** 중립(생성기 메모리 증가).
-- **출처:** https://grafana.com/docs/k6/latest/using-k6/metrics/reference/ (`dropped_iterations`: VU 부족 또는 시간 부족으로 시작 못 한 반복, 2026-10-01 확인)
+- **출처:** https://grafana.com/docs/k6/latest/using-k6/metrics/reference/ (`dropped_iterations`: VU 부족 또는 시간 부족으로 시작 못 한 반복, 2026-10-01 확인) ⚠️출처부적격
 
 ### V-010 부하 생성기 병목 확인
 - **무엇/왜:** 생성기가 포화(CPU 80% 초과, 메모리 90% 초과, 네트워크 한도, 파일 디스크립터 고갈)되면 생성기 쪽 대기가 지연으로 측정된다. 생성기 자원을 같이 기록해야 결과가 유효하다.
@@ -875,7 +875,7 @@
 - **처방:** 공통: 생성기를 대상과 다른 머신(같은 리전)에, CPU 20% 이상 여유. 대규모는 분산 실행 또는 관리형 부하 서비스.
 - **검증:** 테스트 중 생성기 CPU·메모리·네트워크를 함께 기록하고, CPU 80% 초과 구간이 있으면 그 구간 결과를 무효로 표시. "too many open files" 오류 0건.
 - **비용 영향:** 소폭 증가(생성기 VM).
-- **출처:** https://grafana.com/docs/k6/latest/testing-guides/running-large-tests/ (CPU 80% 이내, 메모리 90% 이내, 네트워크 포화, 파일 디스크립터, 20% 여유, 2026-10-01 확인)
+- **출처:** https://grafana.com/docs/k6/latest/testing-guides/running-large-tests/ (CPU 80% 이내, 메모리 90% 이내, 네트워크 포화, 파일 디스크립터, 20% 여유, 2026-10-01 확인) ⚠️출처부적격
 
 ### V-011 부하 생성 위치와 출발 IP
 - **무엇/왜:** 생성기 위치가 지연에 더해진다(리전 밖이면 RTT 수십~수백 ms). 생성기가 IP 하나면 IP 기준 레이트 리밋에 막혀 대상까지 부하가 가지 않는다. 그렇다고 리밋을 풀면 운영 구성과 다른 것을 시험하게 된다.
@@ -915,7 +915,7 @@
 - **처방:** 공통: setup/teardown, 테스트 데이터 표시 컬럼 또는 별도 테넌트, 운영 환경에서는 테스트 이메일 도메인 발송 차단.
 - **검증:** 실행 후 테스트 접두 데이터 수가 0(정리됨)이거나 운영 지표에서 제외되는지 확인.
 - **비용 영향:** 중립.
-- **출처:** https://grafana.com/docs/k6/latest/examples/data-parameterization/ (SharedArray: VU마다 별도 JS VM이라 데이터 복사 방지, 2026-10-01 확인)
+- **출처:** https://grafana.com/docs/k6/latest/examples/data-parameterization/ (SharedArray: VU마다 별도 JS VM이라 데이터 복사 방지, 2026-10-01 확인) ⚠️출처부적격
 
 ### V-015 통과 기준을 코드로(임계치·종료 코드)
 - **무엇/왜:** 통과 기준(p95, 오류율, 미발사 요청)을 스크립트의 임계치로 두면 실패 시 0이 아닌 종료 코드가 나와 CI·P4 파이프라인이 자동 판정한다. 기준을 결과를 본 뒤 완화하지 않는다.
@@ -925,7 +925,7 @@
 - **처방:** 공통: 필요 수준의 SLO 목표(O-038)에서 임계치를 생성. 장애 주입 실험은 `abortOnFail`로 안전장치.
 - **검증:** 일부러 느린 버전(지연 주입)으로 실행해 종료 코드가 0이 아닌지 확인.
 - **비용 영향:** 중립.
-- **출처:** https://grafana.com/docs/k6/latest/using-k6/thresholds/ (임계치 실패 시 0이 아닌 종료 코드, `abortOnFail`, 2026-10-01 확인)
+- **출처:** https://grafana.com/docs/k6/latest/using-k6/thresholds/ (임계치 실패 시 0이 아닌 종료 코드, `abortOnFail`, 2026-10-01 확인) ⚠️출처부적격
 
 ### V-016 설계된 거절과 장애를 분리 집계
 - **무엇/왜:** 백프레셔 503·리밋 429는 T L3 통제가 동작한 증거다. 서버 오류율에서 빼되 별도 카운트로 남기고, 거절 비율 상한도 기준으로 둔다(거절만 하는 시스템은 통과가 아니다).
@@ -987,7 +987,7 @@
 - **처방:** 공통: V-008·V-009 적용. 클로즈드 모델 결과는 지연 판정에 쓰지 않는다.
 - **검증:** 서버를 10초 정지(SIGSTOP 또는 네트워크 지연 주입)시키는 대조 실험에서 오픈 모델 결과가 정지를 반영하는지 확인.
 - **비용 영향:** 중립.
-- **출처:** https://grafana.com/docs/k6/latest/using-k6/scenarios/concepts/open-vs-closed/ (클로즈드 모델의 조정 누락 설명, 2026-10-01 확인)
+- **출처:** https://grafana.com/docs/k6/latest/using-k6/scenarios/concepts/open-vs-closed/ (클로즈드 모델의 조정 누락 설명, 2026-10-01 확인) ⚠️출처부적격
 
 ### V-022 백분위 집계 오류
 - **무엇/왜:** p95는 평균 낼 수 없다. Pod별·분 단위 p95의 평균, 서비스별 p95의 평균은 의미 없는 숫자다. 원시 히스토그램(버킷)을 합친 뒤 백분위를 계산한다. 또한 여러 경로를 섞은 p95는 무거운 경로를 숨긴다.
@@ -1007,7 +1007,7 @@
 - **처방:** 공통: 결과에 연결·대기·서버 처리 시간 분해 표 포함.
 - **검증:** keep-alive를 끈 실행과 켠 실행의 연결 시간 차이가 결과에 드러나는지 확인.
 - **비용 영향:** 중립.
-- **출처:** https://grafana.com/docs/k6/latest/using-k6/metrics/reference/ (`http_req_duration` = sending + waiting + receiving, DNS·연결 제외, 2026-10-01 확인)
+- **출처:** https://grafana.com/docs/k6/latest/using-k6/metrics/reference/ (`http_req_duration` = sending + waiting + receiving, DNS·연결 제외, 2026-10-01 확인) ⚠️출처부적격
 
 ### V-024 반복성과 표본 크기
 - **무엇/왜:** 클라우드 성능은 실행마다 흔들린다(이웃 소음, 캐시 상태, 오토스케일 타이밍). 판정은 2~3회 반복의 일관성으로 하고, p99처럼 꼬리 지표는 표본 수가 충분할 때만 쓴다(1,000건 미만에서 p99는 상위 10건 이하로 결정).
@@ -1069,7 +1069,7 @@
 - **처방:** 공통: 단계적 확대(1 Pod → 1 노드 → 1 존). 운영 실험은 D=L3 + 게임데이(V-057)에서만.
 - **검증:** 실험 정의 lint: 운영 대상인데 블래스트 반경·중단 조건이 없으면 거부.
 - **비용 영향:** 중립.
-- **출처:** https://principlesofchaos.org/ (운영 실험 선호와 함께 "the fallout from experiments are minimized and contained"), https://chaos-mesh.org/docs/simulate-time-chaos-on-kubernetes/ (선택 모드 one·all·fixed·fixed-percent·random-max-percent), 2026-10-01 확인 ⚠️출처부적격 ⚠️출처확인필요
+- **출처:** https://principlesofchaos.org/ (운영 실험 선호와 함께 "the fallout from experiments are minimized and contained"), https://chaos-mesh.org/docs/simulate-time-chaos-on-kubernetes/ (선택 모드 one·all·fixed·fixed-percent·random-max-percent), 2026-10-01 확인 ⚠️출처부적격
 
 ### V-030 중단 조건(자동 정지)
 - **무엇/왜:** 정상 상태 지표가 허용 범위를 벗어나면 실험을 자동으로 멈춘다. AWS FIS는 CloudWatch 알람을 중단 조건으로 걸 수 있고, 멈춘 실험은 재개할 수 없다. k6는 `abortOnFail`로 부하를 멈춘다.
@@ -1101,7 +1101,7 @@
 - **처방:** 티어1: FIS `aws:ecs:stop-task` / Cloud Run은 리비전 재배포로 근사. 티어2: PodChaos `pod-kill`, 대상 1개.
 - **검증:** 통과 기준: 자동 복구(새 Pod Ready), 그 동안 오류율이 정상 상태 범위 안 또는 L1 허용치. 재시작·종료 사유 기록(O-027).
 - **비용 영향:** 중립.
-- **출처:** https://chaos-mesh.org/docs/simulate-pod-chaos-on-kubernetes/ (pod-failure, pod-kill, container-kill), FIS 액션 ID는 https://docs.aws.amazon.com/fis/latest/userguide/fis-actions-reference.html, 2026-10-01 확인 ⚠️출처확인필요
+- **출처:** https://chaos-mesh.org/docs/simulate-pod-chaos-on-kubernetes/ (pod-failure, pod-kill, container-kill), FIS 액션 ID는 https://docs.aws.amazon.com/fis/latest/userguide/fis-actions-reference.html, 2026-10-01 확인
 
 ### V-033 노드 drain(유지보수 시뮬레이션)
 - **무엇/왜:** 노드 업그레이드·축소 때 일어나는 drain을 부하 중에 재현한다. drain은 PDB를 존중하므로 PDB·preStop·종료 처리를 한꺼번에 검증한다.
@@ -1141,7 +1141,7 @@
 - **처방:** 티어2: NetworkChaos `delay` 500ms~2s를 의존성 방향으로만. 티어1(ECS): FIS 태스크 네트워크 액션.
 - **검증:** 지연이 타임아웃보다 클 때 디그레이드 응답(stale 캐시 등)이 나오고 전체 지연이 타임아웃 근처에서 상한이 걸리는지 확인.
 - **비용 영향:** 중립.
-- **출처:** https://chaos-mesh.org/docs/simulate-network-chaos-on-kubernetes/ (delay, loss, duplicate, corrupt, partition, bandwidth), https://docs.aws.amazon.com/fis/latest/userguide/fis-actions-reference.html, 2026-10-01 확인 ⚠️출처확인필요
+- **출처:** https://chaos-mesh.org/docs/simulate-network-chaos-on-kubernetes/ (delay, loss, duplicate, corrupt, partition, bandwidth), https://docs.aws.amazon.com/fis/latest/userguide/fis-actions-reference.html, 2026-10-01 확인
 
 ### V-037 의존성 블랙홀·네트워크 분할
 - **무엇/왜:** 의존성(DB, Redis, 외부 API)으로 가는 패킷을 응답 없이 버린다. 거절(RST)보다 블랙홀이 더 나쁘다 — 연결이 타임아웃까지 매달린다. D L3의 "Redis·DB 차단" 검증이다.
@@ -1151,7 +1151,7 @@
 - **처방:** 티어2: 의존성 Pod/서비스 방향 partition. 티어1: FIS 블랙홀 포트(Redis 6379, Postgres 5432).
 - **검증:** Redis 차단 중 읽기 유지·쓰기 거절 동작(SWA readyz 설계: "Redis만 살아 있으면 글쓰기를, DB만 살아 있으면 읽기를"), 해제 후 자동 회복, 재시작 증가 0.
 - **비용 영향:** 중립.
-- **출처:** https://chaos-mesh.org/docs/simulate-network-chaos-on-kubernetes/ (partition), https://docs.aws.amazon.com/fis/latest/userguide/fis-actions-reference.html (`aws:eks:pod-network-blackhole-port`), 2026-10-01 확인 ⚠️출처확인필요
+- **출처:** https://chaos-mesh.org/docs/simulate-network-chaos-on-kubernetes/ (partition), https://docs.aws.amazon.com/fis/latest/userguide/fis-actions-reference.html (`aws:eks:pod-network-blackhole-port`), 2026-10-01 확인
 
 ### V-038 DNS 실패
 - **무엇/왜:** 이름 해석 실패·잘못된 IP를 주입해 DNS 캐시, 재시도, 오류 처리를 본다. 관리형 DB 페일오버는 DNS 갱신에 의존하므로 DNS 동작이 페일오버 시간을 좌우한다.
@@ -1161,7 +1161,7 @@
 - **처방:** 티어2: DNSChaos(Chaos DNS Server 필요, A/AAAA만). 티어1: 해당 도구 없음 → 의존성 호스트명을 잘못된 값으로 바꾼 리비전으로 근사.
 - **검증:** DNS 오류 중 기존 연결은 유지되고 새 연결 실패가 오류로 처리되는지, 해제 후 회복 시간.
 - **비용 영향:** 중립.
-- **출처:** https://chaos-mesh.org/docs/simulate-dns-chaos-on-kubernetes/ (error·random, Chaos DNS Server 필요, A·AAAA만), 2026-10-01 확인 ⚠️출처확인필요
+- **출처:** https://chaos-mesh.org/docs/simulate-dns-chaos-on-kubernetes/ (error·random, Chaos DNS Server 필요, A·AAAA만), 2026-10-01 확인
 
 ### V-039 HTTP 수준 오류·지연 주입(외부 API 장애)
 - **무엇/왜:** 외부 API(결제, 메일, LLM)가 5xx·지연·잘못된 응답을 줄 때 재시도·멱등성 키·디그레이드가 동작하는지 본다. 운영 외부 API에 직접 장애를 낼 수 없으므로 프록시·모의 서버로 주입한다.
@@ -1171,7 +1171,7 @@
 - **처방:** 티어2: HTTPChaos(HTTPS 미지원, 기존 TCP 연결에는 효과 없음 — 사이드카 모의 서버가 더 확실). 공통: 외부 API 기본 URL을 환경변수로 두어 모의 서버로 바꿀 수 있게.
 - **검증:** 모의 결제 API가 첫 요청에 타임아웃 후 성공하도록 설정 → 청구 1건만 기록되는지(V-050 불변식).
 - **비용 영향:** 중립.
-- **출처:** https://chaos-mesh.org/docs/simulate-http-chaos-on-kubernetes/ (네 가지 동작, HTTPS 미지원, 기존 연결 영향 없음, POST 비멱등 주의), 2026-10-01 확인 ⚠️출처확인필요
+- **출처:** https://chaos-mesh.org/docs/simulate-http-chaos-on-kubernetes/ (네 가지 동작, HTTPS 미지원, 기존 연결 영향 없음, POST 비멱등 주의), 2026-10-01 확인
 
 ### V-040 CPU·메모리 압박
 - **무엇/왜:** 컨테이너에 CPU·메모리 부하를 걸어 스로틀링·OOMKilled·HPA 반응·이웃 영향을 본다. 메모리 limit이 실제 사용량에 맞는지(right-sizing)도 확인한다.
@@ -1181,7 +1181,7 @@
 - **처방:** 티어2: StressChaos 단일 Pod. 티어1(ECS): FIS 태스크 CPU 스트레스.
 - **검증:** CPU 압박 중 liveness 실패 재시작 0건, 메모리 압박 시 OOM 종료 사유 기록과 자동 복구.
 - **비용 영향:** 중립.
-- **출처:** https://chaos-mesh.org/docs/simulate-heavy-stress-on-kubernetes/ (CPU·메모리 스트레스), https://docs.aws.amazon.com/fis/latest/userguide/fis-actions-reference.html, 2026-10-01 확인 ⚠️출처확인필요
+- **출처:** https://chaos-mesh.org/docs/simulate-heavy-stress-on-kubernetes/ (CPU·메모리 스트레스), https://docs.aws.amazon.com/fis/latest/userguide/fis-actions-reference.html, 2026-10-01 확인
 
 ### V-041 디스크 가득·I/O 오류
 - **무엇/왜:** 파일 쓰기에 ENOSPC(28)·I/O 오류(5)·지연을 주입한다. 로그 파일, 임시 업로드, SQLite, 로컬 캐시를 쓰는 앱이 디스크 문제에 어떻게 반응하는지 본다.
@@ -1191,7 +1191,7 @@
 - **처방:** 티어2: IOChaos(데이터 손상 위험 — 검증 환경 전용). 공통: 근본 처방은 D-PRE-001/002(오브젝트 스토리지·관리형 DB).
 - **검증:** ENOSPC 주입 중 쓰기 요청이 명확한 오류(5xx + 로그)로 실패하고 성공으로 위장되지 않는지 확인.
 - **비용 영향:** 중립.
-- **출처:** https://chaos-mesh.org/docs/simulate-io-chaos-on-kubernetes/ (latency, fault errno 예 5·28, 운영 사용 주의), https://docs.aws.amazon.com/fis/latest/userguide/fis-actions-reference.html, 2026-10-01 확인 ⚠️출처확인필요
+- **출처:** https://chaos-mesh.org/docs/simulate-io-chaos-on-kubernetes/ (latency, fault errno 예 5·28, 운영 사용 주의), https://docs.aws.amazon.com/fis/latest/userguide/fis-actions-reference.html, 2026-10-01 확인
 
 ### V-042 시계 왜곡
 - **무엇/왜:** 프로세스 시계를 앞뒤로 옮겨 토큰 만료, 세션 TTL, 예약 오픈 시각, 분산 락 만료, 멱등성 키 보존 기간 계산이 버티는지 본다.
@@ -1201,7 +1201,7 @@
 - **처방:** 티어2: TimeChaos ±5분. 공통 처방: 시각 비교는 DB 서버 시각이나 단조 시계로.
 - **검증:** 시계를 5분 뒤로 옮긴 Pod에서 오픈 전 주문이 거절되는지, 만료 계산 오류가 없는지 확인.
 - **비용 영향:** 중립.
-- **출처:** https://chaos-mesh.org/docs/simulate-time-chaos-on-kubernetes/ (시간 오프셋 주입, PID 1 범위 제한), 2026-10-01 확인 ⚠️출처확인필요
+- **출처:** https://chaos-mesh.org/docs/simulate-time-chaos-on-kubernetes/ (시간 오프셋 주입, PID 1 범위 제한), 2026-10-01 확인
 
 ### V-043 캐시·세션 저장소 장애
 - **무엇/왜:** 관리형 Redis의 노드·존 장애나 재시작을 주입한다. 캐시는 "없어도 느릴 뿐"이어야 하는데, 세션·큐·락까지 같은 Redis에 있으면 단일 장애점이 된다.
@@ -1313,7 +1313,7 @@
 - **처방:** 공통: OpenAPI 스키마 하위 호환 검사(가벼움)부터, 서비스가 많아지면 소비자 주도 계약.
 - **검증:** 필드를 삭제한 제공자 변경이 CI에서 실패하는지 확인.
 - **비용 영향:** 중립.
-- **출처:** https://docs.pact.io/ (소비자 주도 계약 테스트, 계약은 소비자 테스트 실행 중 생성, 2026-10-01 확인) ⚠️출처확인필요
+- **출처:** https://docs.pact.io/ (소비자 주도 계약 테스트, 계약은 소비자 테스트 실행 중 생성, 2026-10-01 확인) ⚠️출처부적격
 
 ### V-054 섀도 트래픽(운영 트래픽 미러링)
 - **무엇/왜:** 운영 요청을 복제해 새 버전에도 보내고 응답은 버린다. 실제 트래픽 분포로 새 버전의 오류·지연을 사용자 영향 없이 본다.
@@ -1323,7 +1323,7 @@
 - **처방:** 티어2: 읽기 전용(GET) 경로만 미러링, 섀도 버전은 별도 DB 복제본 또는 쓰기 비활성.
 - **검증:** 섀도 버전의 오류율·지연을 운영 버전과 비교, 섀도 쪽에서 외부 부작용 호출 0건 확인.
 - **비용 영향:** 증가(섀도 인스턴스).
-- **출처:** https://istio.io/latest/docs/tasks/traffic-management/mirroring/ ("fire and forget", 응답은 버려짐, 2026-10-01 확인) ⚠️출처확인필요
+- **출처:** https://istio.io/latest/docs/tasks/traffic-management/mirroring/ ("fire and forget", 응답은 버려짐, 2026-10-01 확인)
 
 ### V-055 브라우저 E2E 스모크(프론트엔드 포함)
 - **무엇/왜:** 배포된 URL에서 실제 브라우저로 핵심 흐름(가입·로그인·쓰기·읽기)을 실행한다. API 스모크로는 CORS·쿠키 속성·정적 자산 경로·CSP 문제를 못 잡는다.

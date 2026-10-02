@@ -375,7 +375,7 @@
 - **처방:** 티어1: ECS 배포 알람(`HTTPCode_ELB_5XX_Count` 등 AWS 권장 지표). 티어2: Argo Rollouts + Prometheus 성공률 쿼리. 주의: 배포 시작 시점에 이미 ALARM이면 ECS는 그 배포 동안 알람을 무시한다.
 - **검증:** 일정 비율로 500을 내는 버전 배포 → 자동 중단과 복귀 시간 측정.
 - **비용 영향:** 약간 증가(알람·지표).
-- **출처:** https://docs.aws.amazon.com/AmazonECS/latest/developerguide/deployment-alarm-failure.html · https://argo-rollouts.readthedocs.io/en/stable/features/analysis/ ⚠️출처확인필요
+- **출처:** https://docs.aws.amazon.com/AmazonECS/latest/developerguide/deployment-alarm-failure.html · https://argo-rollouts.readthedocs.io/en/stable/features/analysis/
 
 ### U-035 버전별로 나뉜 지표
 - **무엇/왜:** 카나리 판단은 "새 버전의 오류율 vs 구버전 오류율"이다. 지표에 버전 라벨이 없으면 카나리 5%의 오류가 전체 평균에 묻힌다.
@@ -385,7 +385,7 @@
 - **처방:** 빌드 SHA를 지표·로그 공통 라벨로(U-021). 분석 쿼리는 버전 필터 사용.
 - **검증:** 카나리에만 오류를 주입해 분석이 잡는지 확인.
 - **비용 영향:** 약간 증가(지표 카디널리티).
-- **출처:** https://argo-rollouts.readthedocs.io/en/stable/features/analysis/ (분석 쿼리 예시) · 버전 라벨 원칙은 일반 원칙(출처 미확인) ⚠️출처확인필요 ⚠️근거없음
+- **출처:** https://argo-rollouts.readthedocs.io/en/stable/features/analysis/ (분석 쿼리 예시) · 버전 라벨 원칙은 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### U-036 롤백이 실제로 가능한 상태인가 (스키마·설정·외부 상태)
 - **무엇/왜:** 앱 롤백은 코드만 되돌린다. Vercel Instant Rollback은 환경 변수를 되돌리지 않고, 외부 API·DB·CMS 변경도 그대로라고 명시한다. contract 단계 마이그레이션 뒤에는 이전 코드가 없는 컬럼을 찾는다.
@@ -469,7 +469,7 @@
 - **처방:** Prisma `migrate dev`로 마이그레이션 생성 후 운영은 `migrate deploy`. Supabase `supabase migration new`/`db diff`. Alembic 도입.
 - **검증:** 빈 DB에 마이그레이션 전체 적용 결과 스키마 = 운영 스키마(diff 0).
 - **비용 영향:** 중립.
-- **출처:** https://supabase.com/docs/guides/deployment/database-migrations · https://www.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate ⚠️출처확인필요
+- **출처:** https://supabase.com/docs/guides/deployment/database-migrations · https://www.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate
 
 ### U-044 파괴적 스키마 변경은 expand → migrate → contract로 나눈다
 - **무엇/왜:** 롤링·카나리·블루그린 모두 구버전과 신버전이 같은 DB를 동시에 쓴다. 컬럼 삭제·이름 변경·NOT NULL 추가는 구버전을 깨므로, 먼저 두 버전을 모두 지원하게 확장하고, 클라이언트를 옮긴 뒤, 마지막에 축소한다.
@@ -479,7 +479,7 @@
 - **처방:** 3개 릴리스로 분리: (1) 새 컬럼 추가 + 이중 쓰기, (2) 백필 + 읽기 전환, (3) 이전 컬럼 삭제. Prisma도 확장·축소 2단계 예시를 제공.
 - **검증:** 마이그레이션 적용 후 **구버전** 이미지로 통합 테스트 실행(N-1 호환 테스트).
 - **비용 영향:** 중립(일시적으로 컬럼 중복 저장).
-- **출처:** https://martinfowler.com/bliki/ParallelChange.html · https://www.prisma.io/docs/guides/data-migration ⚠️출처부적격 ⚠️출처확인필요
+- **출처:** https://martinfowler.com/bliki/ParallelChange.html · https://www.prisma.io/docs/guides/data-migration ⚠️출처부적격
 
 ### U-045 ORM이 "이름 변경"을 "삭제 + 추가"로 생성하는 함정
 - **무엇/왜:** 스키마 파일에서 필드 이름을 바꾸면 마이그레이션 생성기가 기존 컬럼 삭제와 새 컬럼 추가로 해석할 수 있다. 데이터가 사라진다.
@@ -489,7 +489,7 @@
 - **처방:** 생성된 SQL을 리뷰해 `RENAME`으로 고치되, 무중단이 필요하면 U-044 단계로.
 - **검증:** 마이그레이션 lint에서 같은 파일 DROP+ADD 패턴 경고.
 - **비용 영향:** 중립.
-- **출처:** 일반 원칙(출처 미확인). Prisma 문서에서 생성된 마이그레이션을 직접 편집할 수 있다는 점은 확인(https://www.prisma.io/docs/orm/prisma-migrate/workflows/customizing-migrations)했으나 rename→drop/add 동작을 명시한 문장은 찾지 못함. ⚠️출처확인필요 ⚠️근거없음
+- **출처:** 일반 원칙(출처 미확인). Prisma 문서에서 생성된 마이그레이션을 직접 편집할 수 있다는 점은 확인(https://www.prisma.io/docs/orm/prisma-migrate/workflows/customizing-migrations)했으나 rename→drop/add 동작을 명시한 문장은 찾지 못함. ⚠️출처부적격 ⚠️근거없음
 
 ### U-046 마이그레이션 실행 위치: 앱 기동이 아니라 별도 단계
 - **무엇/왜:** 마이그레이션 같은 일회성 관리 작업은 같은 릴리스·같은 설정으로 별도 프로세스에서 돌린다. Prisma는 `migrate deploy`를 CI/CD 파이프라인에서 실행하라고 권한다. 앱 기동마다 돌리면 replica 수만큼 동시에 실행되고, 실패 시 모든 Pod가 기동 실패한다.
@@ -499,7 +499,7 @@
 - **처방:** 티어0: Vercel은 빌드 단계에서 실행하는 경우가 많으나 프리뷰 빌드 문제(U-105) 주의 → CI 단계 권장. 티어1: Cloud Run Job / ECS run-task를 배포 전에. 티어2: Job 또는 Argo CD PreSync 훅.
 - **검증:** 마이그레이션에 `pg_sleep(60)`을 넣어 배포해 앱 Pod가 영향받지 않는지 확인.
 - **비용 영향:** 중립.
-- **출처:** https://12factor.net/admin-processes · https://www.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate ⚠️출처부적격 ⚠️출처확인필요
+- **출처:** https://12factor.net/admin-processes · https://www.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate ⚠️출처부적격
 
 ### U-047 동시 실행 직렬화 (마이그레이션 잠금)
 - **무엇/왜:** 여러 인스턴스·여러 파이프라인이 같은 마이그레이션을 동시에 돌리면 이중 적용이나 이력 테이블 충돌이 난다. advisory lock 등으로 한 번에 하나만 돌게 해야 한다.
@@ -519,7 +519,7 @@
 - **처방:** 티어2: Argo CD PreSync 훅 또는 파이프라인에서 Job 완료 대기 후 Deployment 적용. 티어1: 배포 전 Job 실행.
 - **검증:** 컬럼 추가 마이그레이션 + 그 컬럼을 읽는 코드를 한 번에 배포하며 5xx 측정.
 - **비용 영향:** 중립.
-- **출처:** https://argo-cd.readthedocs.io/en/stable/user-guide/sync-waves/ (PreSync로 DB 마이그레이션 먼저, 웨이브 순서) ⚠️출처확인필요
+- **출처:** https://argo-cd.readthedocs.io/en/stable/user-guide/sync-waves/ (PreSync로 DB 마이그레이션 먼저, 웨이브 순서)
 
 ### U-049 DDL 잠금 대기에 `lock_timeout`을 건다
 - **무엇/왜:** 대부분의 `ALTER TABLE`은 ACCESS EXCLUSIVE 잠금을 잡고, 이 잠금은 일반 `SELECT`까지 막는다. 잠금 요청은 충돌하는 잠금이 풀릴 때까지 무기한 기다리며, 그 사이 뒤에 온 쿼리들도 줄을 선다. `lock_timeout` 기본값 0은 무제한이다.
@@ -569,7 +569,7 @@
 - **처방:** 백필은 별도 Job으로 PK 범위 배치 + 커밋, 진행 상황 저장(재시작 가능), 실행 중에도 이중 쓰기 유지.
 - **검증:** 운영 규모 데이터 스테이징에서 백필 중 앱 p95 지연 측정.
 - **비용 영향:** 중립.
-- **출처:** https://docs.djangoproject.com/en/5.2/topics/migrations/ · https://www.prisma.io/docs/guides/data-migration · 배치 분할은 일반 원칙(출처 미확인) ⚠️출처확인필요 ⚠️근거없음
+- **출처:** https://docs.djangoproject.com/en/5.2/topics/migrations/ · https://www.prisma.io/docs/guides/data-migration · 배치 분할은 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### U-054 마이그레이션에도 `statement_timeout`과 실행 시간 상한
 - **무엇/왜:** 예상보다 오래 걸리는 마이그레이션은 중단되고 알려져야 한다. `statement_timeout` 기본 0은 무제한이다. 실행 단계에도 상한(k8s Job `activeDeadlineSeconds` 등)이 필요하다.
@@ -609,7 +609,7 @@
 - **처방:** CI 단계: (1) 빈 DB에 전체 적용, (2) 스키마 drift 검사, (3) 위험 DDL 패턴 검사(U-044~U-052 신호 재사용).
 - **검증:** 위험 DDL을 넣은 PR이 CI에서 막히는지.
 - **비용 영향:** 중립.
-- **출처:** https://www.prisma.io/docs/orm/prisma-migrate/workflows/development-and-production ⚠️출처확인필요
+- **출처:** https://www.prisma.io/docs/orm/prisma-migrate/workflows/development-and-production ⚠️출처부적격
 
 ### U-058 Supabase·BaaS의 마이그레이션 단일 실행자
 - **무엇/왜:** Supabase는 `supabase db push`로 원격에 적용하며, 팀은 한 번에 한 사람만 push하도록 조율하거나 main 머지 시 CI가 push하게 하라고 한다.
@@ -673,7 +673,7 @@
 - **처방:** 메시지 버전 필드, 소비자는 알 수 없는 필드 무시(관대한 수신), 생산자 형식 변경은 소비자가 양쪽을 다 읽게 된 뒤.
 - **검증:** 구 형식 메시지를 큐에 넣은 상태로 신규 소비자 배포.
 - **비용 영향:** 중립.
-- **출처:** https://protobuf.dev/programming-guides/proto3/ (메시지 타입 업데이트 규칙) ⚠️출처확인필요
+- **출처:** https://protobuf.dev/programming-guides/proto3/ (메시지 타입 업데이트 규칙) ⚠️출처부적격
 
 ### U-064 큐에 남은 작업과 생산자·소비자 배포 순서
 - **무엇/왜:** 작업 큐에는 구버전 코드가 넣은 페이로드가 배포 후에도 남는다. 작업 함수 이름·인자를 바꾸면 남은 작업이 실패한다.
@@ -683,7 +683,7 @@
 - **처방:** 작업 이름 고정, 인자 추가는 기본값과 함께, 큐를 비운 뒤 구 핸들러 제거. 소비자 먼저(양쪽 읽기) → 생산자 배포.
 - **검증:** 구버전으로 큐를 채운 뒤 신버전 워커 배포, 실패율 측정.
 - **비용 영향:** 중립.
-- **출처:** https://protobuf.dev/programming-guides/proto3/ (호환 변경 원칙) · 작업 큐 이름 고정은 일반 원칙(출처 미확인) ⚠️출처확인필요 ⚠️근거없음
+- **출처:** https://protobuf.dev/programming-guides/proto3/ (호환 변경 원칙) · 작업 큐 이름 고정은 일반 원칙(출처 미확인) ⚠️출처부적격 ⚠️근거없음
 
 ### U-065 프론트엔드 해시 청크와 구버전 클라이언트 (배포 중 청크 로드 실패)
 - **무엇/왜:** SPA는 해시가 붙은 청크를 지연 로드한다. 새 배포가 이전 자산을 지우면, 배포 전에 페이지를 연 사용자가 다음 화면으로 갈 때 이전 해시의 청크를 요청해 404가 난다. Vite는 이때 `vite:preloadError` 이벤트를 낸다.
@@ -753,7 +753,7 @@
 - **처방:** 새 워커 대기 시 "새 버전 있음" 안내 후 사용자 동의로 교체, 네비게이션 요청은 network-first, 비상 시 자기 해제(kill switch) 워커 준비.
 - **검증:** 구 워커가 설치된 브라우저로 배포 후 동작 확인.
 - **비용 영향:** 중립.
-- **출처:** https://web.dev/articles/service-worker-lifecycle ⚠️출처확인필요
+- **출처:** https://web.dev/articles/service-worker-lifecycle ⚠️출처부적격
 
 ### U-072 세션·쿠키·서명 키 호환
 - **무엇/왜:** 세션 저장 형식, 쿠키 이름·도메인, 서명 키를 바꾸면 배포 순간 모든 사용자가 로그아웃되거나, 롤링 중 구·신 인스턴스가 서로의 세션을 못 읽는다. Django는 `SECRET_KEY`를 바꾸면 세션·비밀번호 재설정 토큰·서명이 무효화되며, `SECRET_KEY_FALLBACKS`로 무중단 교체를 지원한다.
@@ -787,7 +787,7 @@
 - **처방:** 새 작업 가져오기 중단 → 현재 작업 완료 또는 반환 → 연결 종료. 처리 후 ack.
 - **검증:** 작업 처리 중 워커 Pod 삭제 → 작업이 정확히 한 번 완료되는지(C의 멱등성과 함께).
 - **비용 영향:** 중립.
-- **출처:** https://12factor.net/disposability · https://docs.celeryq.dev/en/stable/userguide/workers.html ⚠️출처부적격 ⚠️출처확인필요
+- **출처:** https://12factor.net/disposability · https://docs.celeryq.dev/en/stable/userguide/workers.html ⚠️출처부적격
 
 ### U-075 워커 유예 시간과 최장 작업 길이
 - **무엇/왜:** 작업이 유예 시간보다 길면 warm shutdown도 SIGKILL로 끝난다. Celery 5.5의 soft shutdown은 시간 제한 후 cold shutdown으로 넘어간다. Spot 중단 통보(설계 S22: Fargate Spot 2분, GKE Spot 30초)도 같은 제약이다.
@@ -797,7 +797,7 @@
 - **처방:** 작업을 짧은 단위로 쪼개 체크포인트, 또는 워커 grace를 최장 작업 + 여유로(ECS는 최대 120초라 긴 작업은 분할 필수).
 - **검증:** 최장 작업 실행 중 롤아웃 → 완료·재개 여부.
 - **비용 영향:** 중립.
-- **출처:** https://docs.celeryq.dev/en/stable/userguide/workers.html · https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html ⚠️출처확인필요
+- **출처:** https://docs.celeryq.dev/en/stable/userguide/workers.html · https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html
 
 ### U-076 배포 중 크론 중복 실행 (서지 Pod, 동시 실행 정책)
 - **무엇/왜:** 앱 프로세스 안의 스케줄러(`node-cron`, APScheduler)는 replica 1이어도 롤링 서지 구간에 구·신 Pod가 동시에 같은 시각에 실행한다. k8s CronJob은 `concurrencyPolicy` 기본 `Allow`이고, 문서는 CronJob이 Job을 두 번 만들거나 안 만들 수 있으니 작업을 멱등하게 하라고 한다.
@@ -827,7 +827,7 @@
 - **처방:** Job 이름에 SHA 접미사 또는 사전 삭제, Argo CD 훅 `BeforeHookCreation`, 마이그레이션은 재시도해도 안전하게(멱등 DDL) 또는 `backoffLimit` 작게.
 - **검증:** 같은 매니페스트를 두 번 연속 배포.
 - **비용 영향:** 중립.
-- **출처:** https://kubernetes.io/docs/concepts/workloads/controllers/job/ · https://argo-cd.readthedocs.io/en/stable/user-guide/sync-waves/ ⚠️출처확인필요
+- **출처:** https://kubernetes.io/docs/concepts/workloads/controllers/job/ · https://argo-cd.readthedocs.io/en/stable/user-guide/sync-waves/
 
 ### U-079 장시간 배치·Job이 배포를 가로지를 때
 - **무엇/왜:** 배치는 시작한 시점의 이미지로 끝까지 돈다. 그 사이 contract 마이그레이션이 나가면 구 코드 배치가 사라진 컬럼을 만난다. 노드 drain에도 중단된다.
@@ -901,7 +901,7 @@
 - **처방:** lock 커밋, CI·Dockerfile에서 `npm ci`/`pnpm install --frozen-lockfile`/`uv sync --frozen`, pip는 `--require-hashes` 고려.
 - **검증:** 같은 커밋 두 번 빌드한 결과 의존성 트리 동일.
 - **비용 영향:** 중립.
-- **출처:** https://12factor.net/dependencies · https://docs.npmjs.com/cli/v11/commands/npm-ci · https://pip.pypa.io/en/stable/topics/secure-installs/ ⚠️출처부적격 ⚠️출처확인필요
+- **출처:** https://12factor.net/dependencies · https://docs.npmjs.com/cli/v11/commands/npm-ci · https://pip.pypa.io/en/stable/topics/secure-installs/ ⚠️출처부적격
 
 ### U-086 베이스 이미지 고정과 정기 갱신
 - **무엇/왜:** 이미지 태그는 발행자가 다른 이미지로 옮길 수 있다. 일관성을 원하면 다이제스트로 고정하고, 대신 Dependabot 등으로 갱신 PR을 받아 보안 패치를 놓치지 않는다.
@@ -961,7 +961,7 @@
 - **처방:** 티어1: Cloud Run Binary Authorization(출처 미확인). 티어2: 서명 검증 어드미션 정책. 바이브코더 앱(U L1)에는 과잉이므로 요구하지 않는다. ⚠️근거없음
 - **검증:** 서명 없는 이미지 배포가 거부되는지.
 - **비용 영향:** 중립~약간 증가.
-- **출처:** https://slsa.dev/spec/v1.0/levels · https://docs.sigstore.dev/cosign/signing/signing_with_containers/ ⚠️출처확인필요
+- **출처:** https://slsa.dev/spec/v1.0/levels · https://docs.sigstore.dev/cosign/signing/signing_with_containers/ ⚠️출처부적격
 
 ### U-092 테스트·검증 통과가 배포의 전제
 - **무엇/왜:** 배포 잡이 테스트 잡에 의존(`needs`)하지 않으면 실패한 커밋도 배포된다. 플랫폼 Git 연동(Vercel 등)은 CI 결과와 무관하게 빌드·배포한다.
@@ -1045,7 +1045,7 @@
 - **처방:** 티어0: 플랫폼 env(암호화 저장). 티어1: Secret Manager/Secrets Manager 참조. 티어2: External Secrets Operator 또는 Secrets Store CSI.
 - **검증:** 렌더된 매니페스트에 Secret 값 0건.
 - **비용 영향:** 약간 증가(Secret Manager 호출·저장).
-- **출처:** https://kubernetes.io/docs/concepts/configuration/secret/ · https://external-secrets.io/latest/api/externalsecret/ ⚠️출처확인필요
+- **출처:** https://kubernetes.io/docs/concepts/configuration/secret/ · https://external-secrets.io/latest/api/externalsecret/
 
 ### U-100 무중단 비밀 교체
 - **무엇/왜:** 비밀을 한 번에 바꾸면 인스턴스마다 반영 시점이 달라(U-097) 일부가 실패한다. 두 자격 증명을 겹쳐 유효하게 두고 옮긴 뒤 이전 것을 폐기한다. AWS Secrets Manager는 관리형 교체와 Lambda 교체를 제공하고, Vercel은 무중단 교체 절차를 문서로 둔다.
@@ -1109,7 +1109,7 @@
 - **처방:** 티어0: 마이그레이션을 빌드에서 빼고 main 머지 후 CI 단계로, Preview에는 별도 DB(Supabase 브랜치, U-106).
 - **검증:** 프리뷰 빌드 로그에 마이그레이션 실행 0, 프리뷰 env의 DB 호스트 ≠ 운영.
 - **비용 영향:** 증가(프리뷰 DB).
-- **출처:** https://vercel.com/docs/environment-variables (Preview 환경 변수는 비프로덕션 브랜치 배포에 적용) · https://www.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate (migrate deploy는 CI/CD 파이프라인에서). 두 사실의 결합은 우리 추론이다. ⚠️출처확인필요 ⚠️근거없음
+- **출처:** https://vercel.com/docs/environment-variables (Preview 환경 변수는 비프로덕션 브랜치 배포에 적용) · https://www.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate (migrate deploy는 CI/CD 파이프라인에서). 두 사실의 결합은 우리 추론이다. ⚠️출처부적격 ⚠️근거없음
 
 ### U-106 프리뷰용 DB 브랜치
 - **무엇/왜:** Supabase Branching은 PR마다 별도 인스턴스와 자격 증명을 만들고 마이그레이션을 적용하며, 기본으로 운영 데이터를 복사하지 않는다. PR이 머지·종료되면 삭제된다.
@@ -1193,7 +1193,7 @@
 - **처방:** PR plan, 보호된 환경(U-117)에서 apply, OIDC 자격(U-090).
 - **검증:** 운영 apply 권한이 CI 역할에만 있는지.
 - **비용 영향:** 중립.
-- **출처:** https://www.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate (운영 변경은 CI/CD에서, 로컬 비권장 — 같은 원칙의 DB 쪽 근거) · Terraform 쪽은 일반 원칙(출처 미확인) ⚠️출처확인필요 ⚠️근거없음
+- **출처:** https://www.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate (운영 변경은 CI/CD에서, 로컬 비권장 — 같은 원칙의 DB 쪽 근거) · Terraform 쪽은 일반 원칙(출처 미확인) ⚠️출처부적격 ⚠️근거없음
 
 ### U-114 파괴적 IaC 변경 보호
 - **무엇/왜:** `prevent_destroy`는 리소스를 파괴하는 계획을 거부한다(설정 블록 자체를 지우면 막지 못함). `create_before_destroy`는 교체 시 새 것을 먼저 만든다. 이름 변경 하나가 DB "교체"(삭제 후 생성)로 계획될 수 있다.
@@ -1213,7 +1213,7 @@
 - **처방:** `kustomize build | kubeconform -strict -summary`, CRD는 `-schema-location` 추가.
 - **검증:** 오타 필드 PR이 실패하는지.
 - **비용 영향:** 중립.
-- **출처:** https://github.com/yannh/kubeconform ⚠️출처확인필요
+- **출처:** https://github.com/yannh/kubeconform ⚠️출처부적격
 
 ### U-116 정책 코드화 (Checkov, OPA Gatekeeper)
 - **무엇/왜:** "probe 필수, latest 금지, 리소스 요청 필수, 삭제 보호" 같은 규칙을 PR 단계(Checkov: Terraform·CloudFormation·Kubernetes·Helm·CDK 등)와 클러스터 어드미션 단계(Gatekeeper: OPA 정책을 웹훅으로 강제하고 기존 리소스 감사)에서 강제한다.
@@ -1223,7 +1223,7 @@
 - **처방:** infrafit 규칙집의 U 통제를 Checkov/OPA 정책으로 내보내 재사용(새 축 후보 참고). cdk-nag는 출처 미확인. ⚠️근거없음
 - **검증:** 위반 매니페스트가 PR과 어드미션에서 모두 거부되는지.
 - **비용 영향:** 중립.
-- **출처:** https://www.checkov.io/ · https://open-policy-agent.github.io/gatekeeper/website/docs/ ⚠️출처확인필요
+- **출처:** https://www.checkov.io/ · https://open-policy-agent.github.io/gatekeeper/website/docs/
 
 ### U-117 운영 배포 승인과 환경 보호 규칙
 - **무엇/왜:** GitHub Environments는 필수 검토자(최대 6명·팀, 한 명 승인으로 충분), 자기 승인 금지, 대기 타이머, 배포 가능한 브랜치·태그 제한을 제공하고, 환경 비밀은 규칙을 통과한 잡에만 열린다. 단, GitHub Free에서는 공개 저장소에서만 쓸 수 있고 비공개로 바꾸면 보호 규칙과 환경 비밀이 무시된다.
@@ -1243,7 +1243,7 @@
 - **처방:** 티어2: Argo CD + PreSync 마이그레이션 훅 + HPA 관리 필드(replicas) 무시 설정(U-004).
 - **검증:** 클러스터에서 수동 변경 → 자동 되돌림 또는 OutOfSync 표시.
 - **비용 영향:** 약간 증가(컨트롤러 리소스).
-- **출처:** https://argo-cd.readthedocs.io/en/stable/user-guide/sync-waves/ ⚠️출처확인필요
+- **출처:** https://argo-cd.readthedocs.io/en/stable/user-guide/sync-waves/
 
 ### U-119 배포 직렬화 (동시 배포 금지)
 - **무엇/왜:** 두 커밋의 배포가 겹치면 마이그레이션 순서가 꼬이고 이미지 지정이 뒤섞인다. GitHub Actions `concurrency` 그룹은 같은 그룹에서 한 번에 하나만 실행하고, 기본으로 대기 중인 이전 실행을 취소한다. 실행 중인 배포를 취소(`cancel-in-progress: true`)하면 절반만 적용된 상태가 남을 수 있다.

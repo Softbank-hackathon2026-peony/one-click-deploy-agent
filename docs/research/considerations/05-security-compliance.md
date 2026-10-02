@@ -64,7 +64,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어1·2: BuildKit `RUN --mount=type=secret`, `.dockerignore`에 `.env*` 추가, 런타임 주입으로 전환.
 - **검증:** `docker history --no-trunc`와 trivy secret 스캔으로 이미지 검사.
 - **비용 영향:** 중립
-- **출처:** https://docs.docker.com/build/building/secrets/ (빌드 인자·환경변수는 최종 이미지에 남음, secret mount 사용) · https://trivy.dev/docs/latest/ (이미지 내 secret 스캔) ⚠️출처확인필요
+- **출처:** https://docs.docker.com/build/building/secrets/ (빌드 인자·환경변수는 최종 이미지에 남음, secret mount 사용) · https://trivy.dev/docs/latest/ (이미지 내 secret 스캔)
 
 ### S-004 비밀 교체(로테이션) 불가 구조
 - **무엇/왜:** 키가 코드 상수이거나 여러 서비스에 복사돼 있으면 유출 시 교체에 배포가 필요하고, 교체를 미루게 된다. 세션·JWT 서명 키는 이전 키를 잠깐 함께 허용하는 구조가 필요하다.
@@ -390,7 +390,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어0: 기본 제공 / 티어1: ALB 80→443 리다이렉트, Cloud Run 기본 HTTPS / 티어2: Ingress 리다이렉트 어노테이션.
 - **검증:** `curl -I http://...` 301 + `Location: https://`.
 - **비용 영향:** 중립
-- **출처:** https://expressjs.com/en/advanced/best-practice-security.html (TLS 사용) · https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/ (HTTPS 후 SESSION/CSRF_COOKIE_SECURE) ⚠️출처확인필요
+- **출처:** https://expressjs.com/en/advanced/best-practice-security.html (TLS 사용) · https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/ (HTTPS 후 SESSION/CSRF_COOKIE_SECURE)
 
 ### S-035 HSTS 헤더 없음
 - **무엇/왜:** HSTS는 브라우저가 이 도메인에 HTTP로 접속하지 않게 만든다. 첫 리다이렉트 순간의 다운그레이드를 막는다. `preload`는 되돌리기 어려우므로 신중히.
@@ -410,7 +410,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어0: 플랫폼 자동 / 티어1: ACM, Google 관리형 인증서 / 티어2: cert-manager 또는 클라우드 관리형 인증서.
 - **검증:** 만료 30일 전 알림, 인증서 만료일 모니터링.
 - **비용 영향:** 중립 (ACM 공인 인증서는 LB 연동 시 무료로 알려져 있으나 이 문서에서는 미확인)
-- **출처:** https://cert-manager.io/docs/ (만료 전 자동 갱신) · https://letsencrypt.org/2025/12/02/from-90-to-45/ ⚠️출처확인필요
+- **출처:** https://cert-manager.io/docs/ (만료 전 자동 갱신) · https://letsencrypt.org/2025/12/02/from-90-to-45/
 
 ### S-037 DB·캐시 연결 평문 (내부 TLS 없음)
 - **무엇/왜:** VPC 안이라도 DB·Redis 연결을 TLS 없이 쓰면 같은 네트워크의 침해 지점에서 도청·변조가 가능하다. ElastiCache는 노드 기반 클러스터에서 전송 암호화를 명시적으로 켜야 하고, AUTH는 클라이언트 인증을 제공한다.
@@ -484,7 +484,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어0: Supabase Auth 레이트 리밋 조정, 서버 대리 호출 시 `Sb-Forwarded-For` 전달, CAPTCHA 켜기 / 티어1·2: 엣지·앱 이중 제한(IP + 계정), 실패 누적 시 지연·CAPTCHA, 유출 비밀번호 검사.
 - **검증:** 같은 계정으로 N회 실패 후 429·지연 확인(P4).
 - **비용 영향:** 중립 (WAF 봇 기능을 쓰면 증가)
-- **출처:** https://cheatsheetseries.owasp.org/cheatsheets/Credential_Stuffing_Prevention_Cheat_Sheet.html · https://supabase.com/docs/guides/auth/rate-limits · https://expressjs.com/en/advanced/best-practice-security.html (로그인 브루트포스 방지) ⚠️출처확인필요
+- **출처:** https://cheatsheetseries.owasp.org/cheatsheets/Credential_Stuffing_Prevention_Cheat_Sheet.html · https://supabase.com/docs/guides/auth/rate-limits · https://expressjs.com/en/advanced/best-practice-security.html (로그인 브루트포스 방지)
 
 ### S-044 계정 열거 (가입·로그인·재설정 응답 차이)
 - **무엇/왜:** "존재하지 않는 이메일"과 "비밀번호 틀림"을 다르게 응답하면 유효 계정 목록을 만들 수 있고, 스터핑·피싱 정확도가 올라간다.
@@ -558,7 +558,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어0: `next.config.js` headers / Vercel `vercel.json` headers / 티어1·2: 앱 미들웨어 또는 nginx·LB 응답 헤더.
 - **검증:** 응답 헤더 검사, CSP report-only 단계 후 강제.
 - **비용 영향:** 중립
-- **출처:** https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html · https://expressjs.com/en/advanced/best-practice-security.html (helmet, x-powered-by 끄기) ⚠️출처확인필요
+- **출처:** https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html · https://expressjs.com/en/advanced/best-practice-security.html (helmet, x-powered-by 끄기)
 
 ### S-051 운영 디버그 모드 (Django `DEBUG=True`, Flask debug, Werkzeug 디버거)
 - **무엇/왜:** Django DEBUG는 소스 일부, 지역 변수, 설정을 오류 페이지에 노출한다. Flask/Werkzeug 디버거는 브라우저에서 임의 Python 코드 실행을 허용한다(PIN은 보안 장치가 아님).
@@ -678,7 +678,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 공통: 공식 SDK 검증 함수 + 원문 본문, 타임스탬프 허용 오차.
 - **검증:** 서명 없는·잘못된 서명 요청 400 테스트.
 - **비용 영향:** 중립
-- **출처:** https://docs.stripe.com/webhooks/signature
+- **출처:** https://docs.stripe.com/webhooks/signature ⚠️출처부적격
 
 ### S-063 운영 소스맵·`.git`·환경 파일 정적 노출
 - **무엇/왜:** 운영에 공개 소스맵을 올리면 원본 코드(주석, 내부 API 경로)가 보인다. 정적 서버 루트에 `.git`, `.env`, 백업 파일이 함께 배포되는 경우도 있다.
@@ -702,7 +702,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어0: 플랫폼이 주는 IP 헤더 사용(Vercel 등), Supabase 서버 대리 호출은 `Sb-Forwarded-For` / 티어1·2: 신뢰 대역을 LB CIDR·홉 수로 고정.
 - **검증:** 임의 `X-Forwarded-For`를 넣은 요청이 레이트 리밋 키를 바꾸지 못함(simple-web-app tests/nginx 패턴).
 - **비용 영향:** 중립
-- **출처:** https://expressjs.com/en/guide/behind-proxies.html · https://nginx.org/en/docs/http/ngx_http_realip_module.html · https://supabase.com/docs/guides/auth/rate-limits (`Sb-Forwarded-For`) ⚠️출처확인필요
+- **출처:** https://expressjs.com/en/guide/behind-proxies.html · https://nginx.org/en/docs/http/ngx_http_realip_module.html · https://supabase.com/docs/guides/auth/rate-limits (`Sb-Forwarded-For`)
 
 ### S-065 WAF 없음 (공개 API·로그인·결제)
 - **무엇/왜:** 관리형 WAF 규칙은 OWASP Top 10 유형의 흔한 공격 패턴과 알려진 악성 IP를 엣지에서 거른다. 앱 수정 없이 붙는 방어층이지만 오탐과 비용이 있다.
@@ -816,7 +816,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어1·2: CI 스캔 + 심각도 기준 게이트, 레지스트리 스캔 켜기.
 - **검증:** CI 실패 기준(CRITICAL 0) 동작 확인.
 - **비용 영향:** 중립~소폭 증가 (레지스트리 고급 스캔 과금)
-- **출처:** https://trivy.dev/docs/latest/ ⚠️출처확인필요
+- **출처:** https://trivy.dev/docs/latest/ ⚠️출처부적격
 
 ### S-076 이미지 서명·검증
 - **무엇/왜:** 레지스트리나 CI 침해로 바뀐 이미지가 배포되지 않도록 서명하고, 배포 시 서명을 검증한다. 서명은 태그가 아니라 다이제스트에 한다.
@@ -826,7 +826,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어1·2: cosign keyless 서명(CI OIDC) + 배포 시 검증 정책.
 - **검증:** 서명 없는 이미지 배포 거부 테스트.
 - **비용 영향:** 소폭 증가 (운영 부담)
-- **출처:** https://docs.sigstore.dev/cosign/signing/signing_with_containers/ ⚠️출처확인필요
+- **출처:** https://docs.sigstore.dev/cosign/signing/signing_with_containers/ ⚠️출처부적격
 
 ### S-077 베이스 이미지 다이제스트 고정·최소 이미지
 - **무엇/왜:** `FROM node:20` 같은 태그는 게시자가 바꿀 수 있다. 다이제스트 고정은 재현성과 공급망 무결성을 준다. 멀티 스테이지로 빌드 도구를 운영 이미지에서 빼면 공격 표면이 준다.
@@ -850,7 +850,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 공통: lock 커밋, `npm ci`/`pnpm install --frozen-lockfile`/`uv sync --frozen`.
 - **검증:** CI 로그에서 frozen 설치 확인.
 - **비용 영향:** 중립
-- **출처:** https://docs.npmjs.com/cli/v11/commands/npm-ci ⚠️출처확인필요
+- **출처:** https://docs.npmjs.com/cli/v11/commands/npm-ci
 
 ### S-079 의존성 취약점 검사·자동 갱신 없음
 - **무엇/왜:** 알려진 취약 버전(예: S-061의 Next.js)을 계속 쓰는 것이 가장 흔한 침해 경로다. Dependabot 보안 업데이트, `npm audit`, `pip-audit`, OSV 스캐너로 잡는다.
@@ -860,7 +860,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 공통: Dependabot 보안 업데이트 + CI audit(HIGH 이상 실패).
 - **검증:** 스캐너 결과 HIGH/CRITICAL 0.
 - **비용 영향:** 중립
-- **출처:** https://docs.github.com/en/code-security/dependabot/dependabot-security-updates/about-dependabot-security-updates · https://expressjs.com/en/advanced/best-practice-security.html (npm audit) ⚠️출처확인필요
+- **출처:** https://docs.github.com/en/code-security/dependabot/dependabot-security-updates/about-dependabot-security-updates · https://expressjs.com/en/advanced/best-practice-security.html (npm audit)
 
 ### S-080 GitHub Actions 서드파티 액션 태그 참조
 - **무엇/왜:** `uses: some/action@v3`는 태그가 옮겨지면 다른 코드가 실행된다. 전체 커밋 SHA 고정이 가장 안전하다. 이 워크플로가 비밀과 배포 권한을 갖는다면 공급망 공격의 직통로다.
@@ -890,7 +890,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어1·2: 빌드 시 SBOM 생성·이미지에 첨부.
 - **검증:** 릴리스 아티팩트에 SBOM 존재.
 - **비용 영향:** 중립
-- **출처:** https://trivy.dev/docs/latest/ (SBOM 생성) ⚠️출처확인필요
+- **출처:** https://trivy.dev/docs/latest/ (SBOM 생성) ⚠️출처부적격
 
 ### S-083 빌드 출처 증명 (SLSA)
 - **무엇/왜:** SLSA Build L1은 출처 기록, L2는 호스팅 빌드 + 서명된 출처, L3는 빌드 간섭과 서명 자격 증명 접근을 막는 강화 빌드다. 개발자 노트북에서 빌드해 푸시하는 구조는 L0다.
@@ -900,7 +900,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어1·2: CI 빌드 + 서명된 provenance, 배포 시 검증.
 - **검증:** 이미지에 provenance attestation 존재.
 - **비용 영향:** 중립
-- **출처:** https://slsa.dev/spec/v1.0/levels ⚠️출처확인필요
+- **출처:** https://slsa.dev/spec/v1.0/levels ⚠️출처부적격
 
 ### S-084 설치 스크립트·타이포스쿼팅 의존성
 - **무엇/왜:** npm `postinstall` 스크립트는 설치 시 임의 코드를 실행한다. 이름이 비슷한 가짜 패키지, 갓 만들어진 무명 패키지는 공급망 공격의 흔한 형태다. 바이브코딩에서는 LLM이 존재하지 않는 패키지 이름을 제안하기도 한다.

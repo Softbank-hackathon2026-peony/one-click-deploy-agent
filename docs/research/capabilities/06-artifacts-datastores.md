@@ -29,7 +29,7 @@
   | celest-dev/turso | 0.2.3 | community | **저장소 보관**, 마지막 릴리스 2024-09 (§2) |
   | cyrilgdn/postgresql | 1.27.0 | community | DB 안의 객체(확장·역할) 관리용 |
 
-- **Checkov 규칙 ID**: Checkov 공식 정책 색인 `https://www.checkov.io/5.Policy%20Index/terraform.html` 원문(4,641행)에서 리소스 타입으로 걸러 낸 ID만 적었다. 색인에 없는 리소스(Firestore, AlloyDB, Atlas, Supabase 등)는 "Checkov 규칙 없음"으로 적었다. ⚠️출처확인필요
+- **Checkov 규칙 ID**: Checkov 공식 정책 색인 `https://www.checkov.io/5.Policy%20Index/terraform.html` 원문(4,641행)에서 리소스 타입으로 걸러 낸 ID만 적었다. 색인에 없는 리소스(Firestore, AlloyDB, Atlas, Supabase 등)는 "Checkov 규칙 없음"으로 적었다. ⚠️출처부적격
 - 클라우드 서비스의 능력 값(페일오버 시간, 백업 기본값 등)은 01·02 파일에 출처가 있어서, 여기서는 절 번호로 가리킨다.
 
 ## 목차
@@ -116,16 +116,16 @@ PostgreSQL 계열 15개, MySQL 4개, MongoDB 계열 4개는 앱 쪽 계약·로�
 
 | 드라이버·ORM | 연결 문자열 / 설정 | TLS | 풀러(트랜잭션 모드) 경유 시 | 출처 (2026-10-01) |
 |---|---|---|---|---|
-| Prisma ORM 7 | `prisma.config.ts`의 `datasource.url = env("DATABASE_URL")`. 런타임은 드라이버 어댑터(`@prisma/adapter-pg`의 `PrismaPg({ connectionString })`) 사용 | URL 인자 `sslmode` 기본 `prefer` → 운영에서는 `sslmode=require` 이상을 명시 | 런타임은 풀러 URL, CLI(`migrate`)는 `DIRECT_URL`(직결). PgBouncer 1.21 미만이면 `?pgbouncer=true`, 1.21 이상이면 붙이지 말라고 권고 | https://www.prisma.io/docs/orm/v7/overview/databases/postgresql · https://www.prisma.io/docs/orm/v7/prisma-client/setup-and-configuration/databases-connections/pgbouncer ⚠️출처확인필요 |
-| Prisma ORM 8 | **미확인.** 2026-10-01 기준 문서 기본값이 ORM 8로 바뀌었고 명령 체계(`orm init`, `contract`, `migration`)가 달라졌다. 연결 설정 문서는 이번에 확인하지 못했다 | 미확인 | 미확인 | https://www.prisma.io/docs/llms.txt ("Prisma ORM 8 is here. The docs now default to Prisma ORM 8.") ⚠️출처확인필요 |
-| SQLAlchemy + asyncpg | `postgresql+asyncpg://user:pass@host:5432/db` | asyncpg `ssl` 인자(`'require'`, `'verify-full'` 등). `create_async_engine(..., connect_args={"ssl": "require"})` | `?prepared_statement_cache_size=0`. PgBouncer를 쓰면 `NullPool` 사용과 PgBouncer 쪽 `DISCARD` 설정을 권고. 준비문 이름 충돌 주의(문서 절 "Prepared Statement Name with PGBouncer") | https://docs.sqlalchemy.org/en/20/dialects/postgresql.html · https://magicstack.github.io/asyncpg/current/api/index.html · https://magicstack.github.io/asyncpg/current/faq.html (`statement_cache_size=0`) ⚠️출처확인필요 |
-| psycopg 3 | `postgresql://…` (libpq URI). SQLAlchemy면 `postgresql+psycopg://…` | libpq `sslmode` **기본 `prefer`**(실패 시 평문으로 떨어짐) → `require`/`verify-full` 명시 | `prepare_threshold=None`으로 준비문 끄기. 3.2+는 PgBouncer 1.22+, `max_prepared_statements > 0`, libpq 17+일 때만 준비문 허용 | https://www.postgresql.org/docs/current/libpq-connect.html ("prefer (default)") · https://www.psycopg.org/psycopg3/docs/advanced/prepare.html ⚠️출처확인필요 |
-| node-postgres (`pg`) | `new Pool({ connectionString: process.env.DATABASE_URL })` | `ssl` 객체(`rejectUnauthorized`, `ca`). **연결 문자열에 `sslmode`·`sslrootcert` 등을 넣으면서 `ssl` 객체도 함께 쓰지 말 것** | `pg`는 이름 없는 준비문을 쓰므로 트랜잭션 풀링과의 충돌 문구는 이번에 확인하지 못함(미확인). `Pool` 기본 `max` 10 (01 §5.2) | https://node-postgres.com/features/ssl · https://node-postgres.com/features/connecting ⚠️출처확인필요 |
+| Prisma ORM 7 | `prisma.config.ts`의 `datasource.url = env("DATABASE_URL")`. 런타임은 드라이버 어댑터(`@prisma/adapter-pg`의 `PrismaPg({ connectionString })`) 사용 | URL 인자 `sslmode` 기본 `prefer` → 운영에서는 `sslmode=require` 이상을 명시 | 런타임은 풀러 URL, CLI(`migrate`)는 `DIRECT_URL`(직결). PgBouncer 1.21 미만이면 `?pgbouncer=true`, 1.21 이상이면 붙이지 말라고 권고 | https://www.prisma.io/docs/orm/v7/overview/databases/postgresql · https://www.prisma.io/docs/orm/v7/prisma-client/setup-and-configuration/databases-connections/pgbouncer ⚠️출처부적격 |
+| Prisma ORM 8 | **미확인.** 2026-10-01 기준 문서 기본값이 ORM 8로 바뀌었고 명령 체계(`orm init`, `contract`, `migration`)가 달라졌다. 연결 설정 문서는 이번에 확인하지 못했다 | 미확인 | 미확인 | https://www.prisma.io/docs/llms.txt ("Prisma ORM 8 is here. The docs now default to Prisma ORM 8.") ⚠️출처부적격 |
+| SQLAlchemy + asyncpg | `postgresql+asyncpg://user:pass@host:5432/db` | asyncpg `ssl` 인자(`'require'`, `'verify-full'` 등). `create_async_engine(..., connect_args={"ssl": "require"})` | `?prepared_statement_cache_size=0`. PgBouncer를 쓰면 `NullPool` 사용과 PgBouncer 쪽 `DISCARD` 설정을 권고. 준비문 이름 충돌 주의(문서 절 "Prepared Statement Name with PGBouncer") | https://docs.sqlalchemy.org/en/20/dialects/postgresql.html · https://magicstack.github.io/asyncpg/current/api/index.html · https://magicstack.github.io/asyncpg/current/faq.html (`statement_cache_size=0`) ⚠️출처부적격 |
+| psycopg 3 | `postgresql://…` (libpq URI). SQLAlchemy면 `postgresql+psycopg://…` | libpq `sslmode` **기본 `prefer`**(실패 시 평문으로 떨어짐) → `require`/`verify-full` 명시 | `prepare_threshold=None`으로 준비문 끄기. 3.2+는 PgBouncer 1.22+, `max_prepared_statements > 0`, libpq 17+일 때만 준비문 허용 | https://www.postgresql.org/docs/current/libpq-connect.html ("prefer (default)") · https://www.psycopg.org/psycopg3/docs/advanced/prepare.html ⚠️출처부적격 |
+| node-postgres (`pg`) | `new Pool({ connectionString: process.env.DATABASE_URL })` | `ssl` 객체(`rejectUnauthorized`, `ca`). **연결 문자열에 `sslmode`·`sslrootcert` 등을 넣으면서 `ssl` 객체도 함께 쓰지 말 것** | `pg`는 이름 없는 준비문을 쓰므로 트랜잭션 풀링과의 충돌 문구는 이번에 확인하지 못함(미확인). `Pool` 기본 `max` 10 (01 §5.2) | https://node-postgres.com/features/ssl · https://node-postgres.com/features/connecting ⚠️출처부적격 |
 | Django | `DATABASES["default"]`: `ENGINE="django.db.backends.postgresql"`, `OPTIONS`는 드라이버 연결 인자로 그대로 전달 → `OPTIONS={"sslmode": "require"}` | `OPTIONS.sslmode` | `DISABLE_SERVER_SIDE_CURSORS = True`. 내장 풀(`OPTIONS.pool`)은 psycopg에서만 동작. `CONN_MAX_AGE` 기본 0(요청마다 연결) | https://docs.djangoproject.com/en/stable/ref/databases/ ("passes the content of OPTIONS as keyword arguments to the connection constructor", "DISABLE_SERVER_SIDE_CURSORS") · https://docs.djangoproject.com/en/stable/ref/settings/ (`CONN_MAX_AGE` "Default: 0") |
 
 ### 0.2 풀러 경유 주의 (C8)
 
-- 트랜잭션 모드 풀러(Supabase 6543, Neon `-pooler`, PgBouncer `pool_mode=transaction`, RDS Proxy)를 쓰면 **세션 상태가 유지되지 않는다**. Neon 문서는 `SET`/`RESET`, `PREPARE`/`DEALLOCATE` 등을 제한 항목으로 든다(https://neon.com/docs/connect/connection-pooling). Supabase 문서도 "Transaction mode does not support prepared statements"라고 적는다(https://supabase.com/docs/guides/database/connecting-to-postgres). ⚠️출처확인필요 ⚠️근거없음
+- 트랜잭션 모드 풀러(Supabase 6543, Neon `-pooler`, PgBouncer `pool_mode=transaction`, RDS Proxy)를 쓰면 **세션 상태가 유지되지 않는다**. Neon 문서는 `SET`/`RESET`, `PREPARE`/`DEALLOCATE` 등을 제한 항목으로 든다(https://neon.com/docs/connect/connection-pooling). Supabase 문서도 "Transaction mode does not support prepared statements"라고 적는다(https://supabase.com/docs/guides/database/connecting-to-postgres). ⚠️근거없음
 - 생성 규칙은 다음과 같다.
   1. 런타임은 풀러 URL, 마이그레이션은 직결 URL을 쓴다(환경변수 두 개).
   2. 0.1 표의 준비문 끄기 설정을 함께 넣는다.
@@ -169,7 +169,7 @@ services:
 
 | 출발 → 도착 | 산출물 | 비고 | 출처 (2026-10-01) |
 |---|---|---|---|
-| SQLite → PostgreSQL | pgloader 명령 파일 (`load database from sqlite:///path/app.db into postgresql://… with include drop, create tables, create indexes, reset sequences`) | SQLite 기본 WITH 절에 `reset sequences`, `downcase identifiers` 등이 들어 있다. 타입 변환은 `CAST` 규칙으로 정한다. **AWS DMS·Google DMS는 SQLite 소스를 지원하지 않는다**(01 §5.5) | https://pgloader.readthedocs.io/en/latest/ref/sqlite.html ⚠️출처확인필요 |
+| SQLite → PostgreSQL | pgloader 명령 파일 (`load database from sqlite:///path/app.db into postgresql://… with include drop, create tables, create indexes, reset sequences`) | SQLite 기본 WITH 절에 `reset sequences`, `downcase identifiers` 등이 들어 있다. 타입 변환은 `CAST` 규칙으로 정한다. **AWS DMS·Google DMS는 SQLite 소스를 지원하지 않는다**(01 §5.5) | https://pgloader.readthedocs.io/en/latest/ref/sqlite.html ⚠️출처부적격 |
 | Prisma 앱의 SQLite → PG | pgloader로 데이터를 옮기고, 스키마는 `migrations` 폴더를 새 공급자로 다시 만든다(01 §5.3) | 동적 타이핑 때문에 이전이 실패하면 정제 단계가 필요하다(01 §5.4) | 01 §5.3 |
 | PG → 관리형 PG | `pg_dump --no-owner --no-privileges` → `psql`/`pg_restore` | Supabase 문서는 역할이 이전되지 않는다고 명시한다. 덤프·복원에는 세션 모드 풀러를 쓰라고 권고한다 | https://supabase.com/docs/guides/platform/migrating-to-supabase/postgres |
 | MySQL·PG → RDS/Aurora (연속 복제) | `aws_dms_replication_instance`, `aws_dms_endpoint`(`ssl_mode` 기본 `none` → `require`), `aws_dms_replication_task`(`migration_type`, `table_mappings`, `replication_task_settings`) | `ValidationSettings.EnableValidation = true`로 켜면 DMS가 원본과 대상의 행을 하나씩 비교한다 | https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/dms_replication_task · https://docs.aws.amazon.com/dms/latest/userguide/CHAP_Validating.html |
@@ -185,7 +185,7 @@ services:
 
 ### 0.6 MySQL 공통
 
-- 앱 계약은 다음과 같다. `DATABASE_URL=mysql://user:pass@host:3306/db`(Prisma 7, TLS는 `sslcert`·`sslaccept` 인자), `mysql2`(`connectionLimit` 기본 10), PyMySQL(autocommit 아님). 출처: https://www.prisma.io/docs/orm/v7/overview/databases/mysql · 01 §5.2. ⚠️출처확인필요
+- 앱 계약은 다음과 같다. `DATABASE_URL=mysql://user:pass@host:3306/db`(Prisma 7, TLS는 `sslcert`·`sslaccept` 인자), `mysql2`(`connectionLimit` 기본 10), PyMySQL(autocommit 아님). 출처: https://www.prisma.io/docs/orm/v7/overview/databases/mysql · 01 §5.2. ⚠️출처부적격
 - 로컬: 공식 이미지 `mysql:8.4`(8.4.11)와 `mysql:9.7`이 있다. 운영 8.4면 `8.4`를 쓴다. 헬스체크는 `mysqladmin ping`이다. 이 명령은 "Access denied"여도 0을 돌려준다(서버가 살아 있다는 뜻). 출처: https://hub.docker.com/_/mysql · https://dev.mysql.com/doc/refman/8.4/en/mysqladmin.html.
 - 이전 → PG: pgloader(MySQL 소스 지원), DMS(MySQL 소스 지원).
 
@@ -193,7 +193,7 @@ services:
 
 - 연결 문자열: `mongodb+srv://…`(SRV, Atlas) 또는 `mongodb://…`. 출처: https://www.mongodb.com/docs/manual/reference/connection-string/.
 - 로컬: 공식 이미지 `mongo:8.0`(8.0.32) / `mongo:7.0`이 있다. 이미지 기본값은 **인증 없음**이므로 `MONGO_INITDB_ROOT_USERNAME`/`_PASSWORD`를 지정한다. 헬스체크는 `mongosh --eval 'db.runCommand({ping:1})'`이다. 출처: https://github.com/docker-library/docs/blob/master/mongo/content.md.
-- **Prisma + MongoDB는 트랜잭션에 레플리카셋이 필요하다**("MongoDB requires replication of your data set to be enabled"). 로컬 compose도 단일 노드 레플리카셋(`--replSet`)으로 띄워야 한다. 출처: https://www.prisma.io/docs/orm/overview/databases/mongodb. ⚠️출처확인필요
+- **Prisma + MongoDB는 트랜잭션에 레플리카셋이 필요하다**("MongoDB requires replication of your data set to be enabled"). 로컬 compose도 단일 노드 레플리카셋(`--replSet`)으로 띄워야 한다. 출처: https://www.prisma.io/docs/orm/overview/databases/mongodb. ⚠️출처부적격
 - Atlas 로컬: Atlas CLI 로컬 배포 또는 Docker Compose 예제가 있다(https://www.mongodb.com/docs/atlas/cli/current/atlas-cli-deploy-docker/). 이미지 이름은 이번에 확인하지 못했다(미확인).
 - 이전: `mongodump` → `mongorestore <연결 문자열> <dump>`(`--nsInclude`로 범위 지정). 출처: https://www.mongodb.com/docs/database-tools/mongorestore/.
 - 검증: 컬렉션마다 `countDocuments()`와 표본 문서를 비교한다.
@@ -208,7 +208,7 @@ services:
 3. `checkov -d . --framework terraform`. 각 절에 적은 규칙 ID가 통과해야 한다. 요구 수준 때문에 일부러 끈 규칙(예: Single-AZ에서 CKV_AWS_157)은 `#checkov:skip=<ID>:<근거>` 주석으로 근거를 남긴다.
 4. 배포 후 연결 확인: 앱과 같은 네트워크 위치에서 `psql "$DATABASE_URL" -c 'select 1'`(MySQL은 `mysql -e 'select 1'`, Mongo는 `mongosh "$URI" --eval 'db.runCommand({ping:1})'`)을 실행한다. 클라우드 API로 핵심 속성을 다시 읽어 Terraform 값과 대조한다.
 
-- 출처: https://developer.hashicorp.com/terraform/cli/commands/validate · https://developer.hashicorp.com/terraform/cli/commands/plan (`-detailed-exitcode`) · https://www.checkov.io/2.Basics/CLI%20Command%20Reference.html · https://www.postgresql.org/docs/current/app-psql.html (2026-10-01) ⚠️출처확인필요
+- 출처: https://developer.hashicorp.com/terraform/cli/commands/validate · https://developer.hashicorp.com/terraform/cli/commands/plan (`-detailed-exitcode`) · https://www.checkov.io/2.Basics/CLI%20Command%20Reference.html · https://www.postgresql.org/docs/current/app-psql.html (2026-10-01)
 
 ---
 
@@ -248,7 +248,7 @@ services:
 - **로컬 개발 대응:** `turso dev`(기본 `http://127.0.0.1:8080`). 데이터를 남기려면 `--db-file local.db`를 준다. compose용 공식 이미지는 이번에 확인하지 못했다(미확인).
 - **데이터 이전 단계:** `turso_database.seed`의 `type`이 `database`(기존 DB), `dump`(업로드한 덤프 URL)를 지원한다. SQLite 파일을 직접 올리는 CLI 옵션은 미확인이다. 검증은 테이블별 `count(*)` 비교다.
 - **검증 명령:** `terraform validate`(provider를 쓸 때). Checkov 규칙 없음. 배포 후 앱 환경에서 `select 1`을 실행하고, 토큰 만료일을 기록한다.
-- **출처:** https://registry.terraform.io/providers/celest-dev/turso/latest/docs/resources/database · https://registry.terraform.io/providers/celest-dev/turso/latest/docs/resources/group · https://github.com/celest-dev/terraform-provider-turso (archived) · https://docs.turso.tech/cli/db/tokens/create · https://docs.turso.tech/local-development · https://docs.turso.tech/sdk/ts/quickstart · 2026-10-01 ⚠️출처확인필요
+- **출처:** https://registry.terraform.io/providers/celest-dev/turso/latest/docs/resources/database · https://registry.terraform.io/providers/celest-dev/turso/latest/docs/resources/group · https://github.com/celest-dev/terraform-provider-turso (archived) · https://docs.turso.tech/cli/db/tokens/create · https://docs.turso.tech/local-development · https://docs.turso.tech/sdk/ts/quickstart · 2026-10-01 ⚠️출처부적격
 
 ## 3. LiteFS
 
@@ -265,7 +265,7 @@ services:
 - **로컬 개발 대응:** 없음(FUSE 필요). 로컬은 일반 SQLite 파일로 대체한다.
 - **데이터 이전 단계:** 기존 SQLite 파일을 가져오는 명령은 미확인이다. 백업은 직접 구성해야 한다(오프사이트 사본).
 - **검증 명령:** 미확인. Checkov 규칙 없음.
-- **출처:** https://fly.io/docs/litefs/config/ (`fuse`, `lease`, `proxy` 절) · https://github.com/fly-apps/terraform-provider-fly (archived, README) · 2026-10-01 ⚠️출처확인필요
+- **출처:** https://fly.io/docs/litefs/config/ (`fuse`, `lease`, `proxy` 절) · https://github.com/fly-apps/terraform-provider-fly (archived, README) · 2026-10-01 ⚠️출처부적격
 
 ## 4. PostgreSQL — 자체 운영 (컨테이너·VM)
 
@@ -283,7 +283,7 @@ services:
 - **로컬 개발 대응:** 0.4와 같다(운영과 같은 compose 파일을 쓴다).
 - **데이터 이전 단계:** 0.5와 같다. SQLite에서 옮기면 pgloader를 같은 compose 네트워크 안의 일회성 서비스로 실행한다.
 - **검증 명령:** `docker compose config`(정적 검사), `docker compose up -d` 후 `docker compose ps`가 healthy인지 확인, `psql -c 'show max_connections; show lock_timeout;'`. 백업이 실제로 복원되는지 리허설한다(복원 → `count(*)` 비교). Checkov 규칙 없음(Terraform 리소스 없음).
-- **출처:** 0.4 출처 · https://registry.terraform.io/providers/cyrilgdn/postgresql/latest/docs/resources/postgresql_extension · 2026-10-01 ⚠️출처확인필요
+- **출처:** 0.4 출처 · https://registry.terraform.io/providers/cyrilgdn/postgresql/latest/docs/resources/postgresql_extension · 2026-10-01 ⚠️출처부적격
 
 ## 5. PostgreSQL — Amazon RDS, Single-AZ
 
@@ -537,7 +537,7 @@ services:
   - 오프라인: `postgres:<pg_version>`(0.4).
 - **데이터 이전 단계:** 0.5와 같다. 덤프·복원과 마이그레이션은 직결 URL로 한다. Neon 문서의 사용처 표가 "Schema migrations — Direct"라고 적는다.
 - **검증 명령:** `terraform validate`. Checkov 규칙 없음. 배포 후 풀러와 직결 각각 `select 1`을 실행하고, `sslmode=disable` 접속이 거부되는지 확인한다.
-- **출처:** https://registry.terraform.io/providers/kislerdm/neon/latest/docs/resources/project · https://github.com/kislerdm/terraform-provider-neon (archived, README) · https://neon.com/docs/reference/terraform · https://neon.com/docs/connect/connect-from-any-app · https://neon.com/docs/connect/connection-pooling · https://neon.com/docs/local/neon-local · 2026-10-01 ⚠️출처확인필요
+- **출처:** https://registry.terraform.io/providers/kislerdm/neon/latest/docs/resources/project · https://github.com/kislerdm/terraform-provider-neon (archived, README) · https://neon.com/docs/reference/terraform · https://neon.com/docs/connect/connect-from-any-app · https://neon.com/docs/connect/connection-pooling · https://neon.com/docs/local/neon-local · 2026-10-01 ⚠️출처부적격
 
 ## 15. PlanetScale Postgres
 
@@ -558,7 +558,7 @@ services:
 - **로컬 개발 대응:** 공식 에뮬레이터는 없다(미확인). `postgres:<major_version>`(0.4)을 쓴다.
 - **데이터 이전 단계:** 0.5의 `pg_dump`/`pg_restore`를 쓴다. `pscale database` 명령에 엔진별 dump·restore·migration 하위 명령이 있지만, 세부는 미확인이다.
 - **검증 명령:** `terraform validate`. Checkov 규칙 없음. 배포 후 `select 1`과 `show max_connections`를 확인한다.
-- **출처:** https://registry.terraform.io/providers/planetscale/planetscale/latest/docs/resources/postgres_branch · …/postgres_bouncer · …/postgres_backup_policy · …/postgres_branch_role · https://planetscale.com/docs/cli/database · 2026-10-01 ⚠️출처확인필요
+- **출처:** https://registry.terraform.io/providers/planetscale/planetscale/latest/docs/resources/postgres_branch · …/postgres_bouncer · …/postgres_backup_policy · …/postgres_branch_role · https://planetscale.com/docs/cli/database · 2026-10-01 ⚠️출처부적격
 
 ## 16. Prisma Postgres
 
@@ -577,7 +577,7 @@ services:
 - **로컬 개발 대응:** `prisma dev`(로컬 Prisma Postgres, Prisma 문서 색인). 다른 방법은 `postgres:17`(01 §0의 PG17 기준).
 - **데이터 이전 단계:** 0.5와 같다(대상 `direct_url`). `npx create-db`로 만든 DB는 24시간 뒤 삭제되므로 이전 대상으로 쓰지 않는다(01 §2.15).
 - **검증 명령:** `terraform validate`. Checkov 규칙 없음. `direct_url`로 `select 1`.
-- **출처:** https://registry.terraform.io/providers/prisma/prisma-postgres/latest/docs/resources/database · …/project · …/connection · https://www.prisma.io/docs/llms.txt ("local Prisma Postgres via prisma dev") · 2026-10-01 ⚠️출처확인필요
+- **출처:** https://registry.terraform.io/providers/prisma/prisma-postgres/latest/docs/resources/database · …/project · …/connection · https://www.prisma.io/docs/llms.txt ("local Prisma Postgres via prisma dev") · 2026-10-01 ⚠️출처부적격
 
 ## 17. MySQL — Amazon RDS for MySQL
 
@@ -646,7 +646,7 @@ services:
 - **로컬 개발 대응:** `mysql:8.4`(0.6). Vitess 고유 제약은 로컬에서 재현되지 않는다(미확인).
 - **데이터 이전 단계:** `pscale database` 명령의 dump·restore·migration 하위 명령을 쓴다(세부 미확인).
 - **검증 명령:** `terraform validate`. Checkov 규칙 없음. 배포 후 `select 1`.
-- **출처:** https://registry.terraform.io/providers/planetscale/planetscale/latest/docs/resources/vitess_branch_password · …/vitess_branch · …/vitess_backup_policy · https://planetscale.com/docs/cli/database · 2026-10-01 ⚠️출처확인필요
+- **출처:** https://registry.terraform.io/providers/planetscale/planetscale/latest/docs/resources/vitess_branch_password · …/vitess_branch · …/vitess_backup_policy · https://planetscale.com/docs/cli/database · 2026-10-01 ⚠️출처부적격
 
 ## 21. Cloud Firestore — Standard
 
@@ -863,7 +863,7 @@ services:
 - **로컬 개발 대응:** 공식 자체 호스팅 설치 명령은 `docker run -it --rm --publish 20080:20080 --volume /var/run/docker.sock:/var/run/docker.sock --volume "$(pwd)"/appwrite:/usr/src/code/appwrite:rw --entrypoint="install" appwrite/appwrite…`(태그는 문서 참조)다. 설치 마법사가 compose 파일을 만든다. Cloud와 자체 호스팅의 버전 일치 방법은 미확인이다.
 - **데이터 이전 단계:** 미확인(Appwrite Migrations 기능을 이번에 열람하지 않음).
 - **검증 명령:** `terraform validate`. Checkov 규칙 없음. plan에서 테이블마다 `row_security`와 `permissions`가 비어 있지 않은지 검사한다.
-- **출처:** https://registry.terraform.io/providers/appwrite/appwrite/latest/docs/resources/project · …/tablesdb · …/tablesdb_table ("Whether row-level permissions are enabled. Defaults to false.") · …/backup_policy · https://appwrite.io/docs/advanced/self-hosting/installation · 2026-10-01 ⚠️출처확인필요
+- **출처:** https://registry.terraform.io/providers/appwrite/appwrite/latest/docs/resources/project · …/tablesdb · …/tablesdb_table ("Whether row-level permissions are enabled. Defaults to false.") · …/backup_policy · https://appwrite.io/docs/advanced/self-hosting/installation · 2026-10-01 ⚠️출처부적격
 
 ## 32. PocketBase — 자체 호스팅
 
@@ -880,7 +880,7 @@ services:
 - **로컬 개발 대응:** 같은 바이너리와 Dockerfile을 쓴다(공식 이미지는 없고 문서의 Dockerfile 예시를 쓴다).
 - **데이터 이전 단계:** `pb_data` 디렉터리 복사(앱 정지 상태) 또는 백업 ZIP 복원. 다른 저장소에서 옮겨 오는 도구는 미확인이다.
 - **검증 명령:** `docker build` 성공, 컨테이너 기동 후 HTTP 헬스 엔드포인트(경로 미확인) 또는 `/` 200 확인, 볼륨 마운트 확인. Checkov 규칙 없음(Dockerfile 검사 규칙은 이 문서 범위 밖).
-- **출처:** https://pocketbase.io/docs/going-to-production/ ("mount a volume at /pb/pb_data", "Backups can be stored locally (default) or in a S3 compatible storage", "consider a different backup strategy", `superuser create`) · 2026-10-01 ⚠️출처확인필요
+- **출처:** https://pocketbase.io/docs/going-to-production/ ("mount a volume at /pb/pb_data", "Backups can be stored locally (default) or in a S3 compatible storage", "consider a different backup strategy", `superuser create`) · 2026-10-01
 
 ## 33. Convex
 
@@ -898,7 +898,7 @@ services:
 - **로컬 개발 대응:** `npx convex dev`. 자체 호스팅 백엔드는 오픈소스(FSL Apache 2.0)이며 가이드는 GitHub `get-convex/convex-backend/self-hosted`에 있다. 이미지 이름은 미확인이다.
 - **데이터 이전 단계:** `npx convex import` / `npx convex export`(ZIP). 관계형에서 옮기려면 조인을 코드로 바꿔야 한다(02 §14).
 - **검증 명령:** `npx convex deploy`의 종료 코드와 배포 후 앱에서 질의 함수 하나를 호출한다. Checkov 규칙 없음.
-- **출처:** https://docs.convex.dev/production/hosting/vercel.md ("`npx convex deploy` will read `CONVEX_DEPLOY_KEY`") · https://docs.convex.dev/cli/deploy-key-types.md · https://docs.convex.dev/self-hosting.md · https://docs.convex.dev/llms.txt (Management API, import/export 문서 목록) · https://docs.convex.dev/production/regions.md · 2026-10-01 ⚠️출처확인필요
+- **출처:** https://docs.convex.dev/production/hosting/vercel.md ("`npx convex deploy` will read `CONVEX_DEPLOY_KEY`") · https://docs.convex.dev/cli/deploy-key-types.md · https://docs.convex.dev/self-hosting.md · https://docs.convex.dev/llms.txt (Management API, import/export 문서 목록) · https://docs.convex.dev/production/regions.md · 2026-10-01 ⚠️출처부적격
 
 ## 34. pgvector — Postgres 확장
 
@@ -912,7 +912,7 @@ services:
 - **로컬 개발 대응:** `pgvector/pgvector:pg18`(`pg17` 등 메이저별 태그, `0.8.6-pg18-trixie` 고정 태그). README에 따르면 "This adds pgvector to the Postgres image"이므로 0.4의 compose에서 이미지 이름만 바꾼다.
 - **데이터 이전 단계:** 0.5와 같다. 덤프에 `CREATE EXTENSION`이 포함되는지 확인하고, 대상 호스트가 확장을 허용하는지 먼저 확인한다.
 - **검증 명령:** `psql -c "select extversion from pg_extension where extname='vector'"`. Checkov 규칙 없음.
-- **출처:** https://github.com/pgvector/pgvector (README, "CREATE EXTENSION vector;", Docker 태그) · https://registry.terraform.io/providers/cyrilgdn/postgresql/latest/docs/resources/postgresql_extension · https://hub.docker.com/r/pgvector/pgvector · 2026-10-01 ⚠️출처확인필요
+- **출처:** https://github.com/pgvector/pgvector (README, "CREATE EXTENSION vector;", Docker 태그) · https://registry.terraform.io/providers/cyrilgdn/postgresql/latest/docs/resources/postgresql_extension · https://hub.docker.com/r/pgvector/pgvector · 2026-10-01 ⚠️출처부적격
 
 ## 35. Pinecone — Serverless
 
@@ -928,7 +928,7 @@ services:
 - **로컬 개발 대응:** `ghcr.io/pinecone-io/pinecone-local:latest`(DB 에뮬레이터) 또는 `ghcr.io/pinecone-io/pinecone-index:latest`(인덱스 하나). **메모리 전용이라 정지하면 데이터가 사라지고**, 문서상 프로덕션 용도가 아니다.
 - **데이터 이전 단계:** 원본(pgvector 등)에서 벡터와 메타데이터를 읽어 다시 업서트하는 사용자 정의 스크립트가 필요하다(공식 이전 도구 미확인). 검증은 원본 행 수와 인덱스 레코드 수 비교, 표본 질의의 상위 k 일치율이다.
 - **검증 명령:** `terraform validate`. Checkov 규칙 없음. 배포 후 Control Plane `describe_index`로 `status.ready`와 `dimension`을 확인한다.
-- **출처:** https://registry.terraform.io/providers/pinecone-io/pinecone/latest/docs/resources/index · https://docs.pinecone.io/guides/operations/local-development ("in-memory emulator and isn't suitable for production") · https://docs.pinecone.io/reference/api/latest/control-plane/describe_index · 2026-10-01 ⚠️출처확인필요
+- **출처:** https://registry.terraform.io/providers/pinecone-io/pinecone/latest/docs/resources/index · https://docs.pinecone.io/guides/operations/local-development ("in-memory emulator and isn't suitable for production") · https://docs.pinecone.io/reference/api/latest/control-plane/describe_index · 2026-10-01 ⚠️출처부적격
 
 ---
 

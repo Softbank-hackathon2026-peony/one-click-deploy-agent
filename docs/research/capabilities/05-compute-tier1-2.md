@@ -768,7 +768,7 @@ EKS 네 모드 공통 사항(컨트롤 플레인, 버전 수명, ALB 컨트롤�
 | CP.local_disk | §6.1과 같음(EBS 단일 AZ) | — | §6.1 |
 | CP.scaling | 대기 Pod 기준 노드 직접 생성(ASG 없음), 통합으로 축소. **클러스터 전역 상한 설정 불가**(NodePool별 limits만) | — | https://docs.aws.amazon.com/eks/latest/best-practices/karpenter.html · "It is not possible to set a global limit for the whole cluster." · 2026-10-01 |
 | CP.concurrency | 앱 | — | — ⚠️근거없음 |
-| CP.shutdown | Pod 30초 기본. 노드 `expireAfter` 기본 **720시간(30일)**, 중단 예산 기본 노드 10%. `karpenter.sh/do-not-disrupt`로 보호. Spot 중단 처리는 SQS 큐 필요 | — | https://karpenter.sh/docs/concepts/disruption/ · "By default, expireAfter is set to 720h (30 days)." / "If undefined, Karpenter will default to one budget with nodes: 10%." · 2026-10-01 ⚠️출처확인필요 |
+| CP.shutdown | Pod 30초 기본. 노드 `expireAfter` 기본 **720시간(30일)**, 중단 예산 기본 노드 10%. `karpenter.sh/do-not-disrupt`로 보호. Spot 중단 처리는 SQS 큐 필요 | — | https://karpenter.sh/docs/concepts/disruption/ · "By default, expireAfter is set to 720h (30 days)." / "If undefined, Karpenter will default to one budget with nodes: 10%." · 2026-10-01 |
 | CP.deploy | §6.1 | — | §6.1 |
 | CP.availability | §6.1 + 컨트롤러는 Karpenter가 관리하지 않는 노드(MNG 또는 Fargate)에서 실행해야 함. **Karpenter에는 AWS SLA 없음** | — | https://docs.aws.amazon.com/eks/latest/best-practices/karpenter.html · "Do not run Karpenter on a node that is managed by Karpenter." / https://docs.aws.amazon.com/eks/latest/userguide/autoscaling.html · "There is no AWS Service Level Agreement (SLA) for Karpenter" · 2026-10-01 |
 | CP.networking | §6.1 | — | §6.1 |
@@ -868,20 +868,20 @@ ECS Fargate에서 올 때 같은 격리 모델이다. Ingress `target-type: ip`,
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| CP.process_types | 모든 쿠버네티스 워크로드 | — | https://docs.k3s.io/installation/requirements · 2026-10-01 ⚠️출처확인필요 |
+| CP.process_types | 모든 쿠버네티스 워크로드 | — | https://docs.k3s.io/installation/requirements · 2026-10-01 ⚠️출처부적격 |
 | CP.request_timeout | 기본 내장 Traefik 인그레스 설정에 따름(기본값 미확인). 앞에 클라우드 LB를 두면 그 LB 값 | — | 미확인 |
 | CP.long_connection | Traefik 설정에 따름(미확인) | — | 미확인 |
 | CP.cpu_outside_request | 있음 | — | 미확인(인용) ⚠️근거없음 |
 | CP.cold_start | 노드 오토스케일 없음(VM 고정) | — | 평가 ⚠️근거없음 |
-| CP.instance_size | VM 크기. 서버 최소 2코어·2 GB, 에이전트 1코어·512 MB | — | https://docs.k3s.io/installation/requirements · server "2 cores" "2 GB"; agent "1 core" "512 MB" · 2026-10-01 ⚠️출처확인필요 |
+| CP.instance_size | VM 크기. 서버 최소 2코어·2 GB, 에이전트 1코어·512 MB | — | https://docs.k3s.io/installation/requirements · server "2 cores" "2 GB"; agent "1 core" "512 MB" · 2026-10-01 ⚠️출처부적격 |
 | CP.request_size | Traefik 설정(미확인) | — | 미확인 ⚠️근거없음 |
-| CP.local_disk | Local Path Provisioner: 볼륨이 **노드에 고정**(노드 장애 시 Pod 이동 불가). 분산 저장은 Longhorn | — | https://docs.k3s.io/add-ons/storage · "Note that this does result in permanently binding the pod to the node hosting the volume" · 2026-10-01 ⚠️출처확인필요 |
+| CP.local_disk | Local Path Provisioner: 볼륨이 **노드에 고정**(노드 장애 시 Pod 이동 불가). 분산 저장은 Longhorn | — | https://docs.k3s.io/add-ons/storage · "Note that this does result in permanently binding the pod to the node hosting the volume" · 2026-10-01 ⚠️출처부적격 |
 | CP.scaling | HPA만(노드 증설은 수동) | — | 평가 ⚠️근거없음 |
 | CP.concurrency | 앱 | — | — ⚠️근거없음 |
 | CP.shutdown | Pod 30초 기본(쿠버네티스) | — | https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/ · "which defaults to 30 seconds." · 2026-10-01 |
 | CP.deploy | 롤링 25%(쿠버네티스) | — | https://kubernetes.io/docs/concepts/workloads/controllers/deployment/ · "The default value is 25%." · 2026-10-01 |
-| CP.availability | 기본 데이터스토어 SQLite는 **서버 1대 전용**. HA는 임베디드 etcd 서버 **3대 이상**(홀수) | — | https://docs.k3s.io/datastore · "SQLite cannot be used on clusters with multiple servers." / https://docs.k3s.io/datastore/ha-embedded · "Three or more server nodes that will serve the Kubernetes API and run other control plane services" · 2026-10-01 ⚠️출처확인필요 |
-| CP.networking | ServiceLB(Klipper)가 모든 노드의 80/443을 hostPort로 점유. 포트 6443(API), UDP 8472(VXLAN), 10250 | — | https://docs.k3s.io/networking/networking-services · "ports 80 and 443 will not be usable for other HostPort or NodePort pods" · 2026-10-01 ⚠️출처확인필요 |
+| CP.availability | 기본 데이터스토어 SQLite는 **서버 1대 전용**. HA는 임베디드 etcd 서버 **3대 이상**(홀수) | — | https://docs.k3s.io/datastore · "SQLite cannot be used on clusters with multiple servers." / https://docs.k3s.io/datastore/ha-embedded · "Three or more server nodes that will serve the Kubernetes API and run other control plane services" · 2026-10-01 ⚠️출처부적격 |
+| CP.networking | ServiceLB(Klipper)가 모든 노드의 80/443을 hostPort로 점유. 포트 6443(API), UDP 8472(VXLAN), 10250 | — | https://docs.k3s.io/networking/networking-services · "ports 80 and 443 will not be usable for other HostPort or NodePort pods" · 2026-10-01 ⚠️출처부적격 |
 | CP.regions | VM 리전 | — | — ⚠️근거없음 |
 | CP.plan_limits | 없음(자체 운영) | — | — ⚠️근거없음 |
 | CP.ops_burden | **가장 높음**(평가): OS 패치, k3s 업그레이드, etcd 백업, 인증서, 저장소, LB, 모니터링 전부 직접 | — | — ⚠️근거없음 |

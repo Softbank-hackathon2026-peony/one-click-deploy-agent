@@ -921,7 +921,7 @@
 - **처방:** 티어2: cert-manager 메트릭(`certmanager_certificate_expiration_timestamp_seconds`, 이름은 일반 지식) 알림 또는 외부 인증서 모니터링. 가능하면 매니지드 인증서(ACM·Google 관리)로. ⚠️근거없음
 - **검증:** 스테이징 이슈어로 짧은 수명 인증서를 발급해 갱신 주기 확인.
 - **비용 영향:** 중립.
-- **출처:** https://cert-manager.io/docs/usage/certificate/ · https://letsencrypt.org/2025/01/22/ending-expiration-emails/ (2026-10-01) ⚠️출처확인필요
+- **출처:** https://cert-manager.io/docs/usage/certificate/ · https://letsencrypt.org/2025/01/22/ending-expiration-emails/ (2026-10-01) ⚠️출처부적격
 
 ### D-089 도메인 등록 만료·DNS 호스팅 단일 공급자
 - **무엇/왜:** 도메인 등록 갱신 실패나 DNS 호스팅 공급자 장애는 인프라가 멀쩡해도 서비스를 지운다. 결제 카드 만료로 도메인 자동 갱신이 실패하는 일이 흔하다.
@@ -1149,7 +1149,7 @@
 - **처방:** 티어0: 핵심 페이지 정적 생성·경량화, PWA 오프라인 캐시. 모든 티어: 텍스트 우선 경량 모드.
 - **검증:** Playwright·Lighthouse 네트워크 스로틀링(느린 3G)·오프라인 모드에서 핵심 정보 표시 확인.
 - **비용 영향:** 감소(전송량 감소).
-- **출처:** https://web.dev/articles/offline-cookbook (2026-10-01) ⚠️출처확인필요
+- **출처:** https://web.dev/articles/offline-cookbook (2026-10-01) ⚠️출처부적격
 
 ### D-111 정적 비상 페이지
 - **무엇/왜:** 앱·DB·BaaS가 전부 죽어도 오브젝트 스토리지·CDN에서 서빙되는 정적 비상 페이지(공지, 대체 연락처, 마지막 업데이트 시각)가 있으면 사용자가 "서비스 없음"과 "서비스 장애 중"을 구분할 수 있다. CDN 오리진 그룹의 보조 오리진으로 연결한다(D-090).

@@ -3,6 +3,7 @@
 - 작성일: 2026-10-02
 - 대상: `docs/research/**/*.md` 21개 파일(약 23,000줄), `knowledge/defaults.yaml`, `knowledge/components/catalog.yaml`, `knowledge/signatures/*.yaml`, `knowledge/images.yaml`
 - 이 감사는 출처를 새로 찾거나 주장 내용을 고치지 않았다. 웹을 열지 않았다. 조사 문서에는 표시(⚠️)만 덧붙였다.
+- 최종 판정(2026-10-02): 사용자의 최종 규칙(§1 마지막)으로 이전 B·애매 판정과 이전 A 발행처를 다시 판정했다. ` ⚠️출처확인필요` 표시는 더 이상 없다. 남은 표시는 ` ⚠️출처부적격`(쓸 수 없음)과 ` ⚠️근거없음`(출처 없음) 둘이다.
 
 ## 1. 규칙 (사용자 지시)
 
@@ -21,6 +22,22 @@
 > - **C**: 허용 안 함 — 비공식이거나 사용자가 지정한 부적격 출처.
 >
 > 표시: C에만 기대는 줄은 ` ⚠️출처부적격`, B에만 기대는 줄은 ` ⚠️출처확인필요`, 출처 없이 사실을 적은 줄은 ` ⚠️근거없음`.
+
+최종 지시(2026-10-02, 위 A/B 구분을 대체하는 구속 규칙):
+
+> 인용은 **공식**(주장 주제의 소유자가 발행)이고, **발행처가 다음 중 하나 이상을 충족할 때만** 적격(A)이다.
+>
+> 1. Stack Overflow 2025 개발자 설문의 기술 목록에 있다. 사용자 검증 목록 — 클라우드·도구: Docker, npm, AWS, Pip, Kubernetes, Microsoft Azure, Homebrew, Vite, Google Cloud, Make, Yarn, Cloudflare, NuGet, APT, Webpack, Terraform, Maven, Cargo, Gradle, pnpm, Firebase, Prometheus, Ansible, Podman, Chocolatey, Composer, MSBuild, Digital Ocean, Vercel, Poetry, Datadog, Pacman, Netlify, Bun, Supabase, Heroku, Ninja, Splunk, New Relic, Railway, IBM Cloud, Yandex Cloud. 데이터베이스: PostgreSQL, MySQL, SQLite, Microsoft SQL Server, Redis, MongoDB, MariaDB, Elasticsearch, Oracle, DynamoDB, BigQuery, Supabase, Cloud Firestore, H2, Firebase Realtime Database, Microsoft Access, Cosmos DB, Snowflake, InfluxDB, Databricks SQL, DuckDB, Cassandra, Neo4J, Valkey, ClickHouse, IBM DB2, Amazon Redshift, CockroachDB, PocketBase, Datomic. 웹 프레임워크: Node.js, React, jQuery, Next.js, Express, ASP.NET Core, Angular, Vue.js, FastAPI, Spring Boot, Flask, ASP.NET, WordPress, Django, Laravel, AngularJS, Svelte, Blazor, NestJS, Ruby on Rails, Astro, Deno, Symfony, Nuxt.js, Fastify, Axum, Phoenix, Drupal. 프로그래밍 언어의 공식 사이트(Python, Go, Java 등)도 해당한다.
+> 2. CNCF 졸업 또는 인큐베이팅 프로젝트(사용자 검증: Envoy, Argo, cert-manager, KEDA, Chaos Mesh, Kubernetes, Prometheus, OpenTelemetry, Helm, containerd. Karpenter는 쿠버네티스 공식 하위 프로젝트(kubernetes-sigs)로 인정. k3s, Traefik, Trivy는 아님).
+> 3. Apache Software Foundation 최상위 프로젝트(Tomcat, Kafka 등).
+> 4. A 프레임워크의 공식 문서가 공식 배포·실행 서버로 제시하는 도구: uvicorn(FastAPI 문서), gunicorn(Flask·Django 문서). waitress, uWSGI, mod_wsgi도 같은 경우 해당하나 조사 문서에 그 인용이 없다.
+> 5. 표준 기구와 정부 법령 사이트, 주요 클라우드 자체 문서(AWS, sre.google을 포함한 Google Cloud, Azure), GitHub 자체 문서. MDN은 해당하지 않는다(C 유지).
+>
+> 그 밖의 이전 B는 모두 C(허용 안 함)다(Render, Fly.io, Replit, Neon, Upstash, Appwrite, Convex, PlanetScale, Pinecone, Turso, Prisma, Celery, BullMQ, Socket.IO, Traefik, Caddy, Trivy, Sentry, Let's Encrypt, k3s, Inngest, Ably, Pusher, Lovable, Bolt, Trigger.dev, 단일 관리자 저장소 등). 사용자가 이미 지정한 부적격 출처는 C로 남는다. 애매 4건(builder.aws.com 2건, web.dev 2건)은 C다.
+>
+> 줄 표시: ` ⚠️출처확인필요`가 붙었던 줄은, 그 줄의 B 인용이 모두 A가 되면 표시를 지우고, C가 된 인용에만 기대면 ` ⚠️출처부적격`으로 바꾼다. 섞여 있으면 A 인용이 하나라도 그 주장을 뒷받침할 때만 표시를 지우고, 아니면 ` ⚠️출처부적격`. ` ⚠️근거없음`은 그대로 둔다.
+
+**검증 메모.** SO 2025 목록과 CNCF 등급은 사용자가 확인해 준 목록을 그대로 썼다. 목록 밖이지만 기준 2에 해당한다고 감사자가 판단한 것은 Istio·OPA(둘 다 CNCF 졸업)뿐이고 §5.1에 따로 적었다. 이 감사는 웹을 열지 않았다.
 
 ## 2. 방법
 
@@ -47,50 +64,51 @@
    - dimensions.md와 capabilities/README.md는 전부 읽고 출처 없는 사실 서술을 직접 골랐다.
    - "값을 모른다"는 뜻의 `미확인`(정직한 공백)은 표시하지 않고 파일별로 줄 수만 셌다.
 6. **지식 베이스.** defaults.yaml 16개 값과 catalog 52개 항목의 근거 절을 찾아, 그 절의 인용 등급과 표시 수를 셌다. 시그니처·이미지 파일은 출처 필드가 없어 연결된 카탈로그 항목의 판정을 따른다.
+7. **최종 재판정(2026-10-02).** 이전 분류 결과(인용 4,377건, 발행처 이름 포함)를 그대로 다시 읽어 발행처마다 최종 규칙의 기준을 매겼다(§5.1·§5.2). 이전 A 발행처도 다섯 기준으로 다시 검사했고, nginx·Grafana·Stripe는 어느 기준에도 들지 않아 C로 내렸다(§5.3). 그다음 ` ⚠️출처확인필요` 줄 670개를 다시 표시했다: B 인용이 모두 A가 된 줄 165개는 표시를 지우고, C가 된 인용만 남은 줄 442개(이전 A가 Stripe뿐인 줄 포함)는 ` ⚠️출처부적격`으로 바꾸고, A와 C가 섞인 63줄은 하나씩 읽어 정했다(표시 지움 49, ⚠️출처부적격 14, §5.4). 이전 A 중 C로 내린 세 발행처에만 기대던 34줄에는 ` ⚠️출처부적격`을 붙였다(4줄은 이미 붙어 있었음). 표시 말고 조사 문서의 글자는 바꾸지 않았다.
 
 **한계.** A로 분류한 3,420건 중 위 3번의 검사 대상(291줄 + 문맥 검토 대상)이 아닌 인용은 URL 경로가 그 공급사 제품 문서인지까지만 확인했고, 주장 문장을 하나씩 읽지는 않았다. 고려 요소 카탈로그의 근거 없는 주장은 명시적 표시만 셌다(항목 출처 줄이 있는 항목의 개별 문장이 그 출처에 실제로 있는지는 확인하지 않았다).
 
 ## 3. 집계
 
-### 3.1 URL 언급 등급
+### 3.1 URL 언급 등급 (최종)
 
-| 등급 | 뜻 | 건수 |
-|---|---|---|
-| A | 공식 + 널리 알려진 발행처 | 3,420 |
-| B | 공식이지만 덜 알려진 발행처 (사용자 결정, §5) | 761 |
-| 애매 | 소유·공식 여부를 정하지 못함 (사용자 결정, §6) | 4 |
-| C | 허용 안 함 (§4) | 107 |
-| 출처 아님 | 예시 호스트, 자리표시자(`<도메인>` 등), localhost, 예시로 쓴 API 엔드포인트(`checkip.amazonaws.com`, OIDC 발급자 URL 등), 코드 블록 안 URL | 85 |
-| 합계 | | 4,377 |
+| 등급 | 뜻 | 건수 | 이전 감사 |
+|---|---|---|---|
+| A | 최종 규칙 충족 (§1) | 3,529 | A 3,420 |
+| C | 허용 안 함 (§4, §5.2, §5.3) | 763 | C 107 |
+| 출처 아님 | 예시 호스트, 자리표시자(`<도메인>` 등), localhost, 예시로 쓴 API 엔드포인트(`checkip.amazonaws.com`, OIDC 발급자 URL 등), 코드 블록 안 URL | 85 | 85 |
+| 합계 | | 4,377 | B 761, 애매 4 포함 |
 
-### 3.2 파일별
+이전 B 761건 중 168건이 A, 593건이 C가 됐다. 애매 4건은 C, 이전 A 중 59건(nginx 13, Grafana 17, Stripe 29)이 C가 됐다.
 
-| 파일 | A | B | 애매 | C | 출처 아님 | ⚠️출처부적격 줄 | ⚠️출처확인필요 줄 | ⚠️근거없음 줄 | `미확인` 포함 줄(값 공백, 표시 안 함) |
-|---|---|---|---|---|---|---|---|---|---|
-| dimensions.md | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 5 | 0 |
-| capabilities/01-sql-databases.md | 179 | 79 | 0 | 1 | 0 | 1 | 72 | 26 | 73 |
-| capabilities/02-nosql-baas.md | 175 | 77 | 0 | 0 | 0 | 0 | 67 | 27 | 71 |
-| capabilities/03-cache-queue-scheduler-realtime-storage.md | 231 | 69 | 0 | 0 | 2 | 0 | 77 | 47 | 151 |
-| capabilities/04-compute-tier0.md | 331 | 161 | 0 | 31 | 0 | 30 | 137 | 78 | 184 |
-| capabilities/05-compute-tier1-2.md | 342 | 7 | 0 | 0 | 1 | 0 | 6 | 85 | 85 |
-| capabilities/06-artifacts-datastores.md | 71 | 50 | 0 | 0 | 3 | 0 | 23 | 1 | 60 |
-| capabilities/07-artifacts-services.md | 118 | 43 | 0 | 0 | 8 | 0 | 20 | 2 | 71 |
-| capabilities/08-artifacts-compute.md | 199 | 54 | 0 | 10 | 14 | 5 | 44 | 49 | 101 |
-| capabilities/09-network-lb-ingress.md | 231 | 39 | 0 | 1 | 4 | 1 | 67 | 96 | 162 |
-| capabilities/10-network-edge-egress.md | 564 | 40 | 0 | 3 | 41 | 3 | 28 | 125 | 160 |
-| capabilities/README.md | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 1 | 2 |
-| considerations/01-resilience-dr.md | 146 | 2 | 1 | 0 | 1 | 0 | 2 | 23 | 23 |
-| considerations/02-traffic-compute.md | 136 | 21 | 2 | 13 | 0 | 13 | 20 | 9 | 8 |
-| considerations/03-deploy-release.md | 107 | 25 | 1 | 22 | 2 | 22 | 23 | 41 | 43 |
-| considerations/04-data-consistency.md | 124 | 29 | 0 | 14 | 0 | 14 | 27 | 18 | 19 |
-| considerations/05-security-compliance.md | 128 | 13 | 0 | 4 | 6 | 4 | 12 | 21 | 31 |
-| considerations/06-cost.md | 100 | 4 | 0 | 0 | 2 | 0 | 4 | 23 | 27 |
-| considerations/07-observability-verification.md | 113 | 16 | 0 | 6 | 0 | 6 | 15 | 46 | 36 |
-| considerations/08-workloads-platforms.md | 123 | 31 | 0 | 2 | 0 | 2 | 25 | 13 | 20 |
-| considerations/README.md | 2 | 1 | 0 | 0 | 0 | 0 | 1 | 0 | 3 |
-| **합계** | 3420 | 761 | 4 | 107 | 85 | 101 | 670 | 736 | 1330 |
+### 3.2 파일별 (최종)
 
-표시를 붙인 줄은 중복을 빼고 1,470줄이다(한 줄에 표시가 둘 이상 붙은 경우가 있어 위 세 열의 합보다 적다).
+| 파일 | A | C | 출처 아님 | ⚠️출처부적격 줄 | ⚠️근거없음 줄 | `미확인` 포함 줄(값 공백, 표시 안 함) |
+|---|---|---|---|---|---|---|
+| dimensions.md | 0 | 0 | 0 | 0 | 5 | 0 |
+| capabilities/01-sql-databases.md | 179 | 80 | 0 | 73 | 26 | 73 |
+| capabilities/02-nosql-baas.md | 192 | 60 | 0 | 53 | 27 | 71 |
+| capabilities/03-cache-queue-scheduler-realtime-storage.md | 239 | 61 | 2 | 63 | 47 | 151 |
+| capabilities/04-compute-tier0.md | 387 | 136 | 0 | 116 | 78 | 184 |
+| capabilities/05-compute-tier1-2.md | 343 | 6 | 1 | 5 | 85 | 85 |
+| capabilities/06-artifacts-datastores.md | 72 | 49 | 3 | 20 | 1 | 60 |
+| capabilities/07-artifacts-services.md | 120 | 41 | 8 | 14 | 2 | 71 |
+| capabilities/08-artifacts-compute.md | 213 | 50 | 14 | 33 | 49 | 101 |
+| capabilities/09-network-lb-ingress.md | 237 | 34 | 4 | 41 | 96 | 162 |
+| capabilities/10-network-edge-egress.md | 568 | 39 | 41 | 28 | 125 | 160 |
+| capabilities/README.md | 0 | 0 | 1 | 0 | 1 | 2 |
+| considerations/01-resilience-dr.md | 147 | 2 | 1 | 2 | 23 | 23 |
+| considerations/02-traffic-compute.md | 147 | 25 | 0 | 15 | 9 | 8 |
+| considerations/03-deploy-release.md | 115 | 40 | 2 | 31 | 41 | 43 |
+| considerations/04-data-consistency.md | 100 | 67 | 0 | 35 | 18 | 19 |
+| considerations/05-security-compliance.md | 133 | 12 | 6 | 9 | 21 | 31 |
+| considerations/06-cost.md | 101 | 3 | 2 | 3 | 23 | 27 |
+| considerations/07-observability-verification.md | 105 | 30 | 0 | 25 | 46 | 36 |
+| considerations/08-workloads-platforms.md | 129 | 27 | 0 | 16 | 13 | 20 |
+| considerations/README.md | 2 | 1 | 0 | 1 | 0 | 3 |
+| **합계** | 3529 | 763 | 85 | 583 | 736 | 1330 |
+
+표시를 붙인 줄은 ⚠️출처부적격 583줄, ⚠️근거없음 736줄이다(한 줄에 둘 다 붙은 경우가 있다). ⚠️출처확인필요는 0줄이다.
 
 ## 4. 허용 안 함(C) 인용
 
@@ -204,144 +222,237 @@
 | considerations/08-workloads-platforms.md:107 | https://nextjs.org/docs/app/guides/self-hosting | nginx는 X-Accel-Buffering: no, LB·프록시가 청크 응답을 버퍼링하지 않아야 함 | 주제 불일치: Next.js 문서로 nginx·LB 버퍼링 동작을 서술 |
 | considerations/08-workloads-platforms.md:394 | https://martinfowler.com/bliki/ParallelChange.html | W-030 모바일 백엔드: 구버전 앱 호환 | martinfowler.com (개인 사이트) |
 
-합계 107건. 이 인용만 기대는 줄에는 ` ⚠️출처부적격`을 붙였다.
+합계 107건. 이 인용만 기대는 줄에는 ` ⚠️출처부적격`을 붙였다. 이 표는 처음 감사의 C 판정이다. 최종 규칙으로 C가 된 발행처는 §5.2·§5.3에 발행처 단위로 적었다(인용 단위 목록은 싣지 않는다).
 
-## 5. B 발행처 — 사용자가 발행처 단위로 결정
+## 5. 최종 발행처 판정 (이전 B·애매·이전 A 재검사)
 
-발행처를 받아들이면 그 발행처만 인용한 줄의 ` ⚠️출처확인필요`를 지우면 된다. 받아들이지 않으면 그 주장은 쓸 수 없다. "줄"은 이 발행처 인용(약어로 가리킨 행 포함) 때문에 표시가 붙은 줄 수다.
+이전 감사의 B 발행처 109곳과 애매 4건을 최종 규칙(§1)으로 판정했다. A로 올린 발행처의 인용만 남은 줄은 표시를 지웠고, C로 내린 발행처에만 기대는 줄은 ` ⚠️출처부적격`으로 바꿨다. 둘이 섞인 줄은 §5.4 규칙으로 정했다. 언급 수는 URL 언급(약어로 가리킨 행 제외) 기준이다.
 
-| 발행처 | 언급: capabilities | 언급: considerations | 표시 줄: capabilities | 표시 줄: considerations | 쓰인 파일 (cap=capabilities, con=considerations) | 비고 |
-|---|---|---|---|---|---|---|
-| Railway | 66 | 6 | 69 | 5 | cap04, cap08, cap09, cap10, con08 |  |
-| Render | 58 | 8 | 47 | 7 | cap04, cap08, cap09, cap10, con08 | Terraform provider 문서 1건 포함 |
-| Fly.io | 48 | 5 | 41 | 3 | cap01, cap04, cap06, cap08, cap09, cap10, con08 |  |
-| Prisma | 21 | 20 | 17 | 20 | cap01, cap02, cap06, cap08, con-README, con02, con03, con04 | Terraform provider 문서 1건 포함 |
-| Replit | 38 | 1 | 31 | 1 | cap04, cap08, con08 |  |
-| Upstash | 28 | 0 | 23 | 0 | cap03, cap07, cap10 | Terraform provider 문서 4건 포함 |
-| Neon | 27 | 0 | 23 | 0 | cap01, cap06, cap10 |  |
-| Appwrite | 23 | 0 | 19 | 0 | cap02, cap06 | Terraform provider 문서 1건 포함 |
-| Convex | 23 | 0 | 17 | 0 | cap02, cap06 |  |
-| PlanetScale | 19 | 0 | 19 | 0 | cap01, cap06, cap10 | Terraform provider 문서 2건 포함 |
-| Checkov | 18 | 1 | 19 | 1 | cap06, cap07, cap08, cap09, cap10, con03 |  |
-| PocketBase | 18 | 0 | 15 | 0 | cap02, cap06 |  |
-| Pinecone | 17 | 0 | 15 | 0 | cap02, cap06 | Terraform provider 문서 1건 포함 |
-| Turso | 15 | 0 | 12 | 0 | cap01, cap06 |  |
-| Celery | 9 | 4 | 8 | 4 | cap03, cap07, con03, con04 |  |
-| BullMQ | 11 | 2 | 9 | 2 | cap03, cap07, con04 |  |
-| 토스페이먼츠 | 0 | 12 | 0 | 10 | con04 |  |
-| Express | 5 | 6 | 4 | 6 | cap03, cap09, con02, con05 |  |
-| k3s | 10 | 0 | 6 | 0 | cap05, cap08 |  |
-| pgvector | 8 | 1 | 7 | 1 | cap02, cap06, con08 |  |
-| Let's Encrypt | 7 | 2 | 4 | 2 | cap10, con01, con05 |  |
-| Chaos Mesh | 0 | 9 | 0 | 9 | con07 |  |
-| KEDA | 3 | 5 | 3 | 4 | cap03, cap08, con02 |  |
-| Inngest | 8 | 0 | 7 | 0 | cap03, cap07 |  |
-| Socket.IO | 5 | 3 | 5 | 3 | cap03, cap07, con02, con08 |  |
-| Karpenter | 3 | 5 | 2 | 5 | cap05, cap08, con02, con06, con08 |  |
-| Ably | 7 | 0 | 6 | 0 | cap03, cap07 | Terraform provider 문서 3건 포함 |
-| uvicorn | 3 | 4 | 3 | 4 | cap08, cap09, con02 |  |
-| Fastly | 7 | 0 | 4 | 0 | cap10 | Terraform provider 문서 1건 포함 |
-| Anthropic | 0 | 7 | 0 | 7 | con02, con06, con08 |  |
-| Confluent | 6 | 0 | 4 | 0 | cap03, cap07 | Terraform provider 문서 5건 포함 |
-| Sidekiq | 6 | 0 | 7 | 0 | cap03, cap07 |  |
-| Traefik | 6 | 0 | 9 | 0 | cap09 |  |
-| Pusher | 5 | 0 | 6 | 0 | cap03, cap07 |  |
-| cert-manager | 3 | 2 | 3 | 2 | cap10, con01, con05 |  |
-| node-postgres | 4 | 0 | 2 | 0 | cap01, cap06 |  |
-| psycopg | 3 | 0 | 2 | 0 | cap01, cap06 |  |
-| asyncpg | 3 | 0 | 2 | 0 | cap01, cap06 |  |
-| express-rate-limit | 3 | 0 | 3 | 0 | cap03 |  |
-| connect-redis | 3 | 0 | 3 | 0 | cap03, cap07 |  |
-| Valkey | 3 | 0 | 3 | 0 | cap03, cap07 |  |
-| Apache Kafka | 2 | 1 | 6 | 1 | cap03, con04 |  |
-| pg-boss (단일 관리자) | 3 | 0 | 5 | 0 | cap03, cap07 | 단일 관리자 저장소 |
-| Trigger.dev | 3 | 0 | 4 | 0 | cap03, cap07 |  |
-| celest-dev/turso (단일 관리자, 보관됨) | 3 | 0 | 2 | 0 | cap06 | Terraform provider 문서 2건 포함; 단일 관리자 저장소; 저장소 보관(archived) |
-| npm | 1 | 2 | 1 | 2 | cap08, con03, con05 |  |
-| gunicorn | 3 | 0 | 3 | 0 | cap08, cap09 |  |
-| kubeconform (단일 관리자) | 2 | 1 | 2 | 1 | cap08, con03 | 단일 관리자 저장소 |
-| Envoy / Envoy Gateway | 3 | 0 | 12 | 0 | cap09 |  |
-| Argo CD | 0 | 3 | 0 | 3 | con03 |  |
-| Trivy | 0 | 3 | 0 | 3 | con05 |  |
-| Sentry | 0 | 3 | 0 | 3 | con07 |  |
-| better-sqlite3 | 2 | 0 | 2 | 0 | cap01 |  |
-| SQLAlchemy | 2 | 0 | 2 | 0 | cap01, cap06 |  |
-| pgloader | 2 | 0 | 2 | 0 | cap01, cap06 |  |
-| Lovable | 2 | 0 | 1 | 0 | cap04 |  |
-| Bolt | 2 | 0 | 1 | 0 | cap04 |  |
-| cyrilgdn/postgresql (단일 관리자) | 2 | 0 | 2 | 0 | cap06 | Terraform provider 문서 2건 포함; 단일 관리자 저장소 |
-| kislerdm/neon (단일 관리자, 보관됨) | 2 | 0 | 2 | 0 | cap06 | Terraform provider 문서 1건 포함; 단일 관리자 저장소; 저장소 보관(archived) |
-| LocalStack | 2 | 0 | 1 | 0 | cap07 |  |
-| uv (Astral) | 2 | 0 | 2 | 0 | cap08 |  |
-| terraform-aws-modules (커뮤니티) | 2 | 0 | 2 | 0 | cap08 |  |
-| Caddy | 2 | 0 | 10 | 0 | cap08, cap09 |  |
-| Go | 1 | 1 | 1 | 1 | cap09, con02 |  |
-| PgBouncer | 0 | 2 | 0 | 2 | con02 |  |
-| TanStack Query | 0 | 2 | 0 | 2 | con02 |  |
-| Argo Rollouts | 0 | 2 | 0 | 2 | con03 |  |
-| Protocol Buffers (Google) | 0 | 2 | 0 | 2 | con03 |  |
-| SLSA (OpenSSF) | 0 | 2 | 0 | 2 | con03, con05 |  |
-| Sigstore | 0 | 2 | 0 | 2 | con03, con05 |  |
-| node-sqlite3 | 1 | 0 | 1 | 0 | cap01 |  |
-| postgres.js | 1 | 0 | 1 | 0 | cap01 |  |
-| mysql2 (node) | 1 | 0 | 1 | 0 | cap01 |  |
-| aiosqlite | 1 | 0 | 1 | 0 | cap01 |  |
-| PyMySQL | 1 | 0 | 1 | 0 | cap01 |  |
-| Drizzle ORM | 1 | 0 | 1 | 0 | cap01 |  |
-| TypeORM | 1 | 0 | 1 | 0 | cap01 |  |
-| Sequelize | 1 | 0 | 1 | 0 | cap01 |  |
-| lru-cache (단일 관리자) | 1 | 0 | 1 | 0 | cap03 | 단일 관리자 저장소 |
-| Flask-Caching | 1 | 0 | 1 | 0 | cap03 |  |
-| APScheduler | 1 | 0 | 1 | 0 | cap03 |  |
-| node-cron | 1 | 0 | 1 | 0 | cap03 |  |
-| pg_cron (Citus) | 1 | 0 | 2 | 0 | cap03 |  |
-| Google AI Studio/Gemini API | 1 | 0 | 1 | 0 | cap04 |  |
-| MinIO | 1 | 0 | 1 | 0 | cap07 |  |
-| django-storages | 1 | 0 | 1 | 0 | cap07 |  |
-| distroless (Google) | 1 | 0 | 1 | 0 | cap08 |  |
-| Ruby on Rails | 1 | 0 | 1 | 0 | cap08 |  |
-| hadolint | 1 | 0 | 2 | 0 | cap08 |  |
-| terraform-community-providers/railway (커뮤니티) | 1 | 0 | 1 | 0 | cap08 | Terraform provider 문서 1건 포함 |
-| Apache Tomcat | 1 | 0 | 1 | 0 | cap09 |  |
-| Puma | 1 | 0 | 1 | 0 | cap09 |  |
-| Hypercorn | 1 | 0 | 1 | 0 | cap09 |  |
-| Bun | 1 | 0 | 1 | 0 | cap09 |  |
-| Deno | 1 | 0 | 1 | 0 | cap09 |  |
-| Squarespace | 1 | 0 | 1 | 0 | cap10 |  |
-| pip (PyPA) | 0 | 1 | 0 | 1 | con03 |  |
-| External Secrets Operator | 0 | 1 | 0 | 1 | con03 |  |
-| OPA Gatekeeper | 0 | 1 | 0 | 1 | con03 |  |
-| Debezium | 0 | 1 | 0 | 1 | con04 |  |
-| Elastic | 0 | 1 | 0 | 1 | con04 |  |
-| FinOps Foundation | 0 | 1 | 0 | 1 | con06 |  |
-| web.dev (Google Chrome) | 0 | 1 | 0 | 1 | con07 |  |
-| web-vitals (Google Chrome) | 0 | 1 | 0 | 1 | con07 |  |
-| Pact | 0 | 1 | 0 | 1 | con07 |  |
-| Istio | 0 | 1 | 0 | 1 | con07 |  |
-| OpenAI | 0 | 1 | 0 | 1 | con08 |  |
-| Google Workspace 도움말 | 0 | 1 | 0 | 1 | con08 |  |
-| Standard Webhooks | 0 | 1 | 0 | 1 | con08 |  |
+### 5.1 A로 올림 (최종 규칙 충족)
 
-발행처 109곳, 언급 761건.
+| 발행처 | 언급: capabilities | 언급: considerations | 충족 기준 |
+|---|---|---|---|
+| Railway | 66 | 6 | SO 2025 (Railway) |
+| PocketBase | 18 | 0 | SO 2025 (PocketBase) |
+| Express | 5 | 6 | SO 2025 (Express) |
+| Chaos Mesh | 0 | 9 | CNCF incubating |
+| KEDA | 3 | 5 | CNCF graduated |
+| Karpenter | 3 | 5 | 쿠버네티스 공식 하위 프로젝트(kubernetes-sigs) |
+| uvicorn | 3 | 4 | FastAPI 공식 문서가 실행 서버로 제시 |
+| cert-manager | 3 | 2 | CNCF graduated |
+| Valkey | 3 | 0 | SO 2025 (Valkey) |
+| Apache Kafka | 2 | 1 | Apache 최상위 프로젝트 (SO 2025 목록 밖, ASF로 충족) |
+| npm | 1 | 2 | SO 2025 (npm) |
+| gunicorn | 3 | 0 | Flask·Django 공식 문서가 배포 서버로 제시 |
+| Envoy / Envoy Gateway | 3 | 0 | CNCF graduated (Envoy) |
+| Argo CD | 0 | 3 | CNCF graduated (Argo) |
+| Go | 1 | 1 | 프로그래밍 언어 공식 사이트 |
+| Argo Rollouts | 0 | 2 | CNCF graduated (Argo) |
+| Ruby on Rails | 1 | 0 | SO 2025 (Ruby on Rails) |
+| Apache Tomcat | 1 | 0 | Apache 최상위 프로젝트 |
+| Bun | 1 | 0 | SO 2025 (Bun) |
+| Deno | 1 | 0 | SO 2025 (Deno) |
+| pip (PyPA) | 0 | 1 | SO 2025 (Pip) |
+| OPA Gatekeeper | 0 | 1 | CNCF graduated (OPA 하위 프로젝트, 사용자 검증 목록 밖) |
+| Elastic | 0 | 1 | SO 2025 (Elasticsearch) |
+| Istio | 0 | 1 | CNCF graduated (사용자 검증 목록 밖, 감사자 확인) |
 
-## 6. 애매 — 사용자 결정
+24곳, 언급 168건. Istio와 OPA Gatekeeper는 사용자가 준 검증 목록에는 없지만 CNCF 졸업 프로젝트(Istio 2023, OPA 2021)라서 기준 2로 올렸다. 웹을 열지 않고 감사자가 아는 사실로 판단했으므로, 받아들이지 않으면 두 줄(considerations/03:1226, considerations/07:1326)을 ` ⚠️출처부적격`으로 바꾸면 된다. Envoy Gateway·Argo Rollouts·OPA Gatekeeper는 해당 CNCF 프로젝트 조직의 하위 프로젝트로, Karpenter는 kubernetes-sigs 하위 프로젝트로 셌다.
 
-| 파일:줄 | URL | 이유 |
+### 5.2 C로 내림 (최종 규칙 미충족)
+
+| 발행처 | 언급: capabilities | 언급: considerations | 비고 |
+|---|---|---|---|
+| Render | 58 | 8 | 사용자 지정 |
+| Fly.io | 48 | 5 | 사용자 지정 |
+| Prisma | 21 | 20 | 사용자 지정 |
+| Replit | 38 | 1 | 사용자 지정 |
+| Upstash | 28 | 0 | 사용자 지정 |
+| Neon | 27 | 0 | 사용자 지정 |
+| Appwrite | 23 | 0 | 사용자 지정 |
+| Convex | 23 | 0 | 사용자 지정 |
+| Checkov | 18 | 1 | Bridgecrew/Palo Alto 제품, SO 2025·CNCF·ASF 아님 |
+| PlanetScale | 19 | 0 | 사용자 지정 |
+| Pinecone | 17 | 0 | 사용자 지정 |
+| Turso | 15 | 0 | 사용자 지정 |
+| BullMQ | 11 | 2 | 사용자 지정 |
+| Celery | 9 | 4 | 사용자 지정 |
+| 토스페이먼츠 | 0 | 12 | SO 2025 목록 밖 |
+| k3s | 10 | 0 | 사용자 지정: CNCF 졸업·인큐베이팅 아님 |
+| Let's Encrypt | 7 | 2 | 사용자 지정 |
+| pgvector | 8 | 1 | PostgreSQL 확장(별도 프로젝트), SO 2025 목록 밖 |
+| Inngest | 8 | 0 | 사용자 지정 |
+| Socket.IO | 5 | 3 | 사용자 지정 |
+| Ably | 7 | 0 | 사용자 지정 |
+| Anthropic | 0 | 7 | SO 2025 목록 밖 |
+| Fastly | 7 | 0 | SO 2025 목록 밖 |
+| Confluent | 6 | 0 | Kafka 상용 공급사(ASF 아님) |
+| Sidekiq | 6 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| Traefik | 6 | 0 | 사용자 지정 |
+| Pusher | 5 | 0 | 사용자 지정 |
+| node-postgres | 4 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| Sentry | 0 | 3 | 사용자 지정 |
+| Trigger.dev | 3 | 0 | 사용자 지정 |
+| Trivy | 0 | 3 | 사용자 지정 |
+| asyncpg | 3 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| celest-dev/turso (단일 관리자, 보관됨) | 3 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| connect-redis | 3 | 0 | Express 프로젝트가 아닌 별도 저장소(tj/connect-redis) |
+| express-rate-limit | 3 | 0 | Express 프로젝트가 아닌 별도 저장소 |
+| kubeconform (단일 관리자) | 2 | 1 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| pg-boss (단일 관리자) | 3 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| psycopg | 3 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| Bolt | 2 | 0 | 사용자 지정 |
+| Caddy | 2 | 0 | 사용자 지정 |
+| LocalStack | 2 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| Lovable | 2 | 0 | 사용자 지정 |
+| PgBouncer | 0 | 2 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| Protocol Buffers (Google) | 0 | 2 | Google Cloud 문서가 아님, SO 2025 목록 밖 |
+| SLSA (OpenSSF) | 0 | 2 | 표준 기구 출판물로 보지 않음(OpenSSF 프로젝트) |
+| SQLAlchemy | 2 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| Sigstore | 0 | 2 | OpenSSF 프로젝트, CNCF 아님 |
+| TanStack Query | 0 | 2 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| better-sqlite3 | 2 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| cyrilgdn/postgresql (단일 관리자) | 2 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| kislerdm/neon (단일 관리자, 보관됨) | 2 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| pgloader | 2 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| terraform-aws-modules (커뮤니티) | 2 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| uv (Astral) | 2 | 0 | SO 2025 목록 밖(Pip·Poetry만 있음) |
+| APScheduler | 1 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| Debezium | 0 | 1 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| Drizzle ORM | 1 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| External Secrets Operator | 0 | 1 | CNCF sandbox(졸업·인큐베이팅 아님) |
+| FinOps Foundation | 0 | 1 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| Flask-Caching | 1 | 0 | Flask(pallets) 프로젝트가 아닌 pallets-eco 확장 |
+| Google AI Studio/Gemini API | 1 | 0 | Google Cloud 문서가 아님 |
+| Google Workspace 도움말 | 0 | 1 | Google Cloud 문서가 아님 |
+| Hypercorn | 1 | 0 | FastAPI 문서의 공식 실행 서버(uvicorn)가 아님 |
+| MinIO | 1 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| OpenAI | 0 | 1 | SO 2025 목록 밖 |
+| Pact | 0 | 1 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| Puma | 1 | 0 | Rails 문서가 제시하는 서버라는 인용이 조사 문서에 없음 |
+| PyMySQL | 1 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| Sequelize | 1 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| Squarespace | 1 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| Standard Webhooks | 0 | 1 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| TypeORM | 1 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| aiosqlite | 1 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| distroless (Google) | 1 | 0 | Google Cloud 문서가 아닌 GoogleContainerTools 저장소 |
+| django-storages | 1 | 0 | Django 프로젝트가 아닌 jazzband 확장 |
+| hadolint | 1 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| lru-cache (단일 관리자) | 1 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| mysql2 (node) | 1 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| node-cron | 1 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| node-sqlite3 | 1 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| pg_cron (Citus) | 1 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| postgres.js | 1 | 0 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| terraform-community-providers/railway (커뮤니티) | 1 | 0 | Railway 자신이 아닌 커뮤니티 provider |
+| web-vitals (Google Chrome) | 0 | 1 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| web.dev (Google Chrome) | 0 | 1 | SO 2025·CNCF·ASF·공식 실행 서버 어디에도 해당 없음 |
+| web.dev (Google Chrome) (애매) | 0 | 2 | 사용자 결정: 애매 4건은 C |
+| builder.aws.com (AWS Builder Center) (애매) | 0 | 2 | 사용자 결정: 애매 4건은 C |
+
+85곳 + 애매 2곳, 언급 597건.
+
+### 5.3 이전 A 중 최종 규칙에 못 미친 발행처
+
+이전 감사는 수정 지시의 A 목록을 그대로 썼다. 최종 규칙은 "다섯 기준 중 하나 이상"을 요구하므로 이전 A 발행처도 다시 검사했다. 아래 셋은 사용자가 준 SO 2025 목록·CNCF·ASF·공식 실행 서버·표준 기구/정부/주요 클라우드/GitHub 어디에도 들지 않는다. 규칙의 문언대로 C로 내렸다. 이 판정은 사용자가 뒤집을 수 있다(특히 nginx: Flask 문서가 리버스 프록시로 소개하지만 기준 4는 "실행 서버"만 다룬다).
+
+| 발행처 | 언급: capabilities | 언급: considerations | 이 발행처(이전 A)에만 기대어 ` ⚠️출처부적격`이 된 줄 (4줄은 다른 C 인용 때문에 이미 표시돼 있었음) |
+|---|---|---|---|
+| Stripe | 0 | 29 | 12줄: con/04:276, con/04:400, con/04:444, con/04:484, con/04:494, con/04:524, con/04:534, con/04:544, con/04:578, con/04:588, con/05:681, con/08:578 |
+| Grafana | 0 | 17 | 14줄: con/07:786, con/07:796, con/07:806, con/07:816, con/07:826, con/07:836, con/07:846, con/07:858, con/07:868, con/07:878, con/07:918, con/07:928, con/07:990, con/07:1010 |
+| nginx | 9 | 4 | 8줄: cap/09:1089, cap/09:1090, cap/09:1091, cap/09:1093, cap/09:1097, con/02:51, con/02:939, con/07:156 |
+
+이 세 발행처와 다른 A 출처가 함께 있는 7줄(considerations/04:360·370·380·474·934, considerations/07:1082, considerations/08:405)은 A 출처(AWS·IETF·PostgreSQL·Redis)가 항목의 주된 주장을 뒷받침하므로 표시하지 않았다. 지식 베이스 영향: nginx 기본값 5개를 지웠다(§8.1).
+
+### 5.4 A와 C가 섞인 줄
+
+규칙: 그 줄(표 행이면 그 행의 값, 고려 요소면 그 항목의 무엇/왜, capabilities 절의 출처 줄이면 그 절의 주제)의 주된 주장을 A 인용이 하나라도 뒷받침하면 표시를 지웠다. 주된 주장이 C 발행처의 제품·동작이거나, 한 행에 여러 제품 값을 나란히 적어 C 제품의 값이 그 C 출처에만 기대면 ` ⚠️출처부적격`으로 바꿨다. 표시를 지운 줄에서도 "비고"의 C 세부는 쓸 수 없다.
+
+| 파일:줄 | 결정 | 근거 |
 |---|---|---|
-| considerations/01-resilience-dr.md:1152 | https://web.dev/articles/offline-cookbook | 서비스 워커는 W3C 표준·브라우저 기능 — web.dev(Google Chrome DevRel)가 주제 소유자인지 불분명 |
-| considerations/02-traffic-compute.md:825 | https://builder.aws.com/content/3EumjoZascWd1oZiEgL8ORlv3qE/timeouts-retries-and-backof… | AWS Builder Center — 커뮤니티 게시가 가능한 플랫폼이라 AWS 공식 출판물인지 원문 확인 필요 |
-| considerations/02-traffic-compute.md:855 | https://builder.aws.com/content/3EumjoZascWd1oZiEgL8ORlv3qE/timeouts-retries-and-backof… | AWS Builder Center — 커뮤니티 게시가 가능한 플랫폼이라 AWS 공식 출판물인지 원문 확인 필요 |
-| considerations/03-deploy-release.md:756 | https://web.dev/articles/service-worker-lifecycle | 서비스 워커 수명 주기는 W3C 표준·브라우저 기능 — web.dev가 주제 소유자인지 불분명 |
+| capabilities/03-cache-queue-scheduler-realtime-storage.md:145 | 표시 지움 | express-session 문서(Express)가 프로세스 메모리 저장소의 무한 증가를 말함; lru-cache 세부는 C |
+| capabilities/03-cache-queue-scheduler-realtime-storage.md:147 | 표시 지움 | express-session 문서(Express)가 단일 프로세스 한정을 말함; express-rate-limit 세부는 C |
+| capabilities/03-cache-queue-scheduler-realtime-storage.md:933 | 표시 지움 | PostgreSQL 문서가 큐 테이블 잠금 패턴을 말함; pg-boss 문구는 C |
+| capabilities/03-cache-queue-scheduler-realtime-storage.md:1158 | 표시 지움 | Supabase 문서가 빈도 범위를 말함; pg_cron 문법은 C |
+| capabilities/06-artifacts-datastores.md:122 | ⚠️출처부적격 | 행의 주제가 psycopg 3 드라이버(준비문 설정)이고 그 부분은 psycopg 문서뿐 |
+| capabilities/06-artifacts-datastores.md:128 | 표시 지움 | Supabase 문서가 트랜잭션 모드의 세션 상태 제약을 말함; Neon 목록은 C |
+| capabilities/06-artifacts-datastores.md:211 | 표시 지움 | Terraform·psql 문서가 검증 절차를 뒷받침; Checkov 단계는 C |
+| capabilities/07-artifacts-services.md:146 | ⚠️출처부적격 | LocalStack·MinIO 행은 C 출처뿐 |
+| capabilities/07-artifacts-services.md:166 | 표시 지움 | Redis·Valkey 이미지 문서가 절의 주제를 뒷받침; BullMQ AOF 권장은 C |
+| capabilities/07-artifacts-services.md:193 | 표시 지움 | 주제는 ElastiCache(AWS·Terraform); Celery 연결 문자열은 C |
+| capabilities/07-artifacts-services.md:214 | 표시 지움 | 주제는 ElastiCache 서버리스(AWS·Terraform); BullMQ·connect-redis 세부는 C |
+| capabilities/07-artifacts-services.md:314 | 표시 지움 | 주제는 Memorystore Cluster(Terraform google); BullMQ·Sidekiq 세부는 C |
+| capabilities/07-artifacts-services.md:398 | 표시 지움 | 주제는 SQS(Terraform aws); Celery 설정 세부는 C |
+| capabilities/07-artifacts-services.md:588 | ⚠️출처부적격 | 절의 주제가 Celery 설정이고 Celery 문서뿐 |
+| capabilities/07-artifacts-services.md:831 | ⚠️출처부적격 | 절의 주제가 Socket.IO Redis 어댑터이고 Socket.IO·connect-redis 문서뿐 |
+| capabilities/07-artifacts-services.md:997 | 표시 지움 | 주제는 S3(Terraform aws); django-storages 세부는 C |
+| capabilities/08-artifacts-compute.md:95 | 표시 지움 | npm 문서가 lock 기반 재현 빌드를 말함; uv 명령은 C |
+| capabilities/08-artifacts-compute.md:211 | ⚠️출처부적격 | distroless(셸 없음)가 핵심 주장이고 distroless 저장소뿐 |
+| capabilities/08-artifacts-compute.md:1027 | 표시 지움 | 주제는 Cloud Functions(GCP·Terraform); Checkov ID는 C |
+| capabilities/08-artifacts-compute.md:1429 | 표시 지움 | 주제는 EKS Auto Mode(AWS·Terraform); terraform-aws-modules 인용은 C |
+| capabilities/08-artifacts-compute.md:1458 | ⚠️출처부적격 | 절의 주제가 k3s이고 k3s 문서뿐 |
+| capabilities/08-artifacts-compute.md:1492 | 표시 지움 | 주제는 EC2 위 compose(Docker·Terraform); Caddy 자동 HTTPS는 C |
+| capabilities/10-network-edge-egress.md:674 | ⚠️출처부적격 | Squarespace Domains 값은 Squarespace 문서뿐(같은 행의 Route 53·Cloudflare는 A) |
+| capabilities/10-network-edge-egress.md:1178 | ⚠️출처부적격 | Let's Encrypt 인증서 수명 일정이 행의 핵심이고 Let's Encrypt 문서뿐 |
+| capabilities/10-network-edge-egress.md:2166 | ⚠️출처부적격 | Neon PrivateLink 값은 Neon 문서뿐(같은 행의 Supabase는 A) |
+| capabilities/10-network-edge-egress.md:2173 | ⚠️출처부적격 | Neon·PlanetScale·Upstash 값은 각 사 문서뿐(같은 행의 Supabase·MongoDB는 A) |
+| capabilities/10-network-edge-egress.md:2175 | ⚠️출처부적격 | Upstash 비용 값은 Upstash 문서뿐(같은 행의 Supabase는 A) |
+| considerations/01-resilience-dr.md:924 | ⚠️출처부적격 | 항목 핵심(만료 알림 이메일 중단)이 Let's Encrypt 문서뿐 |
+| considerations/02-traffic-compute.md:81 | 표시 지움 | Cloud Run 문서가 인스턴스 간 Pub/Sub 공유를 말함; Socket.IO sticky 세부는 C |
+| considerations/02-traffic-compute.md:289 | 표시 지움 | Supabase 문서가 모듈 범위 클라이언트 생성을 말함 |
+| considerations/02-traffic-compute.md:447 | 표시 지움 | Supabase·RDS Proxy 문서가 풀링을 말함 |
+| considerations/02-traffic-compute.md:457 | 표시 지움 | Supabase·RDS Proxy 문서가 트랜잭션 풀링 제약을 말함 |
+| considerations/02-traffic-compute.md:825 | 표시 지움 | sre.google·Cloud Run·Vercel 문서가 타임아웃 설계를 뒷받침 |
+| considerations/02-traffic-compute.md:855 | 표시 지움 | sre.google이 재시도 예산·백오프를 말함 |
+| considerations/03-deploy-release.md:472 | 표시 지움 | Supabase 문서가 마이그레이션 파일 관리를 말함 |
+| considerations/03-deploy-release.md:572 | 표시 지움 | Django 문서가 데이터 마이그레이션을 말함 |
+| considerations/03-deploy-release.md:800 | 표시 지움 | ECS 태스크 정의 문서가 종료 유예를 말함; Celery 종료 모드는 C |
+| considerations/03-deploy-release.md:1048 | 표시 지움 | Kubernetes 문서가 Secret 평문 저장·외부 저장소 권고를 말함 |
+| considerations/03-deploy-release.md:1112 | ⚠️출처부적격 | 핵심 위험(빌드 단계 prisma migrate deploy)이 Prisma 문서뿐 |
+| considerations/03-deploy-release.md:1226 | 표시 지움 | Gatekeeper 문서가 어드미션 단계 정책 강제를 말함; Checkov 단계는 C |
+| considerations/04-data-consistency.md:42 | 표시 지움 | Django 문서가 autocommit·atomic을 말함; Prisma 8 API는 C |
+| considerations/04-data-consistency.md:52 | 표시 지움 | Django·PostgreSQL 문서가 lost update를 말함; Prisma 세부는 C |
+| considerations/04-data-consistency.md:92 | 표시 지움 | PostgreSQL 문서가 격리 수준·배타 제약을 말함; Prisma 세부는 C |
+| considerations/04-data-consistency.md:102 | 표시 지움 | PostgreSQL 문서가 재시도 필요를 말함; Prisma 세부는 C |
+| considerations/04-data-consistency.md:142 | 표시 지움 | Django 문서가 중첩 = savepoint를 말함; Prisma 비중첩은 C |
+| considerations/04-data-consistency.md:162 | 표시 지움 | PostgreSQL 문서가 ON CONFLICT 원자성을 말함; Prisma 세부는 C |
+| considerations/04-data-consistency.md:236 | 표시 지움 | RFC 9562·PostgreSQL 문서가 UUIDv7을 말함; Prisma 세부는 C |
+| considerations/04-data-consistency.md:286 | 표시 지움 | Firestore 문서가 다문서 원자성을 말함; Prisma 세부는 C |
+| considerations/04-data-consistency.md:296 | 표시 지움 | MongoDB 문서가 write concern 롤백을 말함; Prisma 세부는 C |
+| considerations/04-data-consistency.md:390 | 표시 지움 | DynamoDB·Powertools 문서가 키 보존 기간을 말함; Stripe·토스 값은 C |
+| considerations/04-data-consistency.md:434 | 표시 지움 | PostgreSQL 문서가 금액 타입을 말함; Prisma 매핑은 C |
+| considerations/04-data-consistency.md:732 | 표시 지움 | Redis 문서가 noeviction·AOF를 말함; BullMQ 권장은 C |
+| considerations/04-data-consistency.md:1200 | 표시 지움 | SQS 문서가 보존 기간 설정을 말함; Stripe·토스 값은 C |
+| considerations/05-security-compliance.md:67 | 표시 지움 | Docker 문서가 빌드 인자·환경변수 잔존을 말함; Trivy 스캔은 C |
+| considerations/05-security-compliance.md:413 | 표시 지움 | cert-manager 문서가 자동 갱신을 말함; Let's Encrypt 수명 단축은 C |
+| considerations/07-observability-verification.md:106 | 표시 지움 | OWASP·CloudWatch 문서가 로그 마스킹을 말함; Sentry 세부는 C |
+| considerations/08-workloads-platforms.md:63 | 표시 지움 | Cloud Run 문서가 인스턴스 간 동기화를 말함; Socket.IO 문구는 C |
+| considerations/08-workloads-platforms.md:74 | ⚠️출처부적격 | 항목 핵심(롱폴링 = 스티키 필요)이 Socket.IO 문서뿐 |
+| considerations/08-workloads-platforms.md:85 | 표시 지움 | Vercel 문서가 연결 종료·재연결을 말함; Render 세부는 C |
+| considerations/08-workloads-platforms.md:383 | 표시 지움 | RFC 6585가 429·Retry-After를 말함; Anthropic 예시는 C |
+| considerations/08-workloads-platforms.md:499 | 표시 지움 | Azure Container Apps 문서가 내부 환경·IP 제한을 말함; Render Free 세부는 C |
+| considerations/08-workloads-platforms.md:1108 | 표시 지움 | ECS·Next.js 문서가 종료 유예를 말함; Render 값은 C |
+| considerations/08-workloads-platforms.md:1156 | 표시 지움 | Supabase·Railway·Vercel·Firestore 문서가 무료 플랜 동작을 말함; Render Free 값은 C |
 
-이 4건은 ` ⚠️출처확인필요`로 표시했다(허용 쪽으로 풀지 않음).
+63줄: 표시 지움 49, ⚠️출처부적격 14.
 
-**판단 메모 (감사자가 내린 분류 중 사용자가 뒤집을 수 있는 것).**
+## 6. 애매 — 최종 결정
 
-1. **주요 클라우드의 일반 원칙 문서.** AWS Well-Architected(43건)·AWS 백서(25건)·Builders' Library·AWS 아키텍처 블로그, GCP 아키텍처 문서는 자기 제품이 아니라 일반 원칙(백업, 타임아웃, 디그레이드 등)을 말한다. 수정 지시가 sre.google을 A로 명시했으므로 같은 성격의 이 문서들도 A로 셌다. 일반 원칙에는 "소유자"가 없으므로 원래 규칙으로는 애매하다. 대부분 considerations/01-resilience-dr.md의 출처 줄이다.
-2. **Terraform provider 문서.** 인자 이름·기본값처럼 provider 자신의 동작은 provider 문서를 공식으로 봤다(hashicorp/aws 등 A). 같은 문서가 클라우드 서비스 자체의 한도를 말하는 경우는 C로 내렸다(§4의 HashiCorp 3건). `aws_db_instance.backup_retention_period` 기본값처럼 provider 문서와 AWS 문서가 엇갈리는 값은 §8에서 따로 다룬다.
-3. **공급사의 자기 제품 마케팅 글.** render.com의 경쟁사 비교·비용 글, appwrite.io 블로그, fly.io 블로그를 자기 제품 수치의 출처로 쓴 경우는 소유자 발행으로 보고 B로 뒀다.
-4. **Supabase 문서의 PostgreSQL 설명.** Supabase 제품 동작(노출 스키마, service_role)은 A, PostgreSQL 자체의 RLS 의미론·뷰 동작·성능은 C로 나눴다(§4).
-5. **Next.js 문서의 nginx 설명.** `X-Accel-Buffering` 같은 nginx 동작을 Next.js 문서로만 뒷받침한 3줄은 C로 내렸다. Next.js 자체 동작(캐시, 드레인 권장)은 A다.
+| 파일:줄 | URL | 결정 |
+|---|---|---|
+| considerations/01-resilience-dr.md:1152 | https://web.dev/articles/offline-cookbook | C (사용자 결정) |
+| considerations/02-traffic-compute.md:825 | https://builder.aws.com/content/3EumjoZascWd1oZiEgL8ORlv3qE/timeouts-retries-and-backof… | C (사용자 결정). 같은 출처 줄의 sre.google·Cloud Run·Vercel 문서가 항목을 뒷받침하므로 표시는 지움(§5.4) |
+| considerations/02-traffic-compute.md:855 | https://builder.aws.com/content/3EumjoZascWd1oZiEgL8ORlv3qE/timeouts-retries-and-backof… | C (사용자 결정). sre.google이 항목을 뒷받침하므로 표시는 지움(§5.4) |
+| considerations/03-deploy-release.md:756 | https://web.dev/articles/service-worker-lifecycle | C (사용자 결정) |
+
+**판단 메모 (사용자가 뒤집을 수 있는 것).**
+
+1. **주요 클라우드의 일반 원칙 문서.** AWS Well-Architected·백서·Builders' Library·아키텍처 블로그, GCP 아키텍처 문서는 최종 규칙 기준 5("주요 클라우드 자체 문서, sre.google 포함")로 A다.
+2. **Terraform provider 문서.** 인자 이름·기본값처럼 provider 자신의 동작은 provider 문서를 공식으로 봤다(hashicorp/* provider는 Terraform, 기준 1). 클라우드 서비스 자체의 한도를 말하는 경우는 C(§4의 HashiCorp 3건). 그 밖의 provider는 발행처 판정을 따른다(Upstash·Ably·Confluent·PlanetScale 등 C, 단일 관리자 provider C).
+3. **공급사의 자기 제품 글.** 자기 제품 수치를 말하면 소유자 발행으로 보고 발행처 판정을 따랐다(Railway A, Render·Fly.io·Appwrite C).
+4. **Supabase 문서의 PostgreSQL 설명**, **Next.js 문서의 nginx 설명**은 주제 불일치로 C(§4) 그대로다.
+5. **nginx·Grafana·Stripe.** 이전 수정 지시는 A 목록에 넣었지만 최종 규칙의 다섯 기준에 들지 않아 C로 내렸다(§5.3). 이 결정이 엔진에 미치는 영향(nginx 기본값 5개 삭제)은 §8.1에 있다.
 
 ## 7. 근거 없는 주장
 
@@ -922,136 +1033,134 @@
 
 ## 8. 지식 베이스 점검 (엔진이 이미 쓰는 값)
 
-이 절이 가장 중요하다. 아래 값과 항목은 이미 엔진(S1)이 쓰고 있다.
+이 절이 가장 중요하다. 아래 값과 항목은 이미 엔진(S1)이 쓰고 있다. 최종 규칙으로 다시 판정하고, 쓸 수 없는 기본값은 `knowledge/defaults.yaml`에서 지웠다.
 
-### 8.1 defaults.yaml (16개 값)
+### 8.1 defaults.yaml (16개 → 8개)
 
-| # | 대상 · 키 = 값 | 근거가 된 조사 문서의 주장 | 그 주장의 출처 | 판정 |
-|---|---|---|---|---|
-| 1 | k8s Deployment `terminationGracePeriodSeconds` = 30 | "The default terminationGracePeriodSeconds setting is 30 seconds." (09:1381, defaults.yaml에 URL 직접 기재) | kubernetes.io (A) | 적격 |
-| 2 | k8s CronJob `concurrencyPolicy` = Allow | considerations/03:803 "k8s CronJob은 `concurrencyPolicy` 기본 `Allow`", capabilities/03:1070 "Allow (default)" | kubernetes.io/docs/concepts/workloads/controllers/cron-jobs (A) | 적격 |
-| 3 | terraform `aws_db_instance.backup_retention_period` = 0 | capabilities/06:294 "Registry 문서의 기본값은 `0`(백업 꺼짐)이고, 01 §2.2의 AWS 문서는 'API·CLI 생성 시 1일'이다. 두 값이 [충돌]" | registry.terraform.io hashicorp/aws (A) **와** AWS RDS 문서 (A)가 서로 다름 | **확정 불가** — 출처는 둘 다 A지만 조사 문서 스스로 [충돌]로 적었다. 엔진은 0을 쓰고 있다. |
-| 4 | terraform `aws_db_instance.multi_az` = false | 인용된 capabilities/06-artifacts-datastores.md에 `multi_az`의 기본값을 말하는 문장이 없다(06:329는 "F1이 짧아야 함일 때 켠다"뿐). 다른 조사 문서에도 없다. | 없음 | **근거없음** — ref가 가리키는 문서에 이 주장이 없다. |
-| 5 | terraform `aws_db_instance.storage_encrypted` = false | capabilities/06:300 "`storage_encrypted = true`: **기본 `false`**", 06:938 | registry.terraform.io hashicorp/aws (A, provider 자신의 인자 기본값) | 적격 |
-| 6 | uvicorn `timeout_keep_alive` = 5 | capabilities/09:1368 "Default: 5" | uvicorn.dev (B) | **B — 사용자 결정 필요** (uvicorn 발행처를 받아들이지 않으면 쓸 수 없음) |
-| 7 | gunicorn `keepalive` = 2 | capabilities/09:1369 "Default: 2" | gunicorn.org (B) | **B — 사용자 결정 필요** |
-| 8 | Node.js http `keep_alive_timeout` = 5 | capabilities/09:1370 "Default: 5000 (5 seconds)." | nodejs.org (A) | 적격 (같은 행에 v24.6.0·v22.19.0부터 `keepAliveTimeoutBuffer` 1초가 더해져 실제 소켓은 6초라는 A 출처 주장도 있음) |
-| 9 | Spring Boot 내장 Tomcat `keep_alive_timeout` = 60 | capabilities/09:1375 "Tomcat 코드 기본 **60초**(배포판 server.xml은 20초). **Boot 기본값 명시는 없음 → 60초로 추론**" | tomcat.apache.org (B) + 추론 | **근거없음 + B** — Tomcat 값은 B 출처이고, Spring Boot가 이 값을 그대로 쓴다는 부분은 조사 문서가 추론이라고 적었다. |
-| 10 | AWS ALB `idle_timeout` = 60 | capabilities/09:123 "The default is 60 seconds." | docs.aws.amazon.com (A) | 적격 |
-| 11 | GCP 클래식 ALB(GKE Ingress) `backend_timeout` = 30 | capabilities/09:667 "If you do not specify a value, the default value is 30 seconds." | docs.cloud.google.com (A) | 적격 |
-| 12 | nginx `proxy_read_timeout` = 60 | capabilities/09:1090 | nginx.org (A) | 적격 |
-| 13 | nginx `proxy_send_timeout` = 60 | capabilities/09:1090 | nginx.org (A) | 적격 |
-| 14 | nginx `proxy_connect_timeout` = 60 | capabilities/09:1090 | nginx.org (A) | 적격 |
-| 15 | nginx `client_max_body_size` = 1m | capabilities/09:1093 | nginx.org (A) | 적격 |
-| 16 | nginx `keepalive_timeout` = 75 | capabilities/09:1089 "Default: keepalive_timeout 75s;" | nginx.org (A) | 적격 |
+| # | 대상 · 키 = 값 | 근거가 된 조사 문서의 주장 | 그 주장의 출처 (최종 등급) | 판정 | 조치 |
+|---|---|---|---|---|---|
+| 1 | k8s Deployment `terminationGracePeriodSeconds` = 30 | "The default terminationGracePeriodSeconds setting is 30 seconds." (09:1381, defaults.yaml에 URL 직접 기재) | kubernetes.io (A) | 적격 | 유지 |
+| 2 | k8s CronJob `concurrencyPolicy` = Allow | considerations/03:803, capabilities/03:1070 "Allow (default)" | kubernetes.io (A) | 적격 | 유지 |
+| 3 | terraform `aws_db_instance.backup_retention_period` = 0 | capabilities/06:294 Registry 기본값 `0`과 AWS 문서 "API·CLI 생성 시 1일"이 [충돌] | hashicorp/aws provider (A)와 AWS RDS 문서 (A)가 서로 다름 | 확정 불가 | **삭제** |
+| 4 | terraform `aws_db_instance.multi_az` = false | 인용된 capabilities/06에 `multi_az` 기본값을 말하는 문장이 없다 | 없음 | 근거없음 | **삭제** |
+| 5 | terraform `aws_db_instance.storage_encrypted` = false | capabilities/06:300 "기본 `false`", 06:938 | hashicorp/aws provider (A: Terraform, provider 자신의 인자 기본값) | 적격 | 유지 |
+| 6 | uvicorn `timeout_keep_alive` = 5 | capabilities/09:1368 "Default: 5" | uvicorn.dev (A: 기준 4) | 적격 | 유지 |
+| 7 | gunicorn `keepalive` = 2 | capabilities/09:1369 "Default: 2" | gunicorn.org (A: 기준 4) | 적격 | 유지 |
+| 8 | Node.js http `keep_alive_timeout` = 5 | capabilities/09:1370 "Default: 5000 (5 seconds)." | nodejs.org (A) | 적격 | 유지 |
+| 9 | Spring Boot 내장 Tomcat `keep_alive_timeout` = 60 | capabilities/09:1375 "Boot 기본값 명시는 없음 → 60초로 추론" | tomcat.apache.org (A: ASF)지만 Boot 값은 추론 | 근거없음(추론) | **삭제** |
+| 10 | AWS ALB `idle_timeout` = 60 | capabilities/09:123 "The default is 60 seconds." | docs.aws.amazon.com (A) | 적격 | 유지 |
+| 11 | GCP 클래식 ALB(GKE Ingress) `backend_timeout` = 30 | capabilities/09:667 | docs.cloud.google.com (A) | 적격 | 유지 |
+| 12 | nginx `proxy_read_timeout` = 60 | capabilities/09:1090 | nginx.org (C: 최종 규칙 미충족, §5.3) | 부적격 | **삭제** |
+| 13 | nginx `proxy_send_timeout` = 60 | capabilities/09:1090 | nginx.org (C) | 부적격 | **삭제** |
+| 14 | nginx `proxy_connect_timeout` = 60 | capabilities/09:1090 | nginx.org (C) | 부적격 | **삭제** |
+| 15 | nginx `client_max_body_size` = 1m | capabilities/09:1093 | nginx.org (C) | 부적격 | **삭제** |
+| 16 | nginx `keepalive_timeout` = 75 | capabilities/09:1089 | nginx.org (C) | 부적격 | **삭제** |
 
-**결과: 적격 11, 실패 2(#4 근거없음, #9 근거없음 + B), 확정 불가 1(#3 A끼리 충돌), B 의존 2(#6, #7).**
+**결과: 유지 8, 삭제 8(#3 A끼리 충돌, #4 근거없음, #9 추론, #12~16 nginx.org 부적격).** 삭제한 키는 S1이 더 이상 `defaulted: true` 값으로 채우지 않는다. 설정 파일에 값이 명시된 경우만 기록된다. nginx 5개 삭제는 §5.3의 판정(nginx.org를 C로 봄)에 따른 것이라, 사용자가 nginx를 A로 받아들이면 되돌리면 된다.
 
 ### 8.2 components/catalog.yaml (59개 항목)
 
-감사 도중 같은 브랜치에 catalog 항목 4개(`sc:github/actions-schedule/default`, `cp:gcp/cloud-run/unspecified`, `cp:aws/ecs/unspecified`, `cp:aws/ec2/docker-compose`)가 커밋되어 함께 점검했다(커밋 bac11af 기준 59개). catalog 항목은 ID·이름·`source` 파일만 가진다. 아직 능력 값은 없다(계획 3에서 채움). 그래서 "그 항목이 기대는 주장"은 `source` 파일 안에서 그 구성 요소를 기술한 절 전체다. 절마다 인용 등급과 표시 수를 셌다. "표시"는 그 절 안에서 해당 표시가 붙은 줄 수다.
+catalog 항목은 ID·이름·`source` 파일만 가진다(능력 값은 계획 3에서 채움). 그래서 "그 항목이 기대는 주장"은 `source` 파일 안에서 그 구성 요소를 기술한 절 전체다. 능력 근거가 적격이 아닌 항목(근거 절의 출처가 C, 근거 절 없음, 핵심 주장이 출처 없음)에는 `recommendable: false`와 짧은 `reason`을 달았다. 항목은 catalog에 남는다(S1이 현재 상태로는 계속 보고한다). `infrafit kb lint`는 `recommendable`이 불리언인지, `false`면 `reason`이 있는지 검사한다. 표의 recommendable 칸 `—`는 필드가 없다는 뜻(추천 가능)이다.
 
-| catalog ID | 근거 절 (파일:줄) | 인용 줄 수 A / B / C | ⚠️출처부적격 / ⚠️출처확인필요 / ⚠️근거없음 | 판정 |
-|---|---|---|---|---|
-| `ds:local/sqlite/default` | 01:63–96 | 15 / 0 / 1 | 1 / 0 / 1 | **C 포함** — Django 인용 주장은 사용 불가; 근거없음 1줄 |
-| `ds:local/sqlite/wal` | 01:97–130 | 5 / 1 / 0 | 0 / 1 / 2 | 대부분 A, 일부 B(better-sqlite3); 근거없음 2줄 |
-| `ds:unspecified/postgresql/default` | 01:199–229, 772–785 | 17 / 0 / 0 | 0 / 0 / 3 | A; 근거없음 3줄 |
-| `ds:unspecified/mysql/default` | 01:772–785, 653–685 | 14 / 0 / 0 | 0 / 0 / 3 | A; 근거없음 3줄 |
-| `ds:unspecified/mongodb/default` | 02:340–378, 379–415 | 30 / 1 / 0 | 0 / 1 / 5 | 대부분 A, 일부 B(Prisma); 근거없음 5줄 |
-| `ds:supabase/postgres/unspecified-plan` | 01:484–511, 512–543 | 19 / 0 / 0 | 0 / 0 / 1 | A; 근거없음 1줄 |
-| `ds:firebase/firestore/standard` | 02:61–113 | 17 / 0 / 0 | 0 / 0 / 0 | A |
-| `ds:aws/rds-postgres/single-az` | 01:230–261 | 10 / 0 / 0 | 0 / 0 / 1 | A; 근거없음 1줄 |
-| `ds:aws/rds-postgres/multi-az-instance` | 01:262–294 | 4 / 0 / 0 | 0 / 0 / 0 | A |
-| `ds:gcp/cloudsql-postgres/single` | 01:392–422 | 9 / 0 / 0 | 0 / 0 / 1 | A; 근거없음 1줄 |
-| `ds:gcp/cloudsql-postgres/ha` | 01:423–452 | 3 / 0 / 0 | 0 / 0 / 1 | A; 근거없음 1줄 |
-| `ca:local/process-memory/default` | 03:138–170 | 4 / 7 / 0 | 0 / 7 / 0 | **B 의존** — Express, Flask-Caching, connect-redis, express-rate-limit, lru-cache (단일 관리자) |
-| `ca:unspecified/redis/default` | 03:257–286 | 9 / 1 / 0 | 0 / 1 / 0 | 대부분 A, 일부 B(Valkey) |
-| `ca:aws/elasticache/node-based` | 03:287–317 | 11 / 0 / 0 | 0 / 0 / 0 | A |
-| `ca:gcp/memorystore/redis` | 03:376–404, 405–432 | 16 / 0 / 0 | 0 / 0 / 0 | A |
-| `qu:unspecified/redis-streams/default` | 03:811–836 | 5 / 1 / 0 | 0 / 1 / 1 | 대부분 A, 일부 B(KEDA); 근거없음 1줄 |
-| `qu:lib/bullmq/default` | 03:837–868 | 0 / 5 / 0 | 0 / 5 / 3 | **B 의존** — BullMQ; 근거없음 3줄 |
-| `qu:lib/celery/default` | 03:869–898 | 0 / 4 / 0 | 0 / 4 / 3 | **B 의존** — Celery; 근거없음 3줄 |
-| `qu:aws/sqs/standard` | 03:597–626 | 8 / 1 / 0 | 0 / 1 / 0 | 대부분 A, 일부 B(KEDA) |
-| `sc:local/in-process/default` | 03:229–254 | 0 / 1 / 0 | 0 / 1 / 3 | **B 의존** — APScheduler, Celery, node-cron; 근거없음 3줄 |
-| `sc:k8s/cronjob/default` | 03:1063–1084 | 4 / 0 / 0 | 0 / 0 / 0 | A |
-| `sc:vercel/cron/unspecified-plan` | 03:1129–1151 | 4 / 0 / 0 | 0 / 0 / 0 | A |
-| `sc:github/actions-schedule/default` | 03:1196–1217 | 3 / 0 / 0 | 0 / 0 / 1 | A; 근거없음 1줄 |
-| `rt:lib/socketio/no-adapter` | 03:1220–1241 | 0 / 2 / 0 | 0 / 2 / 1 | **B 의존** — Socket.IO; 근거없음 1줄 |
-| `rt:lib/socketio/redis-adapter` | 03:1242–1268 | 0 / 2 / 0 | 0 / 2 / 2 | **B 의존** — Socket.IO; 근거없음 2줄 |
-| `rt:lib/ws/default` | 03 문서에 `ws` 절 없음 | — | — | **근거 절 없음** |
-| `fs:local/container-disk/default` | 03:200–228 | 4 / 0 / 0 | 0 / 0 / 2 | A; 근거없음 2줄 |
-| `fs:aws/s3/default` | 03:1427–1454 | 7 / 0 / 0 | 0 / 0 / 1 | A; 근거없음 1줄 |
-| `fs:gcp/gcs/default` | 03:1455–1479 | 6 / 0 / 0 | 0 / 0 / 1 | A; 근거없음 1줄 |
-| `fs:supabase/storage/default` | 03:1505–1529 | 5 / 0 / 0 | 0 / 0 / 0 | A |
-| `cp:vercel/functions/unspecified-plan` | 04:115–157, 158–193, 194–227 | 58 / 0 / 0 | 0 / 0 / 4 | A; 근거없음 4줄 |
-| `cp:netlify/functions/unspecified-plan` | 04:266–306, 307–341 | 30 / 0 / 2 | 2 / 0 / 4 | **C 포함** — answers.netlify.com (커뮤니티 포럼) 인용 주장은 사용 불가; 근거없음 4줄 |
-| `cp:fly/machines/default` | 04:708–747 | 0 / 18 / 0 | 0 / 18 / 3 | **B 의존** — Fly.io; 근거없음 3줄 |
-| `cp:render/web/unspecified-plan` | 04:637–670, 671–707 | 0 / 34 / 0 | 0 / 34 / 1 | **B 의존** — Render; 근거없음 1줄 |
-| `cp:railway/service/unspecified-plan` | 04:525–563, 564–597, 598–631 | 0 / 50 / 0 | 0 / 50 / 6 | **B 의존** — Railway; 근거없음 6줄 |
-| `cp:k8s/deployment/unspecified-cluster` | 05 문서에 일반 쿠버네티스 절 없음 | — | — | **근거 절 없음** |
-| `cp:aws/eks/unspecified` | 05:713–752, 753–790, 791–827, 828–864 | 49 / 1 / 0 | 0 / 1 / 15 | 대부분 A, 일부 B(Karpenter); 근거없음 15줄 |
-| `cp:gcp/gke/unspecified` | 05:597–636, 637–674, 675–712 | 49 / 0 / 0 | 0 / 0 / 12 | A; 근거없음 12줄 |
-| `cp:local/compose/default` | 05:901–938, 939–974 | 16 / 0 / 0 | 0 / 0 / 19 | A; 근거없음 19줄 |
-| `cp:docker/container/unspecified-host` | 05 문서에 일반 컨테이너 절 없음 | — | — | **근거 절 없음** |
-| `cp:gcp/cloud-run/unspecified` | 05:125–166, 167–209 | 39 / 0 / 0 | 0 / 0 / 5 | A; 근거없음 5줄 |
-| `cp:aws/ecs/unspecified` | 05:322–362, 363–402, 403–441 | 48 / 0 / 0 | 0 / 0 / 7 | A; 근거없음 7줄 |
-| `cp:aws/ec2/docker-compose` | 05:901–938 | 8 / 0 / 0 | 0 / 0 / 9 | A; 근거없음 9줄 |
-| `nw:app/uvicorn/default` | 09:1368 | 0 / 1 / 0 | 0 / 1 / 0 | **B 의존** — uvicorn |
-| `nw:app/gunicorn/default` | 09:1369 | 0 / 1 / 0 | 0 / 1 / 0 | **B 의존** — gunicorn |
-| `nw:app/node-http/default` | 09:1370 | 1 / 0 / 0 | 0 / 0 / 0 | A |
-| `nw:app/next-start/default` | 09:1371 | 1 / 0 / 0 | 0 / 0 / 0 | A |
-| `nw:app/flask-dev/default` | 09:1380 | 1 / 0 / 0 | 0 / 0 / 0 | A |
-| `nw:app/django-runserver/default` | 09:1373 | 1 / 0 / 0 | 0 / 0 / 0 | A |
-| `nw:app/spring-boot-tomcat/default` | 09:1375 | 1 / 1 / 0 | 0 / 1 / 1 | **B 의존** — Apache Tomcat; 근거없음 1줄 |
-| `nw:proxy/nginx/default` | 09:1083–1119 | 5 / 0 / 1 | 1 / 0 / 4 | **C 포함** — Next.js 인용 주장은 사용 불가; 근거없음 4줄 |
-| `nw:aws/alb/default` | 09:116–198 | 16 / 1 / 0 | 0 / 1 / 2 | 대부분 A, 일부 B(Checkov); 근거없음 2줄 |
-| `nw:gcp/classic-alb/gke-ingress` | 09:659–703 | 15 / 0 / 0 | 0 / 0 / 1 | A; 근거없음 1줄 |
-| `nw:k8s/ingress-nginx/default` | 09:956–1006 | 10 / 0 / 0 | 0 / 0 / 5 | A; 근거없음 5줄 |
-| `nw:vercel/edge-proxy/default` | 09:1210–1233 | 7 / 0 / 0 | 0 / 0 / 2 | A; 근거없음 2줄 |
-| `nw:netlify/edge-proxy/default` | 09:1234–1256 | 6 / 0 / 0 | 0 / 0 / 1 | A; 근거없음 1줄 |
-| `nw:fly/proxy/default` | 09:1333–1361 | 0 / 8 / 0 | 0 / 8 / 3 | **B 의존** — Fly.io; 근거없음 3줄 |
-| `nw:render/proxy/default` | 09:1286–1307 | 0 / 6 / 0 | 0 / 6 / 2 | **B 의존** — Render; 근거없음 2줄 |
-| `nw:railway/proxy/default` | 09:1308–1332 | 0 / 12 / 0 | 0 / 12 / 1 | **B 의존** — Railway; 근거없음 1줄 |
+| catalog ID | 근거 절 (파일:줄) | 인용 줄 수 A / C | ⚠️출처부적격 / ⚠️근거없음 | recommendable | 판정 |
+|---|---|---|---|---|---|
+| `ds:local/sqlite/default` | 01:63–96 | 15 / 1 | 1 / 1 | — | 적격; Django로 SQLite 문법을 말한 1줄은 C; 근거없음 1줄 |
+| `ds:local/sqlite/wal` | 01:97–130 | 5 / 1 | 1 / 2 | — | 적격; better-sqlite3 1줄은 C; 근거없음 2줄 |
+| `ds:unspecified/postgresql/default` | 01:199–229, 772–785 | 17 / 0 | 0 / 3 | — | 적격; 근거없음 3줄 |
+| `ds:unspecified/mysql/default` | 01:772–785, 653–685 | 14 / 0 | 0 / 3 | — | 적격; 일반 MySQL 절 없음(§5.1 엔진 기준값·§3.1로 셈); 근거없음 3줄 |
+| `ds:unspecified/mongodb/default` | 02:340–378, 379–415 | 30 / 1 | 1 / 5 | — | 적격; 자체 운영 절 없음(Atlas 절로 셈), Prisma 1줄은 C; 근거없음 5줄 |
+| `ds:supabase/postgres/unspecified-plan` | 01:484–511, 512–543 | 19 / 0 | 0 / 1 | — | 적격; 근거없음 1줄 |
+| `ds:firebase/firestore/standard` | 02:61–113 | 17 / 0 | 0 / 0 | — | 적격 |
+| `ds:aws/rds-postgres/single-az` | 01:230–261 | 10 / 0 | 0 / 1 | — | 적격; 근거없음 1줄 |
+| `ds:aws/rds-postgres/multi-az-instance` | 01:262–294 | 4 / 0 | 0 / 0 | — | 적격 |
+| `ds:gcp/cloudsql-postgres/single` | 01:392–422 | 9 / 0 | 0 / 1 | — | 적격; 근거없음 1줄 |
+| `ds:gcp/cloudsql-postgres/ha` | 01:423–452 | 3 / 0 | 0 / 1 | — | 적격; 근거없음 1줄 |
+| `ca:local/process-memory/default` | 03:138–170 | 7 / 6 | 4 / 0 | — | 적격; B1 핵심(express-session MemoryStore 비공유)은 Express(A). express-rate-limit·lru-cache·Flask-Caching·connect-redis 세부는 C |
+| `ca:unspecified/redis/default` | 03:257–286 | 9 / 0 | 0 / 0 | — | 적격; Valkey A |
+| `ca:aws/elasticache/node-based` | 03:287–317 | 11 / 0 | 0 / 0 | — | 적격 |
+| `ca:gcp/memorystore/redis` | 03:376–404, 405–432 | 16 / 0 | 0 / 0 | — | 적격 |
+| `qu:unspecified/redis-streams/default` | 03:811–836 | 6 / 0 | 0 / 1 | — | 적격; KEDA A; 근거없음 1줄 |
+| `qu:lib/bullmq/default` | 03:837–868 | 0 / 5 | 5 / 3 | false | 근거 절이 BullMQ 문서(C)에만 기댐; 근거없음 3줄 |
+| `qu:lib/celery/default` | 03:869–898 | 0 / 4 | 4 / 3 | false | 근거 절이 Celery 문서(C)에만 기댐; 근거없음 3줄 |
+| `qu:aws/sqs/standard` | 03:597–626 | 8 / 0 | 0 / 0 | — | 적격; KEDA A |
+| `sc:local/in-process/default` | 03:229–254 | 0 / 1 | 1 / 3 | false | 근거가 APScheduler·node-cron·Celery 문서(C)와 출처 없는 값뿐; 근거없음 3줄 |
+| `sc:k8s/cronjob/default` | 03:1063–1084 | 4 / 0 | 0 / 0 | — | 적격 |
+| `sc:vercel/cron/unspecified-plan` | 03:1129–1151 | 4 / 0 | 0 / 0 | — | 적격 |
+| `sc:github/actions-schedule/default` | 03:1196–1217 | 3 / 0 | 0 / 1 | — | 적격; 근거없음 1줄 |
+| `rt:lib/socketio/no-adapter` | 03:1220–1241 | 0 / 2 | 2 / 1 | false | 근거 절이 Socket.IO 문서(C)에만 기댐; 근거없음 1줄 |
+| `rt:lib/socketio/redis-adapter` | 03:1242–1268 | 0 / 2 | 2 / 2 | false | 근거 절이 Socket.IO 문서(C)에만 기댐; 근거없음 2줄 |
+| `rt:lib/ws/default` | 03 문서에 `ws` 절 없음 | — | — | false | 조사 문서에 ws 절이 없음 |
+| `fs:local/container-disk/default` | 03:200–228 | 4 / 0 | 0 / 2 | — | 적격; 근거없음 2줄 |
+| `fs:aws/s3/default` | 03:1427–1454 | 7 / 0 | 0 / 1 | — | 적격; 근거없음 1줄 |
+| `fs:gcp/gcs/default` | 03:1455–1479 | 6 / 0 | 0 / 1 | — | 적격; 근거없음 1줄 |
+| `fs:supabase/storage/default` | 03:1505–1529 | 5 / 0 | 0 / 0 | — | 적격 |
+| `cp:vercel/functions/unspecified-plan` | 04:115–157, 158–193, 194–227 | 58 / 0 | 0 / 4 | — | 적격; 근거없음 4줄 |
+| `cp:netlify/functions/unspecified-plan` | 04:266–306, 307–341 | 30 / 2 | 2 / 4 | — | 적격; 웹소켓 미지원 2줄은 커뮤니티 포럼(C); 근거없음 4줄 |
+| `cp:fly/machines/default` | 04:708–747 | 0 / 18 | 18 / 3 | false | 근거 절이 Fly.io 문서(C)에만 기댐; 근거없음 3줄 |
+| `cp:render/web/unspecified-plan` | 04:637–670, 671–707 | 0 / 34 | 34 / 1 | false | 근거 절이 Render 문서(C)에만 기댐; 근거없음 1줄 |
+| `cp:railway/service/unspecified-plan` | 04:525–563, 564–597, 598–631 | 50 / 0 | 0 / 6 | — | 적격; Railway A(SO 2025); 근거없음 6줄 |
+| `cp:k8s/deployment/unspecified-cluster` | 05 문서에 일반 쿠버네티스 절 없음 | — | — | false | 조사 문서에 일반 쿠버네티스 절이 없음 |
+| `cp:aws/eks/unspecified` | 05:713–752, 753–790, 791–827, 828–864 | 50 / 0 | 0 / 15 | — | 적격; Karpenter A; 근거없음 15줄 |
+| `cp:gcp/gke/unspecified` | 05:597–636, 637–674, 675–712 | 49 / 0 | 0 / 12 | — | 적격; 근거없음 12줄 |
+| `cp:local/compose/default` | 05:901–938, 939–974 | 16 / 0 | 0 / 19 | — | 적격; 근거없음 19줄 |
+| `cp:docker/container/unspecified-host` | 05 문서에 일반 컨테이너 절 없음 | — | — | false | 조사 문서에 일반 컨테이너 절이 없음 |
+| `cp:gcp/cloud-run/unspecified` | 05:125–166, 167–209 | 39 / 0 | 0 / 5 | — | 적격; 근거없음 5줄 |
+| `cp:aws/ecs/unspecified` | 05:322–362, 363–402, 403–441 | 48 / 0 | 0 / 7 | — | 적격; 근거없음 7줄 |
+| `cp:aws/ec2/docker-compose` | 05:901–938 | 8 / 0 | 0 / 9 | — | 적격; 근거없음 9줄 |
+| `nw:app/uvicorn/default` | 09:1368 | 1 / 0 | 0 / 0 | — | 적격; uvicorn A(기준 4) |
+| `nw:app/gunicorn/default` | 09:1369 | 1 / 0 | 0 / 0 | — | 적격; gunicorn A(기준 4) |
+| `nw:app/node-http/default` | 09:1370 | 1 / 0 | 0 / 0 | — | 적격 |
+| `nw:app/next-start/default` | 09:1371 | 1 / 0 | 0 / 0 | — | 적격 |
+| `nw:app/flask-dev/default` | 09:1380 | 1 / 0 | 0 / 0 | — | 적격 |
+| `nw:app/django-runserver/default` | 09:1373 | 1 / 0 | 0 / 0 | — | 적격 |
+| `nw:app/spring-boot-tomcat/default` | 09:1375 | 1 / 0 | 0 / 1 | false | Spring Boot 기본 keep-alive 값이 조사 문서의 추론(출처 없음); 근거없음 1줄 |
+| `nw:proxy/nginx/default` | 09:1083–1119 | 0 / 5 | 5 / 4 | false | 근거 절이 nginx.org(최종 규칙 미충족, C)에 기댐; 근거없음 4줄 |
+| `nw:aws/alb/default` | 09:116–198 | 16 / 1 | 1 / 2 | — | 적격; Checkov 1줄은 C; 근거없음 2줄 |
+| `nw:gcp/classic-alb/gke-ingress` | 09:659–703 | 15 / 0 | 0 / 1 | — | 적격; 근거없음 1줄 |
+| `nw:k8s/ingress-nginx/default` | 09:956–1006 | 10 / 0 | 0 / 5 | — | 적격; 근거없음 5줄 |
+| `nw:vercel/edge-proxy/default` | 09:1210–1233 | 7 / 0 | 0 / 2 | — | 적격; 근거없음 2줄 |
+| `nw:netlify/edge-proxy/default` | 09:1234–1256 | 6 / 0 | 0 / 1 | — | 적격; 근거없음 1줄 |
+| `nw:fly/proxy/default` | 09:1333–1361 | 0 / 8 | 8 / 3 | false | 근거 절이 Fly.io 문서(C)에만 기댐; 근거없음 3줄 |
+| `nw:render/proxy/default` | 09:1286–1307 | 0 / 6 | 6 / 2 | false | 근거 절이 Render 문서(C)에만 기댐; 근거없음 2줄 |
+| `nw:railway/proxy/default` | 09:1308–1332 | 12 / 0 | 0 / 1 | — | 적격; Railway A(SO 2025); 근거없음 1줄 |
 
-**요약.**
+**요약.** `recommendable: false` 14개: 근거 출처가 C인 것 9개(`qu:lib/bullmq`, `qu:lib/celery`, `sc:local/in-process`, `rt:lib/socketio/no-adapter`, `rt:lib/socketio/redis-adapter`, `cp:fly/machines`, `cp:render/web`, `nw:fly/proxy`, `nw:render/proxy`), nginx.org 판정에 따른 것 1개(`nw:proxy/nginx`), 근거 절이 없는 것 3개(`rt:lib/ws`, `cp:k8s/deployment/unspecified-cluster`, `cp:docker/container/unspecified-host`), 핵심 값이 추론인 것 1개(`nw:app/spring-boot-tomcat`). 이전 B 의존이던 `cp:railway/service`, `nw:railway/proxy`, `nw:app/uvicorn`, `nw:app/gunicorn`은 A가 되어 추천 가능으로 남았다. 근거없음 줄이 많은 절(`cp:local/compose/default` 19줄, `cp:aws/eks/unspecified` 15줄, `cp:gcp/gke/unspecified` 12줄)은 핵심 능력 값이 A 출처에 있어 표시하지 않았다.
 
-- **근거 절이 없음 (3개)**: `rt:lib/ws/default`(03 문서에 `ws` 라이브러리 절이 없다), `cp:k8s/deployment/unspecified-cluster`, `cp:docker/container/unspecified-host`(05 문서에는 GKE·EKS·k3s·단일 VM compose 절만 있고, 클러스터·호스트 미확인 일반 항목은 없다). 이 세 항목은 인용한 문서에서 뒷받침되지 않는다.
-- **절이 일반 항목과 다름 (2개)**: `ds:unspecified/mysql/default`는 일반 MySQL 절이 없어 §5.1 엔진 기준값과 §3.1 RDS MySQL로 대신 셌다. `ds:unspecified/mongodb/default`는 02 문서에 자체 운영 MongoDB 절이 없고 Atlas 절(§7, §8)만 있다.
-- **C 인용을 포함 (3개)**: `ds:local/sqlite/default`(01:70 "SQLite에는 FOR UPDATE 문법이 없다"를 Django 문서로만 뒷받침), `cp:netlify/functions/unspecified-plan`(웹소켓 미지원을 커뮤니티 포럼으로만 뒷받침, 04:274·315), `nw:proxy/nginx/default`(SSE 버퍼링 끄기를 Next.js 문서로만 뒷받침, 09:1091).
-- **B에 전부 또는 대부분 의존 (14개)**: `qu:lib/bullmq`, `qu:lib/celery`, `sc:local/in-process`, `rt:lib/socketio/no-adapter`, `rt:lib/socketio/redis-adapter`, `cp:fly/machines`, `cp:render/web`, `cp:railway/service`, `nw:app/uvicorn`, `nw:app/gunicorn`, `nw:app/spring-boot-tomcat`(keep-alive 부분), `nw:fly/proxy`, `nw:render/proxy`, `nw:railway/proxy`. 그리고 `ca:local/process-memory`는 B1 불일치의 핵심 근거(express-session MemoryStore가 다중 인스턴스에서 공유되지 않음)가 Express·express-rate-limit 등 B 출처다.
-- **근거없음 줄이 많은 절**: `cp:local/compose/default` 19줄(대부분 "(평가)"), `cp:aws/eks/unspecified` 15줄, `cp:gcp/gke/unspecified` 12줄.
+### 8.3 signatures/*.yaml — 출처 없는 가정 (보고만, 파일은 고치지 않음)
 
-### 8.3 signatures/*.yaml
+시그니처에는 `source`·`ref` 필드가 없다. 각 시그니처는 catalog 항목 하나로 이어지므로 능력 판정은 §8.2를 따른다. 시그니처 자체가 깔고 있는 사실 주장 중 적격 출처가 없는 것:
 
-시그니처에는 `source`·`ref` 필드가 없다. 각 시그니처는 catalog 항목 하나로 이어지므로 판정은 §8.2를 따른다. 시그니처 파일 자체에 들어 있는 사실 주장 중 출처가 없는 것:
-
-| 파일 · ID | 시그니처가 깔고 있는 사실 주장 | 출처 | 판정 |
+| 파일 · ID | 시그니처가 깔고 있는 사실 주장 | 출처 (최종) | 판정 |
 |---|---|---|---|
 | datastores.yaml · SIG-DS-MYSQL | "MariaDB는 MySQL 호환이라 MySQL 구성 요소로 본다"(주석) — MariaDB JDBC 드라이버·`jdbc:mariadb://`를 MySQL로 분류 | 조사 문서에 MariaDB 절·인용 없음 | 근거없음 |
-| realtime.yaml · SIG-RT-WS | `ws` 의존성 → `rt:lib/ws/default` | 03 문서에 `ws` 절 없음(§8.2) | 근거없음 |
-| datastores.yaml · SIG-DS-SQLITE / SIG-DS-POSTGRES / SIG-DS-MYSQL / SIG-DS-MONGO | 패키지 이름이 그 DB의 드라이버라는 사실(`better-sqlite3`, `postgres`=postgres.js, `psycopg`, `asyncpg`, `mysql2`, `pymysql`, `mongoose`, `motor` 등) | capabilities/01 §5.2 드라이버 표(일부 B: better-sqlite3, postgres.js, node-postgres, psycopg, asyncpg, mysql2, PyMySQL, aiosqlite). `motor`·`mysqlclient`·`sqlite-jdbc`·Spring JDBC URL은 조사 문서에 인용 없음 | 일부 B, 일부 근거없음 |
-| 나머지 (cache, files, queue, scheduler, SIG-DS-SUPABASE, SIG-DS-FIRESTORE, SIG-QU-SQS 등) | 코드 패턴 → 구성 요소 연결 | 연결된 catalog 항목의 절 | §8.2 판정을 따른다 |
+| realtime.yaml · SIG-RT-WS | `ws` 의존성 → `rt:lib/ws/default` | 03 문서에 `ws` 절 없음 | 근거없음 |
+| realtime.yaml · SIG-RT-SOCKETIO | `socket.io`·`@socket.io/redis-adapter` → Socket.IO 구성 요소 | Socket.IO 문서 (C) | 부적격 |
+| queue.yaml · SIG-QU-BULLMQ, SIG-QU-CELERY | 패키지 → BullMQ·Celery 구성 요소 | BullMQ·Celery 문서 (C) | 부적격 |
+| scheduler.yaml · SIG-SC-INPROC | `node-cron`·APScheduler 등 → 앱 프로세스 안 스케줄러 | APScheduler·node-cron 문서 (C) | 부적격 |
+| datastores.yaml · SIG-DS-SQLITE / SIG-DS-POSTGRES / SIG-DS-MYSQL / SIG-DS-MONGO | 패키지 이름이 그 DB의 드라이버라는 사실(`better-sqlite3`, `postgres`=postgres.js, `pg`, `psycopg`, `asyncpg`, `mysql2`, `pymysql`, `aiosqlite`, `mongoose`, `motor` 등) | capabilities/01 §5.2 드라이버 표의 드라이버 문서는 모두 C(better-sqlite3, node-sqlite3, postgres.js, node-postgres, psycopg, asyncpg, mysql2, PyMySQL, aiosqlite). `motor`·`mongoose`·`mysqlclient`·`sqlite-jdbc`·Spring JDBC URL은 조사 문서에 인용 없음 | 부적격 또는 근거없음 |
+| cache.yaml · SIG-CA-SESSION-EXPRESS-MEMORY | express-session 기본 MemoryStore → 프로세스 메모리 | express-session 저장소(Express, A) | 적격 |
+| 나머지 (SIG-CA-REDIS, SIG-DS-SUPABASE, SIG-DS-FIRESTORE, SIG-QU-SQS, SIG-SC-K8S-CRONJOB, SIG-SC-VERCEL-CRON, files.yaml 등) | 코드 패턴 → 구성 요소 연결 | 연결된 catalog 항목의 절 | §8.2 판정을 따른다 |
 | watchlist.yaml | 패키지 목록만 있고 사실 주장 없음 | — | 해당 없음 |
-| external.yaml (감사 도중 추가) | 패키지·환경변수·호스트 이름 → 외부 서비스(Anthropic, OpenAI 등) 연결 | `source`·`ref` 없음, 조사 문서 인용 없음 | 근거없음(패키지 정체에 대한 주장) |
+| external.yaml | 패키지·환경변수·호스트 이름 → 외부 서비스(Anthropic, OpenAI, Stripe, 토스페이먼츠 등) 연결 | `source`·`ref` 없음, 조사 문서 인용 없음 | 근거없음(패키지 정체에 대한 주장) |
 
-같은 시기에 추가된 `knowledge/deploy.yaml`(CI 배포 명령 → 컴퓨트)과 `knowledge/implicit_routes.yaml`(프레임워크 암묵 라우트, 예: FastAPI 문서 화면 경로)도 `source`·`ref`가 없고 조사 문서를 인용하지 않는다. 이번 점검 범위(defaults·catalog·signatures·images) 밖이라 표로 나누지 않았지만, 프레임워크 기본 라우트 같은 사실 주장을 담고 있으므로 같은 기준이면 근거없음이다.
+`knowledge/deploy.yaml`(CI 배포 명령 → 컴퓨트)과 `knowledge/implicit_routes.yaml`(프레임워크 암묵 라우트, 예: FastAPI 문서 화면 경로)도 `source`·`ref`가 없고 조사 문서를 인용하지 않는다. 프레임워크 기본 라우트 같은 사실 주장을 담고 있으므로 같은 기준이면 근거없음이다.
 
-### 8.4 images.yaml
+### 8.4 images.yaml — 출처 없는 가정 (보고만, 파일은 고치지 않음)
 
-`images.yaml`에는 `source`·`ref` 필드가 하나도 없다. 조사 문서를 인용하지 않는다. 이미지 이름 → 역할·구성 요소 연결은 설계 규칙이지만, 몇몇 연결은 사실 주장을 깔고 있고 그 주장에는 출처가 없다.
+`images.yaml`에는 `source`·`ref` 필드가 없다. 이미지 이름 → 역할·구성 요소 연결은 설계 규칙이지만, 몇몇 연결은 사실 주장을 깔고 있다.
 
 | 항목 | 깔고 있는 사실 주장 | 판정 |
 |---|---|---|
-| `nginx-unprivileged`, `openresty` → `nw:proxy/nginx/default` | 이 이미지들이 nginx 기본값(§8.1 #12~16)을 그대로 가진다 | 근거없음(조사 문서에 이 이미지들에 대한 인용 없음) |
-| `postgis`, `timescaledb*`, `pgvector/*` → `ds:unspecified/postgresql/default` | PostgreSQL 능력을 그대로 가진다 | postgis·timescaledb는 근거없음, pgvector는 B(pgvector 저장소) |
-| `valkey`, `valkey-cluster`, `redis-stack*`, `redis-cluster`, `redis-sentinel` → `ca:unspecified/redis/default` | Redis(자체 운영) 능력을 그대로 가진다 | valkey는 B(valkey.io·Docker Hub valkey), 나머지는 근거없음 |
+| `nginx`, `nginx-unprivileged`, `openresty` → `nw:proxy/nginx/default` | 이 이미지들이 nginx 기본값을 그대로 가진다 | nginx.org는 C(§5.3), 나머지 두 이미지는 조사 문서 인용 없음 → 부적격·근거없음 |
+| `postgis`, `timescaledb*`, `pgvector/*` → `ds:unspecified/postgresql/default` | PostgreSQL 능력을 그대로 가진다 | postgis·timescaledb는 근거없음, pgvector는 C(pgvector 저장소) |
+| `valkey`, `valkey-cluster`, `redis-stack*`, `redis-cluster`, `redis-sentinel` → `ca:unspecified/redis/default` | Redis(자체 운영) 능력을 그대로 가진다 | valkey는 A(valkey.io·Docker Hub valkey, SO 2025), 나머지는 근거없음 |
 | `cloud-sql-proxy` 등 → `hosting_hint: ds:gcp/cloudsql-postgres/single` | 이 프록시가 있으면 Cloud SQL이다 | 근거없음(판단은 S2·S3에 맡긴다고 적혀 있어 힌트로만 쓰임) |
 | 그 밖의 역할 분류(infra, dev-tool, queue) | 구성 요소 능력과 연결되지 않음 | 해당 없음 |
 
 ## 9. 문제 영역 요약
 
-1. **컴퓨트 티어 0의 덜 알려진 플랫폼.** capabilities/04-compute-tier0.md는 인용 523건 중 B 161건, C 31건(Koyeb 전부)이다. Railway·Render·Fly.io·Replit 절은 B에만 기댄다. 엔진 catalog의 `cp:fly`, `cp:render`, `cp:railway`와 같은 플랫폼의 엣지 프록시 항목이 여기에 걸린다.
-2. **배포·릴리스와 데이터 정합성의 패턴 출처.** considerations/03-deploy-release.md(C 22건)와 04-data-consistency.md(C 14건)는 블루그린·카나리·parallel change·feature toggle(martinfowler.com), outbox·saga·event sourcing·idempotent consumer(microservices.io), 프로세스·설정·로그 원칙(12factor.net)을 사용자 지정 부적격 출처로 뒷받침한다.
-3. **근거 없는 판정 값.** capabilities/10-network-edge-egress.md(근거없음 줄이 가장 많음), 09-network-lb-ingress.md, 05-compute-tier1-2.md(ops_burden "(평가)", 쿠버네티스 "일반 동작"), 08-artifacts-compute.md("(추론)" 처방)에 출처 없는 값이 몰려 있다.
-4. **지식 베이스.** defaults.yaml의 `multi_az = false`는 인용 문서에 주장이 없고, Spring Boot Tomcat keep-alive 60초는 조사 문서 스스로 추론이라고 적었다. `backup_retention_period = 0`은 A 출처끼리 충돌한다. catalog의 `rt:lib/ws`, 일반 쿠버네티스, 일반 컨테이너 항목은 근거 절이 없다.
-5. **사용자 결정 대기.** B 발행처 121곳(§5)과 애매 4건(§6). 특히 Railway·Render·Fly.io·Prisma·Replit·Upstash·Neon·Checkov는 건수가 많아 결정의 영향이 크다.
+1. **컴퓨트 티어 0.** Railway는 A가 됐지만 Render·Fly.io·Replit·Koyeb 절은 C에만 기댄다(capabilities/04의 ⚠️출처부적격 116줄). 엔진 catalog의 `cp:fly`, `cp:render`와 같은 플랫폼 프록시 항목은 `recommendable: false`다.
+2. **서드파티 데이터·큐·실시간 서비스.** Neon·Upstash·PlanetScale·Turso·Convex·Appwrite·Pinecone·Prisma·BullMQ·Celery·Socket.IO 문서가 모두 C라서 capabilities/01·02·03·06·07의 해당 절은 쓸 수 없다.
+3. **배포·릴리스와 데이터 정합성의 패턴 출처.** martinfowler.com·microservices.io·12factor.net(§4), 결제 항목의 Stripe·토스페이먼츠(§5.3·§5.2)가 C라서 considerations/03·04의 해당 항목은 쓸 수 없다.
+4. **근거 없는 판정 값.** capabilities/10(근거없음 줄이 가장 많음), 09, 05(ops_burden "(평가)"), 08("(추론)" 처방)에 출처 없는 값이 몰려 있다.
+5. **지식 베이스.** defaults.yaml에서 8개를 지웠다(§8.1). catalog 14개 항목은 `recommendable: false`다(§8.2). nginx 판정(§5.3)과 Istio·OPA 판정(§5.1)은 사용자가 뒤집을 수 있다.
