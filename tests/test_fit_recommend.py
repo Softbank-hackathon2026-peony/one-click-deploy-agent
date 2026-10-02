@@ -244,3 +244,12 @@ def test_sqlite_kind_stripped_from_b2_object_keeps_other_kinds():
     only = dim("B2", {"value": "있음", "kinds": ["sqlite"]})
     assert _strip_sqlite_b2([both], [sq], inventory())[0]["value"]["kinds"] == ["local-files"]
     assert _strip_sqlite_b2([only], [sq], inventory()) == []
+
+
+def test_app_scope_ignores_workload_values_aggregated_from_endpoints():
+    from infrafit.fit.scopes import app_scopes
+    a2_web = {**dim("A2", "수십 초"), "aggregated_from": ["ep-web-001"]}
+    a2_app = {**dim("A2", "수십 초", scope="w-app"), "aggregated_from": ["w-web"]}
+    scopes = app_scopes(inventory(sqlite=False), profile(a2_web, a2_app))
+    assert [s.id for s in scopes] == ["w-app"]
+    assert scopes[0].members == ["w-app", "w-web"] and scopes[0].current == [EC2]

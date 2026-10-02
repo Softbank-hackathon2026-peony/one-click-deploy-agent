@@ -25,9 +25,12 @@ def _family(component_id: str) -> str:
 
 
 def app_scopes(inventory: dict, profile: dict) -> list[Scope]:
-    """프로필의 `w-*` 범위. 집계 값(aggregated_from)이 있으면 집계 범위만 쓴다."""
+    """프로필의 `w-*` 범위. 앱 집계 범위(워크로드들에서 모은 값, 예: `w-app`)가 있으면 그것만 쓴다.
+    워크로드 범위의 값도 엔드포인트에서 모으면 aggregated_from을 갖기 때문에, 출처가 모두 워크로드인지로 가른다."""
     dims = [d for d in profile.get("dimensions", []) if d["scope"].startswith("w-")]
-    aggregated = sorted({d["scope"] for d in dims if d.get("aggregated_from")})
+    workload_ids = {w["id"] for w in inventory.get("workloads", [])}
+    aggregated = sorted({d["scope"] for d in dims if d.get("aggregated_from")
+                         and set(d["aggregated_from"]) <= workload_ids and d["scope"] not in workload_ids})
     if aggregated:
         ids = aggregated
     else:
