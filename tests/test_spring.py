@@ -88,6 +88,9 @@ public class ItemController {
 """
 
 
+BOOT_APP_JAVA = "package com.example;\n\n@SpringBootApplication\npublic class ShopApplication {}\n"
+
+
 def _write(root, rel, text):
     p = root / rel
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -145,6 +148,7 @@ def test_kotlin_gradle_web_workload_and_endpoints(tmp_path):
 
 def test_maven_pom_parent_and_request_mapping_arrays(tmp_path):
     _write(tmp_path, "pom.xml", POM)
+    _write(tmp_path, "src/main/java/com/example/ShopApplication.java", BOOT_APP_JAVA)
     _write(tmp_path, "src/main/java/com/example/ItemController.java", ITEM_CONTROLLER_JAVA)
     snap, m, workloads, eps = _detect(tmp_path)
     assert m.deps["org.springframework.boot"] == ("pom.xml", 6)
@@ -257,7 +261,8 @@ def test_tomcat_timeout_formats_in_properties(tmp_path):
 
 
 def test_webflux_app_server_is_unmapped(tmp_path):
-    _write(tmp_path, "repo/build.gradle", "dependencies { implementation 'org.springframework.boot:spring-boot-starter-webflux' }\n")
+    _write(tmp_path, "repo/build.gradle", "plugins { id 'org.springframework.boot' }\n"
+                                          "dependencies { implementation 'org.springframework.boot:spring-boot-starter-webflux' }\n")
     inv = _inventory(tmp_path)
     assert [h["component"] for h in inv["request_paths"][0]["hops"]] == ["unmapped"]
 
@@ -288,3 +293,42 @@ def test_command_from_linked_dockerfile(tmp_path):
                                    "FROM eclipse-temurin:21\nENTRYPOINT [\"java\", \"-jar\", \"/app.jar\"]\n")
     _, _, workloads, _ = _detect(tmp_path)
     assert [(w.id, w.command) for w in workloads] == [("w-user-service", "java -jar /app.jar")]
+
+
+def test_compose_spring_workload_gets_tomcat_hop(tmp_path):
+    _write(tmp_path, "repo/docker-compose.yml", "services:\n  api:\n    build: ./api\n    ports: ['8080:8080']\n")
+    _write(tmp_path, "repo/api/Dockerfile", "FROM eclipse-temurin:21\nENTRYPOINT [\"java\", \"-jar\", \"/app.jar\"]\n")
+    _write(tmp_path, "repo/api/build.gradle.kts", GRADLE_KTS)
+    _write(tmp_path, "repo/api/src/main/resources/application.yml", "server:\n  tomcat:\n    keep-alive-timeout: 15s\n")
+    inv = _inventory(tmp_path)
+    assert [w["id"] for w in inv["workloads"]] == ["w-api"]
+    hops = [h for p in inv["request_paths"] for h in p["hops"] if h["kind"] == "app-server"]
+    assert {h["component"] for h in hops} == {"nw:app/spring-boot-tomcat/default"}
+    assert {h["settings"][0]["value"] for h in hops} == {15}
+
+
+def test_compose_spring_default_hop_evidence_is_web_dependency(tmp_path):
+    _write(tmp_path, "repo/docker-compose.yml", "services:\n  api:\n    build: ./api\n")
+    _write(tmp_path, "repo/api/Dockerfile", "FROM eclipse-temurin:21\nCMD [\"java\", \"-jar\", \"/app.jar\"]\n")
+    _write(tmp_path, "repo/api/build.gradle.kts", GRADLE_KTS)
+    inv = _inventory(tmp_path)
+    hop = inv["request_paths"][0]["hops"][0]
+    assert hop["component"] == "nw:app/spring-boot-tomcat/default"
+    assert [(e["path"], e["line"]) for e in hop["evidence"]] == [("api/build.gradle.kts", 9)]
+
+
+def test_library_modules_are_not_workloads(tmp_path):
+    _write(tmp_path, "settings.gradle", "rootProject.name = 'shop'\ninclude 'app', 'lib'\n")
+    _write(tmp_path, "app/build.gradle", "dependencies { implementation 'org.springframework.boot:spring-boot-starter-web' }\n")
+    _write(tmp_path, "app/src/main/java/com/x/App.java", "@SpringBootApplication\npublic class App {}\n")
+    _write(tmp_path, "lib/build.gradle", "dependencies { implementation 'org.springframework.boot:spring-boot-starter-data-jpa' }\n")
+    _write(tmp_path, "lib/src/main/java/com/x/Repo.java", "public interface Repo {}\n")
+    _, _, workloads, _ = _detect(tmp_path)
+    assert [(w.id, w.kind) for w in workloads] == [("w-app", "web")]
+
+
+def test_spring_boot_application_in_test_sources_does_not_count(tmp_path):
+    _write(tmp_path, "lib/build.gradle", "dependencies { implementation 'org.springframework.boot:spring-boot-starter-web' }\n")
+    _write(tmp_path, "lib/src/test/java/TestApp.java", "@SpringBootApplication\nclass TestApp {}\n")
+    _, _, workloads, _ = _detect(tmp_path)
+    assert workloads == []

@@ -33,6 +33,8 @@ SPRING_WEB = (("org.springframework.boot:spring-boot-starter-web", "spring-mvc")
 SPRING_STARTER = "org.springframework.boot:spring-boot-starter"
 JVM_BUILD_FILES = GRADLE_FILES + (MAVEN_FILE,)
 GRADLE_SETTINGS = ("settings.gradle", "settings.gradle.kts")
+_BOOT_APPLICATION = re.compile(r"^\s*@(?:org\.springframework\.boot\.autoconfigure\.)?SpringBootApplication\b",
+                               re.MULTILINE)
 _ROOT_PROJECT = re.compile(r"""\brootProject\.name\s*=\s*["']([^"']+)["']""")
 
 
@@ -57,6 +59,7 @@ class WorkloadInfo:
     proxy_component: str | None = None  # reverse-proxy 워크로드: 이미지 분류의 구성 요소
     root_guessed: bool = False  # 저장소에 하나뿐인 Dockerfile로 code_root를 정했다(규칙상 추측)
     framework: str = ""  # 코드에서 찾은 웹 프레임워크(Spring: spring-mvc·spring-webflux). 출력에는 쓰지 않는다
+    framework_evidence: dict | None = None  # 프레임워크를 정한 의존성 줄(Spring 웹 스타터)
 
     def to_dict(self) -> dict:
         return {"id": self.id, "kind": self.kind, "name": self.name,
@@ -416,17 +419,48 @@ def _spring_name(snap: Snapshot, d: str) -> str:
     return PurePosixPath(d).name or "app"
 
 
+def _build_location(manifests: Manifests, dep: str, d: str, files=JVM_BUILD_FILES) -> tuple[str, int | None] | None:
+    """디렉터리 d의 빌드 파일에서 dep가 있는 (파일, 줄)."""
+    return next(((rel, ln) for rel, ln in manifests.locations.get(dep, [])
+                 if parent_dir(rel) == d and PurePosixPath(rel).name in files), None)
+
+
+def owning_build_dir(rel: str, build_dirs: set[str]) -> str | None:
+    """파일을 품은 가장 가까운 빌드 파일 디렉터리(모듈). 없으면 None."""
+    d = parent_dir(rel)
+    while d not in build_dirs:
+        if not d:
+            return None
+        d = parent_dir(d)
+    return d
+
+
+def _boot_application_dirs(snap: Snapshot, build_dirs: set[str]) -> set[str]:
+    """테스트가 아닌 Java·Kotlin 파일에 `@SpringBootApplication`이 있는 모듈 디렉터리들."""
+    out: set[str] = set()
+    for pattern in ("**/*.java", "**/*.kt"):
+        for rel in snap.glob(pattern):
+            if not is_test_path(rel) and _BOOT_APPLICATION.search(snap.read(rel)):
+                d = owning_build_dir(rel, build_dirs)
+                if d is not None:
+                    out.add(d)
+    return out
+
+
 def _spring_apps(snap: Snapshot, manifests: Manifests) -> dict[tuple[str, str], dict]:
-    """빌드 파일 디렉터리마다 Spring Boot 앱: 웹 스타터가 있으면 web, Spring Boot만 있으면 worker(후보)."""
+    """빌드 파일 디렉터리마다 Spring Boot 앱: 웹 스타터가 있으면 web, Spring Boot만 있으면 worker(후보).
+    모듈 안 코드에 `@SpringBootApplication`이 있거나 Gradle Boot 플러그인을 적용한 모듈만 앱이다(스타터만 쓰는
+    라이브러리 모듈은 뺀다)."""
     found: dict[tuple[str, str], dict] = {}
-    for d in jvm_build_dirs(snap):
+    build_dirs = jvm_build_dirs(snap)
+    apps = _boot_application_dirs(snap, set(build_dirs))
+    for d in build_dirs:
         deps = manifests.deps_by_dir.get(d, set())
         web = spring_web(deps)
         dep = web[0] if web else _spring_boot_dep(deps)
-        if dep is None:
+        if dep is None or (d not in apps and _build_location(manifests, SPRING_BOOT, d, GRADLE_FILES) is None):
             continue
-        loc = next(((rel, ln) for rel, ln in manifests.locations.get(dep, [])
-                    if parent_dir(rel) == d and PurePosixPath(rel).name in JVM_BUILD_FILES), None)
+        loc = _build_location(manifests, dep, d)
         if loc is None:
             continue
         found[("web" if web else "worker", d)] = {
@@ -469,7 +503,7 @@ def _from_code(snap: Snapshot, manifests: Manifests, artifacts: list[ParsedArtif
             ids.add(wid)
             w = WorkloadInfo(id=wid, kind=wkind, name=name, entrypoint=entry,
                              status="confirmed" if framework else "candidate", source="code", app_dir=d,
-                             code_root=d, framework=framework)
+                             code_root=d, framework=framework, framework_evidence=entry if framework else None)
             # 실행 명령은 연결된 Dockerfile의 마지막 체인 ENTRYPOINT+CMD, Procfile이 있으면 그 명령
             df = workload_dockerfile(w, artifacts)
             w.command = (_image_command(df.path, artifacts) if df else "") or (info["proc"][0] if "proc" in info else "")
@@ -582,6 +616,18 @@ def _link_single_dockerfile(workloads: list[WorkloadInfo], artifacts: list[Parse
         w.command = w.command or _image_command(df.path, artifacts)
 
 
+def _spring_framework_at_root(snap: Snapshot, manifests: Manifests, workloads: list[WorkloadInfo]) -> None:
+    """k8s·compose 앱 워크로드: code_root 모듈의 빌드 파일에 Spring 웹 스타터가 있으면 그 프레임워크와 의존성 줄."""
+    build_dirs = set(jvm_build_dirs(snap))
+    for w in workloads:
+        if w.source not in ("k8s", "compose") or not is_app(w) or w.framework or w.code_root not in build_dirs:
+            continue
+        web = spring_web(manifests.deps_by_dir.get(w.code_root, set()))
+        loc = _build_location(manifests, web[0], w.code_root) if web else None
+        if loc:
+            w.framework, w.framework_evidence = web[1], evidence(snap, *loc)
+
+
 def detect_workloads(snap: Snapshot, manifests: Manifests, artifacts: list[ParsedArtifact]) -> list[WorkloadInfo]:
     workloads = _from_k8s(snap, artifacts) or _from_compose(snap, artifacts)
     if not any(is_app(w) for w in workloads):
@@ -597,4 +643,5 @@ def detect_workloads(snap: Snapshot, manifests: Manifests, artifacts: list[Parse
     if not any(is_app(w) for w in workloads):
         workloads += _from_dockerfiles(snap, workloads, artifacts)
     _link_single_dockerfile(workloads, artifacts)
+    _spring_framework_at_root(snap, manifests, workloads)
     return sorted(workloads, key=lambda w: w.id)

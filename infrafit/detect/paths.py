@@ -123,11 +123,12 @@ def _tomcat_keep_alive(snap: Snapshot, root: str) -> tuple[int | float, dict] | 
 def _spring_hop(snap: Snapshot, w: WorkloadInfo) -> dict:
     """Spring 워크로드의 앱 서버 구간: spring-mvc는 명령과 무관하게 내장 Tomcat(설정의 keep-alive 명시값이 있으면
     그 값과 줄 근거, 없으면 기본값과 웹 의존성 줄 근거), spring-webflux는 unmapped."""
+    dep_ev = [w.framework_evidence or w.entrypoint]
     if w.framework != "spring-mvc":
-        return _hop("app-server", "unmapped", {}, [w.entrypoint])
+        return _hop("app-server", "unmapped", {}, dep_ev)
     found = _tomcat_keep_alive(snap, w.code_root or "")
     if found is None:
-        return _hop("app-server", SPRING_TOMCAT, {}, [w.entrypoint])
+        return _hop("app-server", SPRING_TOMCAT, {}, dep_ev)
     seconds, ev = found
     hop = _hop("app-server", SPRING_TOMCAT, {"keep_alive_timeout": seconds}, [ev])
     for setting in hop["settings"]:
