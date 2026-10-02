@@ -12,13 +12,13 @@ from infrafit.detect.compose import DEVCONTAINER, compose_build, compose_service
 from infrafit.detect.images import base_class, image_class, image_name, service_class
 from infrafit.detect.jvm import build_location, jvm_build_dirs, spring_apps, spring_web
 from infrafit.detect.manifests import Manifests
-from infrafit.detect.testpaths import is_test_path
+from infrafit.detect.testpaths import is_test_dir, is_test_path
 from infrafit.evidence import evidence, line_of
 from infrafit.repo import Snapshot, parent_dir
 
 WEB_FRAMEWORKS = ("next", "express", "fastify", "koa", "@nestjs/core", "hono", "fastapi", "flask", "django")
 # 개발·테스트용 Dockerfile(배포하지 않는 이미지): 파일 이름의 변형 부분 조각, 경로 조각
-DEV_DOCKERFILE_PARTS = {"dev", "test", "tests", "ci", "local", "debug", "e2e"}
+DEV_DOCKERFILE_PARTS = {"dev", "development", "test", "tests", "testing", "ci", "local", "debug", "e2e"}
 PROC_KINDS = {"web": "web", "worker": "worker", "clock": "scheduled", "release": "migration-job"}
 # 워커 프로세스를 뜻하는 토큰 끝(`board.worker`, `jobs/worker.py` 등). `--workers 4`, `uvicorn.workers.UvicornWorker`는 아니다
 WORKER_SUFFIXES = (".worker", "/worker", ":worker", "worker.py", "worker.js", "worker.ts")
@@ -207,19 +207,24 @@ def _from_compose(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[Workl
 
 
 def _from_code(snap: Snapshot, manifests: Manifests, artifacts: list[ParsedArtifact]) -> list[WorkloadInfo]:
+    """매니페스트·빌드 파일·Procfile이 있는 디렉터리마다 워크로드. 테스트 경로(testpaths.is_test_dir) 아래의 것은
+    배포 대상이 아니므로 뺀다."""
     found: dict[tuple[str, str], dict] = {}
     for d, deps in sorted(manifests.deps_by_dir.items()):
+        if is_test_dir(d):
+            continue
         web_fw = next((fw for fw in WEB_FRAMEWORKS if fw in deps), None)
         if web_fw:
             found[("web", d)] = {"dep": web_fw}
         elif "vite" in deps:
             found[("static-frontend", d)] = {"dep": "vite"}
     for key, info in spring_apps(snap, manifests).items():
-        found.setdefault(key, info)
+        if not is_test_dir(key[1]):
+            found.setdefault(key, info)
     for key, (cmd, rel, line) in sorted(manifests.procfile.items()):
         d, proc = key.split(":", 1)
         wkind = PROC_KINDS.get(proc)
-        if not wkind:
+        if not wkind or is_test_dir(d):
             continue
         entry = found.setdefault((wkind, d), {})
         entry.setdefault("proc", (cmd, rel, line))

@@ -18,3 +18,8 @@ def is_test_path(rel: str) -> bool:
     if set(p.parts[:-1]) & TEST_PATH_SEGMENTS:
         return True
     return any(fnmatchcase(p.name, pat) for pat in TEST_FILE_PATTERNS)
+
+
+def is_test_dir(d: str) -> bool:
+    """디렉터리 경로의 조각 중 테스트 디렉터리가 있다(그 아래 매니페스트·빌드 파일은 배포 대상이 아니다)."""
+    return bool(set(PurePosixPath(d).parts) & TEST_PATH_SEGMENTS)

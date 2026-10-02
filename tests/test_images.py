@@ -347,3 +347,20 @@ def test_lint_images_shadowed_duplicate_family_and_keys():
         assert any(f"image {name}:" in i and "family" in i for i in issues), name
     assert "hostnig_hint" in text
     assert len(issues) == 8
+
+
+def test_development_and_testing_dockerfiles_are_dev():
+    from infrafit.detect.workloads import _is_dev_dockerfile
+    assert _is_dev_dockerfile("Dockerfile.development")
+    assert _is_dev_dockerfile("api/testing.Dockerfile")
+
+
+def test_manifests_and_build_dirs_under_test_paths_do_not_create_workloads(tmp_path):
+    repo = tmp_path / "repo"
+    _write(repo, "requirements.txt", "fastapi==0.115\n")
+    _write(repo, "main.py", APP)
+    _write(repo, "tests/fixtures/app/package.json", '{"dependencies": {"express": "4"}}\n')
+    _write(repo, "e2e/Procfile", "worker: node run.js\n")
+    _write(repo, "testing/build.gradle", "plugins { id 'org.springframework.boot' }\n"
+                                        "dependencies { implementation 'org.springframework.boot:spring-boot-starter-web' }\n")
+    assert [(w.id, w.code_root) for w in _workloads(repo)] == [("w-web", "")]
