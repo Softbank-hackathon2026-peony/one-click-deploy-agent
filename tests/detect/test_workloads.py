@@ -36,8 +36,19 @@ def test_static_frontend_and_multiple_dirs(tmp_path):
     _write(tmp_path, "admin/package.json", json.dumps({"dependencies": {"express": "^4"}}))
     ws = _run(tmp_path)
     assert [(w.id, w.kind) for w in ws] == [
-        ("w-static", "static-frontend"), ("w-web-admin", "web"), ("w-web-api", "web")]
-    assert next(w for w in ws if w.id == "w-web-api").command == "node server.js"
+        ("w-admin", "web"), ("w-api", "web"), ("w-static", "static-frontend")]
+    assert next(w for w in ws if w.id == "w-api").command == "node server.js"
+
+
+def test_code_workload_names_come_from_directories(tmp_path):
+    _write(tmp_path, "server/requirements.txt", "fastapi==0.115\n")
+    _write(tmp_path, "worker/requirements.txt", "fastapi==0.115\n")
+    _write(tmp_path, "apps/api/package.json", json.dumps({"dependencies": {"express": "^4"}}))
+    _write(tmp_path, "services/api/package.json", json.dumps({"dependencies": {"express": "^4"}}))
+    ws = _run(tmp_path)
+    assert [(w.id, w.name, w.kind) for w in ws] == [
+        ("w-api", "api", "web"), ("w-server", "server", "web"), ("w-services-api", "services-api", "web"),
+        ("w-worker", "worker", "worker")]
 
 
 def test_k8s_takes_priority_and_skips_infra_images(tmp_path):

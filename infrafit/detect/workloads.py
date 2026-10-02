@@ -241,7 +241,7 @@ def _from_code(snap: Snapshot, manifests: Manifests, artifacts: list[ParsedArtif
     ids: set[str] = set()
     for (wkind, d), info in sorted(found.items()):
         short = "static" if wkind == "static-frontend" else wkind
-        wid = f"w-{short}" if len(by_kind[wkind]) == 1 else f"w-{short}-{slug(d)}"
+        wid = ""
         if "spring" in info:
             entry, framework, name = info["spring"]
             wid = f"w-{slug(name)}"
@@ -256,8 +256,11 @@ def _from_code(snap: Snapshot, manifests: Manifests, artifacts: list[ParsedArtif
             w.command = (_image_command(df.path, artifacts) if df else "") or (info["proc"][0] if "proc" in info else "")
             out.append(w)
             continue
-        if wid in ids:
-            wid = f"w-{short}-{slug(d)}"
+        # 이름: 그 종류가 하나뿐이면 종류 이름(web·worker·static 등), 여럿이면 디렉터리 이름(겹치면 디렉터리 경로)
+        names = [short] if len(by_kind[wkind]) == 1 or not d else [PurePosixPath(d).name]
+        names += [slug(d), f"{short}-{slug(d)}"] if d else [f"{short}-root"]
+        name = next((slug(n) for n in names if f"w-{slug(n)}" not in ids), slug(f"{short}-{d}-{len(ids)}"))
+        wid = f"w-{name}"
         ids.add(wid)
         if "dep" in info:
             dep = info["dep"]
@@ -282,7 +285,9 @@ def _from_code(snap: Snapshot, manifests: Manifests, artifacts: list[ParsedArtif
             command = _dockerfile_cmd_for_dir(d, artifacts) or proc_cmd or start_cmd
         else:
             command = proc_cmd
-        out.append(WorkloadInfo(id=wid, kind=wkind, name=wid[2:], entrypoint=entry,
+        if wkind == "web" and is_worker(name, command):  # `worker/`처럼 이름·명령이 워커이면 워커다
+            wkind = "worker"
+        out.append(WorkloadInfo(id=wid, kind=wkind, name=name, entrypoint=entry,
                                 status="confirmed", source="code", app_dir=d, command=command, code_root=d))
     return out
 
