@@ -119,3 +119,51 @@
 ## 미뤄 둔 작은 항목
 - Task 1: minor (deferred): nginx.py size
 - Task 2: minor (deferred): no test mixing null scope with named environments for one workload
+
+# 계획 1d: 판정과 후속 과제
+
+계획: docs/superpowers/plans/2026-10-02-infrafit-1d-real-repo-fixes-spring.md (실제 저장소 12개로 검증)
+
+## 판정
+- Ruling: P1 (T1 concern 3) compose workload entrypoint evidence uses the same service-key line lookup as image services (not a plain `name:` search) — evidence must hit the real definition line — cost: f1 golden evidence lines may change (regenerated in T4)
+- Ruling: P2 (T1 concern 5) rule 7 links the single unlinked Dockerfile only when the image-only app workloads needing a link all share one image name (or there is just one); otherwise no link — different images mean different code — cost if wrong: a missed link
+- Ruling: P3 (T1 concerns 1,2,4) accepted as reported
+- Ruling: P4 rules 6–7 ignore dev/test Dockerfiles: a name part (from `Dockerfile.<x>`, `<x>.Dockerfile`, `<x>.dockerfile`) among dev, test, tests, ci, local, debug, e2e, or a path segment among test, tests, __tests__, e2e, spec — such images are not deployed — cost if wrong: a real app built only from Dockerfile.local missed
+- Ruling: P5 endpoints owned through the single-web rule stay confirmed even when the code_root link was guessed — ownership was not decided by the guess — cost: none
+- Ruling: P6 (T2 deviation) only code_root "" counts as repo root (app_dir "" means unknown) — accepted
+- Ruling: P7 parameter-derived server names: drop `api` and `instance` from the list; a route from a parameter-derived server must start with `/` and the server name is scoped to the function that declares it (from the parameter's function to the end of that function's body, or to the end of the file for top-level arrow bodies when the end cannot be found) — axios-style clients share these names — cost: some plugin routes with unusual param names missed
+- Ruling: P8 route calls are matched over the whole file text (multi-line prettier style), line from the match start — same as _route_objects
+- Ruling: P9 (T3 concern 1) compose/k8s workloads get `framework` from the build file under their code_root (Gradle/Maven deps of that module) so Spring apps deployed through compose/k8s get the Tomcat app-server hop — common shape — cost: none
+- Ruling: P10 (T3 concern 2) a Spring module counts as a workload only if it has a `@SpringBootApplication` class (Java/Kotlin, non-test) under its directory or applies the Boot plugin (not `apply false`); library modules are skipped — cost if wrong: a boot app without the annotation and plugin missed
+- Ruling: P11 T3 deviations 1–6 accepted
+- Ruling: P12 Gradle version catalogs: read gradle/libs.versions.toml ([libraries] `module = "g:a"` or `group`/`name`; [plugins] `id`), resolve `libs.<alias>` (dots/dashes/underscores equivalent) and `alias(libs.plugins.<alias>)` in build files to coordinates/plugin ids; evidence = the build-file line — common modern Gradle shape — cost: none
+- Ruling: FA1 restore image coverage in images.yaml (bitnami/mongodb, mongodb*, redis-stack*, redis/redis-stack*, mysql/mysql-server, minio/*, timescaledb*, pgvector/*, gce-proxy, cloudsql-proxy variants; dev-tool: mongo-express, redis-commander, redisinsight, phpmyadmin) + regression test listing all old token-covered names
+- Ruling: FA2 Gradle subprojects/allprojects blocks: their plugins/dependencies never apply to the root module; dependencies there are attributed to each child build dir that exists; Spring configs limited to files whose owning build dir is the workload's dir
+- Ruling: FA3 single web workload → endpoints confirmed regardless of guessed root; otherwise guessed root → candidate
+- Ruling: FA4 module split: detect/images.py (classify_image, image services), detect/jvm.py (masking, bracket matching, Gradle/Maven, Spring detection), one shared `nearest_dir(...)` helper and one `line_at` with precomputed offsets; dedupe XML comment regex and nginx component constant
+- Ruling: FA5 a test asserts every component-ID constant in infrafit/detect exists in the catalog; images lint flags shadowed/duplicate patterns, family/role mismatch (datastore→ds:, cache→ca:, queue→qu:, reverse-proxy→nw:) and unknown keys
+- Ruling: FA6 DEV_DOCKERFILE_PARTS += development, testing; manifests and build dirs under test paths do not create workloads
+- Ruling: FA7 spec §2 workload kinds += reverse-proxy (note: may be a static SPA served by nginx); §3 knowledge table += images.yaml
+- Ruling: FB1 app_server parses commands: split `sh -c "..."`/`bash -c`, `&&`, `;`, take each simple command; recognise `python -m uvicorn|gunicorn|flask run`, `flask ... run`, `npx`/`exec` prefixes; the last recognised server wins
+- Ruling: FB2 Dockerfile-recovered workloads: build context = repo root when every COPY/ADD source (excluding --from) exists relative to the repo root but not relative to the Dockerfile dir; code_root follows the context
+- Ruling: FB3 dependency-only matches become candidate for SIG-DS-SUPABASE (confirmed refine only with `.from(`/`.rpc(`/supabase DB URL) and JVM SQS (confirmed only with SqsClient/SqsTemplate/@SqsListener usage)
+- Ruling: FB4 static-frontend: vercel.json/netlify.toml do not map to functions compute (compute `unmapped` instead); static-frontend workloads get a request path with the platform edge hop when a platform config applies; a static-frontend whose build output dir (dist/build/out) is COPYed into another workload's Dockerfile is not a separate workload; compute root-Dockerfile fallback never applies to static-frontend
+- Ruling: FB5 signature evidence ordering: files under scripts/, qa/, tools/, examples/, bench/ sort after other files before the 5-item cap
+- Ruling: FB6 code workload names come from the directory only (`server`, `worker`), single-root keeps `web`; kind via is_worker(name, command)
+- Ruling: FB7 env_command_evidence falls back to the linked Dockerfile CMD/ENTRYPOINT line before w.entrypoint
+- Ruling: FB8 manifests read pyproject optional-dependencies (all groups) and Dockerfile `RUN pip install ...`/`npm install|i ...`/`yarn add`/`pnpm add` package names (flags and version pins stripped), evidence = Dockerfile line
+- Ruling: FB9 SIG-DS-POSTGRES code condition: `postgres(ql)?(\+\w+)?://` in py/js/ts/yml/yaml/env.example/toml; SIG-FS-LOCAL widened (Python open(...,'w'|'a'), json.dump, Path.write_text, fs.writeFile*) as candidate
+- Ruling: FB10 images.yaml: `*-exporter`, `*_exporter`, prom/*, grafana/*, otel/* collectors → role infra (unmapped label); Kotlin `apply(plugin = "...")` and `configure(subprojects)`/`configure(allprojects)` blocks handled like FA2
+- Ruling: FB11 a code workload detected from a web-framework dependency stays web unless its command is a recognised worker command (is_worker on the command tokens); the name alone does not make it a worker (FA4a name rule stays for k8s/compose) — shipchajang worker serves HTTP — cost: a framework-based worker named *worker with an HTTP-free command still web
+- Ruling: FB12 matches whose evidence lies only in auxiliary dirs (scripts/, qa/, tools/, examples/, bench/) do not create scopes; they only add evidence to scopes created elsewhere
+- Ruling: FC1 `_owned_by_other` drops a route only when the web workload has a root and another non-web workload's root is strictly deeper and contains the file; a web workload without roots never loses routes this way
+- Ruling: FC2 Supabase refine requires a receiver whose name contains `supabase` (case-insensitive), across line breaks; `.storage` chains excluded across line breaks; otherwise stays candidate (safe direction)
+- Ruling: FC3 exporter patterns restricted to known publishers: prom/*, prometheuscommunity/*, oliver006/redis_exporter, quay.io-style */postgres-exporter, bitnami/*-exporter, */node-exporter; user images named *-exporter stay apps
+- Ruling: FC4 shell.simple_commands also splits on `&` and `|`; FB8 ignores dev/test Dockerfiles
+
+## S2 설계로 넘긴 것
+- Deferred (S2 design): external services/SaaS, deploy targets from CI/README (Cloud Run, EC2/SSM), batch/CLI workloads, STOMP realtime, framework-implicit routes, multi-target environments (render.yaml beside compose), Temporal as orchestrator component
+
+## 미뤄 둔 작은 항목
+- Task 1: minor (deferred): unparsed proxy path does not follow chains; compose evidence can feed _users location check
+- Task 3: minor (deferred): root module reads submodule application configs; `${X:20s}` placeholders not resolved; RED evidence for one test missing
