@@ -267,6 +267,7 @@
       ]
     }
   ],
+  "external_services": [],
   "request_paths": [
     {
       "environment": null,

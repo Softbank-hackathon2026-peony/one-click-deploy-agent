@@ -92,7 +92,7 @@
   ],
   "endpoints": [
     {
-      "framework": "python",
+      "framework": "flask",
       "handler": {
         "line": 14,
         "path": "app.py",
@@ -105,7 +105,7 @@
       "workload": "w-web"
     },
     {
-      "framework": "python",
+      "framework": "flask",
       "handler": {
         "line": 20,
         "path": "app.py",
@@ -118,7 +118,7 @@
       "workload": "w-web"
     },
     {
-      "framework": "python",
+      "framework": "flask",
       "handler": {
         "line": 26,
         "path": "app.py",
@@ -131,7 +131,7 @@
       "workload": "w-web"
     },
     {
-      "framework": "python",
+      "framework": "flask",
       "handler": {
         "line": 35,
         "path": "app.py",
@@ -144,7 +144,7 @@
       "workload": "w-web"
     },
     {
-      "framework": "python",
+      "framework": "flask",
       "handler": {
         "line": 41,
         "path": "app.py",
@@ -157,7 +157,7 @@
       "workload": "w-web"
     },
     {
-      "framework": "python",
+      "framework": "flask",
       "handler": {
         "line": 53,
         "path": "app.py",
@@ -215,6 +215,7 @@
       ]
     }
   ],
+  "external_services": [],
   "request_paths": [
     {
       "environment": null,

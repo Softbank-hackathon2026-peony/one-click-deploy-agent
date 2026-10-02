@@ -27,6 +27,20 @@
       "scope": "w-web",
       "settings": [],
       "status": "confirmed"
+    },
+    {
+      "component": "cp:vercel/functions/unspecified-plan",
+      "environment": "vercel",
+      "evidence": [
+        {
+          "line": null,
+          "path": "vercel.json",
+          "snippet": "vercel.json"
+        }
+      ],
+      "scope": "w-web",
+      "settings": [],
+      "status": "confirmed"
     }
   ],
   "datastores": [
@@ -75,7 +89,21 @@
       "workload": "w-web"
     }
   ],
-  "environments": [],
+  "environments": [
+    {
+      "kind": "platform",
+      "members": [
+        "w-web"
+      ],
+      "name": "vercel",
+      "rendered": true,
+      "source": {
+        "line": null,
+        "path": "vercel.json",
+        "snippet": "vercel.json"
+      }
+    }
+  ],
   "existing_artifacts": [
     {
       "kind": "platform-config",
@@ -90,6 +118,7 @@
       ]
     }
   ],
+  "external_services": [],
   "request_paths": [
     {
       "environment": null,

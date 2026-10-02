@@ -57,6 +57,20 @@
       "scope": "w-web",
       "settings": [],
       "status": "confirmed"
+    },
+    {
+      "component": "cp:vercel/functions/unspecified-plan",
+      "environment": "vercel",
+      "evidence": [
+        {
+          "line": null,
+          "path": "vercel.json",
+          "snippet": "vercel.json"
+        }
+      ],
+      "scope": "w-web",
+      "settings": [],
+      "status": "confirmed"
     }
   ],
   "datastores": [
@@ -163,7 +177,21 @@
       "workload": "w-web"
     }
   ],
-  "environments": [],
+  "environments": [
+    {
+      "kind": "platform",
+      "members": [
+        "w-web"
+      ],
+      "name": "vercel",
+      "rendered": true,
+      "source": {
+        "line": null,
+        "path": "vercel.json",
+        "snippet": "vercel.json"
+      }
+    }
+  ],
   "existing_artifacts": [
     {
       "kind": "platform-config",
@@ -177,6 +205,34 @@
             "iad1"
           ]
         }
+      ]
+    }
+  ],
+  "external_services": [
+    {
+      "evidence": [
+        {
+          "kind": "tech",
+          "line": 10,
+          "path": "package.json",
+          "snippet": "\"stripe\": \"^17.0.0\""
+        },
+        {
+          "kind": "tech",
+          "line": 4,
+          "path": "app/api/checkout/route.ts",
+          "snippet": "const stripe = new Stripe(process.env.STRIPE_KEY!);"
+        }
+      ],
+      "id": "ext:stripe",
+      "kind": "payments",
+      "label": "Stripe",
+      "secrets": [
+        "STRIPE_KEY"
+      ],
+      "status": "confirmed",
+      "used_by": [
+        "w-web"
       ]
     }
   ],

@@ -322,7 +322,7 @@
           "value": "not-routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 11,
         "path": "services/auth/src/auth/health.py",
@@ -361,7 +361,7 @@
           "value": "not-routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 11,
         "path": "services/auth/src/auth/health.py",
@@ -404,7 +404,7 @@
           "value": "not-routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 17,
         "path": "services/auth/src/auth/health.py",
@@ -443,7 +443,7 @@
           "value": "not-routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 17,
         "path": "services/auth/src/auth/health.py",
@@ -486,7 +486,7 @@
           "value": "not-routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 68,
         "path": "services/auth/src/auth/observability.py",
@@ -525,7 +525,7 @@
           "value": "not-routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 68,
         "path": "services/auth/src/auth/observability.py",
@@ -568,7 +568,7 @@
           "value": "routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 71,
         "path": "services/auth/src/auth/routes.py",
@@ -607,7 +607,7 @@
           "value": "not-routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 71,
         "path": "services/auth/src/auth/routes.py",
@@ -650,7 +650,7 @@
           "value": "routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 83,
         "path": "services/auth/src/auth/routes.py",
@@ -689,7 +689,7 @@
           "value": "not-routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 83,
         "path": "services/auth/src/auth/routes.py",
@@ -732,7 +732,7 @@
           "value": "routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 107,
         "path": "services/auth/src/auth/routes.py",
@@ -771,7 +771,7 @@
           "value": "not-routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 107,
         "path": "services/auth/src/auth/routes.py",
@@ -814,7 +814,7 @@
           "value": "routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 120,
         "path": "services/auth/src/auth/routes.py",
@@ -853,7 +853,7 @@
           "value": "not-routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 120,
         "path": "services/auth/src/auth/routes.py",
@@ -896,7 +896,7 @@
           "value": "routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 126,
         "path": "services/auth/src/auth/routes.py",
@@ -935,7 +935,7 @@
           "value": "not-routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 126,
         "path": "services/auth/src/auth/routes.py",
@@ -978,7 +978,7 @@
           "value": "not-routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 142,
         "path": "services/auth/src/auth/routes.py",
@@ -1017,7 +1017,7 @@
           "value": "routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 142,
         "path": "services/auth/src/auth/routes.py",
@@ -1060,7 +1060,7 @@
           "value": "not-routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 11,
         "path": "services/board/src/board/health.py",
@@ -1103,7 +1103,7 @@
           "value": "not-routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 16,
         "path": "services/board/src/board/health.py",
@@ -1146,7 +1146,7 @@
           "value": "not-routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 68,
         "path": "services/board/src/board/observability.py",
@@ -1189,7 +1189,7 @@
           "value": "routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 28,
         "path": "services/board/src/board/routes.py",
@@ -1232,7 +1232,7 @@
           "value": "routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 46,
         "path": "services/board/src/board/routes.py",
@@ -1275,7 +1275,7 @@
           "value": "routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 70,
         "path": "services/board/src/board/routes.py",
@@ -1318,7 +1318,7 @@
           "value": "routed"
         }
       ],
-      "framework": "python",
+      "framework": "fastapi",
       "handler": {
         "line": 84,
         "path": "services/board/src/board/routes.py",
@@ -4216,6 +4216,7 @@
       ]
     }
   ],
+  "external_services": [],
   "request_paths": [
     {
       "environment": "aws/dev",
