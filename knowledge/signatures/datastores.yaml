@@ -10,6 +10,10 @@ signatures:
         - {code: {glob: "**/*.py", regex: "sqlite3\\.connect\\("}}
         - {code: {glob: "**/schema.prisma", regex: "provider\\s*=\\s*\"sqlite\""}}
         - {code: {glob: "**/settings*.py", regex: "django\\.db\\.backends\\.sqlite3"}}
+        - {dependency: "org.xerial:sqlite-jdbc"}
+        - {code: {glob: "**/application*.yml", regex: "jdbc:sqlite:"}}
+        - {code: {glob: "**/application*.yaml", regex: "jdbc:sqlite:"}}
+        - {code: {glob: "**/application*.properties", regex: "jdbc:sqlite:"}}
     refine:
       - component: "ds:local/sqlite/wal"
         when:
@@ -31,6 +35,10 @@ signatures:
         - {dependency: asyncpg}
         - {code: {glob: "**/schema.prisma", regex: "provider\\s*=\\s*\"postgresql\""}}
         - {code: {glob: "**/settings*.py", regex: "django\\.db\\.backends\\.postgresql"}}
+        - {dependency: "org.postgresql:postgresql"}
+        - {code: {glob: "**/application*.yml", regex: "jdbc:postgresql://"}}
+        - {code: {glob: "**/application*.yaml", regex: "jdbc:postgresql://"}}
+        - {code: {glob: "**/application*.properties", regex: "jdbc:postgresql://"}}
   - id: SIG-DS-MYSQL
     component: "ds:unspecified/mysql/default"
     role: primary-db
@@ -41,6 +49,13 @@ signatures:
         - {dependency: mysqlclient}
         - {dependency: pymysql}
         - {code: {glob: "**/schema.prisma", regex: "provider\\s*=\\s*\"mysql\""}}
+        # MariaDB는 MySQL 호환이라 MySQL 구성 요소로 본다
+        - {dependency: "com.mysql:mysql-connector-j"}
+        - {dependency: "mysql:mysql-connector-java"}
+        - {dependency: "org.mariadb.jdbc:mariadb-java-client"}
+        - {code: {glob: "**/application*.yml", regex: "jdbc:(?:mysql|mariadb)://"}}
+        - {code: {glob: "**/application*.yaml", regex: "jdbc:(?:mysql|mariadb)://"}}
+        - {code: {glob: "**/application*.properties", regex: "jdbc:(?:mysql|mariadb)://"}}
   - id: SIG-DS-MONGO
     component: "ds:unspecified/mongodb/default"
     role: primary-db

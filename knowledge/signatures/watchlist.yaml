@@ -22,3 +22,11 @@ packages:
   - appwrite
   - convex
   - pocketbase
+  # JVM(Gradle·Maven `그룹:아티팩트`)
+  - "org.springframework.boot:spring-boot-starter-websocket"
+  - "org.springframework.boot:spring-boot-starter-amqp"
+  - "org.springframework.amqp:spring-rabbit"
+  - "com.rabbitmq:amqp-client"
+  - "org.springframework.kafka:spring-kafka"
+  - "org.apache.kafka:kafka-clients"
+  - "org.springframework.boot:spring-boot-starter-data-elasticsearch"

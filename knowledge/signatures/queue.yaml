@@ -27,3 +27,5 @@ signatures:
         - {code: {glob: "**/*.ts", regex: "SendMessageCommand"}}
         - {code: {glob: "**/*.js", regex: "SendMessageCommand"}}
         - {code: {glob: "**/*.py", regex: "\\.send_message\\("}}
+        - {dependency: "software.amazon.awssdk:sqs"}
+        - {dependency: "io.awspring.cloud:spring-cloud-aws-starter-sqs"}

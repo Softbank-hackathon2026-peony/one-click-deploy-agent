@@ -106,10 +106,77 @@ def _procfile(snap: Snapshot, m: Manifests) -> None:
             m.procfile[f"{parent_dir(rel)}:{proc.strip()}"] = (cmd.strip(), rel, i)
 
 
+SPRING_BOOT = "org.springframework.boot"  # Spring Boot 플러그인·parent를 뜻하는 의존성 이름
+GRADLE_FILES = ("build.gradle", "build.gradle.kts")
+MAVEN_FILE = "pom.xml"
+_GRADLE_CONF = re.compile(r"\b(implementation|api|runtimeOnly|compileOnly|annotationProcessor|kapt|developmentOnly"
+                          r"|testImplementation|testRuntimeOnly)\b(.*)")
+_GRADLE_COORD = re.compile(r"""["']([\w.\-]+):([\w.\-]+)(?::[^"']*)?["']""")
+_GRADLE_MAP = re.compile(r"""\bgroup\s*[:=]\s*["']([\w.\-]+)["']\s*,\s*name\s*[:=]\s*["']([\w.\-]+)["']""")
+_GRADLE_BOOT = re.compile(r"""\bid\s*\(?\s*["']org\.springframework\.boot["']"""
+                          r"""|\bapply\s+plugin\s*:\s*["']org\.springframework\.boot["']""")
+_GRADLE_APPLY_FALSE = re.compile(r"\bapply\s*\(?\s*false\b")
+_XML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+
+
+def _gradle(snap: Snapshot, m: Manifests) -> None:
+    """build.gradle(.kts)의 의존성 좌표(`g:a`)와 Spring Boot 플러그인. `test*` 구성과 `apply false`인 플러그인
+    선언(하위 모듈에만 적용하는 루트 선언)은 건너뛴다. 줄은 좌표가 있는 줄."""
+    for rel in sorted(rel for pattern in GRADLE_FILES for rel in snap.glob(f"**/{pattern}")):
+        for i, text in enumerate(snap.lines(rel), 1):
+            if text.lstrip().startswith(("//", "/*", "*")):
+                continue
+            if _GRADLE_BOOT.search(text) and not _GRADLE_APPLY_FALSE.search(text):
+                m.add(SPRING_BOOT, rel, i)
+            conf = _GRADLE_CONF.search(text)
+            if not conf or conf.group(1).startswith("test"):
+                continue
+            for g, a in _GRADLE_COORD.findall(conf.group(2)) + _GRADLE_MAP.findall(conf.group(2)):
+                m.add(f"{g}:{a}".lower(), rel, i)
+
+
+def _blank(match: re.Match) -> str:
+    """지운 부분을 같은 길이의 공백으로 바꾼다(줄바꿈은 남겨 위치와 줄 번호를 지킨다)."""
+    return re.sub(r"[^\r\n]", " ", match.group(0))
+
+
+def _xml_tag(block: str, tag: str) -> re.Match | None:
+    return re.search(rf"<{tag}>\s*([^<]*?)\s*</{tag}>", block)
+
+
+def _line_at(text: str, pos: int) -> int:
+    """text의 pos 글자가 있는 줄 번호(1부터, Snapshot.lines와 같은 줄 나눔)."""
+    return len((text[:pos] + "x").splitlines())
+
+
+def _maven(snap: Snapshot, m: Manifests) -> None:
+    """pom.xml의 `<dependency>`마다 `groupId:artifactId`(scope test 제외, 줄은 artifactId 줄).
+    `<dependencyManagement>`(버전 선언)와 `<build>`(플러그인 의존성)의 항목은 앱 의존성이 아니므로 뺀다.
+    parent가 spring-boot-starter-parent이면 org.springframework.boot(packaging이 pom인 집계 모듈은 제외)."""
+    for rel in snap.glob(f"**/{MAVEN_FILE}"):
+        masked = re.sub(r"<(dependencyManagement|build)>.*?</\1>", _blank,
+                        _XML_COMMENT.sub(_blank, snap.read(rel)), flags=re.DOTALL)
+        for block in re.finditer(r"<dependency>(.*?)</dependency>", masked, re.DOTALL):
+            body = block.group(1)
+            group, artifact, scope = _xml_tag(body, "groupId"), _xml_tag(body, "artifactId"), _xml_tag(body, "scope")
+            if not group or not artifact or (scope and scope.group(1) == "test"):
+                continue
+            m.add(f"{group.group(1)}:{artifact.group(1)}".lower(), rel,
+                  _line_at(masked, block.start(1) + artifact.start()))
+        parent = re.search(r"<parent>(.*?)</parent>", masked, re.DOTALL)
+        packaging = _xml_tag(masked, "packaging")
+        artifact = _xml_tag(parent.group(1), "artifactId") if parent else None
+        if artifact and artifact.group(1) == "spring-boot-starter-parent" and not (
+                packaging and packaging.group(1) == "pom"):
+            m.add(SPRING_BOOT, rel, _line_at(masked, parent.start(1) + artifact.start()))
+
+
 def parse_manifests(snap: Snapshot) -> Manifests:
     m = Manifests()
     _node(snap, m)
     _requirements(snap, m)
     _pyproject(snap, m)
     _procfile(snap, m)
+    _gradle(snap, m)
+    _maven(snap, m)
     return m

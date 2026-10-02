@@ -11,7 +11,7 @@ from infrafit.detect.manifests import Manifests, parse_manifests, parent_dir
 from infrafit.detect.nginx import LocationInfo, ProxyRoute, ProxyServer
 from infrafit.detect.proxy_graph import fronted_in, upstream_chains
 from infrafit.detect.testpaths import is_test_path
-from infrafit.detect.workloads import WorkloadInfo
+from infrafit.detect.workloads import WorkloadInfo, jvm_build_dirs, spring_web
 from infrafit.evidence import evidence
 from infrafit.repo import Snapshot
 
@@ -429,6 +429,174 @@ def _next(snap: Snapshot) -> list[Raw]:
     return out
 
 
+# --- Spring(Java·Kotlin) 컨트롤러 -------------------------------------------------
+
+SPRING_METHODS = {"GetMapping": "GET", "PostMapping": "POST", "PutMapping": "PUT", "DeleteMapping": "DELETE",
+                  "PatchMapping": "PATCH"}
+REQUEST_METHODS = "GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE"
+_ANNOTATION = re.compile(r"(?<![\w.@])@([A-Za-z_][\w.]*)")
+_TYPE_DECL = re.compile(r"(?:(?:public|private|protected|internal|open|final|abstract|sealed|data|static|inner"
+                        r"|enum|annotation|value)\s+)*(?:class|interface|object|enum|record)\b")
+_JAVA_STRING = re.compile(r'"((?:[^"\\\n]|\\.)*)"')
+_OPENERS = {"(": ")", "[": "]", "{": "}"}
+
+
+def _blank_range(chars: list[str], start: int, end: int) -> None:
+    for k in range(start, min(end, len(chars))):
+        if chars[k] not in "\r\n":
+            chars[k] = " "
+
+
+def _mask_jvm(text: str) -> tuple[str, str]:
+    """(주석을 지운 글, 주석과 문자열 내용을 지운 글). 지운 글자는 공백이라 위치와 줄 번호가 그대로다."""
+    clean, struct = list(text), list(text)
+    i, n = 0, len(text)
+    while i < n:
+        if text.startswith("//", i):
+            j = text.find("\n", i)
+            j = n if j < 0 else j
+            _blank_range(clean, i, j)
+            _blank_range(struct, i, j)
+        elif text.startswith("/*", i):
+            j = text.find("*/", i + 2)
+            j = n if j < 0 else j + 2
+            _blank_range(clean, i, j)
+            _blank_range(struct, i, j)
+        elif text.startswith('"""', i):
+            j = text.find('"""', i + 3)
+            j = n if j < 0 else j + 3
+            _blank_range(struct, i + 3, j - 3)
+        elif text[i] in "\"'":
+            j = i + 1
+            while j < n and text[j] not in (text[i], "\n"):
+                j += 2 if text[j] == "\\" else 1
+            j = min(j, n)
+            _blank_range(struct, i + 1, j)
+            j += 1
+        else:
+            i += 1
+            continue
+        i = max(j, i + 1)
+    return "".join(clean), "".join(struct)
+
+
+def _close(struct: str, start: int) -> int:
+    """struct[start]의 여는 괄호와 짝이 맞는 닫는 괄호 위치(괄호 종류는 가리지 않는다). 못 찾으면 글 끝."""
+    depth = 0
+    for k in range(start, len(struct)):
+        if struct[k] in _OPENERS:
+            depth += 1
+        elif struct[k] in ")]}":
+            depth -= 1
+            if depth == 0:
+                return k
+    return len(struct)
+
+
+def _expr_end(struct: str, start: int) -> int:
+    """start에서 시작하는 값 식의 끝: 괄호 식(`{..}`·`[..]`·`arrayOf(..)`)이면 짝 괄호 뒤, 아니면 다음 `,` 앞."""
+    m = re.match(r"\s*(?:arrayOf\s*)?([(\[{])", struct[start:])
+    if m:
+        return _close(struct, start + m.start(1)) + 1
+    comma = struct.find(",", start)
+    return len(struct) if comma < 0 else comma
+
+
+def _mapping_paths(clean: str, struct: str) -> list[str] | None:
+    """매핑 어노테이션 인자(괄호 안 글)의 경로들. 인자가 없거나 경로 인자가 없으면 [""],
+    경로가 문자열 상수가 아니면(상수 참조 등) None."""
+    if not struct.strip():
+        return [""]
+    named = re.search(r"\b(?:value|path)\s*=\s*", struct)
+    if named:
+        start = named.end()
+    elif re.match(r"\s*(?:\"|\{|\[|arrayOf\b)", struct):
+        start = 0
+    elif re.match(r"\s*\w+\s*=", struct):  # 이름 붙은 다른 인자만 있다(method =, produces = 등)
+        return [""]
+    else:
+        return None
+    paths = _JAVA_STRING.findall(clean[start:_expr_end(struct, start)])
+    return paths or None
+
+
+def _mapping_methods(struct: str) -> list[str]:
+    """`@RequestMapping`의 `method =` 값의 HTTP 메서드들, 없으면 ANY."""
+    m = re.search(r"\bmethod\s*=\s*", struct)
+    found = re.findall(rf"\b({REQUEST_METHODS})\b", struct[m.end():_expr_end(struct, m.end())]) if m else []
+    return sorted(set(found)) or ["ANY"]
+
+
+def _annotation_groups(clean: str, struct: str):
+    """(어노테이션들 [(이름, 인자 clean, 인자 struct, 위치)], 선언이 클래스인가). 공백으로만 이어진 어노테이션을
+    한 묶음으로 보고, 묶음 바로 뒤가 타입 선언이면 클래스 묶음이다."""
+    i, group = 0, []
+    while (m := _ANNOTATION.search(struct, i)) is not None:
+        name = m.group(1).rsplit(".", 1)[-1]
+        end = m.end()
+        args = ("", "")
+        paren = re.match(r"\s*\(", struct[end:])
+        if paren and name != "interface":
+            close = _close(struct, end + paren.end() - 1)
+            args = (clean[end + paren.end():close], struct[end + paren.end():close])
+            end = close + 1
+        group.append((name, args[0], args[1], m.start()))
+        rest = struct[end:].lstrip()
+        if not rest.startswith("@"):
+            yield group, bool(_TYPE_DECL.match(rest))
+            group = []
+        i = max(end, m.end())
+
+
+def _spring_framework(rel: str, build_dirs: set[str], manifests: Manifests) -> str:
+    """파일을 품은 빌드 파일 디렉터리(가까운 것부터)의 Spring 웹 스타터 프레임워크, 없으면 spring."""
+    d = parent_dir(rel)
+    while True:
+        web = spring_web(manifests.deps_by_dir.get(d, set())) if d in build_dirs else None
+        if web:
+            return web[1]
+        if not d:
+            return "spring"
+        d = parent_dir(d)
+
+
+def _spring(snap: Snapshot, manifests: Manifests) -> list[Raw]:
+    """`@RestController`·`@Controller` 클래스의 매핑 메서드. 클래스 `@RequestMapping` 경로를 접두어로 쓴다.
+    중첩 클래스와 주석 안 어노테이션은 다루지 않는다."""
+    build_dirs = set(jvm_build_dirs(snap))
+    out: list[Raw] = []
+    for rel in _code_files(snap, "**/*.java") + _code_files(snap, "**/*.kt"):
+        text = snap.read(rel)
+        if "Controller" not in text:
+            continue
+        clean, struct = _mask_jvm(text)
+        framework = _spring_framework(rel, build_dirs, manifests)
+        controller, prefixes = False, None
+        for group, is_type in _annotation_groups(clean, struct):
+            names = {g[0] for g in group}
+            if is_type:
+                controller = bool(names & {"RestController", "Controller"})
+                mapping = next((g for g in group if g[0] == "RequestMapping"), None)
+                prefixes = _mapping_paths(mapping[1], mapping[2]) if mapping else [""]
+                continue
+            if not controller or prefixes is None:
+                continue
+            for name, args, args_struct, pos in group:
+                if name in SPRING_METHODS:
+                    methods = [SPRING_METHODS[name]]
+                elif name == "RequestMapping":
+                    methods = _mapping_methods(args_struct)
+                else:
+                    continue
+                line = _line_at(text, pos)
+                for prefix in prefixes:
+                    for path in _mapping_paths(args, args_struct) or []:
+                        route = _join(prefix, path)
+                        route = route if route.startswith("/") else "/" + route
+                        out += [(method, route, rel, line, framework) for method in methods]
+    return out
+
+
 def _assign(rel: str, webs: list[WorkloadInfo]) -> tuple[WorkloadInfo, bool]:
     """(워크로드, 근거로 정했는가). 아무 근거도 없어 첫 워크로드로 보낸 것은 추측이다."""
     if len(webs) == 1:
@@ -663,7 +831,8 @@ def extract_endpoints(snap: Snapshot, workloads: list[WorkloadInfo], routes: lis
         return []
     if manifests is None:
         manifests = parse_manifests(snap)
-    found = sorted(set(_python(snap) + _django(snap) + _express(snap, manifests) + _next(snap)),
+    found = sorted(set(_python(snap) + _django(snap) + _express(snap, manifests) + _next(snap)
+                       + _spring(snap, manifests)),
                    key=lambda r: (r[2], r[3], r[0], r[1], r[4]))
     # 같은 (메서드, 경로, 파일, 줄)은 하나만 둔다
     seen: set[tuple[str, str, str, int]] = set()

@@ -44,6 +44,11 @@ defaults:
     value: 5
     source: {ref: docs/research/capabilities/09-network-lb-ingress.md}
   - artifact: hop
+    component: "nw:app/spring-boot-tomcat/default"
+    key: keep_alive_timeout
+    value: 60  # Tomcat keepAliveTimeout = connectionTimeout, 코드 기본 60초
+    source: {ref: docs/research/capabilities/09-network-lb-ingress.md}
+  - artifact: hop
     component: "nw:aws/alb/default"
     key: idle_timeout
     value: 60

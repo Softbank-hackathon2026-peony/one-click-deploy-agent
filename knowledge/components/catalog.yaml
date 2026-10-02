@@ -53,6 +53,7 @@ components:
   - {id: "nw:app/next-start/default", family: nw, name: "next start", source: docs/research/capabilities/09-network-lb-ingress.md}
   - {id: "nw:app/flask-dev/default", family: nw, name: "Flask 개발 서버", source: docs/research/capabilities/09-network-lb-ingress.md}
   - {id: "nw:app/django-runserver/default", family: nw, name: "Django 개발 서버", source: docs/research/capabilities/09-network-lb-ingress.md}
+  - {id: "nw:app/spring-boot-tomcat/default", family: nw, name: "Spring Boot 내장 Tomcat", source: docs/research/capabilities/09-network-lb-ingress.md}
   - {id: "nw:proxy/nginx/default", family: nw, name: "nginx 리버스 프록시", source: docs/research/capabilities/09-network-lb-ingress.md}
   - {id: "nw:aws/alb/default", family: nw, name: "AWS Application Load Balancer", source: docs/research/capabilities/09-network-lb-ingress.md}
   - {id: "nw:gcp/classic-alb/gke-ingress", family: nw, name: "GCP Classic Application LB (GKE Ingress)", source: docs/research/capabilities/09-network-lb-ingress.md}

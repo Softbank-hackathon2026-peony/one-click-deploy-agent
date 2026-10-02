@@ -10,7 +10,7 @@ from pathlib import PurePosixPath
 
 from infrafit import kb
 from infrafit.detect.artifacts import ParsedArtifact, as_dict, build_source, is_build_path, pod_spec
-from infrafit.detect.manifests import Manifests, parent_dir
+from infrafit.detect.manifests import GRADLE_FILES, MAVEN_FILE, SPRING_BOOT, Manifests, parent_dir
 from infrafit.detect.testpaths import is_test_path
 from infrafit.evidence import evidence, line_of
 from infrafit.repo import Snapshot
@@ -27,6 +27,13 @@ COMPOSE_BASE_NAMES = ("compose.yaml", "compose.yml", "docker-compose.yaml", "doc
 COMPOSE_PREFIXES = ("docker-compose.", "compose.", "docker-compose-")
 COMPOSE_OVERRIDE_NAMES = ("compose.override.yaml", "compose.override.yml",
                           "docker-compose.override.yaml", "docker-compose.override.yml")
+# Spring Boot 웹 스타터 → 프레임워크(둘 다 있으면 Spring Boot처럼 MVC가 먼저)
+SPRING_WEB = (("org.springframework.boot:spring-boot-starter-web", "spring-mvc"),
+              ("org.springframework.boot:spring-boot-starter-webflux", "spring-webflux"))
+SPRING_STARTER = "org.springframework.boot:spring-boot-starter"
+JVM_BUILD_FILES = GRADLE_FILES + (MAVEN_FILE,)
+GRADLE_SETTINGS = ("settings.gradle", "settings.gradle.kts")
+_ROOT_PROJECT = re.compile(r"""\brootProject\.name\s*=\s*["']([^"']+)["']""")
 
 
 def slug(text: str) -> str:
@@ -49,6 +56,7 @@ class WorkloadInfo:
     dockerfile: str | None = None  # compose build가 쓰는 Dockerfile(저장소 경로)
     proxy_component: str | None = None  # reverse-proxy 워크로드: 이미지 분류의 구성 요소
     root_guessed: bool = False  # 저장소에 하나뿐인 Dockerfile로 code_root를 정했다(규칙상 추측)
+    framework: str = ""  # 코드에서 찾은 웹 프레임워크(Spring: spring-mvc·spring-webflux). 출력에는 쓰지 않는다
 
     def to_dict(self) -> dict:
         return {"id": self.id, "kind": self.kind, "name": self.name,
@@ -373,6 +381,59 @@ def _from_compose(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[Workl
     return out
 
 
+def spring_web(deps: set[str]) -> tuple[str, str] | None:
+    """(웹 스타터 의존성, 프레임워크). Spring 웹 스타터가 없으면 None."""
+    return next(((dep, fw) for dep, fw in SPRING_WEB if dep in deps), None)
+
+
+def _spring_boot_dep(deps: set[str]) -> str | None:
+    """Spring Boot 앱의 근거 의존성: 플러그인·parent, 없으면 이름 순 첫 스타터."""
+    if SPRING_BOOT in deps:
+        return SPRING_BOOT
+    return next((d for d in sorted(deps) if d.startswith(SPRING_STARTER)), None)
+
+
+def jvm_build_dirs(snap: Snapshot) -> list[str]:
+    """Gradle·Maven 빌드 파일이 있는 디렉터리들(경로 순)."""
+    return sorted({parent_dir(rel) for name in JVM_BUILD_FILES for rel in snap.glob(f"**/{name}")})
+
+
+def _spring_name(snap: Snapshot, d: str) -> str:
+    """settings.gradle(.kts)의 rootProject.name, pom의 프로젝트 artifactId, 없으면 디렉터리 이름(루트는 app)."""
+    for name in GRADLE_SETTINGS:
+        rel = f"{d}/{name}" if d else name
+        m = _ROOT_PROJECT.search(snap.read(rel)) if snap.exists(rel) else None
+        if m and m.group(1).strip():
+            return m.group(1).strip()
+    pom = f"{d}/{MAVEN_FILE}" if d else MAVEN_FILE
+    if snap.exists(pom):
+        # parent·의존성·빌드 블록의 artifactId를 빼고 남은 첫 artifactId가 프로젝트 자신이다
+        text = re.sub(r"<!--.*?-->", "", snap.read(pom), flags=re.DOTALL)
+        text = re.sub(r"<(parent|dependencies|dependencyManagement|build|profiles)>.*?</\1>", "", text, flags=re.DOTALL)
+        m = re.search(r"<artifactId>\s*([^<]*?)\s*</artifactId>", text)
+        if m and m.group(1):
+            return m.group(1)
+    return PurePosixPath(d).name or "app"
+
+
+def _spring_apps(snap: Snapshot, manifests: Manifests) -> dict[tuple[str, str], dict]:
+    """빌드 파일 디렉터리마다 Spring Boot 앱: 웹 스타터가 있으면 web, Spring Boot만 있으면 worker(후보)."""
+    found: dict[tuple[str, str], dict] = {}
+    for d in jvm_build_dirs(snap):
+        deps = manifests.deps_by_dir.get(d, set())
+        web = spring_web(deps)
+        dep = web[0] if web else _spring_boot_dep(deps)
+        if dep is None:
+            continue
+        loc = next(((rel, ln) for rel, ln in manifests.locations.get(dep, [])
+                    if parent_dir(rel) == d and PurePosixPath(rel).name in JVM_BUILD_FILES), None)
+        if loc is None:
+            continue
+        found[("web" if web else "worker", d)] = {
+            "spring": (evidence(snap, *loc), web[1] if web else "", _spring_name(snap, d))}
+    return found
+
+
 def _from_code(snap: Snapshot, manifests: Manifests, artifacts: list[ParsedArtifact]) -> list[WorkloadInfo]:
     found: dict[tuple[str, str], dict] = {}
     for d, deps in sorted(manifests.deps_by_dir.items()):
@@ -381,6 +442,8 @@ def _from_code(snap: Snapshot, manifests: Manifests, artifacts: list[ParsedArtif
             found[("web", d)] = {"dep": web_fw}
         elif "vite" in deps:
             found[("static-frontend", d)] = {"dep": "vite"}
+    for key, info in _spring_apps(snap, manifests).items():
+        found.setdefault(key, info)
     for key, (cmd, rel, line) in sorted(manifests.procfile.items()):
         d, proc = key.split(":", 1)
         wkind = PROC_KINDS.get(proc)
@@ -394,9 +457,27 @@ def _from_code(snap: Snapshot, manifests: Manifests, artifacts: list[ParsedArtif
         by_kind.setdefault(wkind, []).append(d)
 
     out: list[WorkloadInfo] = []
+    ids: set[str] = set()
     for (wkind, d), info in sorted(found.items()):
         short = "static" if wkind == "static-frontend" else wkind
         wid = f"w-{short}" if len(by_kind[wkind]) == 1 else f"w-{short}-{slug(d)}"
+        if "spring" in info:
+            entry, framework, name = info["spring"]
+            wid = f"w-{slug(name)}"
+            if wid in ids:
+                wid, name = f"w-{slug(name)}-{slug(d)}", f"{name}-{slug(d)}"
+            ids.add(wid)
+            w = WorkloadInfo(id=wid, kind=wkind, name=name, entrypoint=entry,
+                             status="confirmed" if framework else "candidate", source="code", app_dir=d,
+                             code_root=d, framework=framework)
+            # 실행 명령은 연결된 Dockerfile의 마지막 체인 ENTRYPOINT+CMD, Procfile이 있으면 그 명령
+            df = workload_dockerfile(w, artifacts)
+            w.command = (_image_command(df.path, artifacts) if df else "") or (info["proc"][0] if "proc" in info else "")
+            out.append(w)
+            continue
+        if wid in ids:
+            wid = f"w-{short}-{slug(d)}"
+        ids.add(wid)
         if "dep" in info:
             dep = info["dep"]
             rel, line = manifests.deps[dep]

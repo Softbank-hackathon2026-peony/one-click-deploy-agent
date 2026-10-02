@@ -7,6 +7,7 @@ signatures:
       any:
         - {dependency: redis}
         - {dependency: ioredis}
+        - {dependency: "org.springframework.boot:spring-boot-starter-data-redis"}
   - id: SIG-CA-SESSION-EXPRESS-MEMORY
     component: "ca:local/process-memory/default"
     role: session

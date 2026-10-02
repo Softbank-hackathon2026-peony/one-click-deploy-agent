@@ -12,6 +12,7 @@ from infrafit.detect.components import platform_config_for
 from infrafit.detect.defaults import fact_settings, hop_settings
 from infrafit.detect.environments import Environment, env_command, env_command_evidence, env_scopes, env_slug
 from infrafit.detect.nginx import ProxyRoute, ProxyServer
+from infrafit.detect.testpaths import is_test_path
 from infrafit.detect.workloads import WorkloadInfo
 from infrafit.evidence import evidence
 from infrafit.repo import Snapshot
@@ -29,6 +30,13 @@ LB_BY_CLASS = {"alb": "nw:aws/alb/default", "gce": "nw:gcp/classic-alb/gke-ingre
 MANAGED_RUNTIME_PREFIXES = ("cp:vercel/", "cp:netlify/")
 NGINX_PROXY = "nw:proxy/nginx/default"
 _ALB_IDLE = re.compile(r"idle_timeout\.timeout_seconds=(\d+)")
+SPRING_TOMCAT = "nw:app/spring-boot-tomcat/default"
+SPRING_CONFIG_GLOBS = ("**/application*.yml", "**/application*.yaml", "**/application*.properties")
+# Tomcat keep-alive 설정 키(완화 바인딩: 소문자, `-`·`_` 뺌). 앞의 키가 우선이다
+TOMCAT_KEEP_ALIVE_KEYS = ("server.tomcat.keepalivetimeout", "server.tomcat.connectiontimeout")
+_YAML_KEY = re.compile(r"^(\s*)([\"']?)([\w.\-\[\]]+)\2\s*:(?:\s+(.*))?$")
+_PROPERTIES_KEY = re.compile(r"^\s*([\w.\-\[\]]+)\s*[=:]\s*(.*?)\s*$")
+_DURATION_UNITS = {"ns": 1e-9, "us": 1e-6, "ms": 1e-3, "s": 1, "m": 60, "h": 3600, "d": 86400}
 
 
 def app_server(command: str) -> tuple[str, dict] | None:
@@ -48,6 +56,84 @@ def app_server(command: str) -> tuple[str, dict] | None:
     if cmd.startswith(("node ", "npm start")):
         return "nw:app/node-http/default", {}
     return None
+
+
+def _config_entries(snap: Snapshot, rel: str):
+    """Spring 설정 파일의 (점으로 이은 키, 값, 줄). YAML은 들여쓰기로 키 경로를 만든다(목록 항목은 건너뛴다)."""
+    if rel.endswith(".properties"):
+        for i, text in enumerate(snap.lines(rel), 1):
+            m = _PROPERTIES_KEY.match(text)
+            if m and not text.lstrip().startswith(("#", "!")):
+                yield m.group(1), m.group(2), i
+        return
+    stack: list[tuple[int, str]] = []
+    for i, text in enumerate(snap.lines(rel), 1):
+        if text.strip() == "---":  # 다음 YAML 문서
+            stack = []
+            continue
+        m = _YAML_KEY.match(text)
+        if not m or text.lstrip().startswith("#"):
+            continue
+        indent = len(m.group(1))
+        while stack and stack[-1][0] >= indent:
+            stack.pop()
+        value = (m.group(4) or "").split(" #", 1)[0].strip().strip("\"'")
+        if value:
+            yield ".".join([k for _, k in stack] + [m.group(3)]), value, i
+        else:
+            stack.append((indent, m.group(3)))
+
+
+def _seconds(value: str) -> int | float | None:
+    """Spring Duration 값 → 초: `20s`·`2m` 등 단위 붙은 값, `PT20S`(ISO-8601), 단위 없는 수는 밀리초."""
+    v = value.strip()
+    if re.fullmatch(r"\d+", v):
+        seconds = int(v) / 1000
+    elif m := re.fullmatch(r"(\d+(?:\.\d+)?)\s*(ns|us|ms|s|m|h|d)", v, re.IGNORECASE):
+        seconds = float(m.group(1)) * _DURATION_UNITS[m.group(2).lower()]
+    elif m := re.fullmatch(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?", v, re.IGNORECASE):
+        if not any(m.groups()):
+            return None
+        seconds = int(m.group(1) or 0) * 3600 + int(m.group(2) or 0) * 60 + float(m.group(3) or 0)
+    else:
+        return None
+    return int(seconds) if float(seconds).is_integer() else seconds
+
+
+def _spring_configs(snap: Snapshot, root: str) -> list[str]:
+    """code_root 아래의 application*.yml|yaml|properties(테스트 제외). 기본 파일(`application.*`)이 프로필 파일보다 먼저."""
+    rels = {rel for pattern in SPRING_CONFIG_GLOBS for rel in snap.glob(pattern)
+            if not is_test_path(rel) and (not root or rel.startswith(root + "/"))}
+    return sorted(rels, key=lambda rel: (PurePosixPath(rel).stem != "application", rel))
+
+
+def _tomcat_keep_alive(snap: Snapshot, root: str) -> tuple[int | float, dict] | None:
+    """Tomcat keep-alive 명시값(초)과 그 줄 근거. 키 우선순위 → 파일 순서로 처음 읽을 수 있는 값."""
+    configs = _spring_configs(snap, root)
+    entries = [(re.sub(r"[-_]", "", key.lower()), value, rel, line)
+               for rel in configs for key, value, line in _config_entries(snap, rel)]
+    for wanted in TOMCAT_KEEP_ALIVE_KEYS:
+        for key, value, rel, line in entries:
+            seconds = _seconds(value) if key == wanted else None
+            if seconds is not None:
+                return seconds, evidence(snap, rel, line)
+    return None
+
+
+def _spring_hop(snap: Snapshot, w: WorkloadInfo) -> dict:
+    """Spring 워크로드의 앱 서버 구간: spring-mvc는 명령과 무관하게 내장 Tomcat(설정의 keep-alive 명시값이 있으면
+    그 값과 줄 근거, 없으면 기본값과 웹 의존성 줄 근거), spring-webflux는 unmapped."""
+    if w.framework != "spring-mvc":
+        return _hop("app-server", "unmapped", {}, [w.entrypoint])
+    found = _tomcat_keep_alive(snap, w.code_root or "")
+    if found is None:
+        return _hop("app-server", SPRING_TOMCAT, {}, [w.entrypoint])
+    seconds, ev = found
+    hop = _hop("app-server", SPRING_TOMCAT, {"keep_alive_timeout": seconds}, [ev])
+    for setting in hop["settings"]:
+        if not setting["defaulted"]:
+            setting["evidence"] = ev
+    return hop
 
 
 def _hop(kind: str, component: str, explicit: dict, ev: list[dict]) -> dict:
@@ -139,6 +225,8 @@ def build_paths(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[P
             server = app_server(env_command(env, w, artifacts)) if has_app_server else None
             tail = ([_hop("app-server", server[0], server[1], env_command_evidence(snap, env, w, artifacts))]
                     if server else [])
+            if has_app_server and w.framework.startswith("spring-"):  # Spring은 명령과 무관하게 정한다
+                tail = [_spring_hop(snap, w)]
             if w.id in proxy_ids:
                 mine = [s for s in servers if s.proxy == w.id and s.environment == env_name]
                 # 이 환경의 server가 없어도 프록시 구간은 기본값만으로 둔다
