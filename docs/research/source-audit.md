@@ -1164,3 +1164,12 @@ catalog 항목은 ID·이름·`source` 파일만 가진다(능력 값은 계획 
 3. **배포·릴리스와 데이터 정합성의 패턴 출처.** martinfowler.com·microservices.io·12factor.net(§4), 결제 항목의 Stripe·토스페이먼츠(§5.3·§5.2)가 C라서 considerations/03·04의 해당 항목은 쓸 수 없다.
 4. **근거 없는 판정 값.** capabilities/10(근거없음 줄이 가장 많음), 09, 05(ops_burden "(평가)"), 08("(추론)" 처방)에 출처 없는 값이 몰려 있다.
 5. **지식 베이스.** defaults.yaml에서 8개를 지웠다(§8.1). catalog 14개 항목은 `recommendable: false`다(§8.2). nginx 판정(§5.3)과 Istio·OPA 판정(§5.1)은 사용자가 뒤집을 수 있다.
+
+## 10. 정정 (2026-10-02, 컨트롤러)
+
+- nginx·Grafana·Stripe를 C로 내린 §5.3 판정을 되돌린다. 세 발행처는 사용자가 확인한 A 목록에 있었고, 최종 규칙은 B 발행처를 나누려고 만든 것이지 기존 A를 다시 내리라는 지시가 아니었다.
+  - §5.3 표의 34줄 중 이 판정으로 붙은 30줄의 ` ⚠️출처부적격`을 지웠다(4줄은 다른 이유로 이미 붙어 있었으므로 그대로).
+  - 엔진 쪽 변경(nginx 기본값 5개 삭제, `nw:proxy/nginx` 추천 불가 표시, f1 골든)은 되돌렸다.
+  - §5.4의 "이전 A가 Stripe뿐인 줄"이 ⚠️출처부적격이 된 경우는 개별로 다시 보지 않았다. Stripe에 관한 주장만 있는 줄은 표시를 지워도 된다.
+- Istio·OPA Gatekeeper의 CNCF graduated 여부를 cncf.io/projects에서 확인했다(둘 다 graduated). A 유지.
+- 이 정정으로 §3 집계는 nginx 13·Grafana 17·Stripe 29건이 다시 A가 된 만큼 달라진다(A 3,588, C 704).

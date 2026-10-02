@@ -273,7 +273,7 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **처방:** 코드: 전이표를 코드로 두고 `UPDATE … SET status = $new WHERE id = $id AND status IN ($allowed_from)`, 영향 행 0이면 무시·기록. enum + CHECK. 인프라: 없음.
 - **검증:** 상태 이벤트를 무작위 순서로 재생하는 속성 기반 테스트에서 최종 상태가 항상 같고 금지 전이가 없는지 확인.
 - **비용 영향:** 중립.
-- **출처:** https://docs.stripe.com/webhooks ("Stripe doesn't guarantee the delivery of events in the order that they're generated"), https://docs.stripe.com/payments/paymentintents/lifecycle (PaymentIntent 상태 목록) ⚠️출처부적격
+- **출처:** https://docs.stripe.com/webhooks ("Stripe doesn't guarantee the delivery of events in the order that they're generated"), https://docs.stripe.com/payments/paymentintents/lifecycle (PaymentIntent 상태 목록)
 
 ### C-025 데이터 모델 선택(RDB vs 문서 DB vs BaaS)
 - **무엇/왜:** 여러 엔터티를 함께 고치는 트랜잭션, 유니크·FK 제약, 집계 쿼리가 필요하면 관계형 DB가 기본값이다. 문서 DB·BaaS는 단일 문서 원자성과 규칙 기반 접근 제어가 강점이지만, 다문서 불변식은 앱이 책임진다.
@@ -397,7 +397,7 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **처방:** 코드: 키는 "사용자 의도 1회"당 한 번 생성해 자동 재시도에서 재사용. 서버가 503 + `Retry-After`를 주면 그 이후에 같은 키로 재시도. 인프라: 없음.
 - **검증:** 네트워크 단절을 주입한 E2E에서 자동 재시도가 같은 키를 쓰는지 요청 로그로 확인.
 - **비용 영향:** 중립.
-- **출처:** 일반 원칙(출처 미확인). 키 재사용 원칙은 https://docs.stripe.com/api/idempotent_requests ⚠️출처부적격 ⚠️근거없음
+- **출처:** 일반 원칙(출처 미확인). 키 재사용 원칙은 https://docs.stripe.com/api/idempotent_requests ⚠️근거없음
 
 ### C-037 폼 중복 제출·더블 클릭
 - **무엇/왜:** 버튼 비활성화는 UX일 뿐 보장이 아니다(새로고침, 뒤로 가기 후 재제출, 탭 두 개). 서버 측 멱등성(C-032) 또는 자연 키 유니크(C-017)가 필요하다.
@@ -441,7 +441,7 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **처방:** 코드: (amount_minor, currency) 쌍으로 저장, 통화별 소수 자릿수 표를 한 곳에. 인프라: 없음.
 - **검증:** KRW·USD 각각 테스트 모드 결제 금액이 의도와 같은지 확인.
 - **비용 영향:** 중립.
-- **출처:** https://docs.stripe.com/currencies (minor unit, zero-decimal 통화, 최소 결제 금액 50 KRW) ⚠️출처부적격
+- **출처:** https://docs.stripe.com/currencies (minor unit, zero-decimal 통화, 최소 결제 금액 50 KRW)
 
 ### C-041 서버 측 금액 확정과 검증
 - **무엇/왜:** 클라이언트가 보낸 금액·가격을 그대로 결제 요청에 쓰면 조작된 금액으로 결제가 승인된다. 금액은 서버의 주문 기록에서 계산하고, 결제 승인 전 PG가 돌려준 금액과 비교한다.
@@ -481,7 +481,7 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **처방:** 코드: `UPDATE orders SET fulfilled_at = now() WHERE id = $1 AND fulfilled_at IS NULL`의 영향 행 수로 이행 권한을 얻은 쪽만 실행(같은 트랜잭션에서 지급 기록). 외부 부수효과는 아웃박스(C-073). 인프라: 없음.
 - **검증:** 같은 세션 ID로 웹훅과 성공 페이지를 동시에 50회 호출해 지급 1회 확인.
 - **비용 영향:** 중립.
-- **출처:** https://docs.stripe.com/checkout/fulfillment ("your fulfill_checkout function might be called multiple times, possibly concurrently, for the same Checkout Session") ⚠️출처부적격
+- **출처:** https://docs.stripe.com/checkout/fulfillment ("your fulfill_checkout function might be called multiple times, possibly concurrently, for the same Checkout Session")
 
 ### C-045 리다이렉트만으로 결제 완료 처리 금지
 - **무엇/왜:** 성공 페이지 리다이렉트는 사용자가 결제 후 창을 닫거나 네트워크가 끊기면 오지 않는다. 결제 확정의 원천은 서버 간 통신(웹훅 또는 서버의 승인 API 응답)이어야 한다.
@@ -491,7 +491,7 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **처방:** 코드: 웹훅 핸들러를 주 경로로, 리다이렉트는 빠른 표시용 보조 경로(둘 다 C-044의 멱등 함수 호출). 인프라: 웹훅을 받을 공개 HTTPS 엔드포인트(모든 티어).
 - **검증:** 결제 후 리다이렉트를 차단한 시나리오에서 주문이 완료되는지 확인(Stripe CLI `stripe trigger`).
 - **비용 영향:** 중립.
-- **출처:** https://docs.stripe.com/checkout/fulfillment ("You can't rely on triggering fulfillment only from your checkout landing page") ⚠️출처부적격
+- **출처:** https://docs.stripe.com/checkout/fulfillment ("You can't rely on triggering fulfillment only from your checkout landing page")
 
 ### C-046 비동기 결제수단의 중간 상태
 - **무엇/왜:** 계좌이체·가상계좌·은행 자동이체는 "요청 완료"와 "입금 확인"이 다르다. Stripe는 `processing` 후 `async_payment_succeeded`, 토스는 `WAITING_FOR_DEPOSIT` 후 입금 콜백이 온다.
@@ -521,7 +521,7 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **처방:** 코드: 환불 상태를 별도 상태 머신으로, 실패 이벤트 시 알림·대체 처리. 인프라: 없음.
 - **검증:** 테스트 모드 실패 환불 시나리오 재생.
 - **비용 영향:** 중립.
-- **출처:** https://docs.stripe.com/refunds ("This process can take up to 30 days", `refund.failed`) ⚠️출처부적격
+- **출처:** https://docs.stripe.com/refunds ("This process can take up to 30 days", `refund.failed`)
 
 ### C-049 결제 대사(reconciliation)
 - **무엇/왜:** 웹훅 유실·코드 버그·수동 조작으로 PG 기록과 로컬 DB는 언젠가 어긋난다. 정기적으로 PG의 거래 목록(또는 정산 보고서)과 로컬 결제 테이블을 맞춰 보는 작업이 마지막 안전망이다.
@@ -531,7 +531,7 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **처방:** 코드: 매일(또는 매시) 최근 N시간 결제를 PG에서 조회해 로컬과 비교, 불일치 시 자동 보정(멱등 이행 함수 재호출) + 알림. 인프라: 크론(티어0 Vercel Cron, 티어1 Cloud Scheduler/EventBridge Scheduler, 티어2 CronJob `concurrencyPolicy: Forbid`).
 - **검증:** 웹훅을 일부러 버린 뒤 대사 작업이 불일치를 찾아 복구하는지 확인.
 - **비용 영향:** 소폭 증가(크론 실행 + API 호출).
-- **출처:** https://docs.stripe.com/reports/payout-reconciliation ("match the payouts you receive in your bank account with the batches of payments"), https://docs.stripe.com/webhooks ("You can also use the API to retrieve any missing objects") ⚠️출처부적격
+- **출처:** https://docs.stripe.com/reports/payout-reconciliation ("match the payouts you receive in your bank account with the batches of payments"), https://docs.stripe.com/webhooks ("You can also use the API to retrieve any missing objects")
 
 ### C-050 분쟁과 환불이 겹치는 이중 반환
 - **무엇/왜:** 고객이 카드사에 분쟁(차지백)을 건 상태에서 판매자가 환불까지 하면 고객이 두 번 돈을 받을 수 있다. 은행 자동이체 계열에서 특히 위험하다.
@@ -541,7 +541,7 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **처방:** 코드: 분쟁 이벤트 수신 시 주문에 표시하고 환불 경로 차단, 분쟁 대응 절차로 넘김. 인프라: 없음.
 - **검증:** 테스트 모드 분쟁 이벤트 후 환불 요청이 차단되는지 확인.
 - **비용 영향:** 중립.
-- **출처:** https://docs.stripe.com/refunds ("there's a risk of double refund", `charge_for_pending_refund_disputed`) ⚠️출처부적격
+- **출처:** https://docs.stripe.com/refunds ("there's a risk of double refund", `charge_for_pending_refund_disputed`)
 
 ### C-051 원장(ledger)은 덧붙이기만
 - **무엇/왜:** 잔액·포인트·크레딧을 숫자 하나로만 관리하면 왜 그 값이 됐는지 설명할 수 없고, 잘못된 갱신을 되돌릴 근거도 없다. 변동 내역(원장)을 덧붙이기만 하고 잔액은 그 합(또는 같은 트랜잭션에서 갱신하는 캐시)으로 둔다.
@@ -585,7 +585,7 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **처방:** 코드: (1) 허용 전이만 적용(C-024), (2) 이벤트를 "무언가 바뀌었다는 신호"로 보고 API에서 최신 객체를 조회해 동기화, (3) 선행 레코드가 없으면 API로 가져와 생성. 인프라: 없음.
 - **검증:** 같은 시나리오의 이벤트를 무작위 순서로 재생하는 테스트에서 최종 상태가 PG 객체와 같은지 확인.
 - **비용 영향:** 소폭 증가(조회 API 호출).
-- **출처:** https://docs.stripe.com/webhooks ("Stripe doesn't guarantee the delivery of events in the order… Don't use created to determine event order") ⚠️출처부적격
+- **출처:** https://docs.stripe.com/webhooks ("Stripe doesn't guarantee the delivery of events in the order… Don't use created to determine event order")
 
 ### C-055 웹훅은 빨리 2xx, 처리는 뒤에서
 - **무엇/왜:** 웹훅 발신자는 짧은 시간 안에 2xx를 기대한다(토스페이먼츠 10초). 무거운 처리를 동기로 하면 타임아웃 → 재전송 → 중복 처리가 연쇄된다. 월초 구독 갱신처럼 웹훅이 몰리는 때 특히 위험하다.

@@ -575,7 +575,7 @@
 - **처방:** 공통: 클라이언트 생성 UUID + 업서트, 발송 응답의 무효 토큰 삭제
 - **검증:** 같은 요청 3회 재전송 후 레코드 1개
 - **비용 영향:** 없음
-- **출처:** 일반 원칙(출처 미확인). 멱등성 키 관행은 설계 S12(https://docs.stripe.com/api/idempotent_requests) ⚠️출처부적격 ⚠️근거없음
+- **출처:** 일반 원칙(출처 미확인). 멱등성 키 관행은 설계 S12(https://docs.stripe.com/api/idempotent_requests) ⚠️근거없음
 
 ---
 

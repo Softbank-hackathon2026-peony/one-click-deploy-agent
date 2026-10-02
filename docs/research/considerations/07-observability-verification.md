@@ -153,7 +153,7 @@
 - **처방:** 티어0: 해당 없음(플랫폼 지표 사용). 티어1: ALB 액세스 로그(S3) 또는 Cloud Run 요청 로그의 `latency` 필드. 티어2: 인그레스 nginx `log_format` 확장.
 - **검증:** P4 부하 중 `rt - urt` 분포를 계산해 프록시 대기 시간이 따로 보이는지 확인. 앱 Server-Timing 합계(O-024)와 `urt`가 대체로 일치하는지 교차 확인.
 - **비용 영향:** 소폭 증가(로그 필드).
-- **출처:** https://nginx.org/en/docs/http/ngx_http_upstream_module.html (`$upstream_response_time`, `$upstream_connect_time` 정의, 2026-10-01 확인) ⚠️출처부적격
+- **출처:** https://nginx.org/en/docs/http/ngx_http_upstream_module.html (`$upstream_response_time`, `$upstream_connect_time` 정의, 2026-10-01 확인)
 
 ## A2. 지표
 
@@ -783,7 +783,7 @@
 - **처방:** 공통: P4 첫 단계로 스모크 → 통과해야 다음 단계. 검사 항목: 헬스, 핵심 읽기·쓰기, 외부 비공개 경로 404(O-029).
 - **검증:** 스모크 자체를 일부러 깨진 배포(잘못된 환경변수)에 돌려 실패를 내는지 확인(음성 대조).
 - **비용 영향:** 중립.
-- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (스모크 테스트 정의, 2026-10-01 확인) ⚠️출처부적격
+- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (스모크 테스트 정의, 2026-10-01 확인)
 
 ### V-002 평균 부하 테스트
 - **무엇/왜:** 가정한 평시 부하(T L1 기본 평시 동시 50)로 일정 시간 돌려 평상시 지연·오류·자원 사용량의 기준선을 만든다. right-sizing(COST-006)과 소크 비교의 기준이다.
@@ -793,7 +793,7 @@
 - **처방:** 공통: 10~15분, 평시 요청률, 결과는 p50/p95/p99·오류율·Pod당 CPU·메모리.
 - **검증:** 같은 조건 2회 반복 결과의 p95 차이가 10% 안인지(재현성, V-024).
 - **비용 영향:** 테스트 자원만큼 일시 증가.
-- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (average-load, 2026-10-01 확인) ⚠️출처부적격
+- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (average-load, 2026-10-01 확인)
 
 ### V-003 스텝 부하(가정 피크까지 계단식)
 - **무엇/왜:** 평시에서 가정 피크(T L1 = 평시×3, L2 = ×10)까지 계단식으로 올리며 각 단계에서 안정 상태를 본다. 오토스케일이 따라오는지, 어느 단계에서 지연이 꺾이는지 보인다.
@@ -803,7 +803,7 @@
 - **처방:** 공통: 단계 4~6개, 단계당 3~5분(HPA 안정화 창보다 길게), 단계 태그를 요청 헤더로 보내 서버 로그와 결합.
 - **검증:** 단계별 p95·오류율 표가 나오고, 서버 쪽 로그도 같은 단계 태그로 집계되는지 확인.
 - **비용 영향:** 일시 증가.
-- **출처:** 일반 원칙(출처 미확인). 단계(stages) 구성은 https://grafana.com/docs/k6/latest/using-k6/scenarios/executors/ 의 ramping 실행기 범위. ⚠️출처부적격 ⚠️근거없음
+- **출처:** 일반 원칙(출처 미확인). 단계(stages) 구성은 https://grafana.com/docs/k6/latest/using-k6/scenarios/executors/ 의 ramping 실행기 범위. ⚠️근거없음
 
 ### V-004 스파이크 테스트(1분 안에 20배)
 - **무엇/왜:** 예고 없는 폭증(T L3: 평시×20, 1분 안)을 재현한다. 확장 지연 동안 큐·백프레셔·리밋·최소 인스턴스가 사용자 영향을 막는지 본다. 두 번째 스파이크로 축소 후 재확장도 본다.
@@ -813,7 +813,7 @@
 - **처방:** 공통: 오픈 모델(V-008), 2회 스파이크, 설계된 거절(V-016) 분리 집계.
 - **검증:** 통과 기준(§17.2): 피크 p95 < 1초, 서버 오류율 < 1%, 확장 완료 시간 기록. 생성기 포화가 없었음을 함께 증명(V-010).
 - **비용 영향:** 일시 증가(피크 자원).
-- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (spike, 2026-10-01 확인) ⚠️출처부적격
+- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (spike, 2026-10-01 확인)
 
 ### V-005 스트레스 테스트(가정 초과 부하)
 - **무엇/왜:** 가정 피크를 넘는 부하로 시스템이 어떻게 무너지는지 본다. 목표는 "우아한 실패": 오류가 무작위로 퍼지지 않고 설계된 거절(503+Retry-After, 429)로 나오고, 부하가 빠지면 스스로 회복하는지.
@@ -823,7 +823,7 @@
 - **처방:** 공통: 가정 피크의 1.5~2배, 이후 평시로 복귀하는 구간 포함.
 - **검증:** 초과 구간의 응답 분포(설계된 거절 비율 vs 기타 5xx), 부하 감소 후 오류율이 평시로 돌아오는 시간 측정.
 - **비용 영향:** 일시 증가.
-- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (stress, 2026-10-01 확인) ⚠️출처부적격
+- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (stress, 2026-10-01 확인)
 
 ### V-006 브레이크포인트 테스트("동시 N명까지")
 - **무엇/왜:** 부하를 서서히 올려 SLO가 깨지는 지점을 찾는다. P4 리포트의 "동시 N명까지, 월 $X"의 N이 여기서 나온다. 오토스케일 상한을 일시적으로 풀지, 상한 그대로 잴지를 명시한다.
@@ -833,7 +833,7 @@
 - **처방:** 공통: `ramping-arrival-rate`로 선형 증가, SLO 위반 시 중단(`abortOnFail` + `delayAbortEval`), 깨진 지점의 요청률을 동시 사용자 수로 환산(생각 시간 가정 명시).
 - **검증:** 같은 구성에서 2회 측정한 한계 차이가 10% 안인지. 한계 지점에서 병목 자원(USE)이 식별되는지.
 - **비용 영향:** 일시 증가.
-- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (breakpoint), https://grafana.com/docs/k6/latest/using-k6/thresholds/ (`abortOnFail`, `delayAbortEval`), 2026-10-01 확인 ⚠️출처부적격
+- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (breakpoint), https://grafana.com/docs/k6/latest/using-k6/thresholds/ (`abortOnFail`, `delayAbortEval`), 2026-10-01 확인
 
 ### V-007 소크 테스트(평시 + 주기적 폭증, 2~24시간)
 - **무엇/왜:** 긴 시간 부하를 유지해 짧은 테스트에서 안 보이는 문제(메모리 누수, 커넥션 증가, 큐 지연 누적, 디스크·로그 증가, 실제 시간당 비용)를 찾는다. 길이는 최대 필요 수준으로: L1 2시간, L2 6시간, L3 24시간(§17.3).
@@ -843,7 +843,7 @@
 - **처방:** 공통: 평시 부하 + 1시간마다 피크. 생성기는 별도 장기 실행 VM/Job.
 - **검증:** 처음 30분 vs 마지막 30분의 메모리(O-023), DB 커넥션(O-018), 큐 lag(O-020), p95. 추세가 계속 오르면 실패. 자원 사용량 기반 비용 vs 견적.
 - **비용 영향:** 증가(최대 24시간 운영 비용). 수준별 길이로 통제.
-- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (soak, 2026-10-01 확인) ⚠️출처부적격
+- **출처:** https://grafana.com/docs/k6/latest/testing-guides/test-types/ (soak, 2026-10-01 확인)
 
 ## B2. 부하 모델·생성기·데이터
 
@@ -855,7 +855,7 @@
 - **처방:** 공통: P4 표준 시나리오는 arrival-rate 실행기. 클로즈드 모델은 "세션 수 고정" 사내 도구(T=L0~L1 사내)에만.
 - **검증:** 같은 목표 요청률에서 서버에 인위적 지연(HTTPChaos 500ms)을 넣었을 때 실제 달성 요청률이 유지되는지(오픈) 확인.
 - **비용 영향:** 중립.
-- **출처:** https://grafana.com/docs/k6/latest/using-k6/scenarios/concepts/open-vs-closed/ (클로즈드 모델의 조정 누락, 오픈 모델은 응답 시간이 부하에 영향 없음), https://grafana.com/docs/k6/latest/using-k6/scenarios/executors/ (arrival-rate 실행기), 2026-10-01 확인 ⚠️출처부적격
+- **출처:** https://grafana.com/docs/k6/latest/using-k6/scenarios/concepts/open-vs-closed/ (클로즈드 모델의 조정 누락, 오픈 모델은 응답 시간이 부하에 영향 없음), https://grafana.com/docs/k6/latest/using-k6/scenarios/executors/ (arrival-rate 실행기), 2026-10-01 확인
 
 ### V-009 미발사 요청(dropped_iterations) 감시와 VU 여유
 - **무엇/왜:** 오픈 모델에서도 VU가 모자라면 목표 도착률을 못 채우고 그 요청은 "보내지 않은 것"이 된다. `dropped_iterations`가 0이 아니면 그 테스트는 목표 부하를 걸지 못한 것이다.
@@ -865,7 +865,7 @@
 - **처방:** 공통: `maxVUs ≥ 목표 RPS × 예상 최악 응답 시간(초) × 1.5`, `dropped_iterations: ['count==0']` 임계 추가(또는 목표 대비 1% 미만).
 - **검증:** 결과 요약에서 실제 달성 RPS(`iterations` rate)와 목표 RPS 비교를 판정에 포함.
 - **비용 영향:** 중립(생성기 메모리 증가).
-- **출처:** https://grafana.com/docs/k6/latest/using-k6/metrics/reference/ (`dropped_iterations`: VU 부족 또는 시간 부족으로 시작 못 한 반복, 2026-10-01 확인) ⚠️출처부적격
+- **출처:** https://grafana.com/docs/k6/latest/using-k6/metrics/reference/ (`dropped_iterations`: VU 부족 또는 시간 부족으로 시작 못 한 반복, 2026-10-01 확인)
 
 ### V-010 부하 생성기 병목 확인
 - **무엇/왜:** 생성기가 포화(CPU 80% 초과, 메모리 90% 초과, 네트워크 한도, 파일 디스크립터 고갈)되면 생성기 쪽 대기가 지연으로 측정된다. 생성기 자원을 같이 기록해야 결과가 유효하다.
@@ -875,7 +875,7 @@
 - **처방:** 공통: 생성기를 대상과 다른 머신(같은 리전)에, CPU 20% 이상 여유. 대규모는 분산 실행 또는 관리형 부하 서비스.
 - **검증:** 테스트 중 생성기 CPU·메모리·네트워크를 함께 기록하고, CPU 80% 초과 구간이 있으면 그 구간 결과를 무효로 표시. "too many open files" 오류 0건.
 - **비용 영향:** 소폭 증가(생성기 VM).
-- **출처:** https://grafana.com/docs/k6/latest/testing-guides/running-large-tests/ (CPU 80% 이내, 메모리 90% 이내, 네트워크 포화, 파일 디스크립터, 20% 여유, 2026-10-01 확인) ⚠️출처부적격
+- **출처:** https://grafana.com/docs/k6/latest/testing-guides/running-large-tests/ (CPU 80% 이내, 메모리 90% 이내, 네트워크 포화, 파일 디스크립터, 20% 여유, 2026-10-01 확인)
 
 ### V-011 부하 생성 위치와 출발 IP
 - **무엇/왜:** 생성기 위치가 지연에 더해진다(리전 밖이면 RTT 수십~수백 ms). 생성기가 IP 하나면 IP 기준 레이트 리밋에 막혀 대상까지 부하가 가지 않는다. 그렇다고 리밋을 풀면 운영 구성과 다른 것을 시험하게 된다.
@@ -915,7 +915,7 @@
 - **처방:** 공통: setup/teardown, 테스트 데이터 표시 컬럼 또는 별도 테넌트, 운영 환경에서는 테스트 이메일 도메인 발송 차단.
 - **검증:** 실행 후 테스트 접두 데이터 수가 0(정리됨)이거나 운영 지표에서 제외되는지 확인.
 - **비용 영향:** 중립.
-- **출처:** https://grafana.com/docs/k6/latest/examples/data-parameterization/ (SharedArray: VU마다 별도 JS VM이라 데이터 복사 방지, 2026-10-01 확인) ⚠️출처부적격
+- **출처:** https://grafana.com/docs/k6/latest/examples/data-parameterization/ (SharedArray: VU마다 별도 JS VM이라 데이터 복사 방지, 2026-10-01 확인)
 
 ### V-015 통과 기준을 코드로(임계치·종료 코드)
 - **무엇/왜:** 통과 기준(p95, 오류율, 미발사 요청)을 스크립트의 임계치로 두면 실패 시 0이 아닌 종료 코드가 나와 CI·P4 파이프라인이 자동 판정한다. 기준을 결과를 본 뒤 완화하지 않는다.
@@ -925,7 +925,7 @@
 - **처방:** 공통: 필요 수준의 SLO 목표(O-038)에서 임계치를 생성. 장애 주입 실험은 `abortOnFail`로 안전장치.
 - **검증:** 일부러 느린 버전(지연 주입)으로 실행해 종료 코드가 0이 아닌지 확인.
 - **비용 영향:** 중립.
-- **출처:** https://grafana.com/docs/k6/latest/using-k6/thresholds/ (임계치 실패 시 0이 아닌 종료 코드, `abortOnFail`, 2026-10-01 확인) ⚠️출처부적격
+- **출처:** https://grafana.com/docs/k6/latest/using-k6/thresholds/ (임계치 실패 시 0이 아닌 종료 코드, `abortOnFail`, 2026-10-01 확인)
 
 ### V-016 설계된 거절과 장애를 분리 집계
 - **무엇/왜:** 백프레셔 503·리밋 429는 T L3 통제가 동작한 증거다. 서버 오류율에서 빼되 별도 카운트로 남기고, 거절 비율 상한도 기준으로 둔다(거절만 하는 시스템은 통과가 아니다).
@@ -987,7 +987,7 @@
 - **처방:** 공통: V-008·V-009 적용. 클로즈드 모델 결과는 지연 판정에 쓰지 않는다.
 - **검증:** 서버를 10초 정지(SIGSTOP 또는 네트워크 지연 주입)시키는 대조 실험에서 오픈 모델 결과가 정지를 반영하는지 확인.
 - **비용 영향:** 중립.
-- **출처:** https://grafana.com/docs/k6/latest/using-k6/scenarios/concepts/open-vs-closed/ (클로즈드 모델의 조정 누락 설명, 2026-10-01 확인) ⚠️출처부적격
+- **출처:** https://grafana.com/docs/k6/latest/using-k6/scenarios/concepts/open-vs-closed/ (클로즈드 모델의 조정 누락 설명, 2026-10-01 확인)
 
 ### V-022 백분위 집계 오류
 - **무엇/왜:** p95는 평균 낼 수 없다. Pod별·분 단위 p95의 평균, 서비스별 p95의 평균은 의미 없는 숫자다. 원시 히스토그램(버킷)을 합친 뒤 백분위를 계산한다. 또한 여러 경로를 섞은 p95는 무거운 경로를 숨긴다.
@@ -1007,7 +1007,7 @@
 - **처방:** 공통: 결과에 연결·대기·서버 처리 시간 분해 표 포함.
 - **검증:** keep-alive를 끈 실행과 켠 실행의 연결 시간 차이가 결과에 드러나는지 확인.
 - **비용 영향:** 중립.
-- **출처:** https://grafana.com/docs/k6/latest/using-k6/metrics/reference/ (`http_req_duration` = sending + waiting + receiving, DNS·연결 제외, 2026-10-01 확인) ⚠️출처부적격
+- **출처:** https://grafana.com/docs/k6/latest/using-k6/metrics/reference/ (`http_req_duration` = sending + waiting + receiving, DNS·연결 제외, 2026-10-01 확인)
 
 ### V-024 반복성과 표본 크기
 - **무엇/왜:** 클라우드 성능은 실행마다 흔들린다(이웃 소음, 캐시 상태, 오토스케일 타이밍). 판정은 2~3회 반복의 일관성으로 하고, p99처럼 꼬리 지표는 표본 수가 충분할 때만 쓴다(1,000건 미만에서 p99는 상위 10건 이하로 결정).
