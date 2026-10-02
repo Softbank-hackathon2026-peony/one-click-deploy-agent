@@ -10,16 +10,14 @@ import yaml
 
 from infrafit.detect.artifacts import ParsedArtifact, as_dict, build_source, is_build_path, pod_spec
 from infrafit.detect.manifests import parent_dir
-from infrafit.detect.workloads import (WorkloadInfo, compose_build, compose_command, image_name, slug,
+from infrafit.detect.workloads import (COMPOSE_BASE_NAMES, WorkloadInfo, compose_build, compose_command,
+                                       compose_family, compose_variant, image_name, is_compose_override, slug,
                                        workload_dockerfile)
 from infrafit.evidence import evidence
 from infrafit.repo import Snapshot
 
 WORKLOAD_KINDS = {"Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"}
-# 한 디렉터리에 기본 파일이 여럿이면 docker compose와 같은 순서로 하나를 고른다
-COMPOSE_BASE_NAMES = ("compose.yaml", "compose.yml", "docker-compose.yaml", "docker-compose.yml")
-COMPOSE_PREFIXES = ("docker-compose.", "compose.")
-OVERRIDE = "override"
+DEVCONTAINER = ".devcontainer"  # 개발 컨테이너용 compose는 배포 환경이 아니다
 
 
 @dataclass
@@ -67,30 +65,13 @@ def _kustomize_environments(artifacts: list[ParsedArtifact]) -> list[Environment
 
 # --- compose -------------------------------------------------------------------
 
-def _variant(rel: str) -> str | None:
-    """compose 파일 이름의 변형 부분: 기본 파일이면 "", `docker-compose.<x>.yml`이면 x, 그 밖의 이름은 None."""
-    name = PurePosixPath(rel).name
-    if name in COMPOSE_BASE_NAMES:
-        return ""
-    for prefix in COMPOSE_PREFIXES:
-        for suffix in (".yml", ".yaml"):
-            if name.startswith(prefix) and name.endswith(suffix) and len(name) > len(prefix) + len(suffix):
-                return name[len(prefix):-len(suffix)]
-    return None
-
-
-def _is_override(variant: str | None) -> bool:
-    """`docker-compose.override.yml`·`compose.override.yaml` 등: 기본 파일 위에 늘 병합하는 파일(docker 동작).
-    `compose.prod.override.yml` 같은 이름은 변형 파일이다."""
-    return variant == OVERRIDE
-
-
-def _env_vars(value) -> dict | None:
-    """compose `environment`(목록 또는 맵) → 변수 이름 → 값. 둘 다 아니면 None."""
+def compose_env(value) -> dict[str, str | None] | None:
+    """compose `environment`(목록 또는 맵) → 변수 이름 → 값. 둘 다 아니면 None.
+    값 없는 `KEY`(목록)·`KEY:`(맵)는 실행하는 호스트의 값을 받는데 그 값은 알 수 없으므로 None(없음)으로 둔다."""
     if isinstance(value, dict):
-        return {str(k): v for k, v in value.items()}
+        return {str(k): None if v is None else str(v) for k, v in value.items()}
     if isinstance(value, list):
-        out = {}
+        out: dict[str, str | None] = {}
         for item in value:
             k, sep, v = str(item).partition("=")
             if k:
@@ -99,43 +80,87 @@ def _env_vars(value) -> dict | None:
     return None
 
 
+def _volume_target(volume) -> str:
+    """볼륨 항목의 컨테이너 경로(`src:dst[:mode]`의 dst, 이름 없는 볼륨이면 그 경로, 긴 형식은 target)."""
+    if isinstance(volume, dict):
+        return str(volume.get("target") or volume)
+    if isinstance(volume, str):
+        parts = volume.split(":")
+        return parts[1] if len(parts) >= 2 else parts[0]
+    return repr(volume)
+
+
+def _merge_value(key: str, old, new):
+    """docker compose 병합: `environment`는 변수 이름 단위, `volumes`는 컨테이너 경로 단위(같으면 뒤 파일이 이긴다),
+    `ports`·`expose`는 겹치지 않게 덧붙이고, 그 밖의 키와 형식이 맞지 않는 값은 뒤 파일 값으로 바꾼다."""
+    if key == "environment":
+        new_vars = compose_env(new)
+        return new if new_vars is None else {**(compose_env(old) or {}), **new_vars}
+    if not isinstance(old, list) or not isinstance(new, list):
+        return new
+    if key == "volumes":
+        merged = list(old)
+        index = {_volume_target(v): i for i, v in enumerate(merged)}
+        for v in new:
+            target = _volume_target(v)
+            if target in index:
+                merged[index[target]] = v
+            else:
+                index[target] = len(merged)
+                merged.append(v)
+        return merged
+    if key in ("ports", "expose"):
+        merged = list(old)
+        for v in new:
+            if v not in merged:
+                merged.append(v)
+        return merged
+    return new
+
+
+def _service_entries(art: ParsedArtifact) -> list[tuple[str, object]]:
+    """파싱에 성공한 compose 파일의 (서비스 이름, 정의)들."""
+    if not art.parsed or not isinstance(art.objects, list):
+        return []
+    return [obj for obj in art.objects if isinstance(obj, tuple) and len(obj) == 2 and isinstance(obj[0], str)]
+
+
 def _merge(files: list[ParsedArtifact]) -> tuple[dict[str, dict], dict[str, dict[str, str]]]:
-    """서비스 단위 병합: 뒤 파일의 키가 앞 파일의 키를 덮고, `environment`는 변수 이름 단위로 합친다.
+    """서비스 단위 병합(docker 규칙, _merge_value). 파싱에 실패한 파일은 건너뛴다.
     (병합된 서비스, 서비스 → 키 → 마지막으로 그 키를 쓴 파일)."""
     services: dict[str, dict] = {}
     origins: dict[str, dict[str, str]] = {}
     for art in files:
-        if not art.parsed or not isinstance(art.objects, list):
-            continue
-        for obj in art.objects:
-            if not isinstance(obj, tuple) or len(obj) != 2 or not isinstance(obj[0], str):
-                continue
-            merged = services.setdefault(obj[0], {})
-            origin = origins.setdefault(obj[0], {})
-            for key, value in as_dict(obj[1]).items():
-                origin[str(key)] = art.path
-                new = _env_vars(value) if key == "environment" else None
-                old = _env_vars(merged.get(key)) if key == "environment" and key in merged else None
-                if new is not None:
-                    merged[key] = {**old, **new} if old is not None else new
-                else:
-                    merged[key] = value
+        for name, body in _service_entries(art):
+            merged = services.setdefault(name, {})
+            origin = origins.setdefault(name, {})
+            for key, value in as_dict(body).items():
+                key = str(key)
+                origin[key] = art.path
+                merged[key] = _merge_value(key, merged.get(key), value)
     return services, origins
 
 
 def _compose_environments(artifacts: list[ParsedArtifact]) -> list[Environment]:
+    """디렉터리마다: 기본 파일(+같은 계열 override) 환경 하나, 변형 파일마다 기본 파일 + 변형 파일 환경 하나
+    (`docker compose -f base -f variant`와 같이 override는 넣지 않는다). 변형 파일은 파싱에 성공하고 서비스가
+    하나 이상 있어야 환경을 만든다. `.devcontainer/` 아래 compose는 환경이 아니다."""
     by_dir: dict[str, list[ParsedArtifact]] = {}
     for art in sorted((a for a in artifacts if a.kind == "compose"), key=lambda a: a.path):
-        by_dir.setdefault(parent_dir(art.path), []).append(art)
+        d = parent_dir(art.path)
+        if DEVCONTAINER not in PurePosixPath(d).parts:
+            by_dir.setdefault(d, []).append(art)
     envs: list[Environment] = []
     for d, files in sorted(by_dir.items()):
-        bases = sorted((a for a in files if _variant(a.path) == ""),
+        bases = sorted((a for a in files if compose_variant(a.path) == ""),
                        key=lambda a: COMPOSE_BASE_NAMES.index(PurePosixPath(a.path).name))
-        overrides = [a for a in files if _is_override(_variant(a.path))]
-        variants = [a for a in files if _variant(a.path) and not _is_override(_variant(a.path))]
-        layers = (bases[:1] + overrides) if bases else []
-        candidates = ([("compose", bases[0], layers)] if bases else []) + [
-            (f"compose.{_variant(v.path)}", v, layers + [v]) for v in variants]
+        base = bases[:1]
+        overrides = [a for a in files if is_compose_override(a.path)
+                     and base and compose_family(a.path) == compose_family(base[0].path)]
+        variants = [a for a in files if compose_variant(a.path) and not is_compose_override(a.path)
+                    and _service_entries(a)]
+        candidates = ([("compose", base[0], base + overrides)] if base else []) + [
+            (f"compose.{compose_variant(v.path)}", v, base + [v]) for v in variants]
         for name, source, chain in candidates:
             services, origins = _merge(chain)
             if not services:
@@ -187,9 +212,12 @@ def detect_environments(artifacts: list[ParsedArtifact], workloads: list[Workloa
     taken = {e.name for e in kustomize}
     compose = _compose_environments(artifacts)
     for env in compose:
+        _match_services(env, workloads, artifacts)
+    # 대응한 워크로드가 없는 compose(데이터베이스만 띄우는 구성 등)는 환경이 아니다
+    compose = [e for e in compose if e.members]
+    for env in compose:
         if env.name in taken:  # kustomize 환경과 이름이 겹치면 compose 쪽에 원본 디렉터리를 붙인다
             env.name = f"{env.name}@{parent_dir(env.source) or 'root'}"
-        _match_services(env, workloads, artifacts)
     return sorted(kustomize + compose, key=lambda e: e.name)
 
 
