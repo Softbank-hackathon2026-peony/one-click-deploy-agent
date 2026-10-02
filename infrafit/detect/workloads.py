@@ -295,7 +295,9 @@ def _from_code(snap: Snapshot, manifests: Manifests, artifacts: list[ParsedArtif
             command = _dockerfile_cmd_for_dir(d, artifacts) or proc_cmd or start_cmd
         else:
             command = proc_cmd
-        if wkind == "web" and is_worker(name, command):  # `worker/`처럼 이름·명령이 워커이면 워커다
+        # 웹 프레임워크로 찾은 워크로드는 실행 명령이 워커 명령일 때만 워커다(`worker/` 이름만으로는 아니다:
+        # HTTP로 일을 받는 워커 서비스가 있다)
+        if wkind == "web" and is_worker_command(command):
             wkind = "worker"
         out.append(WorkloadInfo(id=wid, kind=wkind, name=name, entrypoint=entry,
                                 status="confirmed", source="code", app_dir=d, command=command, code_root=d))

@@ -76,12 +76,31 @@ def test_root_dockerfile_of_subdir_app_bundles_static_and_cites_cmd(tmp_path):
 
 
 def test_worker_http_routes_are_not_given_to_the_web_workload(tmp_path):
-    repo = tmp_path / "repo"
+    _two_dirs(tmp_path / "repo", '["celery", "-A", "tasks", "worker"]')
+    inv = _inventory(tmp_path)
+    assert [(w["id"], w["kind"]) for w in inv["workloads"]] == [("w-server", "web"), ("w-worker", "worker")]
+    assert [(e["workload"], e["route"]) for e in inv["endpoints"]] == [("w-server", "/api/items")]
+
+
+def _two_dirs(repo, worker_cmd):
     app = "from fastapi import FastAPI\napp = FastAPI()\n\n@app.post('{0}')\ndef h():\n    return 'ok'\n"
     _write(repo, "server/requirements.txt", "fastapi==0.115\n")
     _write(repo, "server/main.py", app.format("/api/items"))
     _write(repo, "worker/requirements.txt", "fastapi==0.115\n")
-    _write(repo, "worker/main.py", app.format("/jobs"))
+    _write(repo, "worker/app.py", app.format("/jobs"))
+    _write(repo, "worker/Dockerfile", f"FROM python:3.12\nCMD {worker_cmd}\n")
+
+
+def test_http_worker_dir_with_web_command_stays_web(tmp_path):
+    _two_dirs(tmp_path / "repo", '["uvicorn", "app:app"]')
+    inv = _inventory(tmp_path)
+    assert [(w["id"], w["kind"]) for w in inv["workloads"]] == [("w-server", "web"), ("w-worker", "web")]
+    assert ("w-worker", "/jobs") in [(e["workload"], e["route"]) for e in inv["endpoints"]]
+    path = next(p for p in inv["request_paths"] if p["workload"] == "w-worker")
+    assert [h["component"] for h in path["hops"]] == ["nw:app/uvicorn/default"]
+
+
+def test_worker_dir_with_worker_command_is_worker(tmp_path):
+    _two_dirs(tmp_path / "repo", '["celery", "-A", "tasks", "worker"]')
     inv = _inventory(tmp_path)
     assert [(w["id"], w["kind"]) for w in inv["workloads"]] == [("w-server", "web"), ("w-worker", "worker")]
-    assert [(e["workload"], e["route"]) for e in inv["endpoints"]] == [("w-server", "/api/items")]

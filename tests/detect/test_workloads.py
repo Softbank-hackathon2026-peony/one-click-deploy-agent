@@ -48,7 +48,7 @@ def test_code_workload_names_come_from_directories(tmp_path):
     ws = _run(tmp_path)
     assert [(w.id, w.name, w.kind) for w in ws] == [
         ("w-api", "api", "web"), ("w-server", "server", "web"), ("w-services-api", "services-api", "web"),
-        ("w-worker", "worker", "worker")]
+        ("w-worker", "worker", "web")]  # 이름만으로는 워커가 아니다(FB11)
 
 
 def test_k8s_takes_priority_and_skips_infra_images(tmp_path):
