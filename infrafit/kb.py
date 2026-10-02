@@ -25,7 +25,7 @@ def catalog() -> dict[str, dict]:
 def signatures() -> tuple[dict, ...]:
     out: list[dict] = []
     for path in sorted((KB_DIR / "signatures").glob("*.yaml")):
-        if path.name == "watchlist.yaml":
+        if path.name in ("watchlist.yaml", "external.yaml"):
             continue
         out.extend(yaml.safe_load(path.read_text(encoding="utf-8"))["signatures"])
     return tuple(out)
@@ -34,6 +34,18 @@ def signatures() -> tuple[dict, ...]:
 @lru_cache(maxsize=1)
 def watchlist() -> tuple[str, ...]:
     return tuple(_load("signatures/watchlist.yaml")["packages"])
+
+
+@lru_cache(maxsize=1)
+def external() -> tuple[dict, ...]:
+    """외부 서비스 시그니처(knowledge/signatures/external.yaml)."""
+    return tuple(_load("signatures/external.yaml")["services"])
+
+
+@lru_cache(maxsize=1)
+def deploy() -> tuple[dict, ...]:
+    """CI 배포 명령 패턴(knowledge/deploy.yaml)."""
+    return tuple(_load("deploy.yaml")["deploy"])
 
 
 @lru_cache(maxsize=1)

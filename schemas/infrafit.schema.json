@@ -339,6 +339,10 @@
         },
         "status": {
           "$ref": "#/$defs/FactStatus"
+        },
+        "environment": {
+          "type": "string",
+          "description": "환경별 배포 대상(platform·ci-deploy 환경)의 compute 기록이면 그 환경 이름"
         }
       },
       "additionalProperties": false,
@@ -459,7 +463,9 @@
                 "type": "string",
                 "enum": [
                   "kustomize",
-                  "compose"
+                  "compose",
+                  "platform",
+                  "ci-deploy"
                 ]
               },
               "rendered": {
@@ -467,6 +473,17 @@
               },
               "source": {
                 "$ref": "#/$defs/Evidence"
+              },
+              "manual": {
+                "type": "boolean",
+                "description": "ci-deploy 환경: 워크플로가 수동 실행(workflow_dispatch 등)으로만 돈다"
+              },
+              "members": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/ScopeId"
+                },
+                "description": "platform·ci-deploy 환경이 배포하는 워크로드"
               }
             },
             "additionalProperties": false,
@@ -476,6 +493,12 @@
               "rendered",
               "source"
             ]
+          }
+        },
+        "external_services": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExternalService"
           }
         }
       },
@@ -489,7 +512,8 @@
         "unmapped",
         "request_paths",
         "endpoints",
-        "environments"
+        "environments",
+        "external_services"
       ]
     },
     "DimensionValue": {
@@ -2832,6 +2856,65 @@
         "balanced",
         "minimal_change",
         "lowest_cost"
+      ]
+    },
+    "ExternalService": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^ext:[a-z0-9-]+$"
+        },
+        "label": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "llm-api",
+            "auth",
+            "payments",
+            "messaging",
+            "email",
+            "push",
+            "maps",
+            "video",
+            "webhook",
+            "other"
+          ]
+        },
+        "used_by": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ScopeId"
+          }
+        },
+        "secrets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "이 서비스에 맞은 환경변수 이름"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          }
+        },
+        "status": {
+          "$ref": "#/$defs/FactStatus"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "kind",
+        "used_by",
+        "secrets",
+        "evidence",
+        "status"
       ]
     }
   },

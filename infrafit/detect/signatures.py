@@ -47,8 +47,10 @@ def _eval(cond: dict, snap: Snapshot, manifests: Manifests) -> list[dict]:
         code = cond["code"]
         flags = re.MULTILINE | (re.IGNORECASE if code.get("flags") == "i" else 0)
         rx = re.compile(code["regex"], flags)
+        globs = code["glob"] if isinstance(code["glob"], list) else [code["glob"]]
+        files = {rel for g in globs for rel in snap.glob(g)}
         out = []
-        for rel in sorted(snap.glob(code["glob"]), key=lambda r: (is_aux_path(r), r)):
+        for rel in sorted(files, key=lambda r: (is_aux_path(r), r)):
             if is_test_path(rel):  # 테스트 코드의 흔적은 실제 배포 구성의 근거가 아니다
                 continue
             if code.get("multiline"):  # 줄을 넘는 식(메서드 체인 등): 파일 전체에서 찾고 줄은 일치 시작 위치
