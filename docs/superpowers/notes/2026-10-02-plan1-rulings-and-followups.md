@@ -61,3 +61,33 @@
 - Task 13: minor (deferred): merged evidence not deduplicated (f2 db.py twice); Dockerfile/terraform loops rely on parse_artifacts order; _refine_hosting picks first matching resource
 - Task 14: minor (deferred): _edge relies on parse_artifacts order (sorted anyway); private _d imported across modules; missing tests for gce/unknown class/annotation class/non-Vercel edges
 - Task 15: minor (deferred): check_run traceback on missing/corrupt intake.json; O(n^2) duplicate check; inline import in CLI; '..' evidence paths not rejected
+
+# 계획 1b: 판정과 후속 과제
+
+계획: docs/superpowers/plans/2026-10-02-infrafit-1b-proxy-environments.md
+
+## 판정
+- Ruling: P1 LocationInfo (T3) fields: modifier, pattern, internal, order, proxies: list[tuple[str|None, str|None]] (target workload id, uri) per resolved upstream server, subrequests: list[str], children: list[LocationInfo]; ProxyServer.locations holds top-level locations — T4's select_location and exposure need these — cost if wrong: small refactor in T4
+- Ruling: P2 golden and schema-example tests may fail between Task 2 and Task 5 only because of intended new fields; Task 5 regenerates them via the script — goldens are snapshots, not expectations — cost if wrong: masked regression until Task 5, caught by its golden-diff audit
+- Ruling: P3 a mapping link (rule 2/3) counts only if the container path is under /etc/nginx/ or the workload is nginx-based (image or final-chain FROM contains "nginx"); otherwise the file stays unlinked and rule 5's fallback may apply — `COPY . .` in app images must not turn apps into proxies — cost if wrong: custom nginx paths on non-nginx-named images missed
+- Ruling: P4 (T4 concern 1) shared-code endpoints go to the workloads whose matching root (app_dir or code_root) is the deepest; ties all get the endpoint — nested roots mean the inner workload owns the file — cost if wrong: an outer workload misses endpoints
+- Ruling: P5 (T4 concern 3) reverse-proxy hop settings: fill defaults per route for keys that route lacks, then merge distinct values — a route without an explicit value really runs with the default — cost if wrong: extra SettingFacts
+- Ruling: P6 (T4 concern 4) every subrequest of an externally selectable location (not internal, not named) is reached regardless of known endpoints; its forwarded path marks the target endpoint routed — any request matching that location triggers the subrequest — cost if wrong: none
+- Ruling: P7 (T4 review Important, plan-mandated rule 10 defect) select_location keeps internal locations as candidates (only `@` named excluded); a selected internal location reaches nothing for external requests (nginx returns 404) — nginx semantics; rule 9 already assumed this — cost if wrong: none
+- Ruling: P8 (found in T4 review, Task 2 gap) environments = kustomize leaves ∪ kustomization dirs with an ancestor directory named `overlays` whose own directory name is not base/common/shared and whose kind is not Component; build_overlays builds all of these — an overlay that is deployed directly can also be a base for another overlay (f1-like `local` ← `local-loadtest`) — cost if wrong: an intermediate overlay that is never applied shows as an environment
+- Ruling: F1 exposure also tries reverse-mapped external paths: for each external (non-internal, non-named) prefix location L proxying to W with uri U where endpoint path r starts with U, candidate request = L.pattern + r[len(U):]; then the normal select_location + forwarded-path check — prefix-stripping proxies are the most common compose shape — cost if wrong: none (still verified by selection)
+- Ruling: F2 every parsable nginx-named file mapped under /etc/nginx/ (or mapped into an nginx-based workload) is linked regardless of proxy directives; the proxy-directive filter applies only to the rule-5 unlinked fallback; when /etc/nginx/nginx.conf is mapped it is the single entry (its includes bring in conf.d) — http-level settings live there — cost if wrong: none
+- Ruling: F3 build-context candidates: compose service build.context first (when the workload comes from that compose service), then Dockerfile dir, then repo root
+- Ruling: F4 compose services with `build` and no `command` take the CMD/ENTRYPOINT of their Dockerfile (final chain) as workload command — pre-existing gap that removes the app-server hop on the commonest shape — cost if wrong: none
+- Ruling: F5 one shared workload-object matcher (environments.workload_in's rule) used by nginx.py; make `_d`, `_final_chain`, `_stages`, `_dockerfile_for_image` public names (keep old private aliases only if needed internally)
+
+## 보류된 항목 (다음 계획에서 처리)
+- Final: parked — exposure has no own status when only candidate routes contribute (F-minor 4); exposure is a union across environments (6); compose topology dropped when k8s also defines workloads (7); namePrefix overlays split workloads (8) — all need schema/workload-model decisions; carry to plan 2
+- Final: parked — exact (=) locations with uri not reverse-mapped; uri without trailing slash builds odd candidates (verified by selection, worst case false not-routed); compose `entrypoint:` key ignored for command
+
+## 미뤄 둔 작은 항목
+- Task 1: minor (deferred): `import pkg.routes` without alias and non-Name owners (app.router) unhandled
+- Task 2: minor (deferred): collision-fallback and `root` naming untested; env_slug collisions (a/b vs a-b) — duplicate path ids are already caught by check_s1's duplicate scope id check; import order
+- Task 3: minor (deferred): env-null raw k8s may read overlay patches; mutually-including entries vanish; proxy_pass inside if/limit_except; module split and private helper imports
+- Task 4: minor (deferred): no multi-proxy chaining (proxy behind proxy)
+- Task 4: minor (deferred): Django nested-paren groups and ^ inside char classes in request-path normalisation
