@@ -89,3 +89,9 @@ def iter_conditions(cond: dict) -> Iterator[dict]:
             yield from iter_conditions(child)
     else:
         yield cond
+
+
+@lru_cache(maxsize=1)
+def profile_detectors() -> dict:
+    """S2 프로필 탐지 지식(knowledge/profile_detectors.yaml)."""
+    return _load("profile_detectors.yaml")
