@@ -89,3 +89,17 @@ def iter_conditions(cond: dict) -> Iterator[dict]:
             yield from iter_conditions(child)
     else:
         yield cond
+
+
+def capabilities() -> list[dict]:
+    """후보 구성 요소의 능력 값(knowledge/capabilities.yaml의 `components`). 파일이 없으면 빈 목록."""
+    if not (KB_DIR / "capabilities.yaml").exists():
+        return []
+    return list(_load("capabilities.yaml").get("components") or [])
+
+
+def rules() -> list[dict]:
+    """적합성 규칙(knowledge/rules.yaml의 `rules`). 파일이 없으면 빈 목록."""
+    if not (KB_DIR / "rules.yaml").exists():
+        return []
+    return list(_load("rules.yaml").get("rules") or [])
