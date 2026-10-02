@@ -279,3 +279,168 @@ def test_app_scope_ignores_workload_values_aggregated_from_endpoints():
     scopes = app_scopes(inventory(sqlite=False), profile(a2_web, a2_app))
     assert [s.id for s in scopes] == ["w-app"]
     assert scopes[0].members == ["w-app", "w-web"] and scopes[0].current == [EC2]
+
+
+# ---------- QA 2: 상시 실행·고정 비용·순위·BaaS·결과 ----------
+
+REQ = "cp:gcp/cloud-run/request-billing"
+INS = "cp:gcp/cloud-run/instance-billing"
+LAMBDA = "cp:aws/lambda/function-url"
+SUPA = "ds:supabase/postgres/unspecified-plan"
+FIRESTORE = "ds:firebase/firestore/standard"
+
+
+def kb_rules(*ids):
+    from infrafit import kb
+    return [r for r in kb.rules() if r["id"] in ids]
+
+
+def pinned(c, usd):
+    c["capabilities"]["COST.monthly_pinned_usd"] = cap(usd)
+    return c
+
+
+def test_worker_needs_always_on_or_pinning_config_not_cpu_after_response():
+    rules = kb_rules("CAP-ALWAYSON-001")
+    caps = [comp(REQ, "gcp", CP__always_on=False, CP__cpu_after_response=True),
+            comp(INS, "gcp", CP__always_on=False, CP__cpu_after_response=True,
+                 CP__always_on_config="min-instances ≥ 1"),
+            comp(EC2, "aws", CP__always_on=True), comp(EKS, "aws")]
+    inv = inventory(sqlite=False)
+    for a1 in (["웹", "워커"], ["정기 작업"]):
+        fit = build_fit(inv, profile(dim("A1", a1)), caps, rules)
+        assert cell(fit, "w-web", REQ)["result"] == "infeasible"          # 응답 후 CPU만으로는 상시 실행이 아니다
+        ins = cell(fit, "w-web", INS)
+        assert ins["result"] == "feasible_with_config"
+        assert ins["requires_config"][0]["setting"] == "min-instances ≥ 1"
+        assert cell(fit, "w-web", EC2)["result"] == "feasible"
+        assert cell(fit, "w-web", EKS)["result"] == "unknown"
+    fit = build_fit(inv, profile(dim("A1", ["일회성 실행"])), caps, rules)
+    assert {c["result"] for c in fit["matrix"]} == {"feasible"}
+
+
+def test_in_process_scheduler_needs_cpu_outside_requests():
+    rules = kb_rules("CAP-SINGLERUN-002")
+    caps = [comp(REQ, "gcp", CP__always_on=False, CP__cpu_after_response=False),
+            comp(INS, "gcp", CP__always_on=False, CP__cpu_after_response=True),
+            comp(EC2, "aws", CP__always_on=True)]
+    fit = build_fit(inventory(sqlite=False), profile(dim("B3", "있음")), caps, rules)
+    assert [cell(fit, "w-web", c)["result"] for c in (REQ, INS, EC2)] == ["infeasible", "feasible", "feasible"]
+
+
+def test_pinned_instance_uses_pinned_cost_on_scale_to_zero_platform():
+    rules = kb_rules("CAP-MEMSTATE-001", "CAP-ALWAYSON-001")
+    caps = [pinned(comp(REQ, "gcp", cost=0, CP__scale_to_zero=True, CP__single_instance_config="--scaling=1",
+                        CP__always_on=False, CP__cpu_after_response=False), 13.8),
+            comp(INS, "gcp", cost=0, CP__scale_to_zero=True, CP__single_instance_config="--scaling=1",
+                 CP__always_on=False, CP__cpu_after_response=True, CP__always_on_config="min-instances ≥ 1"),
+            comp(EC2, "aws", cost=10, CP__scale_to_zero=False, CP__single_instance_config="container_name",
+                 CP__always_on=True)]
+    inv = inventory(sqlite=False)
+    prof = profile(dim("B1", {"value": "있음", "kinds": ["in-memory-session"]}))
+    fit = build_fit(inv, prof, caps, rules)
+    rec = build_recommendation(inv, prof, fit, caps, rules)
+    by = {c["assignment"]["w-web"]: c for c in rec["candidates"]}
+    assert by[REQ]["cost"]["monthly_baseline_usd"] == 13.8
+    assert by[REQ]["cost"]["breakdown"][0]["item"] == "monthly_pinned"
+    assert by[INS]["cost"]["monthly_baseline_usd"] is None                  # 고정 비용 출처 없음 → 모름
+    assert by[INS]["cost"]["unknown_cost_components"] == [INS]
+    assert by[EC2]["cost"]["monthly_baseline_usd"] == 10                    # scale-to-zero가 아니면 바닥 비용 그대로
+    assert [c["assignment"]["w-web"] for c in rec["candidates"]] == [EC2, REQ, INS]
+    # 워커가 min-instances를 강제해도 같다
+    pinned(caps[1], 59.9)
+    prof = profile(dim("A1", ["웹", "워커"]))
+    fit = build_fit(inv, prof, caps, rules)
+    rec = build_recommendation(inv, prof, fit, caps, rules)
+    by = {c["assignment"]["w-web"]: c for c in rec["candidates"]}
+    assert REQ not in by and by[INS]["cost"]["monthly_baseline_usd"] == 59.9
+    # 고정 설정이 없으면 바닥 비용
+    fit = build_fit(inv, profile(), caps, rules)
+    rec = build_recommendation(inv, profile(), fit, caps, rules)
+    assert {c["assignment"]["w-web"]: c["cost"]["monthly_baseline_usd"] for c in rec["candidates"]}[INS] == 0
+
+
+def test_ranking_known_cost_then_total_then_unknown_cells():
+    rules = RULES
+    caps = [comp(RUN, "gcp", cost=5, CP__websocket=True),                 # A4 키 없음 → unknown 셀
+            comp(EC2, "aws", cost=10, CP__websocket=True, CP__cpu_after_response=True),
+            comp(ECS, "aws", CP__websocket=True, CP__cpu_after_response=True)]   # 비용 모름
+    inv = inventory(sqlite=False)
+    prof = profile(dim("A4", "있음"))
+    fit = build_fit(inv, prof, caps, rules)
+    rec = build_recommendation(inv, prof, fit, caps, rules)
+    assert [c["assignment"]["w-web"] for c in rec["candidates"]] == [RUN, EC2, ECS]
+    assert rec["candidates"][0]["unknown_count"] == 1
+
+
+def test_billing_mode_tie_prefers_request_billing_unless_background_needed():
+    rules = kb_rules("CAP-SINGLERUN-001")
+    caps = [comp(REQ, "gcp", cost=0, CP__cpu_after_response=False, CP__single_instance_config="--scaling=1"),
+            comp(INS, "gcp", cost=0, CP__cpu_after_response=True, CP__single_instance_config="--scaling=1")]
+    inv = inventory(sqlite=False)
+    for prof, first in ((profile(), REQ), (profile(dim("B3", "있음")), INS), (profile(dim("A4", "있음")), INS),
+                        (profile(dim("A1", ["웹", "워커"])), INS)):
+        fit = build_fit(inv, prof, caps, rules)
+        rec = build_recommendation(inv, prof, fit, caps, rules)
+        assert rec["candidates"][0]["assignment"]["w-web"] == first, prof["dimensions"]
+
+
+def test_baas_datastore_is_kept_not_replaced():
+    inv = inventory(sqlite=False)
+    for sid, cid in (("ds-supabase", SUPA), ("ds-firestore", FIRESTORE)):
+        inv["datastores"].append({"id": sid, "role": "primary-db", "used_by": ["w-web"], "evidence": [DS_EV],
+                                  "status": "confirmed"})
+        inv["current_components"].append({"scope": sid, "component": cid, "evidence": [DS_EV],
+                                          "status": "confirmed"})
+    caps = capabilities()
+    prof = profile()
+    fit = build_fit(inv, prof, caps, RULES)
+    assert {(c["scope"], c["candidate"]) for c in fit["matrix"] if c["scope"].startswith("ds-")} == {
+        ("ds-supabase", SUPA), ("ds-firestore", FIRESTORE)}
+    rec = build_recommendation(inv, prof, fit, caps, RULES)
+    assert rec["candidates"]
+    for cand in rec["candidates"]:
+        assert cand["assignment"]["ds-supabase"] == SUPA and cand["assignment"]["ds-firestore"] == FIRESTORE
+        assert cand["external_scopes"] == ["ds-firestore", "ds-supabase"]
+        assert cand["cost"]["monthly_baseline_usd"] is None
+        assert set(cand["cost"]["unknown_cost_components"]) >= {SUPA, FIRESTORE}
+        validate("Candidate", cand)
+    assert check_s4(rec, fit, inv, prof) == []
+
+
+def _static_inv(extra_current=True):
+    inv = {"workloads": [{"id": "w-static", "kind": "static-frontend", "name": "static", "status": "confirmed",
+                          "entrypoint": {"path": "index.html", "line": 1, "snippet": "<html>"}}],
+           "endpoints": [], "request_paths": [], "datastores": [], "current_components": []}
+    if extra_current:
+        for env in (None, "vercel"):   # 환경별 기록이 같은 구성 요소면 한 번만 낸다
+            c = {"scope": "w-static", "component": "unmapped", "label": "static hosting (vercel.json)",
+                 "evidence": [], "status": "confirmed"}
+            inv["current_components"].append({**c, "environment": env} if env else c)
+    return inv
+
+
+def test_outcome_static_only_and_not_deployable(tmp_path):
+    caps = capabilities()
+    inv = _static_inv()
+    fit = build_fit(inv, profile(), caps, RULES)
+    rec = build_recommendation(inv, profile(), fit, caps, RULES)
+    assert rec["outcome"] == "static_only" and rec["no_feasible"] is None and rec["candidates"] == []
+    assert rec["outcome_detail"]["current"] == [{"scope": "w-static", "component": "unmapped",
+                                                 "label": "static hosting (vercel.json)"}]
+    assert "컴퓨트" in rec["outcome_detail"]["message"]
+    empty = {**_static_inv(False), "workloads": []}
+    fit = build_fit(empty, profile(), caps, RULES)
+    rec = build_recommendation(empty, profile(), fit, caps, RULES)
+    assert rec["outcome"] == "not_deployable" and rec["no_feasible"] is None
+    inv = inventory(sqlite=False)
+    fit = build_fit(inv, profile(), caps, RULES)
+    assert build_recommendation(inv, profile(), fit, caps, RULES)["outcome"] == "recommended"
+    caps = [c for c in capabilities() if c["id"] == EKS]
+    prof = profile(dim("A3", "장시간 양방향(웹소켓)"))
+    fit = build_fit(inv, prof, caps, RULES)
+    rec = build_recommendation(inv, prof, fit, caps, RULES)
+    assert rec["outcome"] == "no_feasible" and rec["no_feasible"]["blocking"]
+    ctx = RunContext.create(tmp_path / "r", run_id="r")
+    fit = run_s3(ctx, _static_inv(), profile(), capabilities(), RULES)
+    validate("Recommendation", run_s4(ctx, _static_inv(), profile(), fit, capabilities(), RULES))
