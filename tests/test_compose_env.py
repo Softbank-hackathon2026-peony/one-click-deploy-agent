@@ -338,3 +338,17 @@ def test_dash_named_variant_and_override_family(tmp_path):
     _, _, _, envs, _, _ = _analyze(tmp_path)
     assert [(e.name, e.source, e.services["api"].get("command")) for e in envs] == [
         ("compose", "docker-compose.yml", None), ("compose.prod", "docker-compose-prod.yml", "prod")]
+
+
+def test_valueless_compose_variable_is_absent(tmp_path):
+    # F6: 값 없는 `KEY`는 호스트 값을 받으므로(알 수 없음) 없음으로 보고, 이미지 ENV가 남는다
+    _write(tmp_path, "proxy/Dockerfile", "FROM nginx:1.27\nENV UP=b:8000\n")
+    _write(tmp_path, "docker-compose.yml", "services:\n  proxy:\n    build: ./proxy\n"
+           "    environment: [UP=a:8000]\n"
+           "    volumes:\n      - ./nginx.conf.template:/etc/nginx/templates/default.conf.template:ro\n"
+           "  a:\n    image: acme/a:1\n  b:\n    image: acme/b:1\n")
+    _write(tmp_path, "docker-compose.override.yml", "services:\n  proxy:\n    environment:\n      UP:\n")
+    _write(tmp_path, "nginx.conf.template", "server {\n  location / { proxy_pass http://${UP}; }\n}\n")
+    _, _, _, envs, (_, routes), _ = _analyze(tmp_path)
+    assert _env(envs, "compose").services["proxy"]["environment"] == {"UP": None}
+    assert [(r.environment, r.target) for r in routes] == [("compose", "w-b")]

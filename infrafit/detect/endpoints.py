@@ -8,7 +8,7 @@ from collections import defaultdict
 from pathlib import PurePosixPath
 
 from infrafit.detect.nginx import LocationInfo, ProxyRoute, ProxyServer
-from infrafit.detect.paths import MAX_CHAIN
+from infrafit.detect.proxy_graph import fronted_in, upstream_chains
 from infrafit.detect.workloads import WorkloadInfo
 from infrafit.evidence import evidence
 from infrafit.repo import Snapshot
@@ -402,29 +402,6 @@ def _subrequest_reached(server: ProxyServer) -> set[tuple[str, str]]:
     return out
 
 
-MAX_CHAINS = 64  # (워크로드, 환경)마다 따라가는 체인 수의 상한(조밀한 프록시 망에서 조합이 폭증하지 않게)
-
-
-def _chains(routes: list[ProxyRoute], fronted: set[str], target: str, bottom: str | None = None,
-            below: tuple[str, ...] = ()) -> list[tuple[str, ...]]:
-    """target에 요청을 넘기는 프록시 체인들(위→아래, 맨 끝 프록시가 맨 아래 워크로드 bottom으로 넘긴다).
-    갈래마다 프록시 id 순으로 따라 올라가며, 앞 구간이 있는 프록시, 자기에게 넘기는 다른 프록시가 없는 프록시,
-    프록시 MAX_CHAIN개에서 끝난다(경로와 같은 상한). 이미 체인에 있는 프록시와 bottom으로 되돌아가는 프록시(순환)는
-    빼고, 맨 아래 단계에서 bottom 자신에게 넘기는 프록시는 그것만으로 체인 하나다. 체인은 MAX_CHAINS개까지 모은다."""
-    bottom = target if bottom is None else bottom
-    out: list[tuple[str, ...]] = []
-    for p in sorted({r.proxy for r in routes if r.target == target}):
-        if len(out) >= MAX_CHAINS:
-            break
-        if p in below or (below and p == bottom):
-            continue
-        chain = (p,) + below
-        ups = ([] if p == bottom or p in fronted or len(chain) >= MAX_CHAIN
-               else _chains(routes, fronted, p, bottom, chain))
-        out += (ups or [chain])[:MAX_CHAINS - len(out)]
-    return out
-
-
 class _Reach:
     """한 환경에서 프록시에 들어온 요청 경로가 닿는 (워크로드 id, 전달 경로)들을 기억해 둔다."""
 
@@ -482,7 +459,7 @@ def _exposure_in(env: str | None, out: list[dict], routes: list[ProxyRoute], ser
     reached: set[tuple[str, str]] = set()
     for server in servers:
         reached |= _subrequest_reached(server)
-    chains = {w: sorted(_chains(routes, fronted, w)) for w in sorted(routed)}
+    chains = {w: sorted(upstream_chains(routes, fronted, w)) for w in sorted(routed)}
     for ep in out:
         if ep["workload"] not in routed:
             continue
@@ -499,7 +476,7 @@ def _mark_exposure(out: list[dict], routes: list[ProxyRoute], servers: list[Prox
     """엔드포인트마다 exposure를 [{environment, value}]로 쓴다. route가 없는 환경은 넣지 않는다."""
     envs = sorted({r.environment for r in routes if r.target}, key=lambda e: (e is not None, e or ""))
     for env in envs:
-        values = _exposure_in(env, out, routes, servers, {p for p, e in fronted if e == env})
+        values = _exposure_in(env, out, routes, servers, fronted_in(fronted, env))
         for ep in out:
             if ep["id"] in values:
                 ep.setdefault("exposure", []).append({"environment": env, "value": values[ep["id"]]})

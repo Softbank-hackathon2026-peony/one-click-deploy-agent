@@ -12,8 +12,9 @@ from pathlib import PurePosixPath
 
 import crossplane
 
-from infrafit.detect.artifacts import ParsedArtifact, as_dict, final_chain, dockerfile_stages, is_build_path, pod_spec
-from infrafit.detect.environments import Environment, env_scopes, env_service, is_workload_doc
+from infrafit.detect.artifacts import ParsedArtifact, as_dict, final_chain, dockerfile_stages, is_build_path
+from infrafit.detect.environments import (Environment, compose_env, env_scopes, env_service, is_workload_doc,
+                                          workload_container)
 from infrafit.detect.manifests import parent_dir
 from infrafit.detect.workloads import WorkloadInfo, workload_dockerfile
 from infrafit.evidence import evidence
@@ -286,27 +287,16 @@ def _dockerfile_env(df: ParsedArtifact | None) -> dict[str, str]:
 
 
 def _compose_env(svc: dict) -> dict[str, str]:
-    env = svc.get("environment")
-    out: dict[str, str] = {}
-    if isinstance(env, dict):
-        out = {str(k): str(v) for k, v in env.items() if v is not None}
-    elif isinstance(env, list):
-        for item in env:
-            k, sep, v = str(item).partition("=")
-            if sep and k:
-                out[k] = v
-    return out
+    """compose 서비스 `environment`에서 값이 정해진 변수들(값 없는 변수는 호스트 값을 받으므로 없음으로 본다)."""
+    return {k: v for k, v in (compose_env(svc.get("environment")) or {}).items() if v is not None}
 
 
 def _k8s_env(objects: list, w: WorkloadInfo) -> dict[str, str]:
     """워크로드 컨테이너(이미지가 같은 것, 없으면 첫 번째)의 envFrom ConfigMap data,
     그 위에 env[].value(쿠버네티스와 같은 우선순위)."""
-    doc = next((d for d in objects if is_workload_doc(d, w)), None)
-    if doc is None:
+    c = workload_container(objects, w)
+    if c is None:
         return {}
-    containers = pod_spec(doc).get("containers")
-    containers = [as_dict(x) for x in containers] if isinstance(containers, list) else []
-    c = next((x for x in containers if w.image and x.get("image") == w.image), containers[0] if containers else {})
     configmaps = {as_dict(o.get("metadata")).get("name"): as_dict(o.get("data")) for o in objects
                   if isinstance(o, dict) and o.get("kind") == "ConfigMap"}
     out: dict[str, str] = {}
