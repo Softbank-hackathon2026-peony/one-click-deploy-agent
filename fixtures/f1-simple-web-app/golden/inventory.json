@@ -7501,6 +7501,56 @@
       "id": "w-auth",
       "kind": "web",
       "name": "auth",
+      "scaling": {
+        "autoscale": true,
+        "evidence": [
+          {
+            "line": 46,
+            "path": "k8s/base/hpa.yaml",
+            "snippet": "minReplicas: 2"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/aws/dev/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/auth minReplicas: 2, maxReplicas: 2"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/aws/prod/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/auth minReplicas: 2, maxReplicas: 20"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/gcp/dev/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/auth minReplicas: 2, maxReplicas: 2"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/gcp/prod/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/auth minReplicas: 2, maxReplicas: 20"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/local-loadtest/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/auth minReplicas: 2, maxReplicas: 4"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/local/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/auth minReplicas: 2, maxReplicas: 20"
+          }
+        ],
+        "load_tests": [
+          {
+            "kind": "tech",
+            "line": 4,
+            "path": "loadtest/disaster.js",
+            "snippet": "import http from 'k6/http';"
+          }
+        ],
+        "max": 20,
+        "min": 2
+      },
       "status": "confirmed"
     },
     {
@@ -7512,6 +7562,56 @@
       "id": "w-auth-verify",
       "kind": "web",
       "name": "auth-verify",
+      "scaling": {
+        "autoscale": true,
+        "evidence": [
+          {
+            "line": 148,
+            "path": "k8s/base/hpa.yaml",
+            "snippet": "minReplicas: 2"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/aws/dev/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/auth-verify minReplicas: 1, maxReplicas: 2"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/aws/prod/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/auth-verify minReplicas: 2, maxReplicas: 10"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/gcp/dev/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/auth-verify minReplicas: 1, maxReplicas: 2"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/gcp/prod/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/auth-verify minReplicas: 2, maxReplicas: 10"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/local-loadtest/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/auth-verify minReplicas: 2, maxReplicas: 4"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/local/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/auth-verify minReplicas: 2, maxReplicas: 10"
+          }
+        ],
+        "load_tests": [
+          {
+            "kind": "tech",
+            "line": 4,
+            "path": "loadtest/disaster.js",
+            "snippet": "import http from 'k6/http';"
+          }
+        ],
+        "max": 10,
+        "min": 2
+      },
       "status": "confirmed"
     },
     {
@@ -7523,6 +7623,56 @@
       "id": "w-board-api",
       "kind": "web",
       "name": "board-api",
+      "scaling": {
+        "autoscale": true,
+        "evidence": [
+          {
+            "line": 80,
+            "path": "k8s/base/hpa.yaml",
+            "snippet": "minReplicas: 2"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/aws/dev/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/board-api minReplicas: 1, maxReplicas: 3"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/aws/prod/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/board-api minReplicas: 2, maxReplicas: 20"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/gcp/dev/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/board-api minReplicas: 1, maxReplicas: 3"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/gcp/prod/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/board-api minReplicas: 2, maxReplicas: 20"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/local-loadtest/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/board-api minReplicas: 2, maxReplicas: 6"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/local/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/board-api minReplicas: 2, maxReplicas: 20"
+          }
+        ],
+        "load_tests": [
+          {
+            "kind": "tech",
+            "line": 4,
+            "path": "loadtest/disaster.js",
+            "snippet": "import http from 'k6/http';"
+          }
+        ],
+        "max": 20,
+        "min": 2
+      },
       "status": "confirmed"
     },
     {
@@ -7534,6 +7684,53 @@
       "id": "w-board-worker",
       "kind": "worker",
       "name": "board-worker",
+      "scaling": {
+        "autoscale": true,
+        "evidence": [
+          {
+            "line": 114,
+            "path": "k8s/base/hpa.yaml",
+            "snippet": "minReplicas: 1"
+          },
+          {
+            "line": 14,
+            "path": "k8s/components/keda-worker/scaledobject.yaml",
+            "snippet": "minReplicaCount: 1"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/aws/dev/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/board-worker minReplicas: 1, maxReplicas: 2"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/aws/prod/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/board-worker minReplicas: 1, maxReplicas: 10"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/gcp/dev/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/board-worker minReplicas: 1, maxReplicas: 2"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/gcp/prod/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/board-worker minReplicas: 1, maxReplicas: 10"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/local-loadtest/kustomization.yaml",
+            "snippet": "kustomize build: ScaledObject/board-worker minReplicaCount: 1, maxReplicaCount: 4"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/local/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/board-worker minReplicas: 1, maxReplicas: 10"
+          }
+        ],
+        "max": 10,
+        "min": 1
+      },
       "status": "confirmed"
     },
     {
@@ -7556,6 +7753,48 @@
       "id": "w-nginx",
       "kind": "reverse-proxy",
       "name": "nginx",
+      "scaling": {
+        "autoscale": true,
+        "evidence": [
+          {
+            "line": 12,
+            "path": "k8s/base/hpa.yaml",
+            "snippet": "minReplicas: 2"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/aws/dev/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/nginx minReplicas: 1, maxReplicas: 2"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/aws/prod/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/nginx minReplicas: 2, maxReplicas: 10"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/gcp/dev/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/nginx minReplicas: 1, maxReplicas: 2"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/gcp/prod/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/nginx minReplicas: 2, maxReplicas: 10"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/local-loadtest/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/nginx minReplicas: 2, maxReplicas: 4"
+          },
+          {
+            "line": null,
+            "path": "k8s/overlays/local/kustomization.yaml",
+            "snippet": "kustomize build: HorizontalPodAutoscaler/nginx minReplicas: 2, maxReplicas: 10"
+          }
+        ],
+        "max": 10,
+        "min": 2
+      },
       "status": "confirmed"
     }
   ]

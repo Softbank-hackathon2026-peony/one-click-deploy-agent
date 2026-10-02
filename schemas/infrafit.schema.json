@@ -227,6 +227,42 @@
         },
         "status": {
           "$ref": "#/$defs/FactStatus"
+        },
+        "scaling": {
+          "type": "object",
+          "description": "확장 요구(레플리카·HPA·KEDA·compose deploy.replicas). 환경마다 정한 min·max의 최댓값. evidence가 비면 레플리카 설정 없음(min=max=1). load_tests는 부하 테스트 스크립트(웹·실시간 워크로드에만)",
+          "properties": {
+            "min": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "autoscale": {
+              "type": "boolean"
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Evidence"
+              }
+            },
+            "load_tests": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Evidence"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "min",
+            "max",
+            "autoscale",
+            "evidence"
+          ]
         }
       },
       "additionalProperties": false,
@@ -938,6 +974,36 @@
           "items": {
             "$ref": "#/$defs/Resolution"
           }
+        },
+        "batch_only": {
+          "type": "object",
+          "description": "앱 워크로드가 모두 batch(실행하고 끝나는 CLI·배치)이고 정적 프런트엔드도 없으면 value=true: 상시 배포 대상이 아니라 사람이 실행하는 도구(S4 not_deployable 근거)",
+          "properties": {
+            "value": {
+              "type": "boolean"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "workloads": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ScopeId"
+              }
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Evidence"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "workloads",
+            "evidence"
+          ]
         }
       },
       "additionalProperties": false,

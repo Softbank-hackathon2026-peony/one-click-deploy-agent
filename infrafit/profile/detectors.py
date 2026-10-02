@@ -1,10 +1,12 @@
-"""차원 관찰 모으기: 인벤토리 사실(범위·엔드포인트·외부 서비스·unmapped)과 코드 탐지기(knowledge/profile_detectors.yaml).
+"""차원 관찰 모으기: 인벤토리 사실(범위·엔드포인트·외부 서비스·unmapped·워크로드 scaling)과 코드 탐지기
+(knowledge/profile_detectors.yaml).
 
 관찰 하나 = (범위, 차원, 값 또는 종류, 근거, 신뢰도). 범위는 워크로드 ID, 요청 경로 탐지는 엔드포인트 ID.
 """
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from fnmatch import fnmatchcase
 
@@ -121,7 +123,50 @@ def _code_observations(snap: Snapshot, inventory: dict, cfg: dict, app: set[str]
     return out
 
 
+def _load_test_hit(snap: Snapshot, rel: str, rules: list[dict], cache: dict) -> tuple[dict, dict] | None:
+    """부하 테스트 스크립트 본문에서 처음 맞는 규칙과 그 줄의 근거(위 규칙부터)."""
+    if rel not in cache:
+        cache[rel] = None
+        if snap.exists(rel):
+            lines = snap.lines(rel)
+            for rule in rules:
+                rx = re.compile(rule["regex"])
+                n = next((i for i, t in enumerate(lines, 1) if rx.search(t)), None)
+                if n is not None:
+                    cache[rel] = (rule, evidence(snap, rel, n, "tech"))
+                    break
+    return cache[rel]
+
+
+def _scaling_observations(snap: Snapshot, inventory: dict, cfg: dict, app: set[str]) -> list[Observation]:
+    """인벤토리 workloads[].scaling → D6(확장 요구), D2(평시 동시성), 부하 테스트 본문 → D3(폭증 형태)."""
+    sc = cfg.get("scaling") or {}
+    if not sc:
+        return []
+    out: list[Observation] = []
+    cache: dict = {}
+    d6, d2 = sc.get("D6") or {}, sc.get("D2") or {}
+    for w in inventory["workloads"]:
+        s = w.get("scaling")
+        if w["id"] not in app or not s:
+            continue
+        ev = tuple(s["evidence"])
+        if ev and d6:
+            key = "auto" if s["autoscale"] else "fixed" if s["min"] >= 2 else "single"
+            out.append(Observation(w["id"], "D6", d6[key], None, ev, "high"))
+        if ev and d2 and (s["autoscale"] or s["min"] >= int(d2.get("min_replicas", 2))):
+            # 설정이 밝힌 인스턴스 수에서 옮긴 값이라 medium. 부하 테스트는 보조 근거로 덧붙인다
+            out.append(Observation(w["id"], "D2", d2["value"], None, ev + tuple(s.get("load_tests", [])), "medium"))
+        for lt in s.get("load_tests", []):
+            hit = _load_test_hit(snap, lt["path"], sc.get("load_tests") or [], cache)
+            if hit:
+                rule, hit_ev = hit
+                out.append(Observation(w["id"], rule["dimension"], rule["value"], None, (hit_ev,), "medium"))
+    return out
+
+
 def observe(snap: Snapshot, inventory: dict, cfg: dict, app_ids: list[str]) -> list[Observation]:
     app = set(app_ids)
     owners = Owners(snap, inventory, app_ids)
-    return _inventory_observations(inventory, cfg, app, owners) + _code_observations(snap, inventory, cfg, app, owners)
+    return (_inventory_observations(inventory, cfg, app, owners) + _scaling_observations(snap, inventory, cfg, app)
+            + _code_observations(snap, inventory, cfg, app, owners))

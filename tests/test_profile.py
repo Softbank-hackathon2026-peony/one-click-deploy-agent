@@ -56,7 +56,7 @@ def test_plain_web_app_defaults(tmp_path):
         assert _app(p, dim)["value"] == {"value": "없음", "kinds": []}
     assert _app(p, "B3")["value"] == "없음"
     assert _app(p, "D2")["value"] == "낮음" and _app(p, "G3")["value"] == "높음"
-    assert {a["key"]: a["value"] for a in p["assumptions"]} == {"A2": "1초 미만", "D2": "낮음", "G3": "높음"}
+    assert {a["key"]: a["value"] for a in p["assumptions"]} == {"A2": "1초 미만", "D2": "낮음", "D3": "없음", "G3": "높음"}
     assert all(a["reason"] for a in p["assumptions"])
     assert _app(p, "A1")["aggregated_from"] == ["w-web"]
     assert {r["scope"] for r in p["dimensions"]} == {"w-web", "w-app"}

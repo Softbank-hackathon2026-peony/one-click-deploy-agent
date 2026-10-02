@@ -108,6 +108,12 @@ def check_s1(inventory: dict, repo_root: Path | None) -> list[str]:
         for h in p["hops"]:
             if h["component"] not in SPECIAL_COMPONENTS and h["component"] not in catalog:
                 issues.append(f"request path {p['id']}: not in catalog {h['component']}")
+    for w in inventory["workloads"]:
+        sc = w.get("scaling")
+        if sc and sc["min"] > sc["max"]:
+            issues.append(f"workload {w['id']}: scaling min {sc['min']} > max {sc['max']}")
+        if sc and sc["autoscale"] and sc["min"] == sc["max"]:
+            issues.append(f"workload {w['id']}: scaling autoscale with min == max")
     issues += _check_deploy_units(inventory.get("deploy_units"), workloads,
                                   {d["id"] for d in inventory["datastores"]})
     if repo_root is not None:
@@ -186,6 +192,13 @@ def check_s2(profile: dict, inventory: dict, repo_root: Path | None) -> list[str
             issues.append(f"{where}: value outside vocabulary {r['value']!r}")
         if r["source"] == "assumption" and r.get("assumption_key") not in keys:
             issues.append(f"{where}: assumption_key not in assumptions {r.get('assumption_key')}")
+    batch = profile.get("batch_only")
+    if batch:
+        for w in batch["workloads"]:
+            if w not in workloads:
+                issues.append(f"batch_only: unknown workload {w}")
+        if batch["value"] != bool(batch["workloads"]):
+            issues.append("batch_only: value must be true exactly when workloads is non-empty")
     if profile.get("llm_used") is not False:
         issues.append("profile: llm_used must be false (no inference in this stage)")
     if repo_root is not None:

@@ -352,6 +352,18 @@
       "id": "w-internal-reports",
       "kind": "web",
       "name": "internal-reports",
+      "scaling": {
+        "autoscale": false,
+        "evidence": [
+          {
+            "line": 6,
+            "path": "k8s/deployment.yaml",
+            "snippet": "replicas: 3"
+          }
+        ],
+        "max": 3,
+        "min": 3
+      },
       "status": "confirmed"
     }
   ]
