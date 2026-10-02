@@ -15,6 +15,8 @@ STAGES: dict[str, tuple[str, str]] = {
     "S0": ("intake", "Intake"),
     "S1": ("inventory", "Inventory"),
     "S2": ("profile", "Profile"),
+    "S3": ("fit", "Fit"),
+    "S4": ("recommendation", "Recommendation"),
 }
 
 
