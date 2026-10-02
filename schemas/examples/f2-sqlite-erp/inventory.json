@@ -170,6 +170,7 @@
       "workload": "w-web"
     }
   ],
+  "environments": [],
   "existing_artifacts": [
     {
       "kind": "dockerfile",
@@ -221,6 +222,7 @@
   },
   "request_paths": [
     {
+      "environment": null,
       "hops": [
         {
           "component": "nw:app/flask-dev/default",

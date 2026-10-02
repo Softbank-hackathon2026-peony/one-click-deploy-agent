@@ -260,6 +260,7 @@
   ],
   "endpoints": [
     {
+      "exposure": "not-routed",
       "framework": "python",
       "handler": {
         "line": 11,
@@ -273,6 +274,21 @@
       "workload": "w-auth"
     },
     {
+      "exposure": "not-routed",
+      "framework": "python",
+      "handler": {
+        "line": 11,
+        "path": "services/auth/src/auth/health.py",
+        "snippet": "@router.get(\"/healthz\")"
+      },
+      "id": "ep-auth-verify-001",
+      "method": "GET",
+      "route": "/healthz",
+      "status": "confirmed",
+      "workload": "w-auth-verify"
+    },
+    {
+      "exposure": "not-routed",
       "framework": "python",
       "handler": {
         "line": 17,
@@ -286,6 +302,21 @@
       "workload": "w-auth"
     },
     {
+      "exposure": "not-routed",
+      "framework": "python",
+      "handler": {
+        "line": 17,
+        "path": "services/auth/src/auth/health.py",
+        "snippet": "@router.get(\"/readyz\")"
+      },
+      "id": "ep-auth-verify-002",
+      "method": "GET",
+      "route": "/readyz",
+      "status": "confirmed",
+      "workload": "w-auth-verify"
+    },
+    {
+      "exposure": "not-routed",
       "framework": "python",
       "handler": {
         "line": 68,
@@ -299,6 +330,21 @@
       "workload": "w-auth"
     },
     {
+      "exposure": "not-routed",
+      "framework": "python",
+      "handler": {
+        "line": 68,
+        "path": "services/auth/src/auth/observability.py",
+        "snippet": "@app.get(\"/metrics\", include_in_schema=False)"
+      },
+      "id": "ep-auth-verify-003",
+      "method": "GET",
+      "route": "/metrics",
+      "status": "confirmed",
+      "workload": "w-auth-verify"
+    },
+    {
+      "exposure": "routed",
       "framework": "python",
       "handler": {
         "line": 71,
@@ -312,6 +358,21 @@
       "workload": "w-auth"
     },
     {
+      "exposure": "not-routed",
+      "framework": "python",
+      "handler": {
+        "line": 71,
+        "path": "services/auth/src/auth/routes.py",
+        "snippet": "@router.post(\"/api/auth/signup\", status_code=201)"
+      },
+      "id": "ep-auth-verify-004",
+      "method": "POST",
+      "route": "/api/auth/signup",
+      "status": "confirmed",
+      "workload": "w-auth-verify"
+    },
+    {
+      "exposure": "routed",
       "framework": "python",
       "handler": {
         "line": 83,
@@ -325,6 +386,21 @@
       "workload": "w-auth"
     },
     {
+      "exposure": "not-routed",
+      "framework": "python",
+      "handler": {
+        "line": 83,
+        "path": "services/auth/src/auth/routes.py",
+        "snippet": "@router.post(\"/api/auth/login\")"
+      },
+      "id": "ep-auth-verify-005",
+      "method": "POST",
+      "route": "/api/auth/login",
+      "status": "confirmed",
+      "workload": "w-auth-verify"
+    },
+    {
+      "exposure": "routed",
       "framework": "python",
       "handler": {
         "line": 107,
@@ -338,6 +414,21 @@
       "workload": "w-auth"
     },
     {
+      "exposure": "not-routed",
+      "framework": "python",
+      "handler": {
+        "line": 107,
+        "path": "services/auth/src/auth/routes.py",
+        "snippet": "@router.post(\"/api/auth/logout\", status_code=204)"
+      },
+      "id": "ep-auth-verify-006",
+      "method": "POST",
+      "route": "/api/auth/logout",
+      "status": "confirmed",
+      "workload": "w-auth-verify"
+    },
+    {
+      "exposure": "routed",
       "framework": "python",
       "handler": {
         "line": 120,
@@ -351,6 +442,21 @@
       "workload": "w-auth"
     },
     {
+      "exposure": "not-routed",
+      "framework": "python",
+      "handler": {
+        "line": 120,
+        "path": "services/auth/src/auth/routes.py",
+        "snippet": "@router.get(\"/api/auth/me\")"
+      },
+      "id": "ep-auth-verify-007",
+      "method": "GET",
+      "route": "/api/auth/me",
+      "status": "confirmed",
+      "workload": "w-auth-verify"
+    },
+    {
+      "exposure": "routed",
       "framework": "python",
       "handler": {
         "line": 126,
@@ -364,6 +470,21 @@
       "workload": "w-auth"
     },
     {
+      "exposure": "not-routed",
+      "framework": "python",
+      "handler": {
+        "line": 126,
+        "path": "services/auth/src/auth/routes.py",
+        "snippet": "@router.delete(\"/api/auth/me\", status_code=204)"
+      },
+      "id": "ep-auth-verify-008",
+      "method": "DELETE",
+      "route": "/api/auth/me",
+      "status": "confirmed",
+      "workload": "w-auth-verify"
+    },
+    {
+      "exposure": "not-routed",
       "framework": "python",
       "handler": {
         "line": 142,
@@ -377,6 +498,21 @@
       "workload": "w-auth"
     },
     {
+      "exposure": "routed",
+      "framework": "python",
+      "handler": {
+        "line": 142,
+        "path": "services/auth/src/auth/routes.py",
+        "snippet": "@router.get(\"/internal/verify\", include_in_schema=False)"
+      },
+      "id": "ep-auth-verify-009",
+      "method": "GET",
+      "route": "/internal/verify",
+      "status": "confirmed",
+      "workload": "w-auth-verify"
+    },
+    {
+      "exposure": "not-routed",
       "framework": "python",
       "handler": {
         "line": 11,
@@ -390,6 +526,7 @@
       "workload": "w-board-api"
     },
     {
+      "exposure": "not-routed",
       "framework": "python",
       "handler": {
         "line": 16,
@@ -403,6 +540,7 @@
       "workload": "w-board-api"
     },
     {
+      "exposure": "not-routed",
       "framework": "python",
       "handler": {
         "line": 68,
@@ -416,6 +554,7 @@
       "workload": "w-board-api"
     },
     {
+      "exposure": "routed",
       "framework": "python",
       "handler": {
         "line": 28,
@@ -429,6 +568,7 @@
       "workload": "w-board-api"
     },
     {
+      "exposure": "routed",
       "framework": "python",
       "handler": {
         "line": 46,
@@ -442,6 +582,7 @@
       "workload": "w-board-api"
     },
     {
+      "exposure": "routed",
       "framework": "python",
       "handler": {
         "line": 70,
@@ -455,6 +596,7 @@
       "workload": "w-board-api"
     },
     {
+      "exposure": "routed",
       "framework": "python",
       "handler": {
         "line": 84,
@@ -466,6 +608,62 @@
       "route": "/api/board/posts/{post_id}",
       "status": "confirmed",
       "workload": "w-board-api"
+    }
+  ],
+  "environments": [
+    {
+      "name": "aws/dev",
+      "rendered": true,
+      "source": {
+        "line": null,
+        "path": "k8s/overlays/aws/dev/kustomization.yaml",
+        "snippet": "k8s/overlays/aws/dev/kustomization.yaml"
+      }
+    },
+    {
+      "name": "aws/prod",
+      "rendered": true,
+      "source": {
+        "line": null,
+        "path": "k8s/overlays/aws/prod/kustomization.yaml",
+        "snippet": "k8s/overlays/aws/prod/kustomization.yaml"
+      }
+    },
+    {
+      "name": "gcp/dev",
+      "rendered": true,
+      "source": {
+        "line": null,
+        "path": "k8s/overlays/gcp/dev/kustomization.yaml",
+        "snippet": "k8s/overlays/gcp/dev/kustomization.yaml"
+      }
+    },
+    {
+      "name": "gcp/prod",
+      "rendered": true,
+      "source": {
+        "line": null,
+        "path": "k8s/overlays/gcp/prod/kustomization.yaml",
+        "snippet": "k8s/overlays/gcp/prod/kustomization.yaml"
+      }
+    },
+    {
+      "name": "local",
+      "rendered": true,
+      "source": {
+        "line": null,
+        "path": "k8s/overlays/local/kustomization.yaml",
+        "snippet": "k8s/overlays/local/kustomization.yaml"
+      }
+    },
+    {
+      "name": "local-loadtest",
+      "rendered": true,
+      "source": {
+        "line": null,
+        "path": "k8s/overlays/local-loadtest/kustomization.yaml",
+        "snippet": "k8s/overlays/local-loadtest/kustomization.yaml"
+      }
     }
   ],
   "existing_artifacts": [
@@ -2714,6 +2912,303 @@
     {
       "kind": "k8s",
       "parsed": true,
+      "path": "k8s/overlays/local/kustomization.yaml#build",
+      "settings": [
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.image",
+          "value": "simple-web-app/auth:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth-verify.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.image",
+          "value": "simple-web-app/auth:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/auth.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.image",
+          "value": "simple-web-app/board:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-api.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.command",
+          "value": "python -m board.worker"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.image",
+          "value": "simple-web-app/board:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.readinessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/board-worker.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.image",
+          "value": "simple-web-app/frontend:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.livenessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.preStop",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "Deployment/nginx.terminationGracePeriodSeconds",
+          "value": 30
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth-verify.maxReplicas",
+          "value": 10
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth-verify.minReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth.maxReplicas",
+          "value": 20
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/auth.minReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-api.maxReplicas",
+          "value": 20
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-api.minReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-worker.maxReplicas",
+          "value": 10
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/board-worker.minReplicas",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/nginx.maxReplicas",
+          "value": 10
+        },
+        {
+          "defaulted": false,
+          "key": "HorizontalPodAutoscaler/nginx.minReplicas",
+          "value": 2
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.command",
+          "value": "python -m board.migrate"
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.image",
+          "value": "simple-web-app/board:dev"
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "Job/db-migrate.readinessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/auth-verify.minAvailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/auth.minAvailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/board-api.minAvailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/board-worker.maxUnavailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "PodDisruptionBudget/nginx.minAvailable",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/postgres.command",
+          "value": "-c max_connections=600"
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/postgres.image",
+          "value": "postgres:16-alpine"
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/postgres.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/postgres.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/postgres.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/postgres.replicas",
+          "value": 1
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/redis.command",
+          "value": "redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy noeviction"
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/redis.image",
+          "value": "redis:7.2-alpine"
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/redis.livenessProbe",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/redis.preStop",
+          "value": false
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/redis.readinessProbe",
+          "value": true
+        },
+        {
+          "defaulted": false,
+          "key": "StatefulSet/redis.replicas",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "kind": "k8s",
+      "parsed": true,
       "path": "k8s/overlays/local/networkpolicy-data.yaml",
       "settings": []
     },
@@ -2986,101 +3481,15 @@
   ],
   "request_paths": [
     {
-      "hops": [
-        {
-          "component": "nw:app/uvicorn/default",
-          "evidence": [
-            {
-              "line": 4,
-              "path": "k8s/base/auth.yaml",
-              "snippet": "name: auth"
-            }
-          ],
-          "kind": "app-server",
-          "order": 0,
-          "osi_layer": "L7",
-          "settings": [
-            {
-              "default_source": {
-                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
-              },
-              "defaulted": true,
-              "key": "timeout_keep_alive",
-              "value": 5
-            }
-          ]
-        }
-      ],
-      "id": "path-auth",
-      "workload": "w-auth"
-    },
-    {
-      "hops": [
-        {
-          "component": "nw:app/uvicorn/default",
-          "evidence": [
-            {
-              "line": 6,
-              "path": "k8s/base/auth-verify.yaml",
-              "snippet": "name: auth-verify"
-            }
-          ],
-          "kind": "app-server",
-          "order": 0,
-          "osi_layer": "L7",
-          "settings": [
-            {
-              "default_source": {
-                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
-              },
-              "defaulted": true,
-              "key": "timeout_keep_alive",
-              "value": 5
-            }
-          ]
-        }
-      ],
-      "id": "path-auth-verify",
-      "workload": "w-auth-verify"
-    },
-    {
-      "hops": [
-        {
-          "component": "nw:app/uvicorn/default",
-          "evidence": [
-            {
-              "line": 4,
-              "path": "k8s/base/board-api.yaml",
-              "snippet": "name: board-api"
-            }
-          ],
-          "kind": "app-server",
-          "order": 0,
-          "osi_layer": "L7",
-          "settings": [
-            {
-              "default_source": {
-                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
-              },
-              "defaulted": true,
-              "key": "timeout_keep_alive",
-              "value": 5
-            }
-          ]
-        }
-      ],
-      "id": "path-board-api",
-      "workload": "w-board-api"
-    },
-    {
+      "environment": "aws/dev",
       "hops": [
         {
           "component": "nw:aws/alb/default",
           "evidence": [
             {
               "line": null,
-              "path": "k8s/overlays/aws/base/ingress.yaml",
-              "snippet": "k8s/overlays/aws/base/ingress.yaml"
+              "path": "k8s/overlays/aws/dev/kustomization.yaml",
+              "snippet": "k8s/overlays/aws/dev/kustomization.yaml"
             }
           ],
           "kind": "load-balancer",
@@ -3096,9 +3505,2729 @@
               "value": 60
             }
           ]
+        },
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 9,
+              "path": "nginx/snippets/auth_proxy.conf",
+              "snippet": "proxy_pass http://auth_upstream;"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 7,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_connect_timeout 2s;"
+              },
+              "key": "proxy_connect_timeout",
+              "value": 2
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 1,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_http_version 1.1;"
+              },
+              "key": "proxy_http_version",
+              "value": "1.1"
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 8,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_read_timeout 15s;"
+              },
+              "key": "proxy_read_timeout",
+              "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 36,
+                "path": "nginx/default.conf.template",
+                "snippet": "keepalive 32;"
+              },
+              "key": "upstream_keepalive",
+              "value": 32
+            }
+          ]
+        },
+        {
+          "component": "nw:app/uvicorn/default",
+          "evidence": [
+            {
+              "line": 4,
+              "path": "k8s/base/auth.yaml",
+              "snippet": "name: auth"
+            }
+          ],
+          "kind": "app-server",
+          "order": 2,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "timeout_keep_alive",
+              "value": 5
+            }
+          ]
         }
       ],
-      "id": "path-nginx",
+      "id": "path-auth.aws-dev",
+      "workload": "w-auth"
+    },
+    {
+      "environment": "aws/prod",
+      "hops": [
+        {
+          "component": "nw:aws/alb/default",
+          "evidence": [
+            {
+              "line": null,
+              "path": "k8s/overlays/aws/prod/kustomization.yaml",
+              "snippet": "k8s/overlays/aws/prod/kustomization.yaml"
+            }
+          ],
+          "kind": "load-balancer",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "idle_timeout",
+              "value": 60
+            }
+          ]
+        },
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 9,
+              "path": "nginx/snippets/auth_proxy.conf",
+              "snippet": "proxy_pass http://auth_upstream;"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 7,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_connect_timeout 2s;"
+              },
+              "key": "proxy_connect_timeout",
+              "value": 2
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 1,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_http_version 1.1;"
+              },
+              "key": "proxy_http_version",
+              "value": "1.1"
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 8,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_read_timeout 15s;"
+              },
+              "key": "proxy_read_timeout",
+              "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 36,
+                "path": "nginx/default.conf.template",
+                "snippet": "keepalive 32;"
+              },
+              "key": "upstream_keepalive",
+              "value": 32
+            }
+          ]
+        },
+        {
+          "component": "nw:app/uvicorn/default",
+          "evidence": [
+            {
+              "line": 4,
+              "path": "k8s/base/auth.yaml",
+              "snippet": "name: auth"
+            }
+          ],
+          "kind": "app-server",
+          "order": 2,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "timeout_keep_alive",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-auth.aws-prod",
+      "workload": "w-auth"
+    },
+    {
+      "environment": "gcp/dev",
+      "hops": [
+        {
+          "component": "nw:gcp/classic-alb/gke-ingress",
+          "evidence": [
+            {
+              "line": null,
+              "path": "k8s/overlays/gcp/dev/kustomization.yaml",
+              "snippet": "k8s/overlays/gcp/dev/kustomization.yaml"
+            }
+          ],
+          "kind": "load-balancer",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "backend_timeout",
+              "value": 30
+            }
+          ]
+        },
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 9,
+              "path": "nginx/snippets/auth_proxy.conf",
+              "snippet": "proxy_pass http://auth_upstream;"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 7,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_connect_timeout 2s;"
+              },
+              "key": "proxy_connect_timeout",
+              "value": 2
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 1,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_http_version 1.1;"
+              },
+              "key": "proxy_http_version",
+              "value": "1.1"
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 8,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_read_timeout 15s;"
+              },
+              "key": "proxy_read_timeout",
+              "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 36,
+                "path": "nginx/default.conf.template",
+                "snippet": "keepalive 32;"
+              },
+              "key": "upstream_keepalive",
+              "value": 32
+            }
+          ]
+        },
+        {
+          "component": "nw:app/uvicorn/default",
+          "evidence": [
+            {
+              "line": 4,
+              "path": "k8s/base/auth.yaml",
+              "snippet": "name: auth"
+            }
+          ],
+          "kind": "app-server",
+          "order": 2,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "timeout_keep_alive",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-auth.gcp-dev",
+      "workload": "w-auth"
+    },
+    {
+      "environment": "gcp/prod",
+      "hops": [
+        {
+          "component": "nw:gcp/classic-alb/gke-ingress",
+          "evidence": [
+            {
+              "line": null,
+              "path": "k8s/overlays/gcp/prod/kustomization.yaml",
+              "snippet": "k8s/overlays/gcp/prod/kustomization.yaml"
+            }
+          ],
+          "kind": "load-balancer",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "backend_timeout",
+              "value": 30
+            }
+          ]
+        },
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 9,
+              "path": "nginx/snippets/auth_proxy.conf",
+              "snippet": "proxy_pass http://auth_upstream;"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 7,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_connect_timeout 2s;"
+              },
+              "key": "proxy_connect_timeout",
+              "value": 2
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 1,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_http_version 1.1;"
+              },
+              "key": "proxy_http_version",
+              "value": "1.1"
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 8,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_read_timeout 15s;"
+              },
+              "key": "proxy_read_timeout",
+              "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 36,
+                "path": "nginx/default.conf.template",
+                "snippet": "keepalive 32;"
+              },
+              "key": "upstream_keepalive",
+              "value": 32
+            }
+          ]
+        },
+        {
+          "component": "nw:app/uvicorn/default",
+          "evidence": [
+            {
+              "line": 4,
+              "path": "k8s/base/auth.yaml",
+              "snippet": "name: auth"
+            }
+          ],
+          "kind": "app-server",
+          "order": 2,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "timeout_keep_alive",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-auth.gcp-prod",
+      "workload": "w-auth"
+    },
+    {
+      "environment": "local",
+      "hops": [
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 9,
+              "path": "nginx/snippets/auth_proxy.conf",
+              "snippet": "proxy_pass http://auth_upstream;"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 7,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_connect_timeout 2s;"
+              },
+              "key": "proxy_connect_timeout",
+              "value": 2
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 1,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_http_version 1.1;"
+              },
+              "key": "proxy_http_version",
+              "value": "1.1"
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 8,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_read_timeout 15s;"
+              },
+              "key": "proxy_read_timeout",
+              "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 36,
+                "path": "nginx/default.conf.template",
+                "snippet": "keepalive 32;"
+              },
+              "key": "upstream_keepalive",
+              "value": 32
+            }
+          ]
+        },
+        {
+          "component": "nw:app/uvicorn/default",
+          "evidence": [
+            {
+              "line": 4,
+              "path": "k8s/base/auth.yaml",
+              "snippet": "name: auth"
+            }
+          ],
+          "kind": "app-server",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "timeout_keep_alive",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-auth.local",
+      "workload": "w-auth"
+    },
+    {
+      "environment": "local-loadtest",
+      "hops": [
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 9,
+              "path": "nginx/snippets/auth_proxy.conf",
+              "snippet": "proxy_pass http://auth_upstream;"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 7,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_connect_timeout 2s;"
+              },
+              "key": "proxy_connect_timeout",
+              "value": 2
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 1,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_http_version 1.1;"
+              },
+              "key": "proxy_http_version",
+              "value": "1.1"
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 8,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_read_timeout 15s;"
+              },
+              "key": "proxy_read_timeout",
+              "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 36,
+                "path": "nginx/default.conf.template",
+                "snippet": "keepalive 32;"
+              },
+              "key": "upstream_keepalive",
+              "value": 32
+            }
+          ]
+        },
+        {
+          "component": "nw:app/uvicorn/default",
+          "evidence": [
+            {
+              "line": 4,
+              "path": "k8s/base/auth.yaml",
+              "snippet": "name: auth"
+            }
+          ],
+          "kind": "app-server",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "timeout_keep_alive",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-auth.local-loadtest",
+      "workload": "w-auth"
+    },
+    {
+      "environment": "aws/dev",
+      "hops": [
+        {
+          "component": "nw:aws/alb/default",
+          "evidence": [
+            {
+              "line": null,
+              "path": "k8s/overlays/aws/dev/kustomization.yaml",
+              "snippet": "k8s/overlays/aws/dev/kustomization.yaml"
+            }
+          ],
+          "kind": "load-balancer",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "idle_timeout",
+              "value": 60
+            }
+          ]
+        },
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 94,
+              "path": "nginx/default.conf.template",
+              "snippet": "proxy_pass http://verify_backend/internal/verify;"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 7,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_connect_timeout 2s;"
+              },
+              "key": "proxy_connect_timeout",
+              "value": 2
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 1,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_http_version 1.1;"
+              },
+              "key": "proxy_http_version",
+              "value": "1.1"
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 8,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_read_timeout 15s;"
+              },
+              "key": "proxy_read_timeout",
+              "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 43,
+                "path": "nginx/default.conf.template",
+                "snippet": "keepalive 32;"
+              },
+              "key": "upstream_keepalive",
+              "value": 32
+            }
+          ]
+        },
+        {
+          "component": "nw:app/uvicorn/default",
+          "evidence": [
+            {
+              "line": 6,
+              "path": "k8s/base/auth-verify.yaml",
+              "snippet": "name: auth-verify"
+            }
+          ],
+          "kind": "app-server",
+          "order": 2,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "timeout_keep_alive",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-auth-verify.aws-dev",
+      "workload": "w-auth-verify"
+    },
+    {
+      "environment": "aws/prod",
+      "hops": [
+        {
+          "component": "nw:aws/alb/default",
+          "evidence": [
+            {
+              "line": null,
+              "path": "k8s/overlays/aws/prod/kustomization.yaml",
+              "snippet": "k8s/overlays/aws/prod/kustomization.yaml"
+            }
+          ],
+          "kind": "load-balancer",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "idle_timeout",
+              "value": 60
+            }
+          ]
+        },
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 94,
+              "path": "nginx/default.conf.template",
+              "snippet": "proxy_pass http://verify_backend/internal/verify;"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 7,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_connect_timeout 2s;"
+              },
+              "key": "proxy_connect_timeout",
+              "value": 2
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 1,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_http_version 1.1;"
+              },
+              "key": "proxy_http_version",
+              "value": "1.1"
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 8,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_read_timeout 15s;"
+              },
+              "key": "proxy_read_timeout",
+              "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 43,
+                "path": "nginx/default.conf.template",
+                "snippet": "keepalive 32;"
+              },
+              "key": "upstream_keepalive",
+              "value": 32
+            }
+          ]
+        },
+        {
+          "component": "nw:app/uvicorn/default",
+          "evidence": [
+            {
+              "line": 6,
+              "path": "k8s/base/auth-verify.yaml",
+              "snippet": "name: auth-verify"
+            }
+          ],
+          "kind": "app-server",
+          "order": 2,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "timeout_keep_alive",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-auth-verify.aws-prod",
+      "workload": "w-auth-verify"
+    },
+    {
+      "environment": "gcp/dev",
+      "hops": [
+        {
+          "component": "nw:gcp/classic-alb/gke-ingress",
+          "evidence": [
+            {
+              "line": null,
+              "path": "k8s/overlays/gcp/dev/kustomization.yaml",
+              "snippet": "k8s/overlays/gcp/dev/kustomization.yaml"
+            }
+          ],
+          "kind": "load-balancer",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "backend_timeout",
+              "value": 30
+            }
+          ]
+        },
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 94,
+              "path": "nginx/default.conf.template",
+              "snippet": "proxy_pass http://verify_backend/internal/verify;"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 7,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_connect_timeout 2s;"
+              },
+              "key": "proxy_connect_timeout",
+              "value": 2
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 1,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_http_version 1.1;"
+              },
+              "key": "proxy_http_version",
+              "value": "1.1"
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 8,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_read_timeout 15s;"
+              },
+              "key": "proxy_read_timeout",
+              "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 43,
+                "path": "nginx/default.conf.template",
+                "snippet": "keepalive 32;"
+              },
+              "key": "upstream_keepalive",
+              "value": 32
+            }
+          ]
+        },
+        {
+          "component": "nw:app/uvicorn/default",
+          "evidence": [
+            {
+              "line": 6,
+              "path": "k8s/base/auth-verify.yaml",
+              "snippet": "name: auth-verify"
+            }
+          ],
+          "kind": "app-server",
+          "order": 2,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "timeout_keep_alive",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-auth-verify.gcp-dev",
+      "workload": "w-auth-verify"
+    },
+    {
+      "environment": "gcp/prod",
+      "hops": [
+        {
+          "component": "nw:gcp/classic-alb/gke-ingress",
+          "evidence": [
+            {
+              "line": null,
+              "path": "k8s/overlays/gcp/prod/kustomization.yaml",
+              "snippet": "k8s/overlays/gcp/prod/kustomization.yaml"
+            }
+          ],
+          "kind": "load-balancer",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "backend_timeout",
+              "value": 30
+            }
+          ]
+        },
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 94,
+              "path": "nginx/default.conf.template",
+              "snippet": "proxy_pass http://verify_backend/internal/verify;"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 7,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_connect_timeout 2s;"
+              },
+              "key": "proxy_connect_timeout",
+              "value": 2
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 1,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_http_version 1.1;"
+              },
+              "key": "proxy_http_version",
+              "value": "1.1"
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 8,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_read_timeout 15s;"
+              },
+              "key": "proxy_read_timeout",
+              "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 43,
+                "path": "nginx/default.conf.template",
+                "snippet": "keepalive 32;"
+              },
+              "key": "upstream_keepalive",
+              "value": 32
+            }
+          ]
+        },
+        {
+          "component": "nw:app/uvicorn/default",
+          "evidence": [
+            {
+              "line": 6,
+              "path": "k8s/base/auth-verify.yaml",
+              "snippet": "name: auth-verify"
+            }
+          ],
+          "kind": "app-server",
+          "order": 2,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "timeout_keep_alive",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-auth-verify.gcp-prod",
+      "workload": "w-auth-verify"
+    },
+    {
+      "environment": "local",
+      "hops": [
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 94,
+              "path": "nginx/default.conf.template",
+              "snippet": "proxy_pass http://verify_backend/internal/verify;"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 7,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_connect_timeout 2s;"
+              },
+              "key": "proxy_connect_timeout",
+              "value": 2
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 1,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_http_version 1.1;"
+              },
+              "key": "proxy_http_version",
+              "value": "1.1"
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 8,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_read_timeout 15s;"
+              },
+              "key": "proxy_read_timeout",
+              "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 43,
+                "path": "nginx/default.conf.template",
+                "snippet": "keepalive 32;"
+              },
+              "key": "upstream_keepalive",
+              "value": 32
+            }
+          ]
+        },
+        {
+          "component": "nw:app/uvicorn/default",
+          "evidence": [
+            {
+              "line": 6,
+              "path": "k8s/base/auth-verify.yaml",
+              "snippet": "name: auth-verify"
+            }
+          ],
+          "kind": "app-server",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "timeout_keep_alive",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-auth-verify.local",
+      "workload": "w-auth-verify"
+    },
+    {
+      "environment": "local-loadtest",
+      "hops": [
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 94,
+              "path": "nginx/default.conf.template",
+              "snippet": "proxy_pass http://verify_backend/internal/verify;"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 7,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_connect_timeout 2s;"
+              },
+              "key": "proxy_connect_timeout",
+              "value": 2
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 1,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_http_version 1.1;"
+              },
+              "key": "proxy_http_version",
+              "value": "1.1"
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 8,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_read_timeout 15s;"
+              },
+              "key": "proxy_read_timeout",
+              "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 43,
+                "path": "nginx/default.conf.template",
+                "snippet": "keepalive 32;"
+              },
+              "key": "upstream_keepalive",
+              "value": 32
+            }
+          ]
+        },
+        {
+          "component": "nw:app/uvicorn/default",
+          "evidence": [
+            {
+              "line": 6,
+              "path": "k8s/base/auth-verify.yaml",
+              "snippet": "name: auth-verify"
+            }
+          ],
+          "kind": "app-server",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "timeout_keep_alive",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-auth-verify.local-loadtest",
+      "workload": "w-auth-verify"
+    },
+    {
+      "environment": "aws/dev",
+      "hops": [
+        {
+          "component": "nw:aws/alb/default",
+          "evidence": [
+            {
+              "line": null,
+              "path": "k8s/overlays/aws/dev/kustomization.yaml",
+              "snippet": "k8s/overlays/aws/dev/kustomization.yaml"
+            }
+          ],
+          "kind": "load-balancer",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "idle_timeout",
+              "value": 60
+            }
+          ]
+        },
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 129,
+              "path": "nginx/default.conf.template",
+              "snippet": "proxy_pass http://board_upstream;"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 7,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_connect_timeout 2s;"
+              },
+              "key": "proxy_connect_timeout",
+              "value": 2
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 1,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_http_version 1.1;"
+              },
+              "key": "proxy_http_version",
+              "value": "1.1"
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 8,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_read_timeout 15s;"
+              },
+              "key": "proxy_read_timeout",
+              "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 48,
+                "path": "nginx/default.conf.template",
+                "snippet": "keepalive 32;"
+              },
+              "key": "upstream_keepalive",
+              "value": 32
+            }
+          ]
+        },
+        {
+          "component": "nw:app/uvicorn/default",
+          "evidence": [
+            {
+              "line": 4,
+              "path": "k8s/base/board-api.yaml",
+              "snippet": "name: board-api"
+            }
+          ],
+          "kind": "app-server",
+          "order": 2,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "timeout_keep_alive",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-board-api.aws-dev",
+      "workload": "w-board-api"
+    },
+    {
+      "environment": "aws/prod",
+      "hops": [
+        {
+          "component": "nw:aws/alb/default",
+          "evidence": [
+            {
+              "line": null,
+              "path": "k8s/overlays/aws/prod/kustomization.yaml",
+              "snippet": "k8s/overlays/aws/prod/kustomization.yaml"
+            }
+          ],
+          "kind": "load-balancer",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "idle_timeout",
+              "value": 60
+            }
+          ]
+        },
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 129,
+              "path": "nginx/default.conf.template",
+              "snippet": "proxy_pass http://board_upstream;"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 7,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_connect_timeout 2s;"
+              },
+              "key": "proxy_connect_timeout",
+              "value": 2
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 1,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_http_version 1.1;"
+              },
+              "key": "proxy_http_version",
+              "value": "1.1"
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 8,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_read_timeout 15s;"
+              },
+              "key": "proxy_read_timeout",
+              "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 48,
+                "path": "nginx/default.conf.template",
+                "snippet": "keepalive 32;"
+              },
+              "key": "upstream_keepalive",
+              "value": 32
+            }
+          ]
+        },
+        {
+          "component": "nw:app/uvicorn/default",
+          "evidence": [
+            {
+              "line": 4,
+              "path": "k8s/base/board-api.yaml",
+              "snippet": "name: board-api"
+            }
+          ],
+          "kind": "app-server",
+          "order": 2,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "timeout_keep_alive",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-board-api.aws-prod",
+      "workload": "w-board-api"
+    },
+    {
+      "environment": "gcp/dev",
+      "hops": [
+        {
+          "component": "nw:gcp/classic-alb/gke-ingress",
+          "evidence": [
+            {
+              "line": null,
+              "path": "k8s/overlays/gcp/dev/kustomization.yaml",
+              "snippet": "k8s/overlays/gcp/dev/kustomization.yaml"
+            }
+          ],
+          "kind": "load-balancer",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "backend_timeout",
+              "value": 30
+            }
+          ]
+        },
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 129,
+              "path": "nginx/default.conf.template",
+              "snippet": "proxy_pass http://board_upstream;"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 7,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_connect_timeout 2s;"
+              },
+              "key": "proxy_connect_timeout",
+              "value": 2
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 1,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_http_version 1.1;"
+              },
+              "key": "proxy_http_version",
+              "value": "1.1"
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 8,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_read_timeout 15s;"
+              },
+              "key": "proxy_read_timeout",
+              "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 48,
+                "path": "nginx/default.conf.template",
+                "snippet": "keepalive 32;"
+              },
+              "key": "upstream_keepalive",
+              "value": 32
+            }
+          ]
+        },
+        {
+          "component": "nw:app/uvicorn/default",
+          "evidence": [
+            {
+              "line": 4,
+              "path": "k8s/base/board-api.yaml",
+              "snippet": "name: board-api"
+            }
+          ],
+          "kind": "app-server",
+          "order": 2,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "timeout_keep_alive",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-board-api.gcp-dev",
+      "workload": "w-board-api"
+    },
+    {
+      "environment": "gcp/prod",
+      "hops": [
+        {
+          "component": "nw:gcp/classic-alb/gke-ingress",
+          "evidence": [
+            {
+              "line": null,
+              "path": "k8s/overlays/gcp/prod/kustomization.yaml",
+              "snippet": "k8s/overlays/gcp/prod/kustomization.yaml"
+            }
+          ],
+          "kind": "load-balancer",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "backend_timeout",
+              "value": 30
+            }
+          ]
+        },
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 129,
+              "path": "nginx/default.conf.template",
+              "snippet": "proxy_pass http://board_upstream;"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 7,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_connect_timeout 2s;"
+              },
+              "key": "proxy_connect_timeout",
+              "value": 2
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 1,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_http_version 1.1;"
+              },
+              "key": "proxy_http_version",
+              "value": "1.1"
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 8,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_read_timeout 15s;"
+              },
+              "key": "proxy_read_timeout",
+              "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 48,
+                "path": "nginx/default.conf.template",
+                "snippet": "keepalive 32;"
+              },
+              "key": "upstream_keepalive",
+              "value": 32
+            }
+          ]
+        },
+        {
+          "component": "nw:app/uvicorn/default",
+          "evidence": [
+            {
+              "line": 4,
+              "path": "k8s/base/board-api.yaml",
+              "snippet": "name: board-api"
+            }
+          ],
+          "kind": "app-server",
+          "order": 2,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "timeout_keep_alive",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-board-api.gcp-prod",
+      "workload": "w-board-api"
+    },
+    {
+      "environment": "local",
+      "hops": [
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 129,
+              "path": "nginx/default.conf.template",
+              "snippet": "proxy_pass http://board_upstream;"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 7,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_connect_timeout 2s;"
+              },
+              "key": "proxy_connect_timeout",
+              "value": 2
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 1,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_http_version 1.1;"
+              },
+              "key": "proxy_http_version",
+              "value": "1.1"
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 8,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_read_timeout 15s;"
+              },
+              "key": "proxy_read_timeout",
+              "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 48,
+                "path": "nginx/default.conf.template",
+                "snippet": "keepalive 32;"
+              },
+              "key": "upstream_keepalive",
+              "value": 32
+            }
+          ]
+        },
+        {
+          "component": "nw:app/uvicorn/default",
+          "evidence": [
+            {
+              "line": 4,
+              "path": "k8s/base/board-api.yaml",
+              "snippet": "name: board-api"
+            }
+          ],
+          "kind": "app-server",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "timeout_keep_alive",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-board-api.local",
+      "workload": "w-board-api"
+    },
+    {
+      "environment": "local-loadtest",
+      "hops": [
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 129,
+              "path": "nginx/default.conf.template",
+              "snippet": "proxy_pass http://board_upstream;"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 7,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_connect_timeout 2s;"
+              },
+              "key": "proxy_connect_timeout",
+              "value": 2
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 1,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_http_version 1.1;"
+              },
+              "key": "proxy_http_version",
+              "value": "1.1"
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 8,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_read_timeout 15s;"
+              },
+              "key": "proxy_read_timeout",
+              "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 48,
+                "path": "nginx/default.conf.template",
+                "snippet": "keepalive 32;"
+              },
+              "key": "upstream_keepalive",
+              "value": 32
+            }
+          ]
+        },
+        {
+          "component": "nw:app/uvicorn/default",
+          "evidence": [
+            {
+              "line": 4,
+              "path": "k8s/base/board-api.yaml",
+              "snippet": "name: board-api"
+            }
+          ],
+          "kind": "app-server",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "timeout_keep_alive",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-board-api.local-loadtest",
+      "workload": "w-board-api"
+    },
+    {
+      "environment": "aws/dev",
+      "hops": [
+        {
+          "component": "nw:aws/alb/default",
+          "evidence": [
+            {
+              "line": null,
+              "path": "k8s/overlays/aws/dev/kustomization.yaml",
+              "snippet": "k8s/overlays/aws/dev/kustomization.yaml"
+            }
+          ],
+          "kind": "load-balancer",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "idle_timeout",
+              "value": 60
+            }
+          ]
+        },
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 51,
+              "path": "nginx/default.conf.template",
+              "snippet": "server {"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_connect_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_read_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            }
+          ]
+        }
+      ],
+      "id": "path-nginx.aws-dev",
+      "workload": "w-nginx"
+    },
+    {
+      "environment": "aws/prod",
+      "hops": [
+        {
+          "component": "nw:aws/alb/default",
+          "evidence": [
+            {
+              "line": null,
+              "path": "k8s/overlays/aws/prod/kustomization.yaml",
+              "snippet": "k8s/overlays/aws/prod/kustomization.yaml"
+            }
+          ],
+          "kind": "load-balancer",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "idle_timeout",
+              "value": 60
+            }
+          ]
+        },
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 51,
+              "path": "nginx/default.conf.template",
+              "snippet": "server {"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_connect_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_read_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            }
+          ]
+        }
+      ],
+      "id": "path-nginx.aws-prod",
+      "workload": "w-nginx"
+    },
+    {
+      "environment": "gcp/dev",
+      "hops": [
+        {
+          "component": "nw:gcp/classic-alb/gke-ingress",
+          "evidence": [
+            {
+              "line": null,
+              "path": "k8s/overlays/gcp/dev/kustomization.yaml",
+              "snippet": "k8s/overlays/gcp/dev/kustomization.yaml"
+            }
+          ],
+          "kind": "load-balancer",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "backend_timeout",
+              "value": 30
+            }
+          ]
+        },
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 51,
+              "path": "nginx/default.conf.template",
+              "snippet": "server {"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_connect_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_read_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            }
+          ]
+        }
+      ],
+      "id": "path-nginx.gcp-dev",
+      "workload": "w-nginx"
+    },
+    {
+      "environment": "gcp/prod",
+      "hops": [
+        {
+          "component": "nw:gcp/classic-alb/gke-ingress",
+          "evidence": [
+            {
+              "line": null,
+              "path": "k8s/overlays/gcp/prod/kustomization.yaml",
+              "snippet": "k8s/overlays/gcp/prod/kustomization.yaml"
+            }
+          ],
+          "kind": "load-balancer",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "backend_timeout",
+              "value": 30
+            }
+          ]
+        },
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 51,
+              "path": "nginx/default.conf.template",
+              "snippet": "server {"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_connect_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_read_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            }
+          ]
+        }
+      ],
+      "id": "path-nginx.gcp-prod",
+      "workload": "w-nginx"
+    },
+    {
+      "environment": "local",
+      "hops": [
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 51,
+              "path": "nginx/default.conf.template",
+              "snippet": "server {"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_connect_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_read_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            }
+          ]
+        }
+      ],
+      "id": "path-nginx.local",
+      "workload": "w-nginx"
+    },
+    {
+      "environment": "local-loadtest",
+      "hops": [
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 51,
+              "path": "nginx/default.conf.template",
+              "snippet": "server {"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_connect_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_read_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            }
+          ]
+        }
+      ],
+      "id": "path-nginx.local-loadtest",
       "workload": "w-nginx"
     }
   ],

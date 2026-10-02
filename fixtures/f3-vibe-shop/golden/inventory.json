@@ -163,6 +163,7 @@
       "workload": "w-web"
     }
   ],
+  "environments": [],
   "existing_artifacts": [
     {
       "kind": "platform-config",
@@ -181,6 +182,7 @@
   ],
   "request_paths": [
     {
+      "environment": null,
       "hops": [
         {
           "component": "nw:vercel/edge-proxy/default",
