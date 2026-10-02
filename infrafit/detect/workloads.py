@@ -58,6 +58,14 @@ def _dockerfile_cmd_for_image(image: str, artifacts: list[ParsedArtifact]) -> st
     return str(df.get("cmd") or "") if df else ""
 
 
+def _image_command(dockerfile: str, artifacts: list[ParsedArtifact]) -> str:
+    """Dockerfile 최종 이미지의 실행 명령: ENTRYPOINT 뒤에 CMD(둘 다 최종 단계 체인에서 온다)."""
+    df = next((a for a in _dockerfiles(artifacts) if a.path == dockerfile), None)
+    if df is None:
+        return ""
+    return " ".join(str(df.get(k)) for k in ("entrypoint", "cmd") if df.get(k))
+
+
 def _code_root_for_image(image: str, artifacts: list[ParsedArtifact]) -> str | None:
     df = dockerfile_for_image(image, artifacts)
     return parent_dir(df.path) if df else None
@@ -161,6 +169,8 @@ def _from_compose(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[Workl
             build = compose_build(art.path, svc)
             cmd = svc.get("command") or ""
             cmd = " ".join(str(x) for x in cmd) if isinstance(cmd, list) else str(cmd) if isinstance(cmd, str) else ""
+            if not cmd and build:  # command가 없으면 빌드하는 이미지의 명령으로 실행된다
+                cmd = _image_command(build[1], artifacts)
             text = f"{name} {cmd}".lower()
             wkind = "migration-job" if "migrat" in text else "worker" if "worker" in text else "web"
             out.append(WorkloadInfo(

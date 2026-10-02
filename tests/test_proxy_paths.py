@@ -329,3 +329,18 @@ def test_http_settings_from_mapped_main_conf(tmp_path):
             assert facts[key]["value"] == value and facts[key]["defaulted"] is False, (form, key)
             assert (facts[key]["evidence"]["path"], facts[key]["evidence"]["line"]) == ("proxy/nginx.conf", line)
         assert [e["path"] for e in hop["evidence"]] == ["proxy/conf.d/app.conf"]
+
+
+def test_compose_build_without_command_uses_dockerfile_command(tmp_path):
+    cases = {
+        "cmd": ('FROM node:20 AS build\nCMD ["npm", "test"]\nFROM node:20-slim\nCMD ["node", "server.js"]\n',
+                "nw:app/node-http/default"),
+        "entrypoint": ('FROM python:3.12\nENTRYPOINT ["uvicorn"]\nCMD ["main:app", "--timeout-keep-alive", "9"]\n',
+                       "nw:app/uvicorn/default"),
+    }
+    for name, (dockerfile, component) in cases.items():
+        root = tmp_path / name
+        _write(root, "docker-compose.yml", "services:\n  app:\n    build: {context: ., dockerfile: app/Dockerfile}\n")
+        _write(root, "app/Dockerfile", dockerfile)
+        hops = _by_id(_analyze(root)[0])["path-app"]["hops"]
+        assert [(h["kind"], h["component"]) for h in hops] == [("app-server", component)], name
