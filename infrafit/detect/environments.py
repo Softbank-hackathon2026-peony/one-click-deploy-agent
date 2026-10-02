@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import PurePosixPath
 
-from infrafit.detect.artifacts import ParsedArtifact, _d, build_source, is_build_path
+from infrafit.detect.artifacts import ParsedArtifact, as_dict, build_source, is_build_path
 from infrafit.detect.workloads import WorkloadInfo, slug
 from infrafit.evidence import evidence
 from infrafit.repo import Snapshot
@@ -55,11 +55,13 @@ def env_slug(name: str) -> str:
     return slug(name.replace("/", "-"))
 
 
+def is_workload_doc(doc, w: WorkloadInfo) -> bool:
+    """매니페스트 객체가 워크로드 w의 객체인가: 워크로드 종류이고 이름이나 app.kubernetes.io/name 라벨이 같다."""
+    if not isinstance(doc, dict) or doc.get("kind") not in WORKLOAD_KINDS:
+        return False
+    meta = as_dict(doc.get("metadata"))
+    return meta.get("name") == w.name or as_dict(meta.get("labels")).get("app.kubernetes.io/name") == w.name
+
+
 def workload_in(env: Environment, w: WorkloadInfo) -> bool:
-    for doc in env.objects:
-        if not isinstance(doc, dict) or doc.get("kind") not in WORKLOAD_KINDS:
-            continue
-        meta = _d(doc.get("metadata"))
-        if meta.get("name") == w.name or _d(meta.get("labels")).get("app.kubernetes.io/name") == w.name:
-            return True
-    return False
+    return any(is_workload_doc(doc, w) for doc in env.objects)

@@ -104,13 +104,13 @@ def parse_dockerfile(snap: Snapshot, rel: str) -> ParsedArtifact:
         instrs.append((op.upper(), arg.strip(), start))
         buf, start = "", None
     art = ParsedArtifact("dockerfile", rel, True, objects=instrs)
-    stages = _stages(instrs)
+    stages = dockerfile_stages(instrs)
     if stages:
         last = stages[-1]
         art.settings.append(_fact(snap, rel, "base_image", last["image"], last["line"]))
     art.settings.append(_fact(snap, rel, "stages", len(stages)))
     # 최종 이미지 설정은 마지막 단계와, 그 단계가 FROM으로 잇는 앞 단계들에서만 온다
-    chain = _final_chain(stages)
+    chain = final_chain(stages)
     chain_instrs = [x for st in reversed(chain) for x in st["instrs"]]
     for key, op in (("user", "USER"), ("cmd", "CMD"), ("entrypoint", "ENTRYPOINT"),
                     ("expose", "EXPOSE"), ("healthcheck", "HEALTHCHECK")):
@@ -124,7 +124,7 @@ def parse_dockerfile(snap: Snapshot, rel: str) -> ParsedArtifact:
     return art
 
 
-def _stages(instrs: list[tuple[str, str, int]]) -> list[dict]:
+def dockerfile_stages(instrs: list[tuple[str, str, int]]) -> list[dict]:
     """FROM마다 단계 하나: 이미지, 별칭, 그 단계의 명령."""
     stages: list[dict] = []
     for op, arg, line in instrs:
@@ -137,7 +137,7 @@ def _stages(instrs: list[tuple[str, str, int]]) -> list[dict]:
     return stages
 
 
-def _final_chain(stages: list[dict]) -> list[dict]:
+def final_chain(stages: list[dict]) -> list[dict]:
     """마지막 단계부터 FROM <앞 단계 별칭>을 따라간 단계 목록(마지막 단계가 맨 앞)."""
     chain: list[dict] = []
     i = len(stages) - 1
@@ -221,32 +221,32 @@ def parse_ci(snap: Snapshot, rel: str) -> ParsedArtifact:
 
 # --- 쿠버네티스 ---------------------------------------------------------------
 
-def _d(v) -> dict:
+def as_dict(v) -> dict:
     """dict가 아닌 값(None, 리스트, 문자열 등)은 빈 dict로 본다."""
     return v if isinstance(v, dict) else {}
 
 
 def pod_spec(doc: dict) -> dict:
     kind = doc.get("kind")
-    spec = _d(doc.get("spec"))
+    spec = as_dict(doc.get("spec"))
     if kind == "CronJob":
-        spec = _d(_d(spec.get("jobTemplate")).get("spec"))
+        spec = as_dict(as_dict(spec.get("jobTemplate")).get("spec"))
     if kind in ("Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"):
-        return _d(_d(spec.get("template")).get("spec"))
+        return as_dict(as_dict(spec.get("template")).get("spec"))
     return {}
 
 
 def ingress_backends(doc: dict) -> list[str]:
-    spec = _d(doc.get("spec"))
+    spec = as_dict(doc.get("spec"))
     names = set()
-    default = _d(_d(spec.get("defaultBackend")).get("service")).get("name")
+    default = as_dict(as_dict(spec.get("defaultBackend")).get("service")).get("name")
     if isinstance(default, str) and default:
         names.add(default)
     rules = spec.get("rules")
     for rule in rules if isinstance(rules, list) else []:
-        paths = _d(_d(rule).get("http")).get("paths")
+        paths = as_dict(as_dict(rule).get("http")).get("paths")
         for path in paths if isinstance(paths, list) else []:
-            name = _d(_d(_d(path).get("backend")).get("service")).get("name")
+            name = as_dict(as_dict(as_dict(path).get("backend")).get("service")).get("name")
             if isinstance(name, str) and name:
                 names.add(name)
     return sorted(names)
@@ -254,9 +254,9 @@ def ingress_backends(doc: dict) -> list[str]:
 
 def _k8s_settings(snap: Snapshot, rel: str, doc: dict) -> list[dict]:
     kind = doc["kind"]
-    meta = _d(doc.get("metadata"))
+    meta = as_dict(doc.get("metadata"))
     prefix = f"{kind}/{meta.get('name', '?')}"
-    spec = _d(doc.get("spec"))
+    spec = as_dict(doc.get("spec"))
     out: list[dict] = []
 
     def add(key: str, value) -> None:
@@ -279,13 +279,13 @@ def _k8s_settings(snap: Snapshot, rel: str, doc: dict) -> list[dict]:
                 add("command", " ".join(cmd))
             add("readinessProbe", "readinessProbe" in c)
             add("livenessProbe", "livenessProbe" in c)
-            add("preStop", bool(_d(c.get("lifecycle")).get("preStop")))
+            add("preStop", bool(as_dict(c.get("lifecycle")).get("preStop")))
     if kind == "CronJob":
         for key in ("schedule", "concurrencyPolicy"):
             if key in spec:
                 add(key, spec[key])
     if kind == "Ingress":
-        annotations = _d(meta.get("annotations"))
+        annotations = as_dict(meta.get("annotations"))
         cls = spec.get("ingressClassName") or annotations.get("kubernetes.io/ingress.class")
         if cls:
             add("ingressClassName", cls)
@@ -326,19 +326,19 @@ def parse_terraform(snap: Snapshot, rel: str) -> ParsedArtifact:
         return ParsedArtifact("terraform", rel, False)
     art = ParsedArtifact("terraform", rel, True)
     for block in data.get("resource") or []:
-        for rtype, named in _d(block).items():
+        for rtype, named in as_dict(block).items():
             rtype = _unquote(rtype)  # 이 버전은 블록 레이블의 따옴표를 유지한다
-            for rname, attrs in _d(named).items():
+            for rname, attrs in as_dict(named).items():
                 rname = _unquote(rname)
                 attrs = attrs[0] if isinstance(attrs, list) and attrs else attrs
                 art.objects.append((rtype, rname, attrs))
                 for key, value in sorted(flatten(attrs).items()):
                     art.settings.append(_fact(snap, rel, f"{rtype}.{rname}.{key}", value))
     for block in data.get("provider") or []:
-        for pname, attrs in _d(block).items():
+        for pname, attrs in as_dict(block).items():
             pname = _unquote(pname)
             attrs = attrs[0] if isinstance(attrs, list) and attrs else attrs
-            attrs = _d(attrs)
+            attrs = as_dict(attrs)
             region = _unquote(attrs.get("region"))
             alias = _unquote(attrs.get("alias"))
             if region:

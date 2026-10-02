@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import PurePosixPath
 
 from infrafit import kb
-from infrafit.detect.artifacts import ParsedArtifact, _d, flatten
+from infrafit.detect.artifacts import ParsedArtifact, as_dict, flatten
 from infrafit.detect.manifests import Manifests, parent_dir
 from infrafit.detect.signatures import Match
 from infrafit.detect.workloads import WorkloadInfo, slug
@@ -72,7 +72,7 @@ def _refine_hosting(component: str, artifacts: list[ParsedArtifact]) -> tuple[st
 
 
 def _ep(w: WorkloadInfo) -> str | None:
-    path = _d(w.entrypoint).get("path")
+    path = as_dict(w.entrypoint).get("path")
     return path if isinstance(path, str) else None
 
 

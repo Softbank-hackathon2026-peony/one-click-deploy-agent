@@ -12,10 +12,10 @@ from pathlib import PurePosixPath
 
 import crossplane
 
-from infrafit.detect.artifacts import ParsedArtifact, _d, _final_chain, _stages, is_build_path, pod_spec
-from infrafit.detect.environments import WORKLOAD_KINDS, Environment, workload_in
+from infrafit.detect.artifacts import ParsedArtifact, as_dict, final_chain, dockerfile_stages, is_build_path, pod_spec
+from infrafit.detect.environments import Environment, is_workload_doc, workload_in
 from infrafit.detect.manifests import parent_dir
-from infrafit.detect.workloads import WorkloadInfo, _dockerfile_for_image
+from infrafit.detect.workloads import WorkloadInfo, dockerfile_for_image
 from infrafit.evidence import evidence
 from infrafit.repo import Snapshot
 
@@ -115,7 +115,7 @@ def _config_files(snap: Snapshot, cache: dict) -> list[str]:
 # --- 컨테이너 경로 → 저장소 경로 ---------------------------------------------
 
 def _workload_dockerfile(w: WorkloadInfo, artifacts: list[ParsedArtifact]) -> ParsedArtifact | None:
-    df = _dockerfile_for_image(w.image, artifacts) if w.image else None
+    df = dockerfile_for_image(w.image, artifacts) if w.image else None
     if df is None and w.code_root is not None:
         local = sorted((a for a in artifacts if a.kind == "dockerfile" and parent_dir(a.path) == w.code_root),
                        key=lambda a: (PurePosixPath(a.path).name != "Dockerfile", a.path))
@@ -128,14 +128,14 @@ def _chain_instrs(df: ParsedArtifact | None) -> list[tuple[str, str, int]]:
     if df is None or not isinstance(df.objects, list):
         return []
     instrs = [x for x in df.objects if isinstance(x, tuple) and len(x) == 3]
-    return [x for st in reversed(_final_chain(_stages(instrs))) for x in st["instrs"]]
+    return [x for st in reversed(final_chain(dockerfile_stages(instrs))) for x in st["instrs"]]
 
 
 def _final_image(df: ParsedArtifact | None) -> str:
     if df is None or not isinstance(df.objects, list):
         return ""
-    stages = _stages([x for x in df.objects if isinstance(x, tuple) and len(x) == 3])
-    return " ".join(st["image"] for st in _final_chain(stages))
+    stages = dockerfile_stages([x for x in df.objects if isinstance(x, tuple) and len(x) == 3])
+    return " ".join(st["image"] for st in final_chain(stages))
 
 
 def _tokens(arg: str) -> list[str]:
@@ -217,7 +217,7 @@ def _compose_services(artifacts: list[ParsedArtifact]) -> list[tuple[str, str, d
             continue
         for obj in art.objects:
             if isinstance(obj, tuple) and len(obj) == 2 and isinstance(obj[0], str):
-                out.append((art.path, obj[0], _d(obj[1])))
+                out.append((art.path, obj[0], as_dict(obj[1])))
     return out
 
 
@@ -282,33 +282,26 @@ def _compose_env(svc: dict) -> dict[str, str]:
     return out
 
 
-def _is_workload_doc(doc, w: WorkloadInfo) -> bool:
-    if not isinstance(doc, dict) or doc.get("kind") not in WORKLOAD_KINDS:
-        return False
-    meta = _d(doc.get("metadata"))
-    return meta.get("name") == w.name or _d(meta.get("labels")).get("app.kubernetes.io/name") == w.name
-
-
 def _k8s_env(objects: list, w: WorkloadInfo) -> dict[str, str]:
     """워크로드 컨테이너(이미지가 같은 것, 없으면 첫 번째)의 envFrom ConfigMap data,
     그 위에 env[].value(쿠버네티스와 같은 우선순위)."""
-    doc = next((d for d in objects if _is_workload_doc(d, w)), None)
+    doc = next((d for d in objects if is_workload_doc(d, w)), None)
     if doc is None:
         return {}
     containers = pod_spec(doc).get("containers")
-    containers = [_d(x) for x in containers] if isinstance(containers, list) else []
+    containers = [as_dict(x) for x in containers] if isinstance(containers, list) else []
     c = next((x for x in containers if w.image and x.get("image") == w.image), containers[0] if containers else {})
-    configmaps = {_d(o.get("metadata")).get("name"): _d(o.get("data")) for o in objects
+    configmaps = {as_dict(o.get("metadata")).get("name"): as_dict(o.get("data")) for o in objects
                   if isinstance(o, dict) and o.get("kind") == "ConfigMap"}
     out: dict[str, str] = {}
     env_from = c.get("envFrom")
     for item in env_from if isinstance(env_from, list) else []:
-        name = _d(_d(item).get("configMapRef")).get("name")
+        name = as_dict(as_dict(item).get("configMapRef")).get("name")
         if isinstance(name, str):
             out.update({str(k): str(v) for k, v in configmaps.get(name, {}).items() if v is not None})
     env = c.get("env")
     for item in env if isinstance(env, list) else []:
-        item = _d(item)
+        item = as_dict(item)
         if isinstance(item.get("name"), str) and "value" in item and item["value"] is not None:
             out[item["name"]] = str(item["value"])
     return out
@@ -389,10 +382,10 @@ def _sorted_facts(facts: dict[str, dict]) -> list[dict]:
 # --- 호스트 → 워크로드 ---------------------------------------------------------
 
 def _pod_labels(doc: dict) -> dict:
-    spec = _d(doc.get("spec"))
+    spec = as_dict(doc.get("spec"))
     if doc.get("kind") == "CronJob":
-        spec = _d(_d(spec.get("jobTemplate")).get("spec"))
-    return _d(_d(_d(spec.get("template")).get("metadata")).get("labels"))
+        spec = as_dict(as_dict(spec.get("jobTemplate")).get("spec"))
+    return as_dict(as_dict(as_dict(spec.get("template")).get("metadata")).get("labels"))
 
 
 @dataclass
@@ -409,13 +402,13 @@ def _resolve_host(host: str, scope: _Scope) -> tuple[str | None, str]:
     h = host.rsplit(":", 1)[0] if host.count(":") == 1 else host
     by_name = {w.name: w for w in scope.workloads}
     for doc in scope.objects:
-        if not isinstance(doc, dict) or doc.get("kind") != "Service" or _d(doc.get("metadata")).get("name") != h:
+        if not isinstance(doc, dict) or doc.get("kind") != "Service" or as_dict(doc.get("metadata")).get("name") != h:
             continue
-        selector = _d(_d(doc.get("spec")).get("selector"))
+        selector = as_dict(as_dict(doc.get("spec")).get("selector"))
         if not selector:
             continue
         ids = sorted({w.id for o in scope.objects for w in scope.workloads
-                      if _is_workload_doc(o, w) and all(_pod_labels(o).get(k) == v for k, v in selector.items())})
+                      if is_workload_doc(o, w) and all(_pod_labels(o).get(k) == v for k, v in selector.items())})
         if ids:
             return ids[0], "candidate" if len(ids) > 1 else scope.link_status
     if h in scope.compose_names and h in by_name:

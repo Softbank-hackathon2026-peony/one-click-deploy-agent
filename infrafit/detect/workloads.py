@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass
 from pathlib import PurePosixPath
 
-from infrafit.detect.artifacts import ParsedArtifact, _d, build_source, is_build_path, pod_spec
+from infrafit.detect.artifacts import ParsedArtifact, as_dict, build_source, is_build_path, pod_spec
 from infrafit.detect.manifests import Manifests, parent_dir
 from infrafit.evidence import evidence, line_of
 from infrafit.repo import Snapshot
@@ -43,7 +43,7 @@ def _dockerfiles(artifacts: list[ParsedArtifact]) -> list[ParsedArtifact]:
     return [a for a in artifacts if a.kind == "dockerfile"]
 
 
-def _dockerfile_for_image(image: str, artifacts: list[ParsedArtifact]) -> ParsedArtifact | None:
+def dockerfile_for_image(image: str, artifacts: list[ParsedArtifact]) -> ParsedArtifact | None:
     last = image.split("/")[-1].split(":")[0].split("@")[0]
     for df in _dockerfiles(artifacts):
         if last and PurePosixPath(df.path).parent.name == last:
@@ -52,12 +52,12 @@ def _dockerfile_for_image(image: str, artifacts: list[ParsedArtifact]) -> Parsed
 
 
 def _dockerfile_cmd_for_image(image: str, artifacts: list[ParsedArtifact]) -> str:
-    df = _dockerfile_for_image(image, artifacts)
+    df = dockerfile_for_image(image, artifacts)
     return str(df.get("cmd") or "") if df else ""
 
 
 def _code_root_for_image(image: str, artifacts: list[ParsedArtifact]) -> str | None:
-    df = _dockerfile_for_image(image, artifacts)
+    df = dockerfile_for_image(image, artifacts)
     return parent_dir(df.path) if df else None
 
 
@@ -103,7 +103,7 @@ def _from_k8s(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[WorkloadI
             kind = doc.get("kind")
             if kind not in ("Deployment", "StatefulSet", "Job", "CronJob"):
                 continue
-            name = _d(doc.get("metadata")).get("name")
+            name = as_dict(doc.get("metadata")).get("name")
             containers = pod_spec(doc).get("containers")
             if not isinstance(name, str) or not name or name in seen:
                 continue
@@ -141,7 +141,7 @@ def _from_compose(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[Workl
         for obj in art.objects:
             if not isinstance(obj, tuple) or len(obj) != 2 or not isinstance(obj[0], str):
                 continue
-            name, svc = obj[0], _d(obj[1])
+            name, svc = obj[0], as_dict(obj[1])
             image = str(svc.get("image") or "")
             if name in names or _is_infra(image):
                 continue

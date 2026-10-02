@@ -6,7 +6,7 @@ import re
 from pathlib import PurePosixPath
 
 from infrafit import kb
-from infrafit.detect.artifacts import ParsedArtifact, _d, build_source, ingress_backends
+from infrafit.detect.artifacts import ParsedArtifact, as_dict, build_source, ingress_backends
 from infrafit.detect.components import platform_config_for
 from infrafit.detect.defaults import fact_settings, hop_settings
 from infrafit.detect.environments import Environment, env_slug, workload_in
@@ -65,8 +65,8 @@ def _ingress_hop(snap: Snapshot, w: WorkloadInfo, objects: list, source: str) ->
     for doc in objects if isinstance(objects, list) else []:
         if not isinstance(doc, dict) or doc.get("kind") != "Ingress" or w.name not in ingress_backends(doc):
             continue
-        annotations = _d(_d(doc.get("metadata")).get("annotations"))
-        cls = _d(doc.get("spec")).get("ingressClassName") or annotations.get("kubernetes.io/ingress.class")
+        annotations = as_dict(as_dict(doc.get("metadata")).get("annotations"))
+        cls = as_dict(doc.get("spec")).get("ingressClassName") or annotations.get("kubernetes.io/ingress.class")
         comp = LB_BY_CLASS.get(str(cls), "unmapped")
         explicit = {}
         m = _ALB_IDLE.search(str(annotations.get("alb.ingress.kubernetes.io/load-balancer-attributes", "")))

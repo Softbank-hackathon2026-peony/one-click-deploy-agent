@@ -4,23 +4,23 @@ from __future__ import annotations
 
 import json
 
-from infrafit.detect.artifacts import ParsedArtifact, _d, pod_spec
+from infrafit.detect.artifacts import ParsedArtifact, as_dict, pod_spec
 
 
 def _is_full_object(doc: dict) -> bool:
     """kustomize 패치가 아니라 완전한 객체인가. 패치는 보통 이미지가 없다."""
     if doc.get("kind") == "CronJob":
-        return "schedule" in _d(doc.get("spec"))
+        return "schedule" in as_dict(doc.get("spec"))
     containers = pod_spec(doc).get("containers")
     return (isinstance(containers, list) and bool(containers)
-            and bool(_d(containers[0]).get("image")))
+            and bool(as_dict(containers[0]).get("image")))
 
 
 def _target_keys(art: ParsedArtifact, entry: dict) -> list[str]:
     if art.kind == "dockerfile":
         return [entry["key"]]
     if art.kind == "k8s":
-        return [f"{d['kind']}/{_d(d.get('metadata')).get('name', '?')}.{entry['key']}"
+        return [f"{d['kind']}/{as_dict(d.get('metadata')).get('name', '?')}.{entry['key']}"
                 for d in art.objects if d.get("kind") == entry["match_kind"] and _is_full_object(d)]
     if art.kind == "terraform":
         return [f"{rtype}.{rname}.{entry['key']}" for (rtype, rname, _) in art.objects
