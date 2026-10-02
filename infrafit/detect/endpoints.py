@@ -536,9 +536,7 @@ def _spring(snap: Snapshot, manifests: Manifests) -> list[Raw]:
 
 
 def _assign(rel: str, webs: list[WorkloadInfo]) -> tuple[WorkloadInfo, bool]:
-    """(워크로드, 근거로 정했는가). 아무 근거도 없어 첫 워크로드로 보낸 것은 추측이다."""
-    if len(webs) == 1:
-        return webs[0], True
+    """(워크로드, 근거로 정했는가). web 워크로드가 여럿일 때 쓴다. 아무 근거도 없어 첫 워크로드로 보낸 것은 추측이다."""
     segments = set(PurePosixPath(rel).parts)
 
     def score(w: WorkloadInfo) -> int:
@@ -784,8 +782,14 @@ def extract_endpoints(snap: Snapshot, workloads: list[WorkloadInfo], routes: lis
     for method, route, rel, line, framework in raw:
         # 여러 워크로드가 같은 코드를 쓰면 근거가 있는 워크로드마다 하나씩, 없으면 점수·대체 규칙
         owners = _owners(rel, webs)
-        # 하나뿐인 Dockerfile로 추측한 code_root로 정한 소유자는 후보다
-        targets = [(w, not w.root_guessed) for w in owners] if owners else [_assign(rel, webs)]
+        # web 워크로드가 하나면 code_root 추측과 상관없이 그것이 소유자다(확정). 여럿일 때 하나뿐인 Dockerfile로
+        # 추측한 code_root로 정한 소유자는 후보다
+        if len(webs) == 1:
+            targets = [(webs[0], True)]
+        elif owners:
+            targets = [(w, not w.root_guessed) for w in owners]
+        else:
+            targets = [_assign(rel, webs)]
         for w, sure in targets:
             counters[w.id] += 1
             out.append({"id": f"ep-{w.id[2:]}-{counters[w.id]:03d}", "workload": w.id, "method": method,

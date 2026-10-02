@@ -313,3 +313,19 @@ def test_compose_third_party_images_are_not_workloads(tmp_path):
            "services:\n  api:\n    image: acme/api:1\n  mongo:\n    image: bitnami/mongodb:7.0\n"
            "  redis:\n    image: redis/redis-stack:latest\n  admin:\n    image: mongo-express:1\n")
     assert [(w.id, w.kind) for w in _workloads(repo)] == [("w-api", "web")]
+
+
+def test_single_web_workload_endpoints_confirmed_despite_guessed_root(tmp_path):
+    repo = tmp_path / "repo"
+    _write(repo, "k8s/api.yaml", "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: api\nspec:\n"
+                                 "  template:\n    spec:\n      containers:\n        - name: api\n"
+                                 "          image: acme/api:1\n")
+    _write(repo, "svc/Dockerfile", 'FROM node:20\nCMD ["node", "index.js"]\n')
+    _write(repo, "svc/package.json", '{"dependencies": {"express": "4"}}\n')
+    route = "const express = require('express')\nconst app = express()\napp.get('/{0}', (q, s) => s.send('x'))\n"
+    _write(repo, "svc/index.js", route.format("in"))
+    _write(repo, "other/package.json", '{"dependencies": {"express": "4"}}\n')
+    _write(repo, "other/x.js", route.format("out"))
+    inv = _inventory(tmp_path)
+    assert sorted((e["route"], e["workload"], e["status"]) for e in inv["endpoints"]) == [
+        ("/in", "w-api", "confirmed"), ("/out", "w-api", "confirmed")]
