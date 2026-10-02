@@ -260,7 +260,36 @@
   ],
   "endpoints": [
     {
-      "exposure": "not-routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "compose",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "not-routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 11,
@@ -274,7 +303,32 @@
       "workload": "w-auth"
     },
     {
-      "exposure": "not-routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "not-routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 11,
@@ -288,7 +342,36 @@
       "workload": "w-auth-verify"
     },
     {
-      "exposure": "not-routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "compose",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "not-routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 17,
@@ -302,7 +385,32 @@
       "workload": "w-auth"
     },
     {
-      "exposure": "not-routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "not-routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 17,
@@ -316,7 +424,36 @@
       "workload": "w-auth-verify"
     },
     {
-      "exposure": "not-routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "compose",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "not-routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 68,
@@ -330,7 +467,32 @@
       "workload": "w-auth"
     },
     {
-      "exposure": "not-routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "not-routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 68,
@@ -344,7 +506,36 @@
       "workload": "w-auth-verify"
     },
     {
-      "exposure": "routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "routed"
+        },
+        {
+          "environment": "compose",
+          "value": "routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "routed"
+        },
+        {
+          "environment": "local",
+          "value": "routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 71,
@@ -358,7 +549,32 @@
       "workload": "w-auth"
     },
     {
-      "exposure": "not-routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "not-routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 71,
@@ -372,7 +588,36 @@
       "workload": "w-auth-verify"
     },
     {
-      "exposure": "routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "routed"
+        },
+        {
+          "environment": "compose",
+          "value": "routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "routed"
+        },
+        {
+          "environment": "local",
+          "value": "routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 83,
@@ -386,7 +631,32 @@
       "workload": "w-auth"
     },
     {
-      "exposure": "not-routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "not-routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 83,
@@ -400,7 +670,36 @@
       "workload": "w-auth-verify"
     },
     {
-      "exposure": "routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "routed"
+        },
+        {
+          "environment": "compose",
+          "value": "routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "routed"
+        },
+        {
+          "environment": "local",
+          "value": "routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 107,
@@ -414,7 +713,32 @@
       "workload": "w-auth"
     },
     {
-      "exposure": "not-routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "not-routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 107,
@@ -428,7 +752,36 @@
       "workload": "w-auth-verify"
     },
     {
-      "exposure": "routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "routed"
+        },
+        {
+          "environment": "compose",
+          "value": "routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "routed"
+        },
+        {
+          "environment": "local",
+          "value": "routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 120,
@@ -442,7 +795,32 @@
       "workload": "w-auth"
     },
     {
-      "exposure": "not-routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "not-routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 120,
@@ -456,7 +834,36 @@
       "workload": "w-auth-verify"
     },
     {
-      "exposure": "routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "routed"
+        },
+        {
+          "environment": "compose",
+          "value": "routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "routed"
+        },
+        {
+          "environment": "local",
+          "value": "routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 126,
@@ -470,7 +877,32 @@
       "workload": "w-auth"
     },
     {
-      "exposure": "not-routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "not-routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 126,
@@ -484,7 +916,36 @@
       "workload": "w-auth-verify"
     },
     {
-      "exposure": "not-routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "compose",
+          "value": "routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "not-routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 142,
@@ -498,7 +959,32 @@
       "workload": "w-auth"
     },
     {
-      "exposure": "routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "routed"
+        },
+        {
+          "environment": "local",
+          "value": "routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 142,
@@ -512,7 +998,36 @@
       "workload": "w-auth-verify"
     },
     {
-      "exposure": "not-routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "compose",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "not-routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 11,
@@ -526,7 +1041,36 @@
       "workload": "w-board-api"
     },
     {
-      "exposure": "not-routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "compose",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "not-routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 16,
@@ -540,7 +1084,36 @@
       "workload": "w-board-api"
     },
     {
-      "exposure": "not-routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "compose",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "not-routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local",
+          "value": "not-routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "not-routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 68,
@@ -554,7 +1127,36 @@
       "workload": "w-board-api"
     },
     {
-      "exposure": "routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "routed"
+        },
+        {
+          "environment": "compose",
+          "value": "routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "routed"
+        },
+        {
+          "environment": "local",
+          "value": "routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 28,
@@ -568,7 +1170,36 @@
       "workload": "w-board-api"
     },
     {
-      "exposure": "routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "routed"
+        },
+        {
+          "environment": "compose",
+          "value": "routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "routed"
+        },
+        {
+          "environment": "local",
+          "value": "routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 46,
@@ -582,7 +1213,36 @@
       "workload": "w-board-api"
     },
     {
-      "exposure": "routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "routed"
+        },
+        {
+          "environment": "compose",
+          "value": "routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "routed"
+        },
+        {
+          "environment": "local",
+          "value": "routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 70,
@@ -596,7 +1256,36 @@
       "workload": "w-board-api"
     },
     {
-      "exposure": "routed",
+      "exposure": [
+        {
+          "environment": "aws/dev",
+          "value": "routed"
+        },
+        {
+          "environment": "aws/prod",
+          "value": "routed"
+        },
+        {
+          "environment": "compose",
+          "value": "routed"
+        },
+        {
+          "environment": "gcp/dev",
+          "value": "routed"
+        },
+        {
+          "environment": "gcp/prod",
+          "value": "routed"
+        },
+        {
+          "environment": "local",
+          "value": "routed"
+        },
+        {
+          "environment": "local-loadtest",
+          "value": "routed"
+        }
+      ],
       "framework": "python",
       "handler": {
         "line": 84,
@@ -612,6 +1301,7 @@
   ],
   "environments": [
     {
+      "kind": "kustomize",
       "name": "aws/dev",
       "rendered": true,
       "source": {
@@ -621,6 +1311,7 @@
       }
     },
     {
+      "kind": "kustomize",
       "name": "aws/prod",
       "rendered": true,
       "source": {
@@ -630,6 +1321,17 @@
       }
     },
     {
+      "kind": "compose",
+      "name": "compose",
+      "rendered": true,
+      "source": {
+        "line": null,
+        "path": "docker-compose.yml",
+        "snippet": "docker-compose.yml"
+      }
+    },
+    {
+      "kind": "kustomize",
       "name": "gcp/dev",
       "rendered": true,
       "source": {
@@ -639,6 +1341,7 @@
       }
     },
     {
+      "kind": "kustomize",
       "name": "gcp/prod",
       "rendered": true,
       "source": {
@@ -648,6 +1351,7 @@
       }
     },
     {
+      "kind": "kustomize",
       "name": "local",
       "rendered": true,
       "source": {
@@ -657,6 +1361,7 @@
       }
     },
     {
+      "kind": "kustomize",
       "name": "local-loadtest",
       "rendered": true,
       "source": {
@@ -3749,6 +4454,122 @@
       "workload": "w-auth"
     },
     {
+      "environment": "compose",
+      "hops": [
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 94,
+              "path": "nginx/default.conf.template",
+              "snippet": "proxy_pass http://verify_backend/internal/verify;"
+            },
+            {
+              "line": 9,
+              "path": "nginx/snippets/auth_proxy.conf",
+              "snippet": "proxy_pass http://auth_upstream;"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 7,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_connect_timeout 2s;"
+              },
+              "key": "proxy_connect_timeout",
+              "value": 2
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 1,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_http_version 1.1;"
+              },
+              "key": "proxy_http_version",
+              "value": "1.1"
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 8,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_read_timeout 15s;"
+              },
+              "key": "proxy_read_timeout",
+              "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 43,
+                "path": "nginx/default.conf.template",
+                "snippet": "keepalive 32;"
+              },
+              "key": "upstream_keepalive",
+              "value": 32
+            }
+          ]
+        },
+        {
+          "component": "nw:app/uvicorn/default",
+          "evidence": [
+            {
+              "line": 52,
+              "path": "docker-compose.yml",
+              "snippet": "command: [\"uvicorn\", \"auth.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\", \"--reload\", \"--reload-dir\", \"/app/src\"]"
+            }
+          ],
+          "kind": "app-server",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "timeout_keep_alive",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-auth.compose",
+      "workload": "w-auth"
+    },
+    {
       "environment": "gcp/dev",
       "hops": [
         {
@@ -5265,6 +6086,117 @@
       "workload": "w-board-api"
     },
     {
+      "environment": "compose",
+      "hops": [
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 129,
+              "path": "nginx/default.conf.template",
+              "snippet": "proxy_pass http://board_upstream;"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 7,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_connect_timeout 2s;"
+              },
+              "key": "proxy_connect_timeout",
+              "value": 2
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 1,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_http_version 1.1;"
+              },
+              "key": "proxy_http_version",
+              "value": "1.1"
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 8,
+                "path": "nginx/snippets/proxy_common.conf",
+                "snippet": "proxy_read_timeout 15s;"
+              },
+              "key": "proxy_read_timeout",
+              "value": 15
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            },
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 48,
+                "path": "nginx/default.conf.template",
+                "snippet": "keepalive 32;"
+              },
+              "key": "upstream_keepalive",
+              "value": 32
+            }
+          ]
+        },
+        {
+          "component": "nw:app/uvicorn/default",
+          "evidence": [
+            {
+              "line": 67,
+              "path": "docker-compose.yml",
+              "snippet": "command: [\"uvicorn\", \"board.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\", \"--reload\", \"--reload-dir\", \"/app/src\"]"
+            }
+          ],
+          "kind": "app-server",
+          "order": 1,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "timeout_keep_alive",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-board-api.compose",
+      "workload": "w-board-api"
+    },
+    {
       "environment": "gcp/dev",
       "hops": [
         {
@@ -5926,6 +6858,70 @@
         }
       ],
       "id": "path-nginx.aws-prod",
+      "workload": "w-nginx"
+    },
+    {
+      "environment": "compose",
+      "hops": [
+        {
+          "component": "nw:proxy/nginx/default",
+          "evidence": [
+            {
+              "line": 51,
+              "path": "nginx/default.conf.template",
+              "snippet": "server {"
+            }
+          ],
+          "kind": "reverse-proxy",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "defaulted": false,
+              "evidence": {
+                "line": 56,
+                "path": "nginx/default.conf.template",
+                "snippet": "client_max_body_size 64k;"
+              },
+              "key": "client_max_body_size",
+              "value": "64k"
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive_timeout",
+              "value": 75
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_connect_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_read_timeout",
+              "value": 60
+            },
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "proxy_send_timeout",
+              "value": 60
+            }
+          ]
+        }
+      ],
+      "id": "path-nginx.compose",
       "workload": "w-nginx"
     },
     {
