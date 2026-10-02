@@ -11,7 +11,7 @@ from infrafit.detect import proxy_graph
 from infrafit.detect.components import platform_config_for
 from infrafit.detect.defaults import fact_settings, hop_settings
 from infrafit.detect.environments import Environment, env_command, env_command_evidence, env_scopes, env_slug
-from infrafit.detect.nginx import ProxyRoute, ProxyServer
+from infrafit.detect.nginx import NGINX_COMPONENT, ProxyRoute, ProxyServer
 from infrafit.detect.testpaths import is_test_path
 from infrafit.detect.workloads import WorkloadInfo
 from infrafit.evidence import evidence
@@ -28,7 +28,6 @@ EDGE_BY_FILE = {
 }
 LB_BY_CLASS = {"alb": "nw:aws/alb/default", "gce": "nw:gcp/classic-alb/gke-ingress", "nginx": "nw:k8s/ingress-nginx/default"}
 MANAGED_RUNTIME_PREFIXES = ("cp:vercel/", "cp:netlify/")
-NGINX_PROXY = "nw:proxy/nginx/default"
 _ALB_IDLE = re.compile(r"idle_timeout\.timeout_seconds=(\d+)")
 SPRING_TOMCAT = "nw:app/spring-boot-tomcat/default"
 SPRING_CONFIG_GLOBS = ("**/application*.yml", "**/application*.yaml", "**/application*.properties")
@@ -184,8 +183,8 @@ def _proxy_hop(groups: list[list[dict]], evs: list[dict | None]) -> dict:
             seen.add((e["path"], e["line"]))
             ev.append(e)
     ev.sort(key=lambda e: (e["path"], e["line"] or 0))
-    return {"order": 0, "kind": "reverse-proxy", "component": NGINX_PROXY, "osi_layer": "L7",
-            "settings": fact_settings(NGINX_PROXY, groups, kb.defaults()), "evidence": ev}
+    return {"order": 0, "kind": "reverse-proxy", "component": NGINX_COMPONENT, "osi_layer": "L7",
+            "settings": fact_settings(NGINX_COMPONENT, groups, kb.defaults()), "evidence": ev}
 
 
 def _front(snap: Snapshot, w: WorkloadInfo, artifacts: list[ParsedArtifact], env: Environment | None) -> list[dict]:

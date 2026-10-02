@@ -1,6 +1,7 @@
 import json
 
-from infrafit.detect.manifests import parent_dir, parse_manifests
+from infrafit.detect.manifests import parse_manifests
+from infrafit.repo import parent_dir
 from infrafit.repo import open_snapshot
 
 

@@ -2,40 +2,26 @@
 
 from __future__ import annotations
 
-import posixpath
 import re
-from dataclasses import dataclass, field
-from fnmatch import fnmatchcase
+from dataclasses import dataclass
 from pathlib import PurePosixPath
 
-from infrafit import kb
-from infrafit.detect.artifacts import ParsedArtifact, as_dict, build_source, is_build_path, pod_spec
-from infrafit.detect.manifests import GRADLE_FILES, MAVEN_FILE, SPRING_BOOT, Manifests, parent_dir
+from infrafit.detect.artifacts import (ParsedArtifact, as_dict, build_source, dockerfile_at, dockerfiles, is_build_path,
+                                       pod_spec)
+from infrafit.detect.compose import DEVCONTAINER, compose_build, compose_services, service_line
+from infrafit.detect.images import base_class, image_class, image_name, service_class
+from infrafit.detect.jvm import build_location, jvm_build_dirs, spring_apps, spring_web
+from infrafit.detect.manifests import Manifests
 from infrafit.detect.testpaths import is_test_path
 from infrafit.evidence import evidence, line_of
-from infrafit.repo import Snapshot
+from infrafit.repo import Snapshot, parent_dir
 
 WEB_FRAMEWORKS = ("next", "express", "fastify", "koa", "@nestjs/core", "hono", "fastapi", "flask", "django")
-DEVCONTAINER = ".devcontainer"  # 개발 컨테이너용 compose·Dockerfile은 배포 대상(워크로드·환경)이 아니다
 # 개발·테스트용 Dockerfile(배포하지 않는 이미지): 파일 이름의 변형 부분 조각, 경로 조각
 DEV_DOCKERFILE_PARTS = {"dev", "test", "tests", "ci", "local", "debug", "e2e"}
 PROC_KINDS = {"web": "web", "worker": "worker", "clock": "scheduled", "release": "migration-job"}
 # 워커 프로세스를 뜻하는 토큰 끝(`board.worker`, `jobs/worker.py` 등). `--workers 4`, `uvicorn.workers.UvicornWorker`는 아니다
 WORKER_SUFFIXES = (".worker", "/worker", ":worker", "worker.py", "worker.js", "worker.ts")
-# 한 디렉터리에 기본 파일이 여럿이면 docker compose와 같은 순서로 하나를 고른다
-COMPOSE_BASE_NAMES = ("compose.yaml", "compose.yml", "docker-compose.yaml", "docker-compose.yml")
-COMPOSE_PREFIXES = ("docker-compose.", "compose.", "docker-compose-")
-COMPOSE_OVERRIDE_NAMES = ("compose.override.yaml", "compose.override.yml",
-                          "docker-compose.override.yaml", "docker-compose.override.yml")
-# Spring Boot 웹 스타터 → 프레임워크(둘 다 있으면 Spring Boot처럼 MVC가 먼저)
-SPRING_WEB = (("org.springframework.boot:spring-boot-starter-web", "spring-mvc"),
-              ("org.springframework.boot:spring-boot-starter-webflux", "spring-webflux"))
-SPRING_STARTER = "org.springframework.boot:spring-boot-starter"
-JVM_BUILD_FILES = GRADLE_FILES + (MAVEN_FILE,)
-GRADLE_SETTINGS = ("settings.gradle", "settings.gradle.kts")
-_BOOT_APPLICATION = re.compile(r"^\s*@(?:org\.springframework\.boot\.autoconfigure\.)?SpringBootApplication\b",
-                               re.MULTILINE)
-_ROOT_PROJECT = re.compile(r"""\brootProject\.name\s*=\s*["']([^"']+)["']""")
 
 
 def slug(text: str) -> str:
@@ -66,40 +52,6 @@ class WorkloadInfo:
                 "entrypoint": self.entrypoint, "status": self.status}
 
 
-def compose_variant(rel: str) -> str | None:
-    """compose 파일 이름의 변형 부분: 기본 파일이면 "", `docker-compose.<x>.yml`·`compose.<x>.yaml`·
-    `docker-compose-<x>.yml`이면 x, 그 밖의 이름은 None."""
-    name = PurePosixPath(rel).name
-    if name in COMPOSE_BASE_NAMES:
-        return ""
-    for prefix in COMPOSE_PREFIXES:
-        for suffix in (".yml", ".yaml"):
-            if name.startswith(prefix) and name.endswith(suffix) and len(name) > len(prefix) + len(suffix):
-                return name[len(prefix):-len(suffix)]
-    return None
-
-
-def is_compose_override(rel: str) -> bool:
-    """`docker-compose.override.yml`·`compose.override.yaml` 등: 같은 계열 기본 파일 위에 늘 병합하는 파일(docker 동작).
-    `compose.prod.override.yml`, `docker-compose-override.yml` 같은 이름은 변형 파일이다."""
-    return PurePosixPath(rel).name in COMPOSE_OVERRIDE_NAMES
-
-
-def compose_family(rel: str) -> str:
-    """`docker-compose` 또는 `compose`: override는 같은 계열의 기본 파일에만 병합한다."""
-    return "docker-compose" if PurePosixPath(rel).name.startswith("docker-compose") else "compose"
-
-
-def compose_file_order(rel: str) -> tuple:
-    """compose 파일을 읽는 순서: 기본 파일(docker compose가 고르는 순서), override, 변형 파일, 그 밖의 이름."""
-    name = PurePosixPath(rel).name
-    if name in COMPOSE_BASE_NAMES:
-        return (0, COMPOSE_BASE_NAMES.index(name), rel)
-    if is_compose_override(rel):
-        return (1, 0, rel)
-    return (2 if compose_variant(rel) else 3, 0, rel)
-
-
 def is_worker_command(text: str) -> bool:
     """옵션(`-`로 시작)이 아닌 토큰이 `worker`이거나 WORKER_SUFFIXES로 끝나면 워커 프로세스다."""
     for token in text.lower().split():
@@ -115,28 +67,9 @@ def is_worker(name: str, command: str) -> bool:
     return bool({"worker", "workers"} & set(re.split(r"[-_.]", name.lower()))) or is_worker_command(command)
 
 
-def _dockerfiles(artifacts: list[ParsedArtifact]) -> list[ParsedArtifact]:
-    return [a for a in artifacts if a.kind == "dockerfile"]
-
-
-def _image_keys(image: str) -> list[str]:
-    """분류에 쓰는 이름들: 레지스트리·태그·다이제스트를 뗀 마지막 이름, 그리고 `저장소/이름`."""
-    parts = image.strip().lower().split("@")[0].split("/")
-    parts[-1] = parts[-1].split(":")[0]
-    if not parts[-1]:
-        return []
-    return [parts[-1]] + (["/".join(parts[-2:])] if len(parts) >= 2 else [])
-
-
-def image_name(image: str) -> str:
-    """레지스트리·태그·다이제스트를 뗀 이미지의 마지막 이름."""
-    keys = _image_keys(image)
-    return keys[0] if keys else ""
-
-
 def dockerfile_for_image(image: str, artifacts: list[ParsedArtifact]) -> ParsedArtifact | None:
     last = image_name(image)
-    for df in _dockerfiles(artifacts):
+    for df in dockerfiles(artifacts):
         if last and PurePosixPath(df.path).parent.name == last:
             return df
     return None
@@ -149,7 +82,7 @@ def _dockerfile_cmd_for_image(image: str, artifacts: list[ParsedArtifact]) -> st
 
 def _image_command(dockerfile: str, artifacts: list[ParsedArtifact]) -> str:
     """Dockerfile 최종 이미지의 실행 명령: ENTRYPOINT 뒤에 CMD(둘 다 최종 단계 체인에서 온다)."""
-    df = next((a for a in _dockerfiles(artifacts) if a.path == dockerfile), None)
+    df = dockerfile_at(dockerfile, artifacts)
     if df is None:
         return ""
     return " ".join(str(df.get(k)) for k in ("entrypoint", "cmd") if df.get(k))
@@ -157,11 +90,11 @@ def _image_command(dockerfile: str, artifacts: list[ParsedArtifact]) -> str:
 
 def workload_dockerfile(w: WorkloadInfo, artifacts: list[ParsedArtifact]) -> ParsedArtifact | None:
     """워크로드 이미지의 Dockerfile: compose build의 Dockerfile, 이미지 이름 규칙, code_root의 Dockerfile 순서."""
-    df = next((a for a in _dockerfiles(artifacts) if a.path == w.dockerfile), None) if w.dockerfile else None
+    df = dockerfile_at(w.dockerfile, artifacts)
     if df is None and w.image:
         df = dockerfile_for_image(w.image, artifacts)
     if df is None and w.code_root is not None:
-        local = sorted((a for a in _dockerfiles(artifacts) if parent_dir(a.path) == w.code_root),
+        local = sorted((a for a in dockerfiles(artifacts) if parent_dir(a.path) == w.code_root),
                        key=lambda a: (PurePosixPath(a.path).name != "Dockerfile", a.path))
         df = local[0] if local else None
     return df
@@ -170,24 +103,6 @@ def workload_dockerfile(w: WorkloadInfo, artifacts: list[ParsedArtifact]) -> Par
 def _code_root_for_image(image: str, artifacts: list[ParsedArtifact]) -> str | None:
     df = dockerfile_for_image(image, artifacts)
     return parent_dir(df.path) if df else None
-
-
-def _repo_path(path: str) -> str:
-    p = posixpath.normpath(path)
-    return "" if p == "." else p
-
-
-def compose_build(compose_path: str, svc: dict) -> tuple[str, str] | None:
-    """compose 서비스의 build → (빌드 컨텍스트, Dockerfile) 저장소 경로. build가 없으면 None."""
-    build = svc.get("build")
-    base = parent_dir(compose_path)
-    if isinstance(build, str):
-        context = _repo_path(posixpath.join(base, build))
-        return context, _repo_path(posixpath.join(context, "Dockerfile"))
-    if isinstance(build, dict):
-        context = _repo_path(posixpath.join(base, str(build.get("context") or ".")))
-        return context, _repo_path(posixpath.join(context, str(build.get("dockerfile") or "Dockerfile")))
-    return None
 
 
 def compose_command(compose_path: str, svc: dict, artifacts: list[ParsedArtifact]) -> str:
@@ -209,7 +124,7 @@ def _compose_code_root(compose_path: str, svc: dict, image: str, artifacts: list
 
 def _dockerfile_cmd_for_dir(app_dir: str, artifacts: list[ParsedArtifact]) -> str:
     for target in (app_dir, ""):
-        for df in _dockerfiles(artifacts):
+        for df in dockerfiles(artifacts):
             if parent_dir(df.path) == target and df.get("cmd"):
                 return str(df.get("cmd"))
     return ""
@@ -219,102 +134,9 @@ def _as_list(v) -> list:
     return v if isinstance(v, list) else []
 
 
-def classify_image(image) -> dict | None:
-    """knowledge/images.yaml로 이미지를 분류한다: {role, component, hosting_hint, label}, 맞는 항목이 없으면 None.
-    label은 패턴에 맞은 이름(마지막 이름 또는 `저장소/이름`)이다."""
-    keys = _image_keys(image) if isinstance(image, str) else []
-    for entry in kb.images():
-        for pattern in entry.get("match") or []:
-            key = next((k for k in keys if fnmatchcase(k, str(pattern).lower())), None)
-            if key:
-                return {"role": entry.get("role"), "component": entry.get("component"),
-                        "hosting_hint": entry.get("hosting_hint"), "label": key}
-    return None
-
-
-def _dockerfile_at(path: str | None, artifacts: list[ParsedArtifact]) -> ParsedArtifact | None:
-    return next((a for a in _dockerfiles(artifacts) if a.path == path), None) if path else None
-
-
-def _base_class(df: ParsedArtifact | None) -> dict | None:
-    """Dockerfile 마지막 FROM 이미지의 분류."""
-    return classify_image(str(df.get("base_image") or "")) if df else None
-
-
-def _image_class(image: str, df: ParsedArtifact | None) -> dict | None:
-    """워크로드 이미지의 분류: 이미지 이름, 없으면 빌드 Dockerfile의 마지막 FROM."""
-    return classify_image(image) or _base_class(df)
-
-
 def is_app(w: WorkloadInfo) -> bool:
     """앱 워크로드인가: 리버스 프록시가 아닌 것."""
     return w.kind != "reverse-proxy"
-
-
-@dataclass
-class ImageService:
-    """이미지 분류로 워크로드가 아닌 compose 서비스(저장소·캐시·큐·기반 서비스)."""
-    name: str
-    label: str
-    role: str
-    component: str | None
-    hosting_hint: str | None
-    evidence: dict
-    dependents: list[str] = field(default_factory=list)  # 이 서비스를 depends_on하는 서비스 이름
-
-
-def _compose_services(artifacts: list[ParsedArtifact]):
-    """(compose 파일, 서비스 이름, 서비스 정의). 같은 서비스가 여러 파일에 있으면 기본 파일, override, 변형 파일
-    순으로 먼저 본 정의를 쓴다. 개발 컨테이너용 compose는 배포 대상이 아니므로 뺀다."""
-    names: set[str] = set()
-    for art in sorted((a for a in artifacts if a.kind == "compose"), key=lambda a: compose_file_order(a.path)):
-        if DEVCONTAINER in PurePosixPath(art.path).parts:
-            continue
-        for obj in art.objects:
-            if not isinstance(obj, tuple) or len(obj) != 2 or not isinstance(obj[0], str) or obj[0] in names:
-                continue
-            names.add(obj[0])
-            yield art, obj[0], as_dict(obj[1])
-
-
-def _depends_on(svc: dict) -> list[str]:
-    deps = svc.get("depends_on")
-    if isinstance(deps, dict):
-        return [str(k) for k in deps]
-    return [str(d) for d in deps if isinstance(d, (str, int))] if isinstance(deps, list) else []
-
-
-def _service_line(snap: Snapshot, rel: str, name: str) -> int | None:
-    """compose 서비스 정의 줄: 최상위 `services:` 블록 안의 `<이름>:` 키 줄 중 들여쓰기가 가장 얕은 첫 줄
-    (앵커 값의 `@postgres:5432`, depends_on 맵의 같은 키, 이름이 같은 볼륨은 피한다). 없으면 None."""
-    rx = re.compile(rf"^(\s+)[\"']?{re.escape(name)}[\"']?\s*:(\s|$)")
-    found, inside = [], False
-    for i, text in enumerate(snap.lines(rel), 1):
-        if text[:1].strip() and not text.startswith("#"):  # 최상위 키에서 블록이 바뀐다
-            inside = text.split(":", 1)[0].strip().strip("\"'") == "services"
-        elif inside and (m := rx.match(text)):
-            found.append((len(m.group(1)), i))
-    return min(found)[1] if found else None
-
-
-def _service_class(art: ParsedArtifact, svc: dict, artifacts: list[ParsedArtifact]) -> dict | None:
-    build = compose_build(art.path, svc)
-    return _image_class(str(svc.get("image") or ""), _dockerfile_at(build[1] if build else None, artifacts))
-
-
-def image_services(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[ImageService]:
-    """워크로드가 아닌 분류된 compose 서비스들(reverse-proxy·dev-tool 제외), 이름 순."""
-    services = list(_compose_services(artifacts))
-    out: list[ImageService] = []
-    for art, name, svc in services:
-        cls = _service_class(art, svc, artifacts)
-        if not cls or cls["role"] in ("reverse-proxy", "dev-tool"):
-            continue
-        out.append(ImageService(
-            name=name, label=cls["label"], role=cls["role"], component=cls["component"],
-            hosting_hint=cls["hosting_hint"], evidence=evidence(snap, art.path, _service_line(snap, art.path, name)),
-            dependents=sorted(n for _, n, other in services if name in _depends_on(other))))
-    return sorted(out, key=lambda s: s.name)
 
 
 def _from_k8s(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[WorkloadInfo]:
@@ -336,7 +158,7 @@ def _from_k8s(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[WorkloadI
                 continue
             c = containers[0]
             image = str(c.get("image") or "")
-            cls = _image_class(image, dockerfile_for_image(image, artifacts))
+            cls = image_class(image, dockerfile_for_image(image, artifacts))
             if cls and cls["role"] != "reverse-proxy":  # 저장소·기반 서비스 이미지는 워크로드가 아니다
                 continue
             cmd = " ".join(str(x) for x in _as_list(c.get("command")) + _as_list(c.get("args")))
@@ -362,9 +184,9 @@ def _from_k8s(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[WorkloadI
 
 def _from_compose(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[WorkloadInfo]:
     out: list[WorkloadInfo] = []
-    for art, name, svc in _compose_services(artifacts):
+    for art, name, svc in compose_services(artifacts):
         image = str(svc.get("image") or "")
-        cls = _service_class(art, svc, artifacts)
+        cls = service_class(art, svc, artifacts)
         if cls and cls["role"] != "reverse-proxy":  # 저장소·기반 서비스·개발 도구 이미지는 워크로드가 아니다
             continue
         build = compose_build(art.path, svc)
@@ -376,96 +198,12 @@ def _from_compose(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[Workl
             wkind = "migration-job" if "migrat" in text else "worker" if is_worker(name, cmd) else "web"
         out.append(WorkloadInfo(
             id=f"w-{slug(name)}", kind=wkind, name=name,
-            entrypoint=evidence(snap, art.path, _service_line(snap, art.path, name)),
+            entrypoint=evidence(snap, art.path, service_line(snap, art.path, name)),
             status="confirmed", source="compose", image=image, command=cmd,
             code_root=_compose_code_root(art.path, svc, image, artifacts),
             build_context=build[0] if build else None, dockerfile=build[1] if build else None,
             proxy_component=cls["component"] if cls else None))
     return out
-
-
-def spring_web(deps: set[str]) -> tuple[str, str] | None:
-    """(웹 스타터 의존성, 프레임워크). Spring 웹 스타터가 없으면 None."""
-    return next(((dep, fw) for dep, fw in SPRING_WEB if dep in deps), None)
-
-
-def _spring_boot_dep(deps: set[str]) -> str | None:
-    """Spring Boot 앱의 근거 의존성: 플러그인·parent, 없으면 이름 순 첫 스타터."""
-    if SPRING_BOOT in deps:
-        return SPRING_BOOT
-    return next((d for d in sorted(deps) if d.startswith(SPRING_STARTER)), None)
-
-
-def jvm_build_dirs(snap: Snapshot) -> list[str]:
-    """Gradle·Maven 빌드 파일이 있는 디렉터리들(경로 순)."""
-    return sorted({parent_dir(rel) for name in JVM_BUILD_FILES for rel in snap.glob(f"**/{name}")})
-
-
-def _spring_name(snap: Snapshot, d: str) -> str:
-    """settings.gradle(.kts)의 rootProject.name, pom의 프로젝트 artifactId, 없으면 디렉터리 이름(루트는 app)."""
-    for name in GRADLE_SETTINGS:
-        rel = f"{d}/{name}" if d else name
-        m = _ROOT_PROJECT.search(snap.read(rel)) if snap.exists(rel) else None
-        if m and m.group(1).strip():
-            return m.group(1).strip()
-    pom = f"{d}/{MAVEN_FILE}" if d else MAVEN_FILE
-    if snap.exists(pom):
-        # parent·의존성·빌드 블록의 artifactId를 빼고 남은 첫 artifactId가 프로젝트 자신이다
-        text = re.sub(r"<!--.*?-->", "", snap.read(pom), flags=re.DOTALL)
-        text = re.sub(r"<(parent|dependencies|dependencyManagement|build|profiles)>.*?</\1>", "", text, flags=re.DOTALL)
-        m = re.search(r"<artifactId>\s*([^<]*?)\s*</artifactId>", text)
-        if m and m.group(1):
-            return m.group(1)
-    return PurePosixPath(d).name or "app"
-
-
-def _build_location(manifests: Manifests, dep: str, d: str, files=JVM_BUILD_FILES) -> tuple[str, int | None] | None:
-    """디렉터리 d의 빌드 파일에서 dep가 있는 (파일, 줄)."""
-    return next(((rel, ln) for rel, ln in manifests.locations.get(dep, [])
-                 if parent_dir(rel) == d and PurePosixPath(rel).name in files), None)
-
-
-def owning_build_dir(rel: str, build_dirs: set[str]) -> str | None:
-    """파일을 품은 가장 가까운 빌드 파일 디렉터리(모듈). 없으면 None."""
-    d = parent_dir(rel)
-    while d not in build_dirs:
-        if not d:
-            return None
-        d = parent_dir(d)
-    return d
-
-
-def _boot_application_dirs(snap: Snapshot, build_dirs: set[str]) -> set[str]:
-    """테스트가 아닌 Java·Kotlin 파일에 `@SpringBootApplication`이 있는 모듈 디렉터리들."""
-    out: set[str] = set()
-    for pattern in ("**/*.java", "**/*.kt"):
-        for rel in snap.glob(pattern):
-            if not is_test_path(rel) and _BOOT_APPLICATION.search(snap.read(rel)):
-                d = owning_build_dir(rel, build_dirs)
-                if d is not None:
-                    out.add(d)
-    return out
-
-
-def _spring_apps(snap: Snapshot, manifests: Manifests) -> dict[tuple[str, str], dict]:
-    """빌드 파일 디렉터리마다 Spring Boot 앱: 웹 스타터가 있으면 web, Spring Boot만 있으면 worker(후보).
-    모듈 안 코드에 `@SpringBootApplication`이 있거나 Gradle Boot 플러그인을 적용한 모듈만 앱이다(스타터만 쓰는
-    라이브러리 모듈은 뺀다)."""
-    found: dict[tuple[str, str], dict] = {}
-    build_dirs = jvm_build_dirs(snap)
-    apps = _boot_application_dirs(snap, set(build_dirs))
-    for d in build_dirs:
-        deps = manifests.deps_by_dir.get(d, set())
-        web = spring_web(deps)
-        dep = web[0] if web else _spring_boot_dep(deps)
-        if dep is None or (d not in apps and _build_location(manifests, SPRING_BOOT, d, GRADLE_FILES) is None):
-            continue
-        loc = _build_location(manifests, dep, d)
-        if loc is None:
-            continue
-        found[("web" if web else "worker", d)] = {
-            "spring": (evidence(snap, *loc), web[1] if web else "", _spring_name(snap, d))}
-    return found
 
 
 def _from_code(snap: Snapshot, manifests: Manifests, artifacts: list[ParsedArtifact]) -> list[WorkloadInfo]:
@@ -476,7 +214,7 @@ def _from_code(snap: Snapshot, manifests: Manifests, artifacts: list[ParsedArtif
             found[("web", d)] = {"dep": web_fw}
         elif "vite" in deps:
             found[("static-frontend", d)] = {"dep": "vite"}
-    for key, info in _spring_apps(snap, manifests).items():
+    for key, info in spring_apps(snap, manifests).items():
         found.setdefault(key, info)
     for key, (cmd, rel, line) in sorted(manifests.procfile.items()):
         d, proc = key.split(":", 1)
@@ -558,11 +296,11 @@ def _app_dockerfiles(workloads: list[WorkloadInfo], artifacts: list[ParsedArtifa
     """어떤 워크로드에도 연결되지 않은 앱 Dockerfile: 마지막 체인에 CMD나 ENTRYPOINT가 있고, 마지막 FROM이
     리버스 프록시 이미지가 아니며, 개발 컨테이너용·개발·테스트용이 아닌 것. 경로 순."""
     linked = {df.path for w in workloads if (df := workload_dockerfile(w, artifacts))}
-    return [df for df in _dockerfiles(artifacts)
+    return [df for df in dockerfiles(artifacts)
             if df.path not in linked and DEVCONTAINER not in PurePosixPath(df.path).parts
             and not _is_dev_dockerfile(df.path)
             and (df.get("cmd") or df.get("entrypoint"))
-            and (_base_class(df) or {}).get("role") != "reverse-proxy"]
+            and (base_class(df) or {}).get("role") != "reverse-proxy"]
 
 
 def _dockerfile_workload_name(path: str) -> str:
@@ -623,7 +361,7 @@ def _spring_framework_at_root(snap: Snapshot, manifests: Manifests, workloads: l
         if w.source not in ("k8s", "compose") or not is_app(w) or w.framework or w.code_root not in build_dirs:
             continue
         web = spring_web(manifests.deps_by_dir.get(w.code_root, set()))
-        loc = _build_location(manifests, web[0], w.code_root) if web else None
+        loc = build_location(manifests, web[0], w.code_root) if web else None
         if loc:
             w.framework, w.framework_evidence = web[1], evidence(snap, *loc)
 

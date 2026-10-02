@@ -6,11 +6,12 @@ from pathlib import PurePosixPath
 
 from infrafit import kb
 from infrafit.detect.artifacts import ParsedArtifact, as_dict, flatten
-from infrafit.detect.manifests import Manifests, parent_dir
+from infrafit.detect.images import ImageService
+from infrafit.detect.manifests import Manifests
 from infrafit.detect.signatures import Match
-from infrafit.detect.workloads import ImageService, WorkloadInfo, slug
+from infrafit.detect.workloads import WorkloadInfo, slug
 from infrafit.evidence import evidence
-from infrafit.repo import Snapshot
+from infrafit.repo import Snapshot, parent_dir
 
 PLATFORM_COMPUTE = {
     "vercel.json": "cp:vercel/functions/unspecified-plan",

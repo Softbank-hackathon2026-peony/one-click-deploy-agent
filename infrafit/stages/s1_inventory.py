@@ -8,11 +8,12 @@ from infrafit.detect.components import find_unmapped, image_unmapped, map_compon
 from infrafit.detect.defaults import apply_defaults
 from infrafit.detect.environments import detect_environments
 from infrafit.detect.endpoints import extract_endpoints
+from infrafit.detect.images import image_services
 from infrafit.detect.manifests import parse_manifests
 from infrafit.detect.nginx import find_proxies
 from infrafit.detect.paths import build_paths, fronted_proxies
 from infrafit.detect.signatures import match_signatures
-from infrafit.detect.workloads import detect_workloads, image_services
+from infrafit.detect.workloads import detect_workloads
 from infrafit.repo import Snapshot, content_digest
 from infrafit.run import RunContext, code_version, input_hash, now_iso
 

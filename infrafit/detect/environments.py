@@ -9,12 +9,12 @@ from pathlib import PurePosixPath
 import yaml
 
 from infrafit.detect.artifacts import ParsedArtifact, as_dict, build_source, is_build_path, pod_spec
-from infrafit.detect.manifests import parent_dir
-from infrafit.detect.workloads import (COMPOSE_BASE_NAMES, DEVCONTAINER, WorkloadInfo, compose_build, compose_command,
-                                       compose_family, compose_variant, image_name, is_compose_override, slug,
-                                       workload_dockerfile)
+from infrafit.detect.compose import (COMPOSE_BASE_NAMES, DEVCONTAINER, compose_build, compose_family,
+                                     compose_variant, is_compose_override)
+from infrafit.detect.images import image_name
+from infrafit.detect.workloads import WorkloadInfo, compose_command, slug, workload_dockerfile
 from infrafit.evidence import evidence
-from infrafit.repo import Snapshot
+from infrafit.repo import Snapshot, parent_dir
 
 WORKLOAD_KINDS = {"Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"}
 

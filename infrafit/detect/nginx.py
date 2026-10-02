@@ -15,10 +15,10 @@ import crossplane
 from infrafit.detect.artifacts import ParsedArtifact, as_dict, final_chain, dockerfile_stages, is_build_path
 from infrafit.detect.environments import (Environment, compose_env, env_scopes, env_service, is_workload_doc,
                                           workload_container)
-from infrafit.detect.manifests import parent_dir
-from infrafit.detect.workloads import WorkloadInfo, classify_image, workload_dockerfile
+from infrafit.detect.images import classify_image
+from infrafit.detect.workloads import WorkloadInfo, workload_dockerfile
 from infrafit.evidence import evidence
-from infrafit.repo import Snapshot
+from infrafit.repo import Snapshot, parent_dir
 
 CONF_SUFFIXES = (".conf", ".conf.template", ".conf.tmpl")
 PROXY_DIRECTIVES = {"server", "upstream", "location", "proxy_pass"}

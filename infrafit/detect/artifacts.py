@@ -13,9 +13,8 @@ from pathlib import PurePosixPath
 import hcl2
 import yaml
 
-from infrafit.detect.manifests import parent_dir
 from infrafit.evidence import evidence, line_of
-from infrafit.repo import Snapshot
+from infrafit.repo import Snapshot, parent_dir
 
 PLATFORM_FILES = {"vercel.json", "netlify.toml", "fly.toml", "render.yaml", "railway.json", "railway.toml"}
 
@@ -37,6 +36,15 @@ class ParsedArtifact:
     def to_dict(self) -> dict:
         return {"kind": self.kind, "path": self.path, "parsed": self.parsed,
                 "settings": sorted(self.settings, key=lambda s: s["key"])}
+
+
+def dockerfiles(artifacts: list[ParsedArtifact]) -> list[ParsedArtifact]:
+    return [a for a in artifacts if a.kind == "dockerfile"]
+
+
+def dockerfile_at(path: str | None, artifacts: list[ParsedArtifact]) -> ParsedArtifact | None:
+    """경로가 path인 Dockerfile 산출물(없거나 path가 비면 None)."""
+    return next((a for a in dockerfiles(artifacts) if a.path == path), None) if path else None
 
 
 def _fact(snap: Snapshot, rel: str, key: str, value, line: int | None = None) -> dict:

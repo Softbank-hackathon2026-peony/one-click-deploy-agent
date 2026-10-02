@@ -7,8 +7,9 @@ import hashlib
 import os
 import subprocess
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 EXCLUDED_DIRS = frozenset({
     ".git", "node_modules", ".venv", "venv", "__pycache__", "dist", "build", ".next",
@@ -25,6 +26,22 @@ LANG_BY_EXT = {
     ".java": "java", ".kt": "kotlin", ".rb": "ruby", ".php": "php", ".rs": "rust",
     ".cs": "csharp",
 }
+
+
+def parent_dir(rel: str) -> str:
+    """저장소 경로의 디렉터리(루트는 "")."""
+    parent = PurePosixPath(rel).parent.as_posix()
+    return "" if parent == "." else parent
+
+
+def nearest_dir(rel: str, accept: Callable[[str], bool]) -> str | None:
+    """rel의 디렉터리부터 저장소 루트("")까지 올라가며 accept가 참인 첫 디렉터리. 없으면 None."""
+    d = parent_dir(rel)
+    while not accept(d):
+        if not d:
+            return None
+        d = parent_dir(d)
+    return d
 
 
 def match_glob(path: str, pattern: str) -> bool:

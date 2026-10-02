@@ -3,8 +3,9 @@ import json
 from infrafit import kb
 from infrafit.consistency import check_run
 from infrafit.detect.artifacts import parse_artifacts
+from infrafit.detect.images import classify_image
 from infrafit.detect.manifests import parse_manifests
-from infrafit.detect.workloads import classify_image, detect_workloads
+from infrafit.detect.workloads import detect_workloads
 from infrafit.kb_lint import _lint_images
 from infrafit.pipeline import analyze
 from infrafit.repo import open_snapshot

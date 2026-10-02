@@ -7,13 +7,14 @@ import re
 from collections import defaultdict
 from pathlib import PurePosixPath
 
-from infrafit.detect.manifests import Manifests, close_bracket, mask_code, parse_manifests, parent_dir
+from infrafit.detect.jvm import close_bracket, jvm_build_dirs, mask_code, spring_web
+from infrafit.detect.manifests import Manifests, parse_manifests
 from infrafit.detect.nginx import LocationInfo, ProxyRoute, ProxyServer
 from infrafit.detect.proxy_graph import fronted_in, upstream_chains
 from infrafit.detect.testpaths import is_test_path
-from infrafit.detect.workloads import WorkloadInfo, jvm_build_dirs, spring_web
-from infrafit.evidence import evidence
-from infrafit.repo import Snapshot
+from infrafit.detect.workloads import WorkloadInfo
+from infrafit.evidence import evidence, line_at
+from infrafit.repo import Snapshot, nearest_dir
 
 HTTP_METHODS = ("get", "post", "put", "delete", "patch")
 NEXT_METHODS = "GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS"
@@ -94,16 +95,8 @@ def _module_file(snap: Snapshot, directory: str, parts: list[str]) -> str | None
 
 def _abs_module_file(snap: Snapshot, rel: str, parts: list[str]) -> str | None:
     """절대 import: 현재 파일 디렉터리에서 위로 올라가며 처음 찾은 모듈 파일."""
-    d = str(PurePosixPath(rel).parent)
-    d = "" if d == "." else d
-    while True:
-        found = _module_file(snap, d, parts)
-        if found:
-            return found
-        if not d:
-            return None
-        parent = str(PurePosixPath(d).parent)
-        d = "" if parent == "." else parent
+    d = nearest_dir(rel, lambda d: _module_file(snap, d, parts) is not None)
+    return None if d is None else _module_file(snap, d, parts)
 
 
 def _imports(snap: Snapshot, rel: str, tree: ast.AST) -> dict[str, tuple[str, str | None]]:
@@ -268,18 +261,8 @@ def _django(snap: Snapshot) -> list[Raw]:
 
 def _package_deps(snap: Snapshot, manifests: Manifests, rel: str) -> set[str]:
     """파일이 속한 가장 가까운 package.json의 의존성 이름들(없으면 빈 집합)."""
-    d = parent_dir(rel)
-    while True:
-        if snap.exists(f"{d}/package.json" if d else "package.json"):
-            return manifests.deps_by_dir.get(d, set())
-        if not d:
-            return set()
-        d = parent_dir(d)
-
-
-def _line_at(text: str, pos: int) -> int:
-    """text의 pos 글자가 있는 줄 번호(1부터, Snapshot.lines와 같은 줄 나눔)."""
-    return len((text[:pos] + "x").splitlines())
+    d = nearest_dir(rel, lambda d: snap.exists(f"{d}/package.json" if d else "package.json"))
+    return set() if d is None else manifests.deps_by_dir.get(d, set())
 
 
 def _block_end(text: str, start: int) -> int:
@@ -375,7 +358,7 @@ def _route_objects(text: str, servers: _Servers) -> list[tuple[list[str], str, i
         if not (method and url and servers.serves(m.group(1), m.start(), url.group(1))):
             continue
         methods = sorted({x.upper() for x in _STRING.findall(method.group(1))})
-        out.append((methods, url.group(1), _line_at(text, m.start())))
+        out.append((methods, url.group(1), line_at(text, m.start())))
     return out
 
 
@@ -397,7 +380,7 @@ def _express(snap: Snapshot, manifests: Manifests) -> list[Raw]:
                 if not servers.serves(m.group(1), m.start(), m.group(3)):
                     continue
                 method = "ANY" if m.group(2) == "all" else m.group(2).upper()
-                out.append((method, m.group(3), rel, _line_at(text, m.start()), framework))
+                out.append((method, m.group(3), rel, line_at(text, m.start()), framework))
             for methods, route, i in _route_objects(text, servers):
                 out += [(method, route, rel, i, framework) for method in methods]
     return out
@@ -503,14 +486,8 @@ def _annotation_groups(clean: str, struct: str):
 
 def _spring_framework(rel: str, build_dirs: set[str], manifests: Manifests) -> str:
     """파일을 품은 빌드 파일 디렉터리(가까운 것부터)의 Spring 웹 스타터 프레임워크, 없으면 spring."""
-    d = parent_dir(rel)
-    while True:
-        web = spring_web(manifests.deps_by_dir.get(d, set())) if d in build_dirs else None
-        if web:
-            return web[1]
-        if not d:
-            return "spring"
-        d = parent_dir(d)
+    d = nearest_dir(rel, lambda d: d in build_dirs and spring_web(manifests.deps_by_dir.get(d, set())) is not None)
+    return "spring" if d is None else spring_web(manifests.deps_by_dir.get(d, set()))[1]
 
 
 def _spring(snap: Snapshot, manifests: Manifests) -> list[Raw]:
@@ -549,7 +526,7 @@ def _spring(snap: Snapshot, manifests: Manifests) -> list[Raw]:
                     methods = _mapping_methods(args_struct)
                 else:
                     continue
-                line = _line_at(text, pos)
+                line = line_at(text, pos)
                 for prefix in prefixes:
                     for path in _mapping_paths(args, args_struct) or []:
                         route = _join(prefix, path)
