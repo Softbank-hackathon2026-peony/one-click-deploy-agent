@@ -58,3 +58,30 @@ def test_static_frontend_never_takes_the_root_dockerfile_compute(tmp_path):
     assert _compute(inv, "w-static")["component"] == "unmapped"
     assert _compute(inv, "w-web")["component"] == "cp:docker/container/unspecified-host"
     assert [p["workload"] for p in inv["request_paths"]] == ["w-web"]
+
+
+def test_root_dockerfile_of_subdir_app_bundles_static_and_cites_cmd(tmp_path):
+    repo = tmp_path / "repo"
+    _write(repo, "backend/requirements.txt", "flask==3.0\n")
+    _write(repo, "backend/app.py", FLASK_APP)
+    _write(repo, "frontend/package.json", VITE)
+    _write(repo, "Dockerfile", "FROM python:3.12\nCOPY backend/ backend/\nCOPY frontend/dist/ frontend/dist/\n"
+                               'CMD ["flask", "--app", "app", "run"]\n')
+    inv = _inventory(tmp_path)
+    assert [(w["id"], w["kind"]) for w in inv["workloads"]] == [("w-web", "web")]
+    [path] = inv["request_paths"]
+    hop = path["hops"][0]
+    assert (hop["component"], [(e["path"], e["line"]) for e in hop["evidence"]]) == (
+        "nw:app/flask-dev/default", [("Dockerfile", 4)])
+
+
+def test_worker_http_routes_are_not_given_to_the_web_workload(tmp_path):
+    repo = tmp_path / "repo"
+    app = "from fastapi import FastAPI\napp = FastAPI()\n\n@app.post('{0}')\ndef h():\n    return 'ok'\n"
+    _write(repo, "server/requirements.txt", "fastapi==0.115\n")
+    _write(repo, "server/main.py", app.format("/api/items"))
+    _write(repo, "worker/requirements.txt", "fastapi==0.115\n")
+    _write(repo, "worker/main.py", app.format("/jobs"))
+    inv = _inventory(tmp_path)
+    assert [(w["id"], w["kind"]) for w in inv["workloads"]] == [("w-server", "web"), ("w-worker", "worker")]
+    assert [(e["workload"], e["route"]) for e in inv["endpoints"]] == [("w-server", "/api/items")]

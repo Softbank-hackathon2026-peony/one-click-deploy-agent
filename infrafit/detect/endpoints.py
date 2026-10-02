@@ -558,6 +558,22 @@ def _roots(w: WorkloadInfo) -> set[str]:
     return {r for r in (w.app_dir or None, w.code_root) if r is not None}
 
 
+def _root_depth(rel: str, w: WorkloadInfo) -> int | None:
+    """rel을 품은 워크로드 뿌리 중 가장 깊은 것의 깊이(품지 않으면 None)."""
+    roots = [r for r in _roots(w) if r == "" or rel.startswith(r + "/")]
+    return max(len(PurePosixPath(r).parts) for r in roots) if roots else None
+
+
+def _owned_by_other(rel: str, webs: list[WorkloadInfo], others: list[WorkloadInfo]) -> bool:
+    """핸들러 파일이 web이 아닌 워크로드(워커 등)의 코드 뿌리 안에 어느 web 뿌리보다 깊게 있으면 그 워크로드의
+    코드다. 그 HTTP 라우트는 web 엔드포인트가 아니다."""
+    other = max((d for w in others if (d := _root_depth(rel, w)) is not None), default=None)
+    if other is None:
+        return False
+    web = max((d for w in webs if (d := _root_depth(rel, w)) is not None), default=None)
+    return web is None or other > web
+
+
 def _owners(rel: str, webs: list[WorkloadInfo]) -> list[WorkloadInfo]:
     """핸들러 파일을 app_dir 또는 code_root 아래에 둔 web 워크로드 중 그 루트가 가장 깊은 것들(같으면 모두, id 순)."""
     depth: dict[str, int] = {}
@@ -779,7 +795,10 @@ def extract_endpoints(snap: Snapshot, workloads: list[WorkloadInfo], routes: lis
             raw.append(r)
     counters: dict[str, int] = defaultdict(int)
     out: list[dict] = []
+    others = [w for w in workloads if w.kind != "web"]
     for method, route, rel, line, framework in raw:
+        if _owned_by_other(rel, webs, others):
+            continue
         # 여러 워크로드가 같은 코드를 쓰면 근거가 있는 워크로드마다 하나씩, 없으면 점수·대체 규칙
         owners = _owners(rel, webs)
         # web 워크로드가 하나면 code_root 추측과 상관없이 그것이 소유자다(확정). 여럿일 때 하나뿐인 Dockerfile로

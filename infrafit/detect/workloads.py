@@ -94,7 +94,8 @@ def _image_command(dockerfile: str, artifacts: list[ParsedArtifact]) -> str:
 
 
 def workload_dockerfile(w: WorkloadInfo, artifacts: list[ParsedArtifact]) -> ParsedArtifact | None:
-    """워크로드 이미지의 Dockerfile: compose build의 Dockerfile, 이미지 이름 규칙, code_root의 Dockerfile 순서."""
+    """워크로드 이미지의 Dockerfile: compose build의 Dockerfile, 이미지 이름 규칙, code_root의 Dockerfile 순서.
+    코드에서 찾은 web 워크로드는 마지막으로 실행 명령을 준 Dockerfile(_cmd_dockerfile)."""
     df = dockerfile_at(w.dockerfile, artifacts)
     if df is None and w.image:
         df = dockerfile_for_image(w.image, artifacts)
@@ -102,6 +103,8 @@ def workload_dockerfile(w: WorkloadInfo, artifacts: list[ParsedArtifact]) -> Par
         local = sorted((a for a in dockerfiles(artifacts) if parent_dir(a.path) == w.code_root),
                        key=lambda a: (PurePosixPath(a.path).name != "Dockerfile", a.path))
         df = local[0] if local else None
+    if df is None and w.source == "code" and w.kind == "web":  # 실행 명령을 준 Dockerfile(저장소 루트 포함)
+        df = _cmd_dockerfile(w.app_dir, artifacts)
     return df
 
 
@@ -127,12 +130,18 @@ def _compose_code_root(compose_path: str, svc: dict, image: str, artifacts: list
     return parent_dir(build[1])
 
 
-def _dockerfile_cmd_for_dir(app_dir: str, artifacts: list[ParsedArtifact]) -> str:
+def _cmd_dockerfile(app_dir: str, artifacts: list[ParsedArtifact]) -> ParsedArtifact | None:
+    """코드 web 워크로드가 실행하는 이미지의 Dockerfile: app_dir, 없으면 저장소 루트에서 CMD가 있는 첫 Dockerfile."""
     for target in (app_dir, ""):
         for df in dockerfiles(artifacts):
             if parent_dir(df.path) == target and df.get("cmd"):
-                return str(df.get("cmd"))
-    return ""
+                return df
+    return None
+
+
+def _dockerfile_cmd_for_dir(app_dir: str, artifacts: list[ParsedArtifact]) -> str:
+    df = _cmd_dockerfile(app_dir, artifacts)
+    return str(df.get("cmd")) if df else ""
 
 
 def _as_list(v) -> list:
