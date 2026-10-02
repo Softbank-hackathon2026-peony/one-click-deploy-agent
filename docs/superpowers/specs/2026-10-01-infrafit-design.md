@@ -50,6 +50,7 @@
 | [docs/research/capabilities/09~10](../../research/capabilities/README.md) | 네트워크 경로 구성 요소(로드밸런서, 인그레스, CDN, DNS, WAF, 인증서, 출구 NAT, 사설 연결)의 능력과 생성 산출물. 능력 값마다 OSI 계층 표시 | `knowledge/components/nw-*.yaml` |
 | 요구 조건 변환표 (M1에서 작성) | 차원 값 → 능력 조건 매핑. 비교 규칙은 이 표에서 생성된다(§8.3) | `knowledge/requirements.yaml` |
 | 기본값 표 (M1에서 작성) | 플랫폼·라이브러리·앱 서버 기본값과 출처(§6.5) | `knowledge/defaults.yaml` |
+| 이미지 분류표 | 컨테이너 이미지 이름 패턴 → 역할(리버스 프록시, 저장소, 캐시, 큐, 기반 서비스, 개발 도구)과 구성 요소 ID·호스팅 힌트. 워크로드가 아닌 compose·k8s 서비스를 가른다(§6.1) | `knowledge/images.yaml` |
 | 앱 변형 표 (M2에서 작성) | 요구를 바꿔 더 싼 후보를 가능하게 하는 앱 변형: 적용 조건, 효과, 새 요구, 코드 변경량(§9.1) | `knowledge/transforms.yaml` |
 | 산정 상수 (M2에서 작성) | 생각 시간, 처리 시간 등급, 목표 사용률 등 용량 산정 상수와 이유(§9.5) | `knowledge/sizing.yaml` |
 | 순위·환경 설정 | 동률 기준 등 순위 설정값(§9.7), dev 환경 파생 규칙(§9.8) | `knowledge/ranking.yaml`, `knowledge/environments.yaml` |
@@ -129,7 +130,8 @@ S1이 내는 사실은 두 상태 중 하나다.
 `candidate`는 S2가 확정하거나 기각한다(§7.4). S3 이후는 확정된 사실만 쓴다. 이렇게 해서 S1은 판단 없이 결정적으로 남고, 판단은 모두 근거 검사를 거치는 S2에 모인다.
 
 ### 6.1 워크로드 찾기
-프로세스 단위로 워크로드를 만든다: `web`, `worker`, `scheduled`, `realtime`, `static-frontend`, `migration-job`.
+프로세스 단위로 워크로드를 만든다: `web`, `worker`, `scheduled`, `realtime`, `static-frontend`, `migration-job`, `reverse-proxy`.
+`reverse-proxy`는 이미지 분류(`knowledge/images.yaml`)로 nginx·Caddy·Traefik 등 프록시 이미지를 쓰는 워크로드다. nginx가 빌드한 SPA를 정적으로 서빙하기만 하는 경우도 이 종류가 될 수 있다(프록시 설정이 없으면 정적 프런트엔드일 수 있다).
 근거: `package.json` scripts, `Procfile`, 프레임워크 규약(Next.js, Django, FastAPI 등), 큐 소비 코드, 크론 정의, 웹소켓 서버, compose 서비스, k8s Deployment·CronJob, 플랫폼 설정.
 
 ### 6.2 엔드포인트 찾기
