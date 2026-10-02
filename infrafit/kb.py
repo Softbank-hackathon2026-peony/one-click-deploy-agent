@@ -75,6 +75,18 @@ def unmapped_signatures() -> tuple[dict, ...]:
 
 
 @lru_cache(maxsize=1)
+def capabilities() -> dict[str, dict]:
+    """추천 후보 구성 요소의 능력 값(knowledge/capabilities.yaml). 구성 요소 ID → 항목."""
+    return {c["id"]: c for c in _load("capabilities.yaml").get("components") or []}
+
+
+@lru_cache(maxsize=1)
+def rules() -> tuple[dict, ...]:
+    """적합성 규칙(knowledge/rules.yaml)."""
+    return tuple(_load("rules.yaml").get("rules") or ())
+
+
+@lru_cache(maxsize=1)
 def kb_version() -> str:
     digest = hashlib.sha256()
     for path in sorted(KB_DIR.rglob("*.yaml")):
