@@ -182,25 +182,9 @@
           "value": false
         },
         {
-          "default_source": {
-            "ref": "docs/research/capabilities/06-artifacts-datastores.md"
-          },
-          "defaulted": true,
-          "key": "aws_db_instance.replica_us.backup_retention_period",
-          "value": 0
-        },
-        {
           "defaulted": false,
           "key": "aws_db_instance.replica_us.instance_class",
           "value": "db.r6g.large"
-        },
-        {
-          "default_source": {
-            "ref": "docs/research/capabilities/06-artifacts-datastores.md"
-          },
-          "defaulted": true,
-          "key": "aws_db_instance.replica_us.multi_az",
-          "value": false
         },
         {
           "defaulted": false,

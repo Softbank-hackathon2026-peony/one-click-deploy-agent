@@ -224,8 +224,8 @@ def test_spring_datastores_and_app_server_default(tmp_path):
     assert {d["id"] for d in inv["datastores"]} >= {"ds-postgresql", "svc-redis"}
     hops = inv["request_paths"][0]["hops"]
     assert [(h["kind"], h["component"]) for h in hops] == [("app-server", "nw:app/spring-boot-tomcat/default")]
-    assert hops[0]["settings"] == [{"key": "keep_alive_timeout", "value": 60, "defaulted": True,
-                                    "default_source": {"ref": "docs/research/capabilities/09-network-lb-ingress.md"}}]
+    # Spring Boot 기본 keep-alive는 조사 문서의 추론이라 기본값에서 뺐다(source-audit §8.1 #9)
+    assert hops[0]["settings"] == []
     assert [(e["path"], e["line"]) for e in hops[0]["evidence"]] == [("build.gradle.kts", 9)]
 
 
@@ -485,8 +485,8 @@ def test_root_app_ignores_child_module_spring_configs(tmp_path):
            "server:\n  tomcat:\n    keep-alive-timeout: 99s\n")
     inv = _inventory(tmp_path)
     hop = inv["request_paths"][0]["hops"][0]
-    assert hop["settings"][0]["defaulted"] is True
-    assert hop["settings"][0]["value"] == 60
+    # 하위 모듈의 99s가 루트 앱에 붙지 않는다(루트 앱에는 명시 값도 기본값도 없다)
+    assert hop["settings"] == []
 
 
 def test_subprojects_dependencies_without_child_build_files_still_match_signatures(tmp_path):

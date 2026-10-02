@@ -15,16 +15,6 @@ defaults:
     source: {ref: docs/research/considerations/03-deploy-release.md}
   - artifact: terraform
     resource: aws_db_instance
-    key: backup_retention_period
-    value: 0
-    source: {ref: docs/research/capabilities/06-artifacts-datastores.md}
-  - artifact: terraform
-    resource: aws_db_instance
-    key: multi_az
-    value: false
-    source: {ref: docs/research/capabilities/06-artifacts-datastores.md}
-  - artifact: terraform
-    resource: aws_db_instance
     key: storage_encrypted
     value: false
     source: {ref: docs/research/capabilities/06-artifacts-datastores.md}
@@ -42,11 +32,6 @@ defaults:
     component: "nw:app/node-http/default"
     key: keep_alive_timeout
     value: 5
-    source: {ref: docs/research/capabilities/09-network-lb-ingress.md}
-  - artifact: hop
-    component: "nw:app/spring-boot-tomcat/default"
-    key: keep_alive_timeout
-    value: 60  # Tomcat keepAliveTimeout = connectionTimeout, 코드 기본 60초
     source: {ref: docs/research/capabilities/09-network-lb-ingress.md}
   - artifact: hop
     component: "nw:aws/alb/default"

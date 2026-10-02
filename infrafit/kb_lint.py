@@ -17,10 +17,10 @@ IMAGE_KEYS = {"match", "role", "component", "hosting_hint"}
 IMAGE_ROLE_FAMILIES = {"datastore": "ds", "cache": "ca", "queue": "qu", "reverse-proxy": "nw"}
 
 
-def _lint_catalog() -> list[str]:
+def _lint_catalog(entries: list[dict] | None = None) -> list[str]:
     issues: list[str] = []
     seen: set[str] = set()
-    for c in kb._load("components/catalog.yaml")["components"]:
+    for c in entries if entries is not None else kb._load("components/catalog.yaml")["components"]:
         cid = c.get("id", "")
         if not COMPONENT_ID.match(cid):
             issues.append(f"catalog: 잘못된 ID 형식 {cid!r}")
@@ -31,6 +31,10 @@ def _lint_catalog() -> list[str]:
             issues.append(f"catalog: {cid}의 family가 접두어와 다름")
         if not c.get("name") or not c.get("source"):
             issues.append(f"catalog: {cid}에 name 또는 source 없음")
+        if "recommendable" in c and not isinstance(c["recommendable"], bool):
+            issues.append(f"catalog: {cid}의 recommendable이 불리언이 아님")
+        if c.get("recommendable") is False and not c.get("reason"):
+            issues.append(f"catalog: {cid}가 recommendable: false인데 reason 없음")
     return issues
 
 
