@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import json
+import posixpath
 import re
+import shlex
 from dataclasses import dataclass
+from fnmatch import fnmatchcase
 from pathlib import PurePosixPath
 
 from infrafit.detect.artifacts import (ParsedArtifact, as_dict, build_source, dockerfile_at, dockerfiles, is_build_path,
@@ -318,10 +322,52 @@ def _dockerfile_workload_name(path: str) -> str:
     return PurePosixPath(path).parent.name or "root"
 
 
+def _copy_sources(df: ParsedArtifact) -> list[str]:
+    """모든 단계의 COPY·ADD 원본 경로들(`--from`으로 다른 단계·이미지에서 가져오는 것, URL, heredoc은 뺀다)."""
+    out: list[str] = []
+    for op, arg, _ in (x for x in df.objects if isinstance(x, tuple) and len(x) == 3):
+        if op not in ("COPY", "ADD") or not isinstance(arg, str):
+            continue
+        try:
+            parts = json.loads(arg) if arg.startswith("[") else shlex.split(arg)
+        except (ValueError, json.JSONDecodeError):
+            parts = arg.split()
+        parts = [str(p) for p in parts]
+        if any(p.startswith("--from") for p in parts):
+            continue
+        args = [p for p in parts if not p.startswith("--")]
+        out += [p for p in args[:-1] if "://" not in p and not p.startswith("<<")]
+    return out
+
+
+def _repo_has(snap: Snapshot, path: str) -> bool:
+    """저장소에 path(파일·디렉터리·glob)가 있는가."""
+    p = posixpath.normpath(path)
+    if p in ("", "."):
+        return True
+    if p.startswith(".."):
+        return False
+    if any(ch in p for ch in "*?["):
+        return any(fnmatchcase(f, p) or fnmatchcase(f, p + "/*") for f in snap.files)
+    return snap.exists(p) or any(f.startswith(p + "/") for f in snap.files)
+
+
+def _recovered_context(snap: Snapshot, df: ParsedArtifact) -> str:
+    """Dockerfile만으로 찾은 워크로드의 빌드 컨텍스트: COPY·ADD 원본이 모두 저장소 루트 기준으로는 있고
+    Dockerfile 디렉터리 기준으로는 없으면 저장소 루트(""), 아니면 Dockerfile 디렉터리."""
+    d = parent_dir(df.path)
+    sources = _copy_sources(df)
+    if d and sources and all(_repo_has(snap, src) and not _repo_has(snap, posixpath.join(d, src))
+                             for src in sources):
+        return ""
+    return d
+
+
 def _from_dockerfiles(snap: Snapshot, workloads: list[WorkloadInfo],
                       artifacts: list[ParsedArtifact]) -> list[WorkloadInfo]:
     """앱 워크로드를 못 찾았을 때: 연결되지 않은 앱 Dockerfile마다 후보 워크로드 하나.
-    code_root는 빌드 컨텍스트 후보 규칙(1b F3)처럼 Dockerfile 디렉터리로 둔다."""
+    code_root는 빌드 컨텍스트 후보 규칙(1b F3)처럼 Dockerfile 디렉터리로 두되, COPY·ADD 원본으로 보아 저장소
+    루트가 컨텍스트이면 루트로 둔다(_recovered_context)."""
     ids = {w.id for w in workloads}
     out: list[WorkloadInfo] = []
     for df in _app_dockerfiles(workloads, artifacts):
@@ -336,9 +382,11 @@ def _from_dockerfiles(snap: Snapshot, workloads: list[WorkloadInfo],
         fact = next((f for key in ("cmd", "entrypoint") for f in df.settings if f["key"] == key), None)
         entry = (fact or {}).get("evidence") or evidence(snap, df.path)
         d = parent_dir(df.path)
+        context = _recovered_context(snap, df)
         out.append(WorkloadInfo(id=wid, kind="worker" if is_worker(name, command) else "web", name=name,
                                 entrypoint=entry, status="candidate", source="dockerfile", app_dir=d,
-                                command=command, code_root=d, dockerfile=df.path))
+                                command=command, code_root=context, dockerfile=df.path,
+                                build_context=None if context == d else context))
     return out
 
 

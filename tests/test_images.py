@@ -396,3 +396,17 @@ def test_app_server_evidence_falls_back_to_linked_dockerfile_command(tmp_path):
     inv = _inventory(tmp_path)
     hop = next(h for p in inv["request_paths"] for h in p["hops"] if h["kind"] == "app-server")
     assert [(e["path"], e["line"]) for e in hop["evidence"]] == [("Dockerfile", 3)]
+
+
+def test_dockerfile_workload_context_is_repo_root_when_sources_live_there(tmp_path):
+    repo = tmp_path / "repo"
+    _write(repo, "package.json", '{"name": "x"}\n')
+    _write(repo, "src/workers/cloud.js", "console.log(1)\n")
+    _write(repo, "docker/worker.Dockerfile",
+           'FROM node:20 AS build\nCOPY package.json ./\nCOPY --chown=node:node src ./src\n'
+           'FROM node:20\nCOPY --from=build /app /app\nCMD ["node", "src/workers/cloud.js"]\n')
+    _write(repo, "api/Dockerfile", 'FROM python:3.12\nCOPY . .\nCOPY main.py .\nCMD ["python", "main.py"]\n')
+    _write(repo, "api/main.py", "print(1)\n")
+    ws = {w.id: w for w in _workloads(repo)}
+    assert (ws["w-worker"].code_root, ws["w-worker"].build_context) == ("", "")
+    assert (ws["w-api"].code_root, ws["w-api"].build_context) == ("api", None)
