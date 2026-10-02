@@ -67,3 +67,24 @@ def test_malformed_inputs_do_not_crash(tmp_path):
     paths = build_paths(snap, [_w("w-api", command=None)], [bad], {}, [])
     assert paths[0]["hops"] == []
     assert app_server(None) is None
+
+
+def test_app_server_parses_shell_wrappers_and_chains():
+    node = ("nw:app/node-http/default", {})
+    flask = ("nw:app/flask-dev/default", {})
+    assert app_server('sh -c "npx prisma db push && node src/app.js"') == node
+    # Dockerfile exec form는 따옴표 없이 이어 붙인 문자열이 된다
+    assert app_server("sh -c npx prisma db push && node src/app.js") == node
+    assert app_server("bash -c 'alembic upgrade head; exec uvicorn app:app --timeout-keep-alive 30'") == (
+        "nw:app/uvicorn/default", {"timeout_keep_alive": 30})
+    assert app_server("flask --app app run --host=0.0.0.0 --port=8765") == flask
+    assert app_server("python -m flask run") == flask
+    assert app_server("python3 -m uvicorn main:app") == ("nw:app/uvicorn/default", {})
+    assert app_server("python -m gunicorn app:app") == ("nw:app/gunicorn/default", {})
+    assert app_server("npx next start") == ("nw:app/next-start/default", {})
+    assert app_server("exec node server.js") == node
+    # 마지막으로 알아본 서버가 이긴다
+    assert app_server("node migrate.js && gunicorn app:app") == ("nw:app/gunicorn/default", {})
+    assert app_server("gunicorn -k uvicorn.workers.UvicornWorker app:app") == ("nw:app/gunicorn/default", {})
+    assert app_server("npx prisma db push") is None
+    assert app_server('sh -c "unterminated') is None
