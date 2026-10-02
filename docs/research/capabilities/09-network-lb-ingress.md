@@ -75,7 +75,7 @@
 | 구성 요소 | 계층 | 유휴 타임아웃 (기본 / 최대) | 백엔드 타임아웃 | 웹소켓 | 본문 한도 | 드레이닝 기본 | 클라이언트 IP | 트래픽 분할 | 서울 | 최소 비용 (월) |
 |---|---|---|---|---|---|---|---|---|---|---|
 | AWS ALB | L7 종단 | 60초 / 4,000초 (클라이언트 keepalive 3,600초) | 별도 없음, 유휴 60초가 상한 | 지원, 지속 한도 미확인 | 미확인 (Lambda 대상 1 MB) | 300초 (0~3,600) | XFF append | 대상 그룹 가중치 0~999 | 있음 | $16.43 + LCU $0.008/시간 |
-| AWS NLB | L4 통과(TLS 종단 가능) | TCP 350초 (60~6,000), TLS 350초 고정, UDP 120초 고정 | 해당 없음 | TCP 통과(명시 문구 미확인) | 없음(L4) | 300초 | 원본 IP 보존(instance, UDP), PROXY v2 | 미확인 | 있음 | $16.43 + NLCU $0.006/시간 |
+| AWS NLB | L4 통과(TLS 종단 가능) | TCP 350초 (60~6,000), TLS 350초 고정, UDP 120초 고정 | 해당 없음 | TCP 통과(명시 문구 미확인) | 없음(L4) | 300초 | 원본 IP 보존(instance, UDP), PROXY v2 | 미확인 | 있음 | $16.43 + NLCU $0.006/시간 ⚠️근거없음 |
 | AWS GWLB | L3 통과 | TCP 350초, UDP 120초 | 해당 없음 | 해당 없음 | 해당 없음 | 미확인 | 원본 패킷 그대로 | 해당 없음 | 있음 | $9.13 + GLCU $0.004/시간 |
 | API GW HTTP API | L7 종단 | 미확인 | **30초 고정** | 없음 | 10 MB | 해당 없음 | `sourceIp` | 없음 (카나리 미지원) | 있음 | $0 + $1.23/100만 |
 | API GW REST API | L7 종단 | 310초 | 29초 (Regional·Private는 상향 가능) / 스트리밍 15분 | 없음 | 10 MB | 해당 없음 | `sourceIp` | 스테이지 카나리 % | 있음 | $0 + $3.50/100만 |
@@ -122,7 +122,7 @@
 | NW.layer | [L7] 종단 프록시. 클라이언트 연결과 대상 연결이 따로다. 대상 연결은 keep-alive로 재사용하고 다중화한다. 미리 열어 두는 연결은 없다 | — | https://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/how-elastic-load-balancing-works.html · "The keep-alive header is supported on backend connections by default." / "Classic Load Balancers use pre-open connections, but Application Load Balancers do not." · 2026-10-01 |
 | NW.idle_timeout | [L7] 유휴 타임아웃 기본 **60초**, 1~4,000초, 변경 가능. 클라이언트 keepalive 기간은 기본 3,600초(60~604,800). HTTP/2 PING은 유휴를 리셋하지 않는다. **앱 유휴 타임아웃 > LB 유휴 타임아웃이어야 한다**(아니면 502) | 대상 쪽 연결에도 같은 유휴 값이 적용된다 | https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_LoadBalancerAttribute.html · "The valid range is 1-4000 seconds. The default is 60 seconds." / "client_keep_alive.seconds … valid range is 60-604800 seconds. The default is 3600 seconds." · https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-load-balancer-attributes.html · "configure the idle timeout of your application to be larger than the idle timeout configured for the load balancer" / "Application Load Balancers do not support HTTP/2 PING frames. These do not reset the connection idle timeout." · 2026-10-01 |
 | NW.request_timeout | [L7] 별도의 백엔드 응답 타임아웃이 없다. 응답 바이트가 유휴 타임아웃(기본 60초) 넘게 오지 않으면 끊긴다(504). 그래서 실질 상한은 유휴 타임아웃이다 | 별도 "요청 타임아웃" 속성이 없다는 문장은 미확인 | https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-load-balancer-attributes.html · "By default, Elastic Load Balancing sets the idle timeout value for your load balancer to 60 seconds." · 2026-10-01 |
-| NW.websocket | [L7] 웹소켓 기본 지원. 지속 한도는 문서에 없다(미확인). 데이터가 유휴 타임아웃보다 길게 없으면 끊긴다. 업그레이드 뒤에는 리스너 규칙과 WAF가 적용되지 않는다. 헬스 체크는 웹소켓을 지원하지 않는다. SSE는 일반 HTTP 응답이라 유휴 규칙만 적용된다(추론) | Lambda 대상은 웹소켓 불가 | https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html · "Application Load Balancers provide native support for WebSockets." · https://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/how-elastic-load-balancing-works.html · "if there is a connection upgrade… listener routing rules and AWS WAF integrations no longer apply" · https://docs.aws.amazon.com/elasticloadbalancing/latest/application/target-group-health-checks.html · "Health checks do not support WebSockets." · 2026-10-01 |
+| NW.websocket | [L7] 웹소켓 기본 지원. 지속 한도는 문서에 없다(미확인). 데이터가 유휴 타임아웃보다 길게 없으면 끊긴다. 업그레이드 뒤에는 리스너 규칙과 WAF가 적용되지 않는다. 헬스 체크는 웹소켓을 지원하지 않는다. SSE는 일반 HTTP 응답이라 유휴 규칙만 적용된다(추론) | Lambda 대상은 웹소켓 불가 | https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html · "Application Load Balancers provide native support for WebSockets." · https://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/how-elastic-load-balancing-works.html · "if there is a connection upgrade… listener routing rules and AWS WAF integrations no longer apply" · https://docs.aws.amazon.com/elasticloadbalancing/latest/application/target-group-health-checks.html · "Health checks do not support WebSockets." · 2026-10-01 ⚠️근거없음 |
 | NW.protocols | [L7] 프런트: HTTP/0.9·1.0·1.1, HTTP/2(HTTPS 리스너만, 연결당 병렬 128). HTTP/3은 미확인. 대상: 기본 HTTP/1.1, HTTP/2·gRPC 선택(HTTPS 리스너 + instance/ip 대상) | — | https://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/how-elastic-load-balancing-works.html · "support the following protocols on front-end connections: HTTP/0.9, HTTP/1.0, HTTP/1.1, and HTTP/2" · https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-target-groups.html · "By default, Application Load Balancers send requests to targets using HTTP/1.1… using HTTP/2 or gRPC." · 2026-10-01 |
 | NW.body_size | [L7] 요청 줄 16K, 단일 헤더 16K, 요청 헤더 전체 64K, 응답 헤더 전체 32K. 모두 조정 불가. **본문 한도는 문서에 없다(미확인)**. Lambda 대상은 요청·응답 각 1 MB | — | https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-limits.html · "Request line 16 K No / Single header 16 K No / Entire response header 32 K / Entire request header 64 K" · https://docs.aws.amazon.com/elasticloadbalancing/latest/application/lambda-functions.html · "maximum size of the request body… is 1 MB… response JSON… is 1 MB. WebSockets are not supported." · 2026-10-01 |
 | NW.draining | [L7] 등록 해제 지연 기본 **300초**, 0~3,600초. slow start 기본 0(꺼짐), 30~900초. LOR·weighted_random과 함께 쓸 수 없다 | ECS stopTimeout 최대 120초보다 길다(05 문서) | https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_TargetGroupAttribute.html · "The range is 0-3600 seconds. The default value is 300 seconds." / "The range is 30-900 seconds (15 minutes). The default is 0 seconds (disabled)." · 2026-10-01 |
@@ -134,7 +134,7 @@
 | NW.availability | [L7] 존 2개 이상. 교차 영역은 LB 수준에서 항상 켜짐(대상 그룹 단위로 끌 수 있음). SLA 99.99% | — | https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-target-group-attributes.html · "cross-zone load balancing is always turned on at the load balancer level, and cannot be turned off" · https://aws.amazon.com/elasticloadbalancing/sla/ · "Less than 99.99% but greater than or equal to 99.0% 10%" · 2026-10-01 |
 | NW.caching | 해당 없음 | — | — |
 | NW.security | [L7] AWS WAF 연동(WAF fail-open 기본 꺼짐). desync 완화 기본 defensive. 잘못된 헤더 필드 버림 기본 꺼짐. 삭제 보호 기본 꺼짐 | — | https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_LoadBalancerAttribute.html · "waf.fail_open.enabled… The default is false." / "routing.http.drop_invalid_header_fields.enabled… The default is false." · https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-load-balancer-attributes.html · "The default is the defensive mode" · 2026-10-01 |
-| NW.dns | 해당 없음(10 문서). ALB는 DNS 이름만 주고 IP가 바뀐다. 고정 IP가 필요하면 NLB를 앞에 둔다(추론) | — | — |
+| NW.dns | 해당 없음(10 문서). ALB는 DNS 이름만 주고 IP가 바뀐다. 고정 IP가 필요하면 NLB를 앞에 둔다(추론) | — | — ⚠️근거없음 |
 | NW.egress | 해당 없음(10 문서) | — | — |
 | NW.private_connectivity | [L3] 내부 ALB(`internal = true`). PrivateLink 노출은 NLB 경유(10 문서) | — | — |
 | NW.regions | 서울 있음 | — | [PL] AWSELB ap-northeast-2 · 2026-10-01 |
@@ -175,7 +175,7 @@
     - `aws_lb.drop_invalid_header_fields = true`, `desync_mitigation_mode = "defensive"` 이상, `enable_deletion_protection = true`.
     - `xff_header_processing_mode = "append"`(기본값이지만 명시).
   - 카나리: `aws_lb_listener.default_action { type = "forward" forward { target_group { arn, weight } … stickiness { enabled, duration } } }`.
-- Checkov(존재 확인, https://www.checkov.io/5.Policy%20Index/terraform.html · 2026-10-01):
+- Checkov(존재 확인, https://www.checkov.io/5.Policy%20Index/terraform.html · 2026-10-01): ⚠️출처확인필요
   - CKV_AWS_2 "Ensure ALB protocol is HTTPS"
   - CKV_AWS_91 "Ensure the ELBv2 (Application/Network) has access logging enabled"
   - CKV_AWS_103 "Ensure that load balancer is using at least TLS 1.2"
@@ -205,14 +205,14 @@
 | NW.layer | [L4] 연결 단위 통과(TCP·UDP). TLS 리스너는 [TLS] 종단. 프로토콜: TCP, TLS, UDP, TCP_UDP, QUIC, TCP_QUIC | — | https://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-listeners.html · "Protocols: TCP, TLS, UDP, TCP_UDP, QUIC, TCP_QUIC" / "With a TCP listener, the load balancer passes encrypted traffic through to the targets without decrypting it." · 2026-10-01 |
 | NW.idle_timeout | [L4] TCP 기본 **350초**, 60~6,000초(리스너 속성 `tcp.idle_timeout.seconds`). [TLS] TLS 리스너 350초 고정. UDP 120초 고정 | — | https://docs.aws.amazon.com/elasticloadbalancing/latest/network/network-load-balancers.html · "default idle timeout value for TCP flows is 350 seconds, but can be updated to any value between 60-6000 seconds" · https://docs.aws.amazon.com/elasticloadbalancing/latest/network/update-idle-timeout.html · "The connection idle timeout for TLS listeners is 350 seconds and can't be modified." · 2026-10-01 |
 | NW.request_timeout | 해당 없음(L4, 요청 개념 없음) | — | — |
-| NW.websocket | [L4] TCP 통과라 프로토콜과 무관하게 연결은 유휴 350초 안에서 유지된다(추론, 웹소켓 명시 문구 미확인) | — | 미확인 |
+| NW.websocket | [L4] TCP 통과라 프로토콜과 무관하게 연결은 유휴 350초 안에서 유지된다(추론, 웹소켓 명시 문구 미확인) | — | 미확인 ⚠️근거없음 |
 | NW.protocols | [L4] 위 NW.layer. HTTP/2·gRPC는 TCP 통과로 앱이 처리 | — | 같은 출처 |
 | NW.body_size | 해당 없음(L4) | — | — |
 | NW.draining | [L4] 등록 해제 지연 기본 300초. 해제 시 연결 종료(`deregistration_delay.connection_termination.enabled`) 기본 false. 비정상 대상 연결 종료 기본 true, 드레이닝 간격 기본 0 | — | https://docs.aws.amazon.com/elasticloadbalancing/latest/network/edit-target-group-attributes.html · "changes the state of a deregistering target to unused after 300 seconds" · https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_TargetGroupAttribute.html · "target_health_state.unhealthy.connection_termination.enabled… The default is true." · 2026-10-01 |
 | NW.health_check | [L4] 기본 TCP, 간격 30초, 타임아웃 HTTP 6초·TCP/HTTPS 10초, 정상 5, 비정상 2. **모든 존에서 전부 비정상이면 fail-open** | — | https://docs.aws.amazon.com/elasticloadbalancing/latest/network/target-group-health-checks.html · "If all targets fail health checks at the same time in all enabled Availability Zones, the load balancer fails open." · 2026-10-01 |
 | NW.tls | [TLS] TLS 리스너에서 종단 가능(ACM). TCP 리스너는 통과 | — | https://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-listeners.html · 2026-10-01 |
 | NW.client_ip | [L4] 원본 IP 보존: instance 대상은 켜짐. ip 대상(TCP·TLS)은 꺼짐. UDP·TCP_UDP·QUIC은 항상 켜짐. PROXY protocol v2(`proxy_protocol_v2.enabled`) 기본 false | ip 대상이면 PROXY v2나 보존 속성을 켜야 한다 | https://docs.aws.amazon.com/elasticloadbalancing/latest/network/edit-target-group-attributes.html · "Instance type target groups: Enabled… IP type target groups (TCP, TLS): Disabled" · https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_TargetGroupAttribute.html · "proxy_protocol_v2.enabled… The default is false." · 2026-10-01 |
-| NW.routing | [L4] 포트 단위 리스너 → 대상 그룹. 가중치 분할은 미확인 | — | 미확인 |
+| NW.routing | [L4] 포트 단위 리스너 → 대상 그룹. 가중치 분할은 미확인 | — | 미확인 ⚠️근거없음 |
 | NW.scaling | [L4] 자동. 리전당 NLB 50, NLB당 대상 3,000, AZ당 500 | — | https://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-limits.html · "Network Load Balancers per Region 50 Yes" · 2026-10-01 |
 | NW.availability | [L4] AZ별 노드. **교차 영역 기본 꺼짐** → AZ마다 대상이 고르지 않으면 쏠린다. AZ당 탄력적 IP(고정 IP) | — | https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_LoadBalancerAttribute.html · "The default for Network Load Balancers and Gateway Load Balancers is false." · https://docs.aws.amazon.com/elasticloadbalancing/latest/network/create-network-load-balancer.html · "you can select an Elastic IP address for each Availability Zone." · 2026-10-01 |
 | NW.caching | 해당 없음 | — | — |
@@ -227,13 +227,13 @@
 월 $16.43 + NLCU. 장시간 연결이 많을 때 ALB보다 싸다(활성 연결 100,000/NLCU 대 3,000/LCU).
 
 ### 교체 계열 정보
-ALB → NLB로 바꾸면 L7 기능이 사라진다: 경로 라우팅, XFF, WAF, HTTP 헬스 체크 외 L7. 클라이언트 IP는 PROXY v2나 IP 보존으로 받는다. 이때 앱 쪽에 PROXY 파싱이 필요하다(uvicorn `--proxy-headers`는 PROXY protocol이 아님, 별도 처리 필요 — 추론).
+ALB → NLB로 바꾸면 L7 기능이 사라진다: 경로 라우팅, XFF, WAF, HTTP 헬스 체크 외 L7. 클라이언트 IP는 PROXY v2나 IP 보존으로 받는다. 이때 앱 쪽에 PROXY 파싱이 필요하다(uvicorn `--proxy-headers`는 PROXY protocol이 아님, 별도 처리 필요 — 추론). ⚠️근거없음
 
 ### 함정
 - ip 대상(EKS·Fargate)에서 원본 IP 보존이 기본 꺼짐이다.
 - 보안 그룹을 나중에 붙일 수 없다.
 - 교차 영역 기본 꺼짐.
-- PROXY v2를 켜면 앱(또는 앞단 nginx)이 반드시 파싱해야 한다. 아니면 모든 요청이 400이 된다(추론).
+- PROXY v2를 켜면 앱(또는 앞단 nginx)이 반드시 파싱해야 한다. 아니면 모든 요청이 400이 된다(추론). ⚠️근거없음
 
 ### 생성 산출물
 - Terraform 리소스: `aws_lb`(`load_balancer_type = "network"`), `aws_lb_target_group`(`protocol = "TCP"`), `aws_lb_listener`(`tcp_idle_timeout_seconds`, 기본 350, 60~6000).
@@ -248,7 +248,7 @@ ALB → NLB로 바꾸면 L7 기능이 사라진다: 경로 라우팅, XFF, WAF, 
   - CKV_AWS_91, CKV_AWS_150
   - CKV_AWS_103(TLS 리스너)
 - 배포 후 검증:
-  - `aws elbv2 describe-listener-attributes --listener-arn <ARN>`(명령 원문 미확인)
+  - `aws elbv2 describe-listener-attributes --listener-arn <ARN>`(명령 원문 미확인) ⚠️근거없음
   - `describe-target-group-attributes`
   - 앱 로그에서 원본 IP가 찍히는지 본다.
 
@@ -293,7 +293,7 @@ ALB → NLB로 바꾸면 L7 기능이 사라진다: 경로 라우팅, XFF, WAF, 
 | NW.idle_timeout | 미확인 | — | 미확인 |
 | NW.request_timeout | [L7] 통합 타임아웃 **최대 30초, 상향 불가**(50~30,000 ms) | — | https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-quotas.html · "Maximum integration timeout 30 seconds No" · 2026-10-01 |
 | NW.websocket | 없음(WebSocket API는 별도 제품, 1.6). SSE 같은 응답 스트리밍 지원 문구는 미확인 | — | — |
-| NW.protocols | [L7] HTTPS. 통합: Lambda, HTTP 프록시, VPC 링크(ALB·NLB·Cloud Map) | 통합 목록 인용 미확인 | — |
+| NW.protocols | [L7] HTTPS. 통합: Lambda, HTTP 프록시, VPC 링크(ALB·NLB·Cloud Map) | 통합 목록 인용 미확인 | — ⚠️근거없음 |
 | NW.body_size | [L7] 페이로드 10 MB, 요청 줄 + 헤더 10,240바이트(조정 불가). Lambda 통합이면 실효 6 MB | — | https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-quotas.html · "Total combined size of request line and header values 10240 bytes" / "Payload size 10 MB" · 2026-10-01 |
 | NW.draining | 해당 없음(관리형) | — | — |
 | NW.health_check | 해당 없음(대상 헬스 체크 없음) | — | — |
@@ -301,16 +301,16 @@ ALB → NLB로 바꾸면 L7 기능이 사라진다: 경로 라우팅, XFF, WAF, 
 | NW.client_ip | [L7] `$context.identity.sourceIp`, Lambda v2 페이로드 `requestContext.http.sourceIp`. HTTP 통합으로 XFF가 전달되는지는 미확인(XFF는 매핑할 수 없는 예약 헤더) | — | https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-logging-variables.html · "The source IP address of the immediate TCP connection making the request" · https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-parameter-mapping.html · "The following headers are reserved… X-Forwarded-For X-Forwarded-Host X-Forwarded-Proto" · 2026-10-01 |
 | NW.routing | [L7] 경로·메서드 라우트. **카나리 배포 없음** | — | https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-vs-rest.html · "Canary release deployments Yes No" · 2026-10-01 |
 | NW.scaling | [L7] 계정·리전 스로틀 10,000 RPS, 버스트 5,000(일부 리전 2,500/1,250) | — | https://docs.aws.amazon.com/apigateway/latest/developerguide/limits.html · "10,000 requests per second (RPS)… maximum bucket capacity of 5,000 requests" · 2026-10-01 |
-| NW.availability | 리전 서비스. SLA 미확인 | — | — |
-| NW.caching | 없음(REST만 캐시) | — | — |
-| NW.security | WAF 직접 연결은 REST만(CKV2_AWS_29가 REST 대상). JWT·Lambda 권한 부여자 | 권한 부여자 인용 미확인 | — |
+| NW.availability | 리전 서비스. SLA 미확인 | — | — ⚠️근거없음 |
+| NW.caching | 없음(REST만 캐시) | — | — ⚠️근거없음 |
+| NW.security | WAF 직접 연결은 REST만(CKV2_AWS_29가 REST 대상). JWT·Lambda 권한 부여자 | 권한 부여자 인용 미확인 | — ⚠️근거없음 |
 | NW.dns / NW.egress | 해당 없음(10 문서) | — | — |
-| NW.private_connectivity | VPC 링크로 사설 ALB·NLB에 연결(인용 미확인) | — | 미확인 |
+| NW.private_connectivity | VPC 링크로 사설 ALB·NLB에 연결(인용 미확인) | — | 미확인 ⚠️근거없음 |
 | NW.regions | 서울 있음 | — | [PL] |
 | NW.cost_floor | **$0 고정** + $1.23/100만 요청(첫 3억), 이후 $1.11 | — | [PL] AmazonApiGateway ap-northeast-2 · "$1.11/million requests - API Gateway HTTP API (more than 300 million)" · 2026-10-01 |
 
 ### 비용 구조
-고정비 0, 요청당 과금이다. 월 1,300만 요청쯤에서 ALB 고정비($16.43)와 비슷해진다(계산, 추론).
+고정비 0, 요청당 과금이다. 월 1,300만 요청쯤에서 ALB 고정비($16.43)와 비슷해진다(계산, 추론). ⚠️근거없음
 
 ### 교체 계열 정보
 - 30초 상한 때문에 A2가 "수 분"이면 ALB나 함수 URL(900초)로 옮긴다.
@@ -322,7 +322,7 @@ ALB → NLB로 바꾸면 L7 기능이 사라진다: 경로 라우팅, XFF, WAF, 
 
 ### 생성 산출물
 - Terraform: `aws_apigatewayv2_api`(`protocol_type = "HTTP"`), `aws_apigatewayv2_integration`(`timeout_milliseconds`, HTTP 50~30,000, 기본 30초), `aws_apigatewayv2_route`, `aws_apigatewayv2_stage`(`auto_deploy`, `access_log_settings`, `default_route_settings` 스로틀), `aws_apigatewayv2_domain_name`, `aws_lambda_permission`.
-- 반드시 명시: A2용 `timeout_milliseconds`, F5용 `aws_apigatewayv2_route.authorization_type`, D3용 스테이지 스로틀(`throttling_rate_limit`·`throttling_burst_limit`, 인자 원문 미확인).
+- 반드시 명시: A2용 `timeout_milliseconds`, F5용 `aws_apigatewayv2_route.authorization_type`, D3용 스테이지 스로틀(`throttling_rate_limit`·`throttling_burst_limit`, 인자 원문 미확인). ⚠️근거없음
 - Checkov:
   - CKV_AWS_76 "Ensure API Gateway has Access Logging enabled"(apigatewayv2_stage 포함)
   - CKV_AWS_309 "Ensure API GatewayV2 routes specify an authorization type"
@@ -341,7 +341,7 @@ ALB → NLB로 바꾸면 L7 기능이 사라진다: 경로 라우팅, XFF, WAF, 
 | NW.layer | [L7] 종단. 엔드포인트 Edge(Terraform 기본 EDGE) / Regional / Private | — | https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-vs-rest.html · "Edge-optimized Yes No Regional Yes Yes Private Yes No" · 2026-10-01 |
 | NW.idle_timeout | [L7] 유휴 연결 310초(조정 불가) | — | https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-execution-service-limits-table.html · "Idle connection timeout 310 seconds No" · 2026-10-01 |
 | NW.request_timeout | [L7] 통합 50 ms~**29초**. Regional·Private는 29초 넘게 올릴 수 있으나 계정 스로틀이 줄 수 있다. Edge는 불가. [충돌] 상한: Terraform 문서는 300,000 ms(BUFFERED)·900,000 ms(STREAM). AWS API 참조는 "50~29,000"(상향 가능) | 응답 스트리밍(STREAM): 최대 15분, 유휴 5분(Regional·Private), Edge 30초 | https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-execution-service-limits-table.html · "You can raise the integration timeout to greater than 29 seconds, but this might require a reduction in your Region-level throttle quota" · https://docs.aws.amazon.com/apigateway/latest/developerguide/response-transfer-mode.html · "You can stream your response for up to 15 minutes." · https://raw.githubusercontent.com/hashicorp/terraform-provider-aws/main/website/docs/r/api_gateway_integration.html.markdown · "maximum value is 300,000 when `response_transfer_mode` is `BUFFERED`, and 900,000 when… `STREAM`" · https://docs.aws.amazon.com/apigateway/latest/api/API_PutIntegration.html · "Custom timeout between 50 and 29,000 milliseconds" · 2026-10-01 |
-| NW.websocket | 없음 | — | — |
+| NW.websocket | 없음 | — | — ⚠️근거없음 |
 | NW.protocols | [L7] HTTPS. 스트리밍은 HTTP_PROXY·AWS_PROXY 통합만 | — | 위 response-transfer-mode · 2026-10-01 |
 | NW.body_size | [L7] 페이로드 10 MB, 헤더 20,480바이트(Private API 8,000) | — | https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-execution-service-limits-table.html · 2026-10-01 |
 | NW.draining / NW.health_check | 해당 없음 | — | — |
@@ -349,11 +349,11 @@ ALB → NLB로 바꾸면 L7 기능이 사라진다: 경로 라우팅, XFF, WAF, 
 | NW.client_ip | [L7] `$context.identity.sourceIp` | — | https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-logging-variables.html · 2026-10-01 |
 | NW.routing | [L7] 리소스·메서드. **스테이지 카나리**(트래픽 %) | — | https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-vs-rest.html · "Canary release deployments Yes No" · 2026-10-01 |
 | NW.scaling | 10,000 RPS / 버스트 5,000 | — | https://docs.aws.amazon.com/apigateway/latest/developerguide/limits.html · 2026-10-01 |
-| NW.availability | 리전. SLA 미확인 | — | — |
+| NW.availability | 리전. SLA 미확인 | — | — ⚠️근거없음 |
 | NW.caching | [L7] 전용 캐시(0.5 GB $0.02/시간 ~), 캐시 켜면 시간당 고정비 | — | [PL] AmazonApiGateway ap-northeast-2 · "API Gateway Dedicated Cache: 0.5GB - Asia Pacific (Seoul)" 0.02 · 2026-10-01 |
-| NW.security | WAF 연결, 리소스 정책, 사용 계획·API 키 | — | Checkov CKV2_AWS_29 존재 확인 |
+| NW.security | WAF 연결, 리소스 정책, 사용 계획·API 키 | — | Checkov CKV2_AWS_29 존재 확인 ⚠️출처확인필요 |
 | NW.dns / NW.egress | 해당 없음 | — | — |
-| NW.private_connectivity | Private API(VPC 엔드포인트), VPC 링크 | 인용 미확인 | — |
+| NW.private_connectivity | Private API(VPC 엔드포인트), VPC 링크 | 인용 미확인 | — ⚠️근거없음 |
 | NW.regions | 서울 있음 | — | [PL] |
 | NW.cost_floor | $0 + $3.50/100만(첫 3.33억), $3.19, $2.71, $1.72 단계 | — | [PL] AmazonApiGateway ap-northeast-2 · 2026-10-01 |
 
@@ -389,15 +389,15 @@ ALB → NLB로 바꾸면 L7 기능이 사라진다: 경로 라우팅, XFF, WAF, 
 | NW.idle_timeout | [L7] **10분**(조정 불가) | — | 같은 페이지 · "Idle Connection Timeout 10 minutes" · 2026-10-01 |
 | NW.request_timeout | [L7] 통합 50 ms~29초 | — | 같은 페이지 · 2026-10-01 |
 | NW.websocket | [L7] 연결 최대 **2시간**(조정 불가), 새 연결 500/초 | 2시간마다 재연결 코드 필요 | 같은 페이지 · "Connection duration for WebSocket API… 2 hours" · 2026-10-01 |
-| NW.protocols | WSS | — | — |
+| NW.protocols | WSS | — | — ⚠️근거없음 |
 | NW.body_size | [L7] 프레임 32 KB, 메시지 128 KB | — | 같은 페이지 · "WebSocket frame size 32 KB… Message payload size 128 KB" · 2026-10-01 |
 | NW.draining / NW.health_check | 해당 없음 | — | — |
 | NW.tls | [TLS] TLS_1_2만(사용자 지정 도메인) | — | https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-custom-domain-tls-version.html · 2026-10-01 |
-| NW.client_ip | `$context.identity.sourceIp`(WebSocket 컨텍스트 변수 인용 미확인) | — | 미확인 |
-| NW.routing | 라우트 선택 식(`$connect`, `$disconnect`, `$default`). 가중치 없음 | 인용 미확인 | — |
+| NW.client_ip | `$context.identity.sourceIp`(WebSocket 컨텍스트 변수 인용 미확인) | — | 미확인 ⚠️근거없음 |
+| NW.routing | 라우트 선택 식(`$connect`, `$disconnect`, `$default`). 가중치 없음 | 인용 미확인 | — ⚠️근거없음 |
 | NW.scaling | 스로틀 10,000 RPS(계정 공유) | — | https://docs.aws.amazon.com/apigateway/latest/developerguide/limits.html · 2026-10-01 |
 | NW.availability / NW.caching / NW.dns / NW.egress / NW.private_connectivity | 미확인 / 해당 없음 | — | — |
-| NW.security | 권한 부여자는 `$connect`에서만(인용 미확인) | — | — |
+| NW.security | 권한 부여자는 `$connect`에서만(인용 미확인) | — | — ⚠️근거없음 |
 | NW.regions | 서울 있음 | — | [PL] |
 | NW.cost_floor | $0 + 메시지 $1.14/100만(10억 초과 $0.94) + 연결 분 $0.285/100만 | — | [PL] AmazonApiGateway ap-northeast-2 · "$0.285/million connection minutes" · 2026-10-01 |
 
@@ -422,10 +422,10 @@ ALB → NLB로 바꾸면 L7 기능이 사라진다: 경로 라우팅, XFF, WAF, 
 | NW.idle_timeout | 미확인 | — | — |
 | NW.request_timeout | [L7] 함수 타임아웃 최대 900초. URL 고유 타임아웃은 문서에 없다 | — | https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html · "Function timeout 900 seconds (15 minutes)." · 2026-10-01 |
 | NW.websocket | 미확인(지원 문구 없음). 응답 스트리밍(RESPONSE_STREAM)은 Node.js 관리형 런타임 | 클라이언트가 끊어도 함수는 계속 과금 | https://docs.aws.amazon.com/lambda/latest/dg/configuration-response-streaming.html (05 문서) · 2026-10-01 |
-| NW.protocols | [L7] HTTPS | — | — |
+| NW.protocols | [L7] HTTPS | — | — ⚠️근거없음 |
 | NW.body_size | [L7] 동기 요청·응답 각 6 MB, 스트리밍 응답 200 MB, 요청 줄 + 헤더 1 MB | — | https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html · "1 MB for the total combined size of request line and header values" · 2026-10-01 |
 | NW.draining / NW.health_check | 해당 없음 | — | — |
-| NW.tls | [TLS] AWS 관리. 사용자 지정 도메인은 URL 자체로 불가(CloudFront 경유, 10 문서, 인용 미확인) | — | — |
+| NW.tls | [TLS] AWS 관리. 사용자 지정 도메인은 URL 자체로 불가(CloudFront 경유, 10 문서, 인용 미확인) | — | — ⚠️근거없음 |
 | NW.client_ip | [L7] `requestContext.http.sourceIp` | — | https://docs.aws.amazon.com/lambda/latest/dg/urls-invocation.html · `"sourceIp": "123.123.123.123"` · 2026-10-01 |
 | NW.routing | 별칭에 URL을 붙이면 별칭 가중치로 2개 버전 분할(05 문서) | — | https://docs.aws.amazon.com/lambda/latest/dg/configuring-alias-routing.html · "You can point an alias to a maximum of two Lambda function versions." · 2026-10-01 |
 | NW.scaling | [L7] URL 고유 한도 없음. 최대 RPS = 예약 동시성 × 10, 넘으면 429 | — | https://docs.aws.amazon.com/lambda/latest/dg/urls-configuration.html · "maximum request rate per second (RPS) is equivalent to 10 times the configured reserved concurrency" · 2026-10-01 |
@@ -464,7 +464,7 @@ ALB → NLB로 바꾸면 L7 기능이 사라진다: 경로 라우팅, XFF, WAF, 
 | NW.body_size | 1.1과 같음 | — | — |
 | NW.draining | **미확인**. stopTimeout 30초, healthCheckGracePeriod 300초 | — | "healthCheckGracePeriodSeconds: 300" |
 | NW.health_check | [L7] 경로 `/`, 간격 30, 타임아웃 5, 정상 5, 비정상 2 | — | "health-check-path: (default "/")" |
-| NW.tls | [TLS] ACM 자동 발급. 정책 이름 미확인 | — | — |
+| NW.tls | [TLS] ACM 자동 발급. 정책 이름 미확인 | — | — ⚠️근거없음 |
 | NW.client_ip | XFF(1.1) | — | — |
 | NW.routing | [L7] 호스트 헤더로 서비스 구분. 카나리 배포 내장 | — | "canary deployment" |
 | NW.scaling / NW.availability | 1.1과 같음 | — | — |
@@ -475,7 +475,7 @@ ALB → NLB로 바꾸면 L7 기능이 사라진다: 경로 라우팅, XFF, WAF, 
 | NW.cost_floor | ALB와 같음($16.43 + LCU). VPC당 최대 25개 서비스가 ALB 하나를 공유 | — | "Up to 25 Express Mode services in the same VPC can share an Application Load Balancer." |
 
 ### 함정
-- 유휴 60초를 바꾸는 Express 전용 인자가 문서에 없다(미확인). 바꾸려면 생성된 ALB를 직접 수정해야 하고, 그러면 드리프트가 생긴다(추론).
+- 유휴 60초를 바꾸는 Express 전용 인자가 문서에 없다(미확인). 바꾸려면 생성된 ALB를 직접 수정해야 하고, 그러면 드리프트가 생긴다(추론). ⚠️근거없음
 - 액세스 로그 꺼짐 → CKV_AWS_91 실패.
 
 ### 생성 산출물
@@ -497,7 +497,7 @@ ALB → NLB로 바꾸면 L7 기능이 사라진다: 경로 라우팅, XFF, WAF, 
 | NW.idle_timeout | [L7] `alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=<초>`(미지정 시 ALB 기본 60). `client_keep_alive.seconds`도 같은 어노테이션 | — | I · "load-balancer-attributes: idle_timeout.timeout_seconds=600" |
 | NW.request_timeout | ALB와 같음 | — | — |
 | NW.websocket | ALB와 같음 | — | — |
-| NW.protocols | `backend-protocol-version`(어노테이션 원문 미확인) | — | — |
+| NW.protocols | `backend-protocol-version`(어노테이션 원문 미확인) | — | — ⚠️근거없음 |
 | NW.body_size | ALB와 같음 | — | — |
 | NW.draining | [L7] `alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30`(미지정 시 300). readiness gate: 네임스페이스 라벨 `elbv2.k8s.aws/pod-readiness-gate-inject: enabled`, **ip 대상에서만** | Pod 종료와 대상 해제 순서를 맞춘다 | I · "deregistration_delay.timeout_seconds=30" / R · "only works with target-type: ip" |
 | NW.health_check | [L7] **컨트롤러 기본값**: 간격 15, 타임아웃 5, 정상 2, 비정상 2, 경로 `/`, 성공 코드 200(gRPC 12). AWS 기본값(30/5/5/2)과 다르다 | — | I · "healthcheck-interval-seconds integer '15'" |
@@ -507,8 +507,8 @@ ALB → NLB로 바꾸면 L7 기능이 사라진다: 경로 라우팅, XFF, WAF, 
 | NW.scaling / NW.availability | ALB·NLB와 같음 | — | — |
 | NW.security | **`scheme` 기본 internal**(ALB·NLB 모두). 인터넷 노출은 `internet-facing` 명시. **`target-type` 기본 instance**(ALB), NLB도 LoadBalancerClass 사용 시 기본 instance | — | I · "alb.ingress.kubernetes.io/scheme internal \| internet-facing internal" / "instance \| ip instance" / S · "If not specified, default is internal." |
 | NW.caching / NW.dns / NW.egress / NW.private_connectivity | 해당 없음 | — | — |
-| NW.regions | EKS 리전 | — | — |
-| NW.cost_floor | 생성된 ALB/NLB 비용. `group.name`으로 공유하면 줄어든다 | — | — |
+| NW.regions | EKS 리전 | — | — ⚠️근거없음 |
+| NW.cost_floor | 생성된 ALB/NLB 비용. `group.name`으로 공유하면 줄어든다 | — | — ⚠️근거없음 |
 
 ### 함정
 - 기본 `scheme: internal` → 외부에서 접속이 안 되는 "배포 성공, 접속 실패"가 난다.
@@ -523,7 +523,7 @@ ALB → NLB로 바꾸면 L7 기능이 사라진다: 경로 라우팅, XFF, WAF, 
   - `target-group-attributes: deregistration_delay.timeout_seconds=…`(F4)
   - `certificate-arn`, `ssl-policy`, `ssl-redirect: "443"`(F5)
 - Checkov: 어노테이션 값을 검사하는 규칙은 확인하지 못했다(미확인). kubeconform + 커스텀 정책(Rego·grep)으로 위 키가 있는지 검사한다.
-- 배포 후 검증: `kubectl get ingress`로 주소를 확인한다. `aws elbv2 describe-load-balancer-attributes`로 어노테이션이 반영됐는지 본다. `kubectl get pod -o yaml`로 readiness gate 조건(`target-health.elbv2.k8s.aws/…`)을 확인한다(조건 이름 원문 미확인).
+- 배포 후 검증: `kubectl get ingress`로 주소를 확인한다. `aws elbv2 describe-load-balancer-attributes`로 어노테이션이 반영됐는지 본다. `kubectl get pod -o yaml`로 readiness gate 조건(`target-health.elbv2.k8s.aws/…`)을 확인한다(조건 이름 원문 미확인). ⚠️근거없음
 
 ---
 
@@ -575,13 +575,13 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 | NW.tls | [TLS] Google 관리 인증서(Compute Engine 또는 Certificate Manager). SSL 정책이 없으면 COMPATIBLE 프로필, **최소 TLS 1.0**. 최소 1.3은 RESTRICTED 필요. 프런트 mTLS·백엔드 mTLS 지원 | — | https://docs.cloud.google.com/load-balancing/docs/ssl-policies-concepts · "the COMPATIBLE profile selected, and the minimum TLS version set to 1.0" · https://docs.cloud.google.com/load-balancing/docs/features · "Frontend mTLS ... YES" · 2026-10-01 |
 | NW.client_ip | [L7] `X-Forwarded-For: [<supplied-value>,]<client-ip>,<load-balancer-ip>` → 클라이언트 IP는 **끝에서 두 번째**. 커스텀 요청 헤더 `{client_ip_address}` 가능 | 앱은 신뢰 홉 2 | https://docs.cloud.google.com/load-balancing/docs/https · "X-Forwarded-For : [<supplied-value>,]<client-ip>,<load-balancer-ip>" / "--custom-request-header=x-forwarded-for:{client_ip_address},{server_ip_address}" · 2026-10-01 |
 | NW.routing | [L7] URL 맵 호스트·경로. `weightedBackendServices` 가중치 분할(0~1000), 재시도(최대 25, perTryTimeout 최대 24시간), 이상치 감지, 헤더 변환 | — | https://docs.cloud.google.com/load-balancing/docs/features · "Traffic splitting ... YES (Only global and regional modes)" · 같은 RD · "The maximum number of retries ... is 25." · 2026-10-01 |
-| NW.scaling | [L7] 자동(사전 증설 불필요, 문구 미확인). URL 맵 1 MB | — | https://docs.cloud.google.com/load-balancing/docs/quotas · "1 MB for each global external ... URL map" · 2026-10-01 |
+| NW.scaling | [L7] 자동(사전 증설 불필요, 문구 미확인). URL 맵 1 MB | — | https://docs.cloud.google.com/load-balancing/docs/quotas · "1 MB for each global external ... URL map" · 2026-10-01 ⚠️근거없음 |
 | NW.availability | [L7] 전역 애니캐스트. SLA Premium 99.99% | — | https://cloud.google.com/compute/sla · "Load balancing >= 99.99%" · 2026-10-01 |
 | NW.caching | Cloud CDN 연동(10 문서) | — | — |
 | NW.security | Cloud Armor 백엔드·엣지 정책 | — | https://docs.cloud.google.com/load-balancing/docs/features · 2026-10-01 |
 | NW.dns / NW.egress | 해당 없음(10 문서) | — | — |
-| NW.private_connectivity | 백엔드: 인스턴스 그룹, 존 NEG(GKE 컨테이너 네이티브), 서버리스 NEG, PSC NEG | — | — |
-| NW.regions | 전역 | — | — |
+| NW.private_connectivity | 백엔드: 인스턴스 그룹, 존 NEG(GKE 컨테이너 네이티브), 서버리스 NEG, PSC NEG | — | — ⚠️근거없음 |
+| NW.regions | 전역 | — | — ⚠️근거없음 |
 | NW.cost_floor | 전달 규칙 $0.025/시간(**월 $18.25**, Iowa 기준). 전역 데이터 처리 요금 없음. 서울 단가 미확인 | — | https://cloud.google.com/vpc/network-pricing · "There are no global data processing charges." · 2026-10-01 |
 
 ### 비용 구조
@@ -636,9 +636,9 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 | NW.tls | [TLS] **Certificate Manager 인증서만**(Compute Engine 관리 인증서 불가). SSL 정책 기본 TLS 1.0 | — | https://docs.cloud.google.com/load-balancing/docs/features · "regional external Application Load Balancers support only Certificate Manager Google-managed certificates." · 2026-10-01 |
 | NW.client_ip | 2.1과 같음(XFF, 커스텀 헤더) | — | — |
 | NW.routing | 가중치 분할·재시도(리전 기본 재시도 1)·이상치 감지 지원 | — | https://docs.cloud.google.com/load-balancing/docs/features · "YES (Only global and regional modes)" · 2026-10-01 |
-| NW.scaling | 프록시 전용 서브넷 크기가 프록시 수를 제한(인용 미확인) | — | — |
+| NW.scaling | 프록시 전용 서브넷 크기가 프록시 수를 제한(인용 미확인) | — | — ⚠️근거없음 |
 | NW.availability | 리전. Standard 티어 SLA 99.9% | — | https://cloud.google.com/compute/sla · "Load balancing >= 99.9%" · 2026-10-01 |
-| NW.caching | 없음(Cloud CDN은 전역만, 인용 미확인) | — | — |
+| NW.caching | 없음(Cloud CDN은 전역만, 인용 미확인) | — | — ⚠️근거없음 |
 | NW.security | Cloud Armor 리전 백엔드 정책 | — | 같은 FE · 2026-10-01 |
 | NW.dns / NW.egress / NW.private_connectivity | 해당 없음(10 문서) | — | — |
 | NW.regions | 미확인 | — | — |
@@ -678,7 +678,7 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 | NW.caching | Cloud CDN(10 문서) | — | — |
 | NW.security | Cloud Armor 백엔드·엣지 | — | 같은 FE |
 | NW.dns / NW.egress / NW.private_connectivity | 해당 없음 | — | — |
-| NW.regions | 전역 | — | — |
+| NW.regions | 전역 | — | — ⚠️근거없음 |
 | NW.cost_floor | 전달 규칙 $18.25/월(Iowa 기준) | — | https://cloud.google.com/vpc/network-pricing · 2026-10-01 |
 
 ### 함정
@@ -717,9 +717,9 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 | NW.health_check | [L4] **전부 비정상이면 fail-open**(모든 백엔드로). 장애 조치 정책이 트래픽을 버리도록 설정된 경우는 예외 | — | https://docs.cloud.google.com/load-balancing/docs/network/ext-netlb-traffic-distribution · "When all backends are unhealthy, the set of eligible backends consists of all backends." · 2026-10-01 |
 | NW.tls | 해당 없음(앱이 종단) | — | — |
 | NW.client_ip | [L4] **원본 IP 보존** | — | https://docs.cloud.google.com/load-balancing/docs/network/networklb-backend-service · "The load balancer preserves the source IP addresses of incoming packets." · 2026-10-01 |
-| NW.routing | 없음 | — | — |
+| NW.routing | 없음 | — | — ⚠️근거없음 |
 | NW.scaling | 미확인 | — | — |
-| NW.availability | 리전 | — | — |
+| NW.availability | 리전 | — | — ⚠️근거없음 |
 | NW.security | Cloud Armor 네트워크 엣지 보안 정책 | — | https://docs.cloud.google.com/load-balancing/docs/features · 2026-10-01 |
 | NW.caching / NW.dns / NW.egress / NW.private_connectivity | 해당 없음 | — | — |
 | NW.regions | 미확인 | — | — |
@@ -741,7 +741,7 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 | NW.layer | [L4] 프록시(연결 종단). 전역·리전 `EXTERNAL_MANAGED`, 클래식 `EXTERNAL`. 리전은 TCP만, 전역·클래식은 SSL [TLS] 또는 TCP | — | https://docs.cloud.google.com/load-balancing/docs/features · "Regional mode: TCP only Global and classic mode: SSL or TCP" · 2026-10-01 |
 | NW.idle_timeout | [L4] **백엔드 서비스 타임아웃 = 유휴 타임아웃**, 기본 30초 | 장시간 유휴 TCP·웹소켓은 30초에 끊긴다 | https://docs.cloud.google.com/load-balancing/docs/backend-service · "length of time the load balancer keeps the TCP connection open in the absence of any data transmitted" · 2026-10-01 |
 | NW.request_timeout | 해당 없음(위 유휴로 대체) | — | — |
-| NW.websocket | [L4] TCP로 통과. 30초 유휴에 종료(추론) | — | — |
+| NW.websocket | [L4] TCP로 통과. 30초 유휴에 종료(추론) | — | — ⚠️근거없음 |
 | NW.protocols | [L4] TCP / SSL | — | 같은 FE |
 | NW.body_size | 해당 없음 | — | — |
 | NW.draining | 0~3,600 | — | 공통 CD |
@@ -773,7 +773,7 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 | NW.idle_timeout | [L7] 클라이언트 keepalive 610초(5~1,200), 백엔드 600초 고정. [충돌] Terraform은 교차 리전 내부 기본 600, 최대 600. [L4] 내부 패스스루 NLB 기본 유휴 600초(변경 가능) | — | https://docs.cloud.google.com/load-balancing/docs/l7-internal · "The default client HTTP keepalive timeout value is 610 seconds. You can configure the timeout with a value between 5 and 1200 seconds." · https://docs.cloud.google.com/load-balancing/docs/internal/int-netlb-traffic-distribution · "the load balancer uses a default idle timeout of 600 seconds" · 2026-10-01 |
 | NW.request_timeout | [L7] 백엔드 30초(서버리스 NEG 60분). [L4] 무시 | — | 같은 l7-internal · 2026-10-01 |
 | NW.websocket | [L7] 활성 연결은 타임아웃을 무시하고, 유휴 연결은 타임아웃에 종료된다 | — | 같은 l7-internal · "active websocket connections don't follow the backend service timeout. Idle websocket connections are closed after the backend service timeout." · 2026-10-01 |
-| NW.protocols | [L7] HTTP/1.1·2, gRPC. [L4] TCP·UDP·L3_DEFAULT | — | — |
+| NW.protocols | [L7] HTTP/1.1·2, gRPC. [L4] TCP·UDP·L3_DEFAULT | — | — ⚠️근거없음 |
 | NW.body_size | [L7] 요청·응답 헤더 각 60 KB | — | https://docs.cloud.google.com/load-balancing/docs/quotas · 2026-10-01 |
 | NW.draining | 0~3,600 | — | 공통 CD |
 | NW.health_check | [L7] 전부 비정상이면 503. [L4] fail-open | — | https://docs.cloud.google.com/load-balancing/docs/health-check-concepts · https://docs.cloud.google.com/load-balancing/docs/internal/int-netlb-traffic-distribution · "When all backends are unhealthy, the set of eligible backends consists of all backends." · 2026-10-01 |
@@ -804,7 +804,7 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| NW.layer | [L7] 종단(Google 프런트엔드, 상세 미확인) | — | — |
+| NW.layer | [L7] 종단(Google 프런트엔드, 상세 미확인) | — | — ⚠️근거없음 |
 | NW.idle_timeout | 미확인 | — | — |
 | NW.request_timeout | [L7] 기본 **300초**, 최대 3,600초 | — | https://docs.cloud.google.com/run/docs/configuring/request-timeout · "set by default to 5 minutes (300 seconds) and can be extended up to 60 minutes (3600 seconds)." · 2026-10-01 |
 | NW.websocket | [L7] 지원, **요청 타임아웃에 묶인다**(최대 60분) | 재연결 필수 | https://docs.cloud.google.com/run/docs/triggering/websockets · "subject to request timeouts (currently up to 60 minutes and defaults to 5 minutes)" · 2026-10-01 |
@@ -865,7 +865,7 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 | NW.scaling / NW.availability | 해당 LB | — | — |
 | NW.security | `GCPBackendPolicy.securityPolicy`(Cloud Armor), `iap` | — | 같은 페이지 |
 | NW.caching / NW.dns / NW.egress / NW.private_connectivity | 해당 없음 | — | — |
-| NW.regions | GKE 서울 있음 | — | — |
+| NW.regions | GKE 서울 있음 | — | — ⚠️근거없음 |
 | NW.cost_floor | 해당 LB 비용 | — | — |
 
 ### 함정
@@ -890,7 +890,7 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 | NW.layer | [L7] ALB 전용(전역, 클래식, 리전 외부, 리전·교차 리전 내부). **프록시·패스스루 NLB 불가** | — | https://docs.cloud.google.com/load-balancing/docs/negs/serverless-neg-concepts · "Serverless NEGs are not supported by proxy Network Load Balancers and passthrough Network Load Balancers." · 2026-10-01 |
 | NW.idle_timeout | 앞단 ALB의 값 | — | — |
 | NW.request_timeout | [L7] **60분 고정, 변경 불가**. `timeout_sec`를 설정하면 오류. 실제 상한은 Cloud Run 요청 타임아웃(300초 기본) | 둘 중 작은 값 | 같은 serverless-neg-concepts · "the default timeout is 60 minutes. This timeout is not configurable." / "Timeout sec is not supported for a backend service with Serverless network endpoint groups" · 2026-10-01 |
-| NW.websocket | ALB 규칙 + Cloud Run 요청 타임아웃 | — | — |
+| NW.websocket | ALB 규칙 + Cloud Run 요청 타임아웃 | — | — ⚠️근거없음 |
 | NW.protocols | 백엔드 프로토콜 설정은 무시됨 | — | 같은 페이지 |
 | NW.body_size | Cloud Run 32 MiB(HTTP/1) | — | 2.7 |
 | NW.draining | 해당 없음 | — | — |
@@ -900,7 +900,7 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 | NW.routing | URL 맵. 이상치 감지는 전역 외부·교차 리전 내부 ALB만(클래식 불가). 분산 모드·세션 어피니티 없음 | — | 같은 페이지 · "only available for a cross-region internal Application Load Balancer, global external Application Load Balancer, and not for a classic" · 2026-10-01 |
 | NW.scaling | 리전 LB 경유 시 프로젝트당 5,000 QPS, 리전 백엔드 서비스당 NEG 1개 | — | 같은 페이지 · 2026-10-01 |
 | NW.availability / NW.caching / NW.security / NW.dns / NW.egress / NW.private_connectivity | 앞단 ALB | — | — |
-| NW.regions | Cloud Run 리전 | — | — |
+| NW.regions | Cloud Run 리전 | — | — ⚠️근거없음 |
 | NW.cost_floor | 일반 LB 요금. 서버리스 송신 데이터는 과금하지 않음 | — | https://cloud.google.com/vpc/network-pricing · "you will not be charged for serverless outbound data transfer" · 2026-10-01 |
 
 ### 생성 산출물
@@ -947,7 +947,7 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
   - `traffic_weight { percentage, latest_revision, revision_suffix, label }`. 문서: "The cumulative values for `weight` must equal 100 exactly and explicitly."
   - 템플릿 수준 `termination_grace_period_seconds`, `revision_mode`.
 - Checkov: `azurerm_container_app*` 대상 체크 없음(08 문서).
-- 검증: `az containerapp ingress show`(명령 원문 미확인). 241초 요청으로 타임아웃을 확인한다.
+- 검증: `az containerapp ingress show`(명령 원문 미확인). 241초 요청으로 타임아웃을 확인한다. ⚠️근거없음
 
 ---
 
@@ -974,15 +974,15 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 | NW.idle_timeout | [L7] 클라이언트 `keep-alive` **75초**, `keep-alive-requests` 1,000. 업스트림 `upstream-keepalive-timeout` **60초**, `upstream-keepalive-connections` 320, `upstream-keepalive-requests` 10,000, `upstream-keepalive-time` 1h | 앱 keepalive > 60초 | CM / SRC · `KeepAlive: 75` · 2026-10-01 |
 | NW.request_timeout | [L7] `proxy-read-timeout` 60초, `proxy-send-timeout` 60초(둘 다 **연속 읽기·쓰기 사이 간격**), `proxy-connect-timeout` **5초**. 어노테이션 `nginx.ingress.kubernetes.io/proxy-read-timeout` 등(단위 없는 초) | — | CM / SRC · `ProxyConnectTimeout: 5,` / ANN · "All timeout values are unitless and in seconds" · 2026-10-01 |
 | NW.websocket | [L7] 별도 설정 없이 지원. 끊김을 막으려면 read/send 타임아웃을 늘린다(문서 권장 3,600 이상) | 60초 무전송에 끊긴다 | https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/docs/user-guide/miscellaneous.md · "The only requirement to avoid the close of connections is the increase of the values of `proxy-read-timeout` and `proxy-send-timeout`." · 2026-10-01 |
-| NW.protocols | [L7] HTTP/1.1·HTTP/2, gRPC(어노테이션) | 인용 미확인 | — |
+| NW.protocols | [L7] HTTP/1.1·HTTP/2, gRPC(어노테이션) | 인용 미확인 | — ⚠️근거없음 |
 | NW.body_size | [L7] `proxy-body-size` **1m**(넘으면 413). `client-header-buffer-size` 1k, `large-client-header-buffers` 4 8k. 헤더·본문 타임아웃 60초 | 업로드 앱은 반드시 올린다 | CM · 2026-10-01 |
 | NW.draining | [L7] `worker-shutdown-timeout` 240초 | — | CM / SRC · 2026-10-01 |
-| NW.health_check | Pod readiness를 엔드포인트로 따른다(k8s). 전부 비정상이면 503(nginx 기본, 인용 미확인) | — | — |
-| NW.tls | [TLS] Secret 기반, cert-manager 연동(인용 미확인) | — | — |
+| NW.health_check | Pod readiness를 엔드포인트로 따른다(k8s). 전부 비정상이면 503(nginx 기본, 인용 미확인) | — | — ⚠️근거없음 |
+| NW.tls | [TLS] Secret 기반, cert-manager 연동(인용 미확인) | — | — ⚠️근거없음 |
 | NW.client_ip | [L7] `use-forwarded-headers` **false**: 들어온 X-Forwarded-*를 무시하고 직접 본 값으로 채운다. `compute-full-forwarded-for` false, `use-proxy-protocol` false, `proxy-real-ip-cidr` 0.0.0.0/0. 앞단 L4 LB가 원본 IP를 가리면 Service `externalTrafficPolicy: Local` 필요 | — | CM · "If false, NGINX ignores incoming X-Forwarded-* headers, filling them with the request information it sees." · https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/docs/deploy/baremetal.md · "set the value of the `externalTrafficPolicy`… to `Local`" · 2026-10-01 |
 | NW.routing | [L7] 호스트·경로. 카나리: `nginx.ingress.kubernetes.io/canary: "true"` + `canary-weight`(0~`canary-weight-total`, 기본 100). 우선순위 header → cookie → weight | — | ANN · "canary-by-header -> canary-by-cookie -> canary-weight" · 2026-10-01 |
-| NW.scaling | 컨트롤러 레플리카 수(HPA) | — | — |
-| NW.availability | 레플리카 분산 | — | — |
+| NW.scaling | 컨트롤러 레플리카 수(HPA) | — | — ⚠️근거없음 |
+| NW.availability | 레플리카 분산 | — | — ⚠️근거없음 |
 | NW.security | 보안 패치 없음(은퇴) | **판정 결정적** | 위 블로그 |
 | NW.caching / NW.dns / NW.egress / NW.private_connectivity | 해당 없음 | — | — |
 | NW.regions | 해당 없음 | — | — |
@@ -1013,20 +1013,20 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| NW.layer | [L7] 종단 프록시(Envoy). 앞에 Service LoadBalancer [L4] | — | — |
-| NW.idle_timeout | [L7] ClientTrafficPolicy `timeouts.http.idleTimeout` 기본 **1시간**, `streamIdleTimeout` 5분. BackendTrafficPolicy `timeout.http.connectionIdleTimeout`(업스트림) 기본 **1시간** | 업스트림 1시간 > 앱 keepalive → 앱이 먼저 닫는 경쟁(§9 R3) | EG timeout_types.go · "Default: 1 hour." / "Default: 5 minutes." · 2026-10-01 |
-| NW.request_timeout | [L7] **기본 15초**(Envoy 라우트 기본값). HTTPRoute `timeouts.request`가 BackendTrafficPolicy보다 우선. Gateway API 스펙상 미지정 시 동작은 구현마다 다르다, "0s"는 비활성 | **긴 요청은 15초에 504** | https://raw.githubusercontent.com/envoyproxy/gateway/main/site/content/en/latest/tasks/traffic/http-timeouts.md · "The default request timeout is set to 15 seconds in Envoy Proxy." · GA · "When this field is unspecified, request timeout behavior is implementation-specific." · 2026-10-01 |
-| NW.websocket | [L7] HTTP/1.1 웹소켓 업그레이드 기본 허용. 지속 한도는 라우트 타임아웃에 걸리는지 미확인 | — | https://raw.githubusercontent.com/envoyproxy/gateway/main/internal/xds/translator/listener.go · "Allow websocket upgrades for HTTP 1.1" · 2026-10-01 |
-| NW.protocols | [L7] HTTP/1.1·2, gRPC(GRPCRoute) | 인용 미확인 | — |
-| NW.body_size | [L7] 최대 요청 헤더 **60 KiB**(상한 8,192 KiB). 연결 버퍼 32,768바이트(본문 한도 아님). 본문 한도 기본값 미확인 | — | EG clienttrafficpolicy_types.go · "Default: 60Ki bytes." / EG connection_types.go · "Default: 32768 bytes." · 2026-10-01 |
-| NW.draining | [L7] EnvoyProxy `shutdown.drainTimeout` **60초**, `minDrainDuration` 10초 | terminationGracePeriodSeconds(기본 30)보다 길다 → 확인 필요 | EG envoyproxy_types.go · "If unspecified, defaults to 60 seconds." · 2026-10-01 |
-| NW.health_check | 엔드포인트 readiness. 능동 헬스 체크는 BackendTrafficPolicy(인용 미확인) | — | — |
-| NW.tls | [TLS] Gateway 리스너 TLS. 최소 버전 기본 미확인 | — | — |
-| NW.client_ip | [L7] `clientIPDetection`: xForwardedFor(numTrustedHops 또는 trustedCIDRs), customHeader, directSourceIP 중 정확히 하나. PROXY protocol 기본 꺼짐(`proxyProtocol`, `enableProxyProtocol`은 deprecated) | 클라우드 L4 LB 뒤면 PROXY나 `externalTrafficPolicy: Local` | EG clienttrafficpolicy_types.go · "Exactly one of XForwardedFor, CustomHeader, or DirectSourceIP must be set." · 2026-10-01 |
+| NW.layer | [L7] 종단 프록시(Envoy). 앞에 Service LoadBalancer [L4] | — | — ⚠️근거없음 |
+| NW.idle_timeout | [L7] ClientTrafficPolicy `timeouts.http.idleTimeout` 기본 **1시간**, `streamIdleTimeout` 5분. BackendTrafficPolicy `timeout.http.connectionIdleTimeout`(업스트림) 기본 **1시간** | 업스트림 1시간 > 앱 keepalive → 앱이 먼저 닫는 경쟁(§9 R3) | EG timeout_types.go · "Default: 1 hour." / "Default: 5 minutes." · 2026-10-01 ⚠️출처확인필요 |
+| NW.request_timeout | [L7] **기본 15초**(Envoy 라우트 기본값). HTTPRoute `timeouts.request`가 BackendTrafficPolicy보다 우선. Gateway API 스펙상 미지정 시 동작은 구현마다 다르다, "0s"는 비활성 | **긴 요청은 15초에 504** | https://raw.githubusercontent.com/envoyproxy/gateway/main/site/content/en/latest/tasks/traffic/http-timeouts.md · "The default request timeout is set to 15 seconds in Envoy Proxy." · GA · "When this field is unspecified, request timeout behavior is implementation-specific." · 2026-10-01 ⚠️출처확인필요 |
+| NW.websocket | [L7] HTTP/1.1 웹소켓 업그레이드 기본 허용. 지속 한도는 라우트 타임아웃에 걸리는지 미확인 | — | https://raw.githubusercontent.com/envoyproxy/gateway/main/internal/xds/translator/listener.go · "Allow websocket upgrades for HTTP 1.1" · 2026-10-01 ⚠️출처확인필요 |
+| NW.protocols | [L7] HTTP/1.1·2, gRPC(GRPCRoute) | 인용 미확인 | — ⚠️근거없음 |
+| NW.body_size | [L7] 최대 요청 헤더 **60 KiB**(상한 8,192 KiB). 연결 버퍼 32,768바이트(본문 한도 아님). 본문 한도 기본값 미확인 | — | EG clienttrafficpolicy_types.go · "Default: 60Ki bytes." / EG connection_types.go · "Default: 32768 bytes." · 2026-10-01 ⚠️출처확인필요 |
+| NW.draining | [L7] EnvoyProxy `shutdown.drainTimeout` **60초**, `minDrainDuration` 10초 | terminationGracePeriodSeconds(기본 30)보다 길다 → 확인 필요 | EG envoyproxy_types.go · "If unspecified, defaults to 60 seconds." · 2026-10-01 ⚠️출처확인필요 |
+| NW.health_check | 엔드포인트 readiness. 능동 헬스 체크는 BackendTrafficPolicy(인용 미확인) | — | — ⚠️근거없음 |
+| NW.tls | [TLS] Gateway 리스너 TLS. 최소 버전 기본 미확인 | — | — ⚠️근거없음 |
+| NW.client_ip | [L7] `clientIPDetection`: xForwardedFor(numTrustedHops 또는 trustedCIDRs), customHeader, directSourceIP 중 정확히 하나. PROXY protocol 기본 꺼짐(`proxyProtocol`, `enableProxyProtocol`은 deprecated) | 클라우드 L4 LB 뒤면 PROXY나 `externalTrafficPolicy: Local` | EG clienttrafficpolicy_types.go · "Exactly one of XForwardedFor, CustomHeader, or DirectSourceIP must be set." · 2026-10-01 ⚠️출처확인필요 |
 | NW.routing | [L7] `backendRefs.weight`(기본 1, 0~1,000,000, 비율). `timeouts.backendRequest` ≤ `timeouts.request` | — | https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/main/apis/v1/shared_types.go · "If unspecified, weight defaults to 1." · GA · "must be no more than the value of the Request timeout" · 2026-10-01 |
-| NW.scaling | Envoy 프록시 Deployment 레플리카 | — | — |
-| NW.availability | 레플리카 분산 | — | — |
-| NW.security | SecurityPolicy(인증·CORS·레이트 리밋, 인용 미확인) | — | — |
+| NW.scaling | Envoy 프록시 Deployment 레플리카 | — | — ⚠️근거없음 |
+| NW.availability | 레플리카 분산 | — | — ⚠️근거없음 |
+| NW.security | SecurityPolicy(인증·CORS·레이트 리밋, 인용 미확인) | — | — ⚠️근거없음 |
 | NW.caching / NW.dns / NW.egress / NW.private_connectivity | 해당 없음 | — | — |
 | NW.regions | 해당 없음 | — | — |
 | NW.cost_floor | 프록시 Pod + 앞단 L4 LB | — | — |
@@ -1036,14 +1036,14 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 - 업스트림 유휴 1시간.
 
 ### 생성 산출물
-- Helm으로 설치(`helm_release`, 차트 위치 미확인) + `GatewayClass`(`controllerName: gateway.envoyproxy.io/gatewayclass-controller`, 원문 미확인), `Gateway`, `HTTPRoute`(`timeouts.request`, `timeouts.backendRequest`, `backendRefs[].weight`), `ClientTrafficPolicy`(`timeouts.http.idleTimeout`, `clientIPDetection`), `BackendTrafficPolicy`(`timeout.http.requestTimeout`, `timeout.http.connectionIdleTimeout`), `EnvoyProxy`(`shutdown.drainTimeout`).
+- Helm으로 설치(`helm_release`, 차트 위치 미확인) + `GatewayClass`(`controllerName: gateway.envoyproxy.io/gatewayclass-controller`, 원문 미확인), `Gateway`, `HTTPRoute`(`timeouts.request`, `timeouts.backendRequest`, `backendRefs[].weight`), `ClientTrafficPolicy`(`timeouts.http.idleTimeout`, `clientIPDetection`), `BackendTrafficPolicy`(`timeout.http.requestTimeout`, `timeout.http.connectionIdleTimeout`), `EnvoyProxy`(`shutdown.drainTimeout`). ⚠️근거없음
 - 반드시 명시:
   - A2: `HTTPRoute.spec.rules[].timeouts.request`. 기본 15초를 그대로 두지 않는다.
   - A3·R3: `BackendTrafficPolicy.timeout.http.connectionIdleTimeout` < 앱 keepalive.
   - F5: `clientIPDetection`.
   - F4: `drainTimeout` ≤ terminationGracePeriodSeconds.
 - Checkov: 해당 없음 → kubeconform(Gateway API·EG CRD) + 커스텀.
-- 검증: `kubectl get gateway`(PROGRAMMED), `egctl config envoy-proxy route`(명령 원문 미확인). 20초 응답 엔드포인트로 504가 없는지 확인한다.
+- 검증: `kubectl get gateway`(PROGRAMMED), `egctl config envoy-proxy route`(명령 원문 미확인). 20초 응답 엔드포인트로 504가 없는지 확인한다. ⚠️근거없음
 
 ---
 
@@ -1053,16 +1053,16 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| NW.layer | [L4] 클라우드 L4 LB. EKS는 1.9 컨트롤러로 NLB, GKE는 패스스루 NLB(2.4, 인용 미확인) | — | — |
+| NW.layer | [L4] 클라우드 L4 LB. EKS는 1.9 컨트롤러로 NLB, GKE는 패스스루 NLB(2.4, 인용 미확인) | — | — ⚠️근거없음 |
 | NW.idle_timeout | 클라우드 LB 값(AWS NLB 350초, GCP 패스스루 60초 연결 추적) | — | 1.2, 2.4 |
 | NW.request_timeout / NW.body_size | 해당 없음 | — | — |
-| NW.websocket | 통과 | — | — |
-| NW.protocols | TCP/UDP | — | — |
-| NW.draining | 클라우드 LB 값 | — | — |
+| NW.websocket | 통과 | — | — ⚠️근거없음 |
+| NW.protocols | TCP/UDP | — | — ⚠️근거없음 |
+| NW.draining | 클라우드 LB 값 | — | — ⚠️근거없음 |
 | NW.health_check | `Local`일 때 로컬 엔드포인트가 없는 노드는 패킷을 버린다 | — | https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/tutorials/services/source-ip.md · "If there are no local endpoints, packets sent to the node are dropped" · 2026-10-01 |
 | NW.tls | 해당 없음(통과) | — | — |
 | NW.client_ip | [L4] `externalTrafficPolicy: Cluster`(**기본**)는 클라이언트 IP를 가린다. `Local`은 보존하지만 트래픽이 불균형할 수 있다 | — | https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/tasks/access-application-cluster/create-external-load-balancer.md · "`Cluster` (default) and `Local`. `Cluster` obscures the client source IP" / "`Local` preserves the client source IP and avoids a second hop… but risks potentially imbalanced traffic spreading." · 2026-10-01 |
-| NW.routing | 없음 | — | — |
+| NW.routing | 없음 | — | — ⚠️근거없음 |
 | 나머지 키 | 클라우드 LB 값 / 해당 없음 | — | — |
 | NW.cost_floor | 클라우드 L4 LB 1개(AWS $16.43, GCP $18.25) | — | 1.2, 2.4 |
 
@@ -1085,17 +1085,17 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| NW.layer | [L7] 종단 프록시. `stream` 모듈로 [L4]도 가능 | — | — |
+| NW.layer | [L7] 종단 프록시. `stream` 모듈로 [L4]도 가능 | — | — ⚠️근거없음 |
 | NW.idle_timeout | [L7] 클라이언트 `keepalive_timeout` **75초**. 업스트림: **1.29.7부터 `proxy_http_version` 기본 1.1, upstream keepalive 기본 켜짐(워커당 32)**, upstream `keepalive_timeout` 60초, `keepalive_requests` 1,000, `keepalive_time` 1h. 1.29.7 전에는 1.0이라 업스트림 재사용이 없었다 | 1.29.7+에서 nginx↔앱 구간에 R3 경쟁이 새로 생긴다 | https://nginx.org/en/docs/http/ngx_http_core_module.html · "Default: keepalive_timeout 75s;" · https://nginx.org/en/docs/http/ngx_http_proxy_module.html · "Since 1.29.7, version 1.1 is used by default. Before 1.29.7, version 1.0 was used by default." · https://nginx.org/en/docs/http/ngx_http_upstream_module.html · "Since 1.29.7, keepalive connections are enabled by default, with a default limit of 32 connections per each worker process." · https://nginx.org/en/CHANGES · "now ngx_http_proxy_module supports keepalive by default" · 2026-10-01 |
 | NW.request_timeout | [L7] `proxy_read_timeout` 60초, `proxy_send_timeout` 60초(연속 두 읽기·쓰기 사이), `proxy_connect_timeout` 60초 | — | https://nginx.org/en/docs/http/ngx_http_proxy_module.html · 2026-10-01 |
-| NW.websocket | [L7] `Upgrade`·`Connection` 헤더를 **직접 설정해야** 한다(hop-by-hop). 기본 60초 무전송에 종료 | SSE는 `proxy_buffering off` 또는 `X-Accel-Buffering: no`(Next.js 문서) | https://nginx.org/en/docs/http/websocket.html · "“Upgrade” is a hop-by-hop header, it is not passed" / "connection will be closed if the proxied server does not transmit any data within 60 seconds" · https://nextjs.org/docs/app/guides/self-hosting · "you can disable buffering in nginx by setting X-Accel-Buffering to no" · 2026-10-01 |
+| NW.websocket | [L7] `Upgrade`·`Connection` 헤더를 **직접 설정해야** 한다(hop-by-hop). 기본 60초 무전송에 종료 | SSE는 `proxy_buffering off` 또는 `X-Accel-Buffering: no`(Next.js 문서) | https://nginx.org/en/docs/http/websocket.html · "“Upgrade” is a hop-by-hop header, it is not passed" / "connection will be closed if the proxied server does not transmit any data within 60 seconds" · https://nextjs.org/docs/app/guides/self-hosting · "you can disable buffering in nginx by setting X-Accel-Buffering to no" · 2026-10-01 ⚠️출처부적격 |
 | NW.protocols | [L7] HTTP/1.x·2·3(빌드에 따라), 업스트림 HTTP/1.x(1.29.7+ 기본 1.1), gRPC(`grpc_pass`) | — | — |
 | NW.body_size | [L7] `client_max_body_size` **1m**, `client_header_buffer_size` 1k, `large_client_header_buffers` 4 8k, 헤더·본문 타임아웃 60초 | — | https://nginx.org/en/docs/http/ngx_http_core_module.html · 2026-10-01 |
-| NW.draining | 우아한 종료 `nginx -s quit`(인용 미확인) | — | — |
-| NW.health_check | 수동(passive) `max_fails`/`fail_timeout`(인용 미확인). 능동 체크는 상용 | — | — |
+| NW.draining | 우아한 종료 `nginx -s quit`(인용 미확인) | — | — ⚠️근거없음 |
+| NW.health_check | 수동(passive) `max_fails`/`fail_timeout`(인용 미확인). 능동 체크는 상용 | — | — ⚠️근거없음 |
 | NW.tls | [TLS] 설정에 따름 | — | — |
 | NW.client_ip | [L7] realip 모듈: `set_real_ip_from` 기본 없음, `real_ip_header` 기본 X-Real-IP, `real_ip_recursive` off. `listen … proxy_protocol` | S-064: 신뢰 CIDR만 | https://nginx.org/en/docs/http/ngx_http_realip_module.html · https://nginx.org/en/docs/http/ngx_http_core_module.html · "allows specifying that all connections accepted on this port should use the PROXY protocol" · 2026-10-01 |
-| NW.routing | [L7] location, upstream `weight`(인용 미확인) | — | — |
+| NW.routing | [L7] location, upstream `weight`(인용 미확인) | — | — ⚠️근거없음 |
 | NW.scaling / NW.availability / NW.security | 호스트 / 단일 호스트 / `limit_req`(02 문서 T-089) | — | — |
 | NW.caching / NW.dns / NW.egress / NW.private_connectivity / NW.regions / NW.cost_floor | 해당 없음(호스트 비용) | — | — |
 
@@ -1120,21 +1120,21 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 ## 5.2 Envoy (v1.39.1, 독립 실행)
 - 계열: 네트워크-리버스 프록시 (L7)
 
-출처 약어: RC = https://raw.githubusercontent.com/envoyproxy/envoy/main/api/envoy/config/route/v3/route_components.proto, HCM = `.../extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto`, PR = `.../config/core/v3/protocol.proto` (모두 envoyproxy/envoy main, 2026-10-01).
+출처 약어: RC = https://raw.githubusercontent.com/envoyproxy/envoy/main/api/envoy/config/route/v3/route_components.proto, HCM = `.../extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto`, PR = `.../config/core/v3/protocol.proto` (모두 envoyproxy/envoy main, 2026-10-01). ⚠️출처확인필요
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| NW.layer | [L7] 종단, [L4] tcp_proxy | — | — |
-| NW.idle_timeout | [L7] HttpProtocolOptions `idle_timeout` 기본 **1시간**(HCM 다운스트림·클러스터 업스트림 공용 메시지), `stream_idle_timeout` 5분 | 업스트림 1시간 > 앱 keepalive | PR · "If not specified, this defaults to ``1 hour``." / HCM · "If not specified, this defaults to ``5 minutes``." · 2026-10-01 |
-| NW.request_timeout | [L7] 라우트 `timeout` 기본 **15초**(0이면 비활성). HCM `request_timeout` 비활성 | — | RC · "Specifies the upstream timeout for the route. If not specified, the default is 15s." · 2026-10-01 |
-| NW.websocket | [L7] HCM 또는 라우트 `upgrade_configs`에 `websocket`을 명시해야 한다 | 라우트 타임아웃 15초가 웹소켓에도 걸리는지는 미확인 | HCM · "The case-insensitive name of this upgrade, e.g. "websocket"" · 2026-10-01 |
-| NW.protocols | HTTP/1.1·2·3, gRPC | — | — |
-| NW.body_size | [L7] `max_request_headers_kb` **60 KiB**. 연결 버퍼 `per_connection_buffer_limit_bytes` 1 MiB(본문 버퍼링 필터 사용 시 한도 역할) | — | HCM · "If unconfigured, the default max request headers allowed is 60 KiB." · listener.proto · "an implementation defined default is applied (1MiB)." · 2026-10-01 |
-| NW.draining | [L7] HCM `drain_timeout` 5초 | — | HCM · "The default grace period is 5000 milliseconds (5 seconds)" · 2026-10-01 |
-| NW.health_check | 능동·수동(이상치 감지) 지원, 기본 없음(인용 미확인) | — | — |
-| NW.tls | 설정 | — | — |
-| NW.client_ip | `use_remote_address`, `xff_num_trusted_hops`(인용 미확인) | — | — |
-| NW.routing | 가중치 클러스터(인용 미확인) | — | — |
+| NW.layer | [L7] 종단, [L4] tcp_proxy | — | — ⚠️근거없음 |
+| NW.idle_timeout | [L7] HttpProtocolOptions `idle_timeout` 기본 **1시간**(HCM 다운스트림·클러스터 업스트림 공용 메시지), `stream_idle_timeout` 5분 | 업스트림 1시간 > 앱 keepalive | PR · "If not specified, this defaults to ``1 hour``." / HCM · "If not specified, this defaults to ``5 minutes``." · 2026-10-01 ⚠️출처확인필요 |
+| NW.request_timeout | [L7] 라우트 `timeout` 기본 **15초**(0이면 비활성). HCM `request_timeout` 비활성 | — | RC · "Specifies the upstream timeout for the route. If not specified, the default is 15s." · 2026-10-01 ⚠️출처확인필요 |
+| NW.websocket | [L7] HCM 또는 라우트 `upgrade_configs`에 `websocket`을 명시해야 한다 | 라우트 타임아웃 15초가 웹소켓에도 걸리는지는 미확인 | HCM · "The case-insensitive name of this upgrade, e.g. "websocket"" · 2026-10-01 ⚠️출처확인필요 |
+| NW.protocols | HTTP/1.1·2·3, gRPC | — | — ⚠️근거없음 |
+| NW.body_size | [L7] `max_request_headers_kb` **60 KiB**. 연결 버퍼 `per_connection_buffer_limit_bytes` 1 MiB(본문 버퍼링 필터 사용 시 한도 역할) | — | HCM · "If unconfigured, the default max request headers allowed is 60 KiB." · listener.proto · "an implementation defined default is applied (1MiB)." · 2026-10-01 ⚠️출처확인필요 |
+| NW.draining | [L7] HCM `drain_timeout` 5초 | — | HCM · "The default grace period is 5000 milliseconds (5 seconds)" · 2026-10-01 ⚠️출처확인필요 |
+| NW.health_check | 능동·수동(이상치 감지) 지원, 기본 없음(인용 미확인) | — | — ⚠️근거없음 |
+| NW.tls | 설정 | — | — ⚠️근거없음 |
+| NW.client_ip | `use_remote_address`, `xff_num_trusted_hops`(인용 미확인) | — | — ⚠️근거없음 |
+| NW.routing | 가중치 클러스터(인용 미확인) | — | — ⚠️근거없음 |
 | 나머지 | 해당 없음(호스트) | — | — |
 
 ### 생성 산출물
@@ -1149,21 +1149,21 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 ## 5.3 Caddy (v2.11.4)
 - 계열: 네트워크-리버스 프록시 (L7)
 
-출처 약어: RP = https://raw.githubusercontent.com/caddyserver/website/master/src/docs/markdown/caddyfile/directives/reverse_proxy.md, OPT = `.../caddyfile/options.md`(2026-10-01).
+출처 약어: RP = https://raw.githubusercontent.com/caddyserver/website/master/src/docs/markdown/caddyfile/directives/reverse_proxy.md, OPT = `.../caddyfile/options.md`(2026-10-01). ⚠️출처확인필요
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| NW.layer | [L7] 종단, 자동 HTTPS | — | — |
-| NW.idle_timeout | [L7] 서버 `idle` **5분**, `read_header` 1분. 업스트림 transport `keepalive` **2분**, `keepalive_idle_conns_per_host` 32 | 업스트림 2분 > 앱 5초 → R3 | OPT · "Defaults to 5 minutes to help avoid resource exhaustion." / RP · "keepalive… Default: `2m`." · 2026-10-01 |
-| NW.request_timeout | [L7] `response_header_timeout`·`read_timeout`·`write_timeout` **없음**, `dial_timeout` 3초 | 무한 대기 가능 | RP · "Default: No timeout." / "Default: `3s`." · 2026-10-01 |
-| NW.websocket | [L7] 자동 프록시. **설정 리로드 시 강제 종료**(`stream_close_delay` 기본 없음) | 리로드 = 배포 시 모든 웹소켓이 끊긴다 | RP · "supports WebSocket connections, performing the HTTP upgrade request" / "By default, WebSocket connections are forcibly closed… when the config is reloaded." · 2026-10-01 |
-| NW.protocols | HTTP/1.1·2·3, 업스트림 h2c 가능(인용 미확인) | — | — |
-| NW.body_size | [L7] `max_header_size` 16 KiB. `request_body max_size`는 선택 지시어, 기본 한도 문구 미확인. 업스트림 응답 헤더 최대 10 MiB | — | OPT · "By default, the limit is `16KiB`." · 2026-10-01 |
-| NW.draining | 리로드 시 웹소켓 종료(위). `stream_timeout` 없음 | — | RP · 2026-10-01 |
-| NW.health_check | 능동: `health_interval` 30초, `health_timeout` 5초, passes/fails 1, 상태 200. 수동: `fail_duration` 0(꺼짐). 재시도 비활성(`lb_try_duration` 0), GET만 재시도 | — | RP · "By default, retries are disabled (zero duration)." · 2026-10-01 |
-| NW.tls | [TLS] 자동 HTTPS(ACME) | — | — |
-| NW.client_ip | [L7] 들어오는 X-Forwarded-*를 기본 **무시**(스푸핑 방지). `trusted_proxies` 기본 없음, `client_ip_headers` 기본 X-Forwarded-For | LB 뒤면 `trusted_proxies` 필수 | RP · "by default, the proxy will ignore their values from incoming requests, to prevent spoofing." / OPT · "By default, no proxies are trusted." · 2026-10-01 |
-| NW.routing | `lb_policy` 기본 random(가중치 정책 인용 미확인) | — | RP |
+| NW.layer | [L7] 종단, 자동 HTTPS | — | — ⚠️근거없음 |
+| NW.idle_timeout | [L7] 서버 `idle` **5분**, `read_header` 1분. 업스트림 transport `keepalive` **2분**, `keepalive_idle_conns_per_host` 32 | 업스트림 2분 > 앱 5초 → R3 | OPT · "Defaults to 5 minutes to help avoid resource exhaustion." / RP · "keepalive… Default: `2m`." · 2026-10-01 ⚠️출처확인필요 |
+| NW.request_timeout | [L7] `response_header_timeout`·`read_timeout`·`write_timeout` **없음**, `dial_timeout` 3초 | 무한 대기 가능 | RP · "Default: No timeout." / "Default: `3s`." · 2026-10-01 ⚠️출처확인필요 |
+| NW.websocket | [L7] 자동 프록시. **설정 리로드 시 강제 종료**(`stream_close_delay` 기본 없음) | 리로드 = 배포 시 모든 웹소켓이 끊긴다 | RP · "supports WebSocket connections, performing the HTTP upgrade request" / "By default, WebSocket connections are forcibly closed… when the config is reloaded." · 2026-10-01 ⚠️출처확인필요 |
+| NW.protocols | HTTP/1.1·2·3, 업스트림 h2c 가능(인용 미확인) | — | — ⚠️근거없음 |
+| NW.body_size | [L7] `max_header_size` 16 KiB. `request_body max_size`는 선택 지시어, 기본 한도 문구 미확인. 업스트림 응답 헤더 최대 10 MiB | — | OPT · "By default, the limit is `16KiB`." · 2026-10-01 ⚠️출처확인필요 |
+| NW.draining | 리로드 시 웹소켓 종료(위). `stream_timeout` 없음 | — | RP · 2026-10-01 ⚠️출처확인필요 |
+| NW.health_check | 능동: `health_interval` 30초, `health_timeout` 5초, passes/fails 1, 상태 200. 수동: `fail_duration` 0(꺼짐). 재시도 비활성(`lb_try_duration` 0), GET만 재시도 | — | RP · "By default, retries are disabled (zero duration)." · 2026-10-01 ⚠️출처확인필요 |
+| NW.tls | [TLS] 자동 HTTPS(ACME) | — | — ⚠️근거없음 |
+| NW.client_ip | [L7] 들어오는 X-Forwarded-*를 기본 **무시**(스푸핑 방지). `trusted_proxies` 기본 없음, `client_ip_headers` 기본 X-Forwarded-For | LB 뒤면 `trusted_proxies` 필수 | RP · "by default, the proxy will ignore their values from incoming requests, to prevent spoofing." / OPT · "By default, no proxies are trusted." · 2026-10-01 ⚠️출처확인필요 |
+| NW.routing | `lb_policy` 기본 random(가중치 정책 인용 미확인) | — | RP ⚠️출처확인필요 ⚠️근거없음 |
 | 나머지 | 해당 없음(호스트) | — | — |
 
 ### 생성 산출물
@@ -1178,22 +1178,22 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 ## 5.4 Traefik v3 (v3.7.13)
 - 계열: 네트워크-리버스 프록시 / 쿠버네티스 인그레스 (L7)
 
-출처 약어: EP = https://raw.githubusercontent.com/traefik/traefik/master/docs/content/reference/install-configuration/entrypoints.md, ST = `.../reference/routing-configuration/http/load-balancing/serverstransport.md`(2026-10-01).
+출처 약어: EP = https://raw.githubusercontent.com/traefik/traefik/master/docs/content/reference/install-configuration/entrypoints.md, ST = `.../reference/routing-configuration/http/load-balancing/serverstransport.md`(2026-10-01). ⚠️출처확인필요
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| NW.layer | [L7] 종단, TCP 라우터 [L4] | — | — |
-| NW.idle_timeout | [L7] 엔트리포인트 `respondingTimeouts.idleTimeout` **180초**. 업스트림 `forwardingTimeouts.idleConnTimeout` **90초**. `maxIdleConnsPerHost` [충돌]: static 설정 문서 200, ServersTransport 문서 0(=Go 기본 2) | 업스트림 90초 > 앱 5초 → R3 | EP · 소스 `DefaultIdleTimeout = 180 * time.Second` / ST · `90 * time.Second` · https://raw.githubusercontent.com/traefik/traefik/master/docs/content/reference/install-configuration/configuration-options.md · "serverstransport.maxidleconnsperhost… \| 200" · 2026-10-01 |
-| NW.request_timeout | [L7] `respondingTimeouts.readTimeout` **60초**(요청 읽기, v3), `writeTimeout` 0, `forwardingTimeouts.responseHeaderTimeout` 0(무제한), `dialTimeout` 30초 | 업로드가 60초를 넘으면 끊길 수 있다(추론) | EP · "60s (seconds)" / ST · "0 = no timeout" · 2026-10-01 |
-| NW.websocket | [L7] 별도 설정 없이 지원 | — | https://raw.githubusercontent.com/traefik/traefik/master/docs/content/expose/overview.md · "supports WebSocket (WS) and WebSocket Secure (WSS) connections out of the box. No special configuration is required" · 2026-10-01 |
-| NW.protocols | HTTP/1.1·2·3, gRPC(인용 미확인) | — | — |
-| NW.body_size | [L7] 기본 한도 없음. buffering 미들웨어 `maxRequestBodyBytes` 0 = 무제한 | — | https://raw.githubusercontent.com/traefik/traefik/master/docs/content/reference/routing-configuration/http/middlewares/buffering.md · "`0` means unlimited." · 2026-10-01 |
-| NW.draining | [L7] `lifeCycle.graceTimeOut` **10초**, `requestAcceptGraceTimeout` 0 | — | EP · 소스 `DefaultGraceTimeout = 10 * time.Second` · 2026-10-01 |
-| NW.health_check | 서비스 healthCheck(인용 미확인) | — | — |
-| NW.tls | ACME 자동(인용 미확인) | — | — |
-| NW.client_ip | [L7] `forwardedHeaders.insecure` false, `trustedIPs` 없음 → 들어온 XFF를 신뢰하지 않는다. `proxyProtocol.trustedIPs` 없음(v1·v2 지원) | — | EP · "Set the IPs or CIDR from where Traefik trusts the forwarded headers information" · 2026-10-01 |
-| NW.routing | [L7] `weighted` 서비스(카나리) | — | https://raw.githubusercontent.com/traefik/traefik/master/docs/content/reference/routing-configuration/http/load-balancing/service.md · "The `weighted` service type load balances requests between multiple services based on weights." · 2026-10-01 |
-| NW.security | ingress-nginx 호환 provider("Kubernetes Ingress NGINX")로 어노테이션 이전 지원 | — | https://raw.githubusercontent.com/traefik/traefik/master/docs/content/reference/install-configuration/providers/kubernetes/kubernetes-ingress-nginx.md · "enabling teams to migrate from NGINX Ingress Controller to Traefik with minimal configuration changes" · 2026-10-01 |
+| NW.layer | [L7] 종단, TCP 라우터 [L4] | — | — ⚠️근거없음 |
+| NW.idle_timeout | [L7] 엔트리포인트 `respondingTimeouts.idleTimeout` **180초**. 업스트림 `forwardingTimeouts.idleConnTimeout` **90초**. `maxIdleConnsPerHost` [충돌]: static 설정 문서 200, ServersTransport 문서 0(=Go 기본 2) | 업스트림 90초 > 앱 5초 → R3 | EP · 소스 `DefaultIdleTimeout = 180 * time.Second` / ST · `90 * time.Second` · https://raw.githubusercontent.com/traefik/traefik/master/docs/content/reference/install-configuration/configuration-options.md · "serverstransport.maxidleconnsperhost… \| 200" · 2026-10-01 ⚠️출처확인필요 |
+| NW.request_timeout | [L7] `respondingTimeouts.readTimeout` **60초**(요청 읽기, v3), `writeTimeout` 0, `forwardingTimeouts.responseHeaderTimeout` 0(무제한), `dialTimeout` 30초 | 업로드가 60초를 넘으면 끊길 수 있다(추론) | EP · "60s (seconds)" / ST · "0 = no timeout" · 2026-10-01 ⚠️출처확인필요 ⚠️근거없음 |
+| NW.websocket | [L7] 별도 설정 없이 지원 | — | https://raw.githubusercontent.com/traefik/traefik/master/docs/content/expose/overview.md · "supports WebSocket (WS) and WebSocket Secure (WSS) connections out of the box. No special configuration is required" · 2026-10-01 ⚠️출처확인필요 |
+| NW.protocols | HTTP/1.1·2·3, gRPC(인용 미확인) | — | — ⚠️근거없음 |
+| NW.body_size | [L7] 기본 한도 없음. buffering 미들웨어 `maxRequestBodyBytes` 0 = 무제한 | — | https://raw.githubusercontent.com/traefik/traefik/master/docs/content/reference/routing-configuration/http/middlewares/buffering.md · "`0` means unlimited." · 2026-10-01 ⚠️출처확인필요 |
+| NW.draining | [L7] `lifeCycle.graceTimeOut` **10초**, `requestAcceptGraceTimeout` 0 | — | EP · 소스 `DefaultGraceTimeout = 10 * time.Second` · 2026-10-01 ⚠️출처확인필요 |
+| NW.health_check | 서비스 healthCheck(인용 미확인) | — | — ⚠️근거없음 |
+| NW.tls | ACME 자동(인용 미확인) | — | — ⚠️근거없음 |
+| NW.client_ip | [L7] `forwardedHeaders.insecure` false, `trustedIPs` 없음 → 들어온 XFF를 신뢰하지 않는다. `proxyProtocol.trustedIPs` 없음(v1·v2 지원) | — | EP · "Set the IPs or CIDR from where Traefik trusts the forwarded headers information" · 2026-10-01 ⚠️출처확인필요 |
+| NW.routing | [L7] `weighted` 서비스(카나리) | — | https://raw.githubusercontent.com/traefik/traefik/master/docs/content/reference/routing-configuration/http/load-balancing/service.md · "The `weighted` service type load balances requests between multiple services based on weights." · 2026-10-01 ⚠️출처확인필요 |
+| NW.security | ingress-nginx 호환 provider("Kubernetes Ingress NGINX")로 어노테이션 이전 지원 | — | https://raw.githubusercontent.com/traefik/traefik/master/docs/content/reference/install-configuration/providers/kubernetes/kubernetes-ingress-nginx.md · "enabling teams to migrate from NGINX Ingress Controller to Traefik with minimal configuration changes" · 2026-10-01 ⚠️출처확인필요 |
 | 나머지 | 해당 없음(호스트) | — | — |
 
 ### 생성 산출물
@@ -1212,11 +1212,11 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| NW.layer | [L7] 종단 | — | — |
+| NW.layer | [L7] 종단 | — | — ⚠️근거없음 |
 | NW.idle_timeout | 미확인 | — | — |
 | NW.request_timeout | [L7] 외부 목적지 rewrite·routes(프록시) **120초**(모든 플랜). 넘으면 `ROUTER_EXTERNAL_TARGET_ERROR`. 함수는 04 문서. Edge 런타임은 25초 안에 첫 바이트, 이후 300초까지 스트림 | — | https://vercel.com/docs/limits.md · "proxied request (`rewrites` or `routes` with an external destination)… maximum timeout is **120 seconds** (2 minutes)." · https://vercel.com/docs/functions/limitations.md · "must begin sending a response within 25 seconds… continue streaming data for up to 300 seconds." · 2026-10-01 |
 | NW.websocket | [L7] 함수 웹소켓 **Public Beta**. 한 인스턴스에 고정되고, 함수 최대 실행 시간에 끊긴다 | — | https://vercel.com/docs/functions/websockets.md · "WebSocket connections close when a Vercel Function reaches its maximum duration." · 2026-10-01 |
-| NW.protocols | HTTP/2·3 미확인 | — | — |
+| NW.protocols | HTTP/2·3 미확인 | — | — ⚠️근거없음 |
 | NW.body_size | [L7] 함수 요청·응답 **4.5 MB**(넘으면 413). URL 14 KB, 헤더 개별 16 KB·합계 32 KB | — | https://vercel.com/docs/functions/limitations.md · "maximum payload size for the request body or the response body of a Vercel Function is **4.5 MB**" · https://vercel.com/docs/errors/request_header_too_large.md · "individual request headers must not exceed 16 KB… combined size of all headers… must not exceed 32 KB." · https://vercel.com/docs/errors/url_too_long.md · "(**14 KB**)" · 2026-10-01 |
 | NW.draining | 배포 원자 전환, Skew Protection(`?dpl=`·`x-deployment-id`로 배포 고정, 수명·플랜 미확인) | — | https://vercel.com/docs/skew-protection.md · 2026-10-01 |
 | NW.health_check | 해당 없음 | — | — |
@@ -1236,7 +1236,7 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| NW.layer | [L7] 종단 | — | — |
+| NW.layer | [L7] 종단 | — | — ⚠️근거없음 |
 | NW.idle_timeout | 미확인 | — | — |
 | NW.request_timeout | [L7] 프록시 rewrite **26초**. 함수 동기 60초(04 문서) | 외부 API를 `/api/*` 프록시로 붙인 구성은 26초가 상한 | https://docs.netlify.com/manage/routing/redirects/rewrites-proxies.md · "Proxy rewrite requests will time out after 26 seconds." · 2026-10-01 |
 | NW.websocket | 미확인(문서 421쪽 전수 검색에서 언급 없음) | — | — |
@@ -1259,8 +1259,8 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| NW.layer | [L7] 종단, 전역 애니캐스트 | — | — |
-| NW.idle_timeout | [L7] 클라이언트 쪽 Keep-Alive HTTP/1.1 400초, HTTP/2 유휴 400초. 오리진 쪽 **Proxy Idle Timeout 900초**(초과 시 520, 변경 불가), 오리진 HTTP/2 유휴 900초 | 오리진 keepalive > 900초여야 경쟁이 없다(R2와 같은 원리, 추론) | https://developers.cloudflare.com/fundamentals/reference/connection-limits/index.md · "Proxy Idle Timeout \| 900 \| 520 \| No" / "Connection Keep-Alive HTTP/1.1 \| 400" · 2026-10-01 |
+| NW.layer | [L7] 종단, 전역 애니캐스트 | — | — ⚠️근거없음 |
+| NW.idle_timeout | [L7] 클라이언트 쪽 Keep-Alive HTTP/1.1 400초, HTTP/2 유휴 400초. 오리진 쪽 **Proxy Idle Timeout 900초**(초과 시 520, 변경 불가), 오리진 HTTP/2 유휴 900초 | 오리진 keepalive > 900초여야 경쟁이 없다(R2와 같은 원리, 추론) | https://developers.cloudflare.com/fundamentals/reference/connection-limits/index.md · "Proxy Idle Timeout \| 900 \| 520 \| No" / "Connection Keep-Alive HTTP/1.1 \| 400" · 2026-10-01 ⚠️근거없음 |
 | NW.request_timeout | [L7] **Proxy Read Timeout 기본 125초** → 524. Enterprise만 최대 6,000초. Proxy Write 30초(변경 불가). 오리진 TCP 연결 19초(522), ACK 90초 | 2분 넘는 동기 요청은 524 | https://developers.cloudflare.com/support/troubleshooting/http-status-codes/cloudflare-5xx-errors/error-524/index.md · "did not provide an HTTP response before the default 125 seconds Proxy Read Timeout" / "Enterprise customers can increase the 524 timeout up to 6,000 seconds" · 2026-10-01 |
 | NW.websocket | [L7] 모든 플랜 지원. **서버 재시작 시 끊긴다**(재연결 필수). 유휴 타임아웃 수치는 미확인 | — | https://developers.cloudflare.com/network/websockets/index.md · "WebSockets are supported on all Cloudflare plans." / "we may restart servers, which terminates WebSockets connections." · 2026-10-01 |
 | NW.protocols | [L7] 클라이언트 HTTP/3(모든 플랜), 오리진 HTTP/3 미지원. 오리진 HTTP/2 기본 켜짐(스트림 수 [충돌] 200 vs 100, Enterprise 1) | — | https://developers.cloudflare.com/speed/optimization/protocol/http3/index.md · "HTTP/3 connection to the origin is not yet supported." · https://developers.cloudflare.com/speed/optimization/protocol/http2-to-origin/index.md · "HTTP/2 connection to the origin is enabled by default." · 2026-10-01 |
@@ -1288,14 +1288,14 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| NW.layer | [L7] 종단 | — | — |
-| NW.idle_timeout | 수치 미확인. 문서가 Node `keepAliveTimeout`·`headersTimeout`을 120초 정도로 올리라고 권한다 → 프록시 유휴가 Node 기본 5초보다 길다는 뜻(추론) | — | https://render.com/docs/troubleshooting-deploys.md · "Try increasing the values for `server.keepAliveTimeout` and `server.headersTimeout` (such as to `120000`…)" · 2026-10-01 |
-| NW.request_timeout | [L7] HTTP 응답 최대 **100분**(비교 페이지 기준, 전용 한도 페이지 없음) | — | https://render.com/docs/render-vs-heroku-comparison.md · "Render allows responses to take up to 100 minutes for HTTP requests." · 2026-10-01 |
-| NW.websocket | [L7] 지원, **최대 지속 시간 강제 없음** | — | https://render.com/docs/llms-full.txt · "Render does not enforce a maximum duration for WebSocket connections." · 2026-10-01 |
-| NW.protocols | HTTP/2 기본 | — | https://render.com/docs/llms-full.txt · "All Render sites and web services support HTTP/2 by default" · 2026-10-01 |
+| NW.layer | [L7] 종단 | — | — ⚠️근거없음 |
+| NW.idle_timeout | 수치 미확인. 문서가 Node `keepAliveTimeout`·`headersTimeout`을 120초 정도로 올리라고 권한다 → 프록시 유휴가 Node 기본 5초보다 길다는 뜻(추론) | — | https://render.com/docs/troubleshooting-deploys.md · "Try increasing the values for `server.keepAliveTimeout` and `server.headersTimeout` (such as to `120000`…)" · 2026-10-01 ⚠️출처확인필요 ⚠️근거없음 |
+| NW.request_timeout | [L7] HTTP 응답 최대 **100분**(비교 페이지 기준, 전용 한도 페이지 없음) | — | https://render.com/docs/render-vs-heroku-comparison.md · "Render allows responses to take up to 100 minutes for HTTP requests." · 2026-10-01 ⚠️출처확인필요 |
+| NW.websocket | [L7] 지원, **최대 지속 시간 강제 없음** | — | https://render.com/docs/llms-full.txt · "Render does not enforce a maximum duration for WebSocket connections." · 2026-10-01 ⚠️출처확인필요 |
+| NW.protocols | HTTP/2 기본 | — | https://render.com/docs/llms-full.txt · "All Render sites and web services support HTTP/2 by default" · 2026-10-01 ⚠️출처확인필요 |
 | NW.body_size | 미확인 | — | — |
-| NW.draining | [L7] 새 인스턴스가 정상이 될 때까지 이전 인스턴스가 트래픽을 받는다. 이전 인스턴스에는 60초 뒤 SIGTERM, 셧다운 지연 기본 30초(최대 300, `maxShutdownDelaySeconds`) | — | https://render.com/docs/deploys.md · "After 60 seconds, Render sends a `SIGTERM` signal to your app's process on the original instance." · 2026-10-01 |
-| NW.health_check | [L7] 15초 연속 실패 → 라우팅 중지, 60초 → 재시작. 배포는 15분 안에 통과해야 함 | — | https://render.com/docs/health-checks.md · "fails consecutive health checks for 15 seconds, Render temporarily stops routing traffic to it" · 2026-10-01 |
+| NW.draining | [L7] 새 인스턴스가 정상이 될 때까지 이전 인스턴스가 트래픽을 받는다. 이전 인스턴스에는 60초 뒤 SIGTERM, 셧다운 지연 기본 30초(최대 300, `maxShutdownDelaySeconds`) | — | https://render.com/docs/deploys.md · "After 60 seconds, Render sends a `SIGTERM` signal to your app's process on the original instance." · 2026-10-01 ⚠️출처확인필요 |
+| NW.health_check | [L7] 15초 연속 실패 → 라우팅 중지, 60초 → 재시작. 배포는 15분 안에 통과해야 함 | — | https://render.com/docs/health-checks.md · "fails consecutive health checks for 15 seconds, Render temporarily stops routing traffic to it" · 2026-10-01 ⚠️출처확인필요 |
 | NW.tls / NW.client_ip / NW.routing | 미확인 / 미확인 / 가중치 분할 없음(문서 미발견) | — | — |
 | 나머지 | 04 문서 | — | — |
 
@@ -1307,22 +1307,22 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 
 ## 6.5 Railway 엣지 프록시
 - 계열: 네트워크-플랫폼 내장 엣지 프록시 (L7)
-- 출처: 마지막 두 행을 빼면 https://docs.railway.com/networking/public-networking/specs-and-limits.md · 2026-10-01
+- 출처: 마지막 두 행을 빼면 https://docs.railway.com/networking/public-networking/specs-and-limits.md · 2026-10-01 ⚠️출처확인필요
 
 | 능력 키 | 값 | 조건·한도 | 출처 (인용) |
 |---|---|---|---|
-| NW.layer | [L7] 종단 | — | — |
-| NW.idle_timeout | [L7] HTTP/1.1 요청 사이 유휴 **60초**(HTTP/2·웹소켓 제외) | 앱 keepalive > 60초 | "Idle HTTP/1.1 connections are closed after 60 seconds between requests." |
-| NW.request_timeout | [L7] 데이터가 계속 오가면 최대 **15분**, 무전송 5분이면 종료 | — | "HTTP requests can run for up to 15 minutes if data keeps transferring… otherwise closed after 5 minutes with no data transferred." |
-| NW.websocket | [L7] HTTP/1.1 웹소켓, **지속·유휴 한도에서 제외(무기한)** | — | "Websocket connections are exempt from these duration and inactivity limits, and can stay open indefinitely" |
-| NW.protocols | HTTP/1.1·HTTP/2 | — | 같은 페이지 |
-| NW.body_size | [L7] 업로드는 5분 안에 끝나야 한다(크기 한도 문구 없음). 헤더 합계 32 KB | — | "Request bodies must finish uploading within 5 minutes." / "Max 32 KB combined header size." |
-| NW.draining | `RAILWAY_DEPLOYMENT_OVERLAP_SECONDS`·`RAILWAY_DEPLOYMENT_DRAINING_SECONDS`, 기본값 미확인 | — | https://docs.railway.com/deployments/deployment-teardown.md · 2026-10-01 |
-| NW.health_check | 배포 시에만(기본 300초), **지속 감시 아님** | — | https://docs.railway.com/deployments/healthchecks.md · "**_not used for continuous monitoring_**" · 2026-10-01 |
-| NW.tls | [TLS] TLS 1.2 이상, SNI 필수 | — | "All traffic must be HTTPS and use TLS 1.2 or above, and TLS SNI is mandatory" |
-| NW.client_ip | [L7] `X-Real-IP`. XFF 동작 미확인 | — | "`X-Real-IP` for identifying client's remote IP." |
-| NW.routing | 가중치 없음. 레플리카에 무작위, 가까운 리전 우선 | — | https://docs.railway.com/deployments/scaling.md · "Railway will randomly distribute public traffic to the replicas of that region." · 2026-10-01 |
-| NW.scaling | 동시 연결 10,000, 도메인당 약 11,000 RPS, 연결당 요청 10,000 | — | "Maximum Connections \| 10,000 concurrent connections" |
+| NW.layer | [L7] 종단 | — | — ⚠️근거없음 |
+| NW.idle_timeout | [L7] HTTP/1.1 요청 사이 유휴 **60초**(HTTP/2·웹소켓 제외) | 앱 keepalive > 60초 | "Idle HTTP/1.1 connections are closed after 60 seconds between requests." ⚠️출처확인필요 |
+| NW.request_timeout | [L7] 데이터가 계속 오가면 최대 **15분**, 무전송 5분이면 종료 | — | "HTTP requests can run for up to 15 minutes if data keeps transferring… otherwise closed after 5 minutes with no data transferred." ⚠️출처확인필요 |
+| NW.websocket | [L7] HTTP/1.1 웹소켓, **지속·유휴 한도에서 제외(무기한)** | — | "Websocket connections are exempt from these duration and inactivity limits, and can stay open indefinitely" ⚠️출처확인필요 |
+| NW.protocols | HTTP/1.1·HTTP/2 | — | 같은 페이지 ⚠️출처확인필요 |
+| NW.body_size | [L7] 업로드는 5분 안에 끝나야 한다(크기 한도 문구 없음). 헤더 합계 32 KB | — | "Request bodies must finish uploading within 5 minutes." / "Max 32 KB combined header size." ⚠️출처확인필요 |
+| NW.draining | `RAILWAY_DEPLOYMENT_OVERLAP_SECONDS`·`RAILWAY_DEPLOYMENT_DRAINING_SECONDS`, 기본값 미확인 | — | https://docs.railway.com/deployments/deployment-teardown.md · 2026-10-01 ⚠️출처확인필요 |
+| NW.health_check | 배포 시에만(기본 300초), **지속 감시 아님** | — | https://docs.railway.com/deployments/healthchecks.md · "**_not used for continuous monitoring_**" · 2026-10-01 ⚠️출처확인필요 |
+| NW.tls | [TLS] TLS 1.2 이상, SNI 필수 | — | "All traffic must be HTTPS and use TLS 1.2 or above, and TLS SNI is mandatory" ⚠️출처확인필요 |
+| NW.client_ip | [L7] `X-Real-IP`. XFF 동작 미확인 | — | "`X-Real-IP` for identifying client's remote IP." ⚠️출처확인필요 |
+| NW.routing | 가중치 없음. 레플리카에 무작위, 가까운 리전 우선 | — | https://docs.railway.com/deployments/scaling.md · "Railway will randomly distribute public traffic to the replicas of that region." · 2026-10-01 ⚠️출처확인필요 |
+| NW.scaling | 동시 연결 10,000, 도메인당 약 11,000 RPS, 연결당 요청 10,000 | — | "Maximum Connections \| 10,000 concurrent connections" ⚠️출처확인필요 |
 | 나머지 | 04 문서 | — | — |
 
 ### 생성 산출물
@@ -1335,18 +1335,18 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| NW.layer | [L4]/[L7] `handlers`에 따라(`tls`, `http`, `proxy_proto`, 없음=TCP 통과) | — | https://fly.io/docs/networking/services.md · 2026-10-01 |
-| NW.idle_timeout | `http_service.http_options.idle_timeout`으로 설정 가능, **기본값 미확인** | — | https://fly.io/docs/reference/configuration.md · "Configure an idle-timeout for connections to your app." · 2026-10-01 |
+| NW.layer | [L4]/[L7] `handlers`에 따라(`tls`, `http`, `proxy_proto`, 없음=TCP 통과) | — | https://fly.io/docs/networking/services.md · 2026-10-01 ⚠️출처확인필요 |
+| NW.idle_timeout | `http_service.http_options.idle_timeout`으로 설정 가능, **기본값 미확인** | — | https://fly.io/docs/reference/configuration.md · "Configure an idle-timeout for connections to your app." · 2026-10-01 ⚠️출처확인필요 |
 | NW.request_timeout | 미확인 | — | — |
-| NW.websocket | 지원(한도 미확인) | — | — |
-| NW.protocols | [L7] http 핸들러는 앱에 HTTP/1.1. `h2_backend`로 h2c(gRPC) | — | https://fly.io/docs/networking/services.md · "enable the `h2_backend` to talk directly over HTTP/2… your app speaks `h2c`" · 2026-10-01 |
+| NW.websocket | 지원(한도 미확인) | — | — ⚠️근거없음 |
+| NW.protocols | [L7] http 핸들러는 앱에 HTTP/1.1. `h2_backend`로 h2c(gRPC) | — | https://fly.io/docs/networking/services.md · "enable the `h2_backend` to talk directly over HTTP/2… your app speaks `h2c`" · 2026-10-01 ⚠️출처확인필요 |
 | NW.body_size | 미확인 | — | — |
-| NW.draining | `kill_timeout` 기본 **5초**(최대 300), 기본 신호 SIGINT | 앱이 SIGTERM만 처리하면 우아한 종료가 안 된다 | https://fly.io/docs/reference/configuration.md · "The default is 5 seconds. You can set it up to a maximum of 300 seconds" · 2026-10-01 |
-| NW.health_check | 체크 실패 머신으로 라우팅하지 않음. bluegreen 배포 | — | https://docs.fly.io/apps/app-availability · "If the configured health checks are failing for a Machine, then the proxy doesn't route network connections to that Machine." · 2026-10-01 |
-| NW.tls | [TLS] TLS 1.2·1.3만 | — | https://docs.fly.io/networking/tls (llms-full 경유) · "The Fly proxy only supports TLSv1.2 and TLSv1.3 with strong ciphers." · 2026-10-01 |
-| NW.client_ip | [L7] `Fly-Client-IP`. XFF는 목록이고 가장 오른쪽이 Fly IP(스푸핑 주의). [L4] `proxy_proto` v1 기본, v2 옵션 | — | https://fly.io/docs/networking/request-headers.md · "The IP address of the client from the perspective of Fly Proxy." / "This header must be treated with caution to avoid spoofing attempts." · 2026-10-01 |
-| NW.routing | 가중치 분할 미확인(`fly-replay` 동적 라우팅만) | — | — |
-| NW.scaling | `concurrency.type` connections(기본)/requests, `soft_limit`·`hard_limit`. HTTP 앱은 requests 권장 | — | https://fly.io/docs/reference/configuration.md · "connections: …This is the default when unspecified." · 2026-10-01 |
+| NW.draining | `kill_timeout` 기본 **5초**(최대 300), 기본 신호 SIGINT | 앱이 SIGTERM만 처리하면 우아한 종료가 안 된다 | https://fly.io/docs/reference/configuration.md · "The default is 5 seconds. You can set it up to a maximum of 300 seconds" · 2026-10-01 ⚠️출처확인필요 |
+| NW.health_check | 체크 실패 머신으로 라우팅하지 않음. bluegreen 배포 | — | https://docs.fly.io/apps/app-availability · "If the configured health checks are failing for a Machine, then the proxy doesn't route network connections to that Machine." · 2026-10-01 ⚠️출처확인필요 |
+| NW.tls | [TLS] TLS 1.2·1.3만 | — | https://docs.fly.io/networking/tls (llms-full 경유) · "The Fly proxy only supports TLSv1.2 and TLSv1.3 with strong ciphers." · 2026-10-01 ⚠️출처확인필요 |
+| NW.client_ip | [L7] `Fly-Client-IP`. XFF는 목록이고 가장 오른쪽이 Fly IP(스푸핑 주의). [L4] `proxy_proto` v1 기본, v2 옵션 | — | https://fly.io/docs/networking/request-headers.md · "The IP address of the client from the perspective of Fly Proxy." / "This header must be treated with caution to avoid spoofing attempts." · 2026-10-01 ⚠️출처확인필요 |
+| NW.routing | 가중치 분할 미확인(`fly-replay` 동적 라우팅만) | — | — ⚠️근거없음 |
+| NW.scaling | `concurrency.type` connections(기본)/requests, `soft_limit`·`hard_limit`. HTTP 앱은 requests 권장 | — | https://fly.io/docs/reference/configuration.md · "connections: …This is the default when unspecified." · 2026-10-01 ⚠️출처확인필요 |
 | 나머지 | 04 문서 | — | — |
 
 ### 생성 산출물
@@ -1355,7 +1355,7 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
   - `[http_service.concurrency] type = "requests"`
   - `[http_service.http_options] idle_timeout`(키 경로는 문서 예시 기준)
   - `kill_timeout`, `kill_signal = "SIGTERM"`
-- 검증: `fly config validate`(명령 원문 미확인).
+- 검증: `fly config validate`(명령 원문 미확인). ⚠️근거없음
 
 ---
 
@@ -1365,18 +1365,18 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 
 | 서버 | keep-alive 유휴 기본 | 요청·작업 타임아웃 기본 | 헤더·본문 한도 기본 | 프록시 헤더 신뢰 기본 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|---|---|
-| uvicorn | **5초**(`--timeout-keep-alive`) | 요청 타임아웃 설정 없음. 우아한 종료 무제한(`None`) | h11 불완전 이벤트 16 KB. 본문 한도 설정 없음 | `--proxy-headers` 켜짐, 신뢰 IP 127.0.0.1·::1 → LB 뒤에서는 클라이언트 IP가 LB IP로 보인다 | https://uvicorn.dev/settings/ · "Close Keep-Alive connections if no new data is received within this timeout (in seconds). Default: 5" / "Otherwise, 127.0.0.1 and ::1 are trusted." · 2026-10-01 |
-| gunicorn | **2초**(`keepalive`). **sync 워커는 keep-alive 미지원**(매 응답 후 연결 닫음) | 워커 무응답 `timeout` **30초** → 강제 재시작. `graceful_timeout` 30초 | 요청 줄 4,094, 헤더 100개, 헤더 필드 8,190 | `forwarded_allow_ips` "127.0.0.1,::1" | https://gunicorn.org/reference/settings/ · "Default: 2 The number of seconds to wait for requests on a Keep-Alive connection." / "sync worker does not support persistent connections and will ignore this option." / "When Gunicorn is deployed behind a load balancer, it often makes sense to set this to a higher value." / "Default: 30 Workers silent for more than this many seconds are killed and restarted." · 2026-10-01 |
+| uvicorn | **5초**(`--timeout-keep-alive`) | 요청 타임아웃 설정 없음. 우아한 종료 무제한(`None`) | h11 불완전 이벤트 16 KB. 본문 한도 설정 없음 | `--proxy-headers` 켜짐, 신뢰 IP 127.0.0.1·::1 → LB 뒤에서는 클라이언트 IP가 LB IP로 보인다 | https://uvicorn.dev/settings/ · "Close Keep-Alive connections if no new data is received within this timeout (in seconds). Default: 5" / "Otherwise, 127.0.0.1 and ::1 are trusted." · 2026-10-01 ⚠️출처확인필요 |
+| gunicorn | **2초**(`keepalive`). **sync 워커는 keep-alive 미지원**(매 응답 후 연결 닫음) | 워커 무응답 `timeout` **30초** → 강제 재시작. `graceful_timeout` 30초 | 요청 줄 4,094, 헤더 100개, 헤더 필드 8,190 | `forwarded_allow_ips` "127.0.0.1,::1" | https://gunicorn.org/reference/settings/ · "Default: 2 The number of seconds to wait for requests on a Keep-Alive connection." / "sync worker does not support persistent connections and will ignore this option." / "When Gunicorn is deployed behind a load balancer, it often makes sense to set this to a higher value." / "Default: 30 Workers silent for more than this many seconds are killed and restarted." · 2026-10-01 ⚠️출처확인필요 |
 | Node.js http | **5초**(`keepAliveTimeout`) + `keepAliveTimeoutBuffer` 1초(v24.6.0·v22.19.0부터) = 실제 소켓 6초 | `requestTimeout` 300초(v18+), `headersTimeout` min(requestTimeout, 60초), `server.timeout` 0 | 헤더 16 KiB. 본문 한도 없음(프레임워크가 정함) | 해당 없음(프레임워크) | https://nodejs.org/api/http.html · "Default: 5000 (5 seconds)." / "socketTimeout = keepAliveTimeout + keepAliveTimeoutBuffer" / "Default: 300000" · https://nodejs.org/api/cli.html · "Defaults to 16 KiB." · 2026-10-01 |
 | Next.js `next start` | 옵션 `--keepAliveTimeout`. 미지정이면 Node 기본(5초)이 그대로 적용(소스) | Node와 같음 | Server Actions 본문 1 MB, Pages API `bodyParser.sizeLimit` 1mb, `proxyClientMaxBodySize` 10 MB | — | https://nextjs.org/docs/app/api-reference/cli/next · "configure Next's underlying HTTP server with keep-alive timeouts that are larger than the downstream proxy's timeouts." · https://raw.githubusercontent.com/vercel/next.js/canary/packages/next/src/server/lib/start-server.ts · `if (keepAliveTimeout) { server.keepAliveTimeout = keepAliveTimeout` · https://nextjs.org/docs/app/api-reference/config/next-config-js/serverActions · "By default, the maximum size of the request body sent to a Server Action is 1MB" · 2026-10-01 |
-| Express | Node와 같음 | Node와 같음 | `express.json()` **100kb** | `trust proxy` **false** | https://raw.githubusercontent.com/expressjs/body-parser/master/README.md · "Defaults to `'100kb'`." · https://expressjs.com/en/guide/behind-proxies.html · "This is the default setting." · 2026-10-01 |
+| Express | Node와 같음 | Node와 같음 | `express.json()` **100kb** | `trust proxy` **false** | https://raw.githubusercontent.com/expressjs/body-parser/master/README.md · "Defaults to `'100kb'`." · https://expressjs.com/en/guide/behind-proxies.html · "This is the default setting." · 2026-10-01 ⚠️출처확인필요 |
 | Django (+gunicorn/uvicorn) | 서버에 따름(runserver는 운영 금지) | 서버에 따름 | `DATA_UPLOAD_MAX_MEMORY_SIZE` 2.5 MB, `FILE_UPLOAD_MAX_MEMORY_SIZE` 2.5 MB | `SECURE_PROXY_SSL_HEADER` None, `USE_X_FORWARDED_HOST` False | https://docs.djangoproject.com/en/stable/ref/settings/ · "Default: 2621440 (i.e. 2.5 MB). The maximum size in bytes that a request body may be" · 2026-10-01 |
-| Go net/http | `IdleTimeout` 0 → `ReadTimeout` 사용, 둘 다 0이면 **무제한**. keep-alive 항상 켜짐 | `ReadTimeout`·`WriteTimeout` 0 = 무제한. Shutdown은 무기한 대기 | 헤더 1 MB | 해당 없음 | https://pkg.go.dev/net/http · "If zero, the value of ReadTimeout is used. If negative, or if zero and ReadTimeout is zero or negative, there is no timeout." / "DefaultMaxHeaderBytes = 1 << 20 // 1 MB" · 2026-10-01 |
-| Spring Boot + Tomcat | `keepAliveTimeout` = `connectionTimeout`. Tomcat 코드 기본 **60초**(배포판 server.xml은 20초). Boot 기본값 명시는 없음 → 60초로 추론 | 우아한 종료 기본 켜짐, 단계당 30초 | 헤더 8 KB, multipart 파일 1 MB·요청 10 MB | `forward-headers-strategy` 클라우드 플랫폼이면 NATIVE, 아니면 NONE | https://tomcat.apache.org/tomcat-10.1-doc/config/http.html · "The default value is 60000 (i.e. 60 seconds) but note that the standard server.xml that ships with Tomcat sets this to 20000" / "The default value is to use the value that has been set for the connectionTimeout attribute." · https://docs.spring.io/spring-boot/how-to/webserver.html · "defaults to NATIVE . In all other instances, it defaults to NONE ." · 2026-10-01 |
-| Puma (Ruby) | **7.x: 65초**, 6.x: 20초(`persistent_timeout`) | `first_data_timeout` 30초, `worker_timeout` 60초, `worker_shutdown_timeout` 30초 | `http_content_length_limit` 없음 | — | https://raw.githubusercontent.com/puma/puma/master/lib/puma/dsl.rb · "Define how long persistent connections can be idle before Puma closes them. The default is 65 seconds." · History.md 7.0.0 · "Increase `persistent_timeout` default to 65 seconds" · 2026-10-01 |
-| Hypercorn | **5초**(`keep_alive_timeout`) | `read_timeout` 없음, `graceful_timeout` 3초 | h11 16 KiB | — | https://hypercorn.readthedocs.io/en/latest/how_to_guides/configuring.html · "Seconds to keep inactive connections alive before closing. 5s" · 2026-10-01 |
-| Bun.serve | **10초**(`idleTimeout`, 최대 255). **실행 중이지만 아직 바이트를 쓰지 않은 요청도 유휴로 센다** | — | `maxRequestBodySize` 128 MB | — | https://bun.sh/docs/api/http (→ /docs/runtime/http/server) · "By default, Bun.serve closes connections after 10 seconds of inactivity." / "That includes in-flight requests where your handler is still running but hasn't written any bytes" · 2026-10-01 |
-| Deno.serve | 미확인 | 미확인 | 미확인 | — | https://docs.deno.com/runtime/fundamentals/http_server/ · 2026-10-01 |
+| Go net/http | `IdleTimeout` 0 → `ReadTimeout` 사용, 둘 다 0이면 **무제한**. keep-alive 항상 켜짐 | `ReadTimeout`·`WriteTimeout` 0 = 무제한. Shutdown은 무기한 대기 | 헤더 1 MB | 해당 없음 | https://pkg.go.dev/net/http · "If zero, the value of ReadTimeout is used. If negative, or if zero and ReadTimeout is zero or negative, there is no timeout." / "DefaultMaxHeaderBytes = 1 << 20 // 1 MB" · 2026-10-01 ⚠️출처확인필요 |
+| Spring Boot + Tomcat | `keepAliveTimeout` = `connectionTimeout`. Tomcat 코드 기본 **60초**(배포판 server.xml은 20초). Boot 기본값 명시는 없음 → 60초로 추론 | 우아한 종료 기본 켜짐, 단계당 30초 | 헤더 8 KB, multipart 파일 1 MB·요청 10 MB | `forward-headers-strategy` 클라우드 플랫폼이면 NATIVE, 아니면 NONE | https://tomcat.apache.org/tomcat-10.1-doc/config/http.html · "The default value is 60000 (i.e. 60 seconds) but note that the standard server.xml that ships with Tomcat sets this to 20000" / "The default value is to use the value that has been set for the connectionTimeout attribute." · https://docs.spring.io/spring-boot/how-to/webserver.html · "defaults to NATIVE . In all other instances, it defaults to NONE ." · 2026-10-01 ⚠️출처확인필요 ⚠️근거없음 |
+| Puma (Ruby) | **7.x: 65초**, 6.x: 20초(`persistent_timeout`) | `first_data_timeout` 30초, `worker_timeout` 60초, `worker_shutdown_timeout` 30초 | `http_content_length_limit` 없음 | — | https://raw.githubusercontent.com/puma/puma/master/lib/puma/dsl.rb · "Define how long persistent connections can be idle before Puma closes them. The default is 65 seconds." · History.md 7.0.0 · "Increase `persistent_timeout` default to 65 seconds" · 2026-10-01 ⚠️출처확인필요 |
+| Hypercorn | **5초**(`keep_alive_timeout`) | `read_timeout` 없음, `graceful_timeout` 3초 | h11 16 KiB | — | https://hypercorn.readthedocs.io/en/latest/how_to_guides/configuring.html · "Seconds to keep inactive connections alive before closing. 5s" · 2026-10-01 ⚠️출처확인필요 |
+| Bun.serve | **10초**(`idleTimeout`, 최대 255). **실행 중이지만 아직 바이트를 쓰지 않은 요청도 유휴로 센다** | — | `maxRequestBodySize` 128 MB | — | https://bun.sh/docs/api/http (→ /docs/runtime/http/server) · "By default, Bun.serve closes connections after 10 seconds of inactivity." / "That includes in-flight requests where your handler is still running but hasn't written any bytes" · 2026-10-01 ⚠️출처확인필요 |
+| Deno.serve | 미확인 | 미확인 | 미확인 | — | https://docs.deno.com/runtime/fundamentals/http_server/ · 2026-10-01 ⚠️출처확인필요 |
 | Flask/Werkzeug 개발 서버 | 운영 금지 | — | — | — | https://flask.palletsprojects.com/en/stable/deploying/ · "Do not use the development server when deploying to production." · 2026-10-01 |
 | 쿠버네티스 Pod | — | `terminationGracePeriodSeconds` 기본 30초 | — | — | https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/ · "The default terminationGracePeriodSeconds setting is 30 seconds." · 2026-10-01 |
 
@@ -1451,7 +1451,7 @@ GCP 출처 URL은 `cloud.google.com`에서 `docs.cloud.google.com`으로 리다�
 - §7의 어떤 기본값도 통과하지 못한다. Go 기본(무제한)만 통과한다.
 - LB 쪽에서 바꿀 수 없으므로 **반드시 앱 코드·실행 인자 변경**이 산출물에 포함된다.
 - nginx를 사이에 두면 nginx `keepalive_timeout`(75초)도 620초로 올린다(GCP 문서 예시).
-- Cloudflare → 오리진 구간도 같은 원리다. Cloudflare Proxy Idle 900초 → 오리진 keep-alive > 900초가 이상적이다(추론, Cloudflare 문서에 권고 문장은 미확인).
+- Cloudflare → 오리진 구간도 같은 원리다. Cloudflare Proxy Idle 900초 → 오리진 keep-alive > 900초가 이상적이다(추론, Cloudflare 문서에 권고 문장은 미확인). ⚠️근거없음
 
 ### R3. 프록시 업스트림 유휴 < 앱 keep-alive — 프록시가 앱 앞에 있을 때
 - 규칙: `proxy.upstream_idle < app.keepalive_idle`(R1과 같은 원리, 프록시가 클라이언트 쪽).

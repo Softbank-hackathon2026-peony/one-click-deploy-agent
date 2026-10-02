@@ -113,7 +113,7 @@
 - **처방:** 티어1: ECS 블루/그린(CodeDeploy) 또는 Cloud Run 태그 + 트래픽 100% 전환. 티어2: Argo Rollouts blueGreen.
 - **검증:** 전환 직후 실패 지표를 주입하고 이전 환경으로 즉시 전환되는지, 전환 시간 측정.
 - **비용 영향:** 증가. 전환 기간 동안 용량 2배.
-- **출처:** https://martinfowler.com/bliki/BlueGreenDeployment.html (라우터 전환으로 빠른 롤백, 스키마 변경을 앱 업그레이드와 분리)
+- **출처:** https://martinfowler.com/bliki/BlueGreenDeployment.html (라우터 전환으로 빠른 롤백, 스키마 변경을 앱 업그레이드와 분리) ⚠️출처부적격
 
 ### U-010 카나리 배포 (일부 트래픽 먼저)
 - **무엇/왜:** 새 버전을 일부 사용자에게만 먼저 보내 위험을 줄인다. 여러 버전이 동시에 돌기 때문에 스키마는 parallel change여야 한다.
@@ -123,7 +123,7 @@
 - **처방:** 티어0: Vercel Rolling Releases(플랜 확인 필요) 또는 피처 플래그로 대체(U-040). 티어1: Cloud Run `--no-traffic` 후 5%→50%→100%. 티어2: Argo Rollouts + 분석(U-034).
 - **검증:** 카나리에 오류를 주입해 자동 중단되고 영향이 카나리 비율에 머무는지 확인.
 - **비용 영향:** 약간 증가. 분석 도구와 일시 중복 용량.
-- **출처:** https://martinfowler.com/bliki/CanaryRelease.html · https://docs.cloud.google.com/run/docs/rollouts-rollbacks-traffic-migration
+- **출처:** https://martinfowler.com/bliki/CanaryRelease.html · https://docs.cloud.google.com/run/docs/rollouts-rollbacks-traffic-migration ⚠️출처부적격
 
 ### U-011 ECS minimumHealthyPercent / maximumPercent
 - **무엇/왜:** ECS 롤링 배포는 두 값으로 동시에 내릴 수 있는 수와 더 띄울 수 있는 수를 정한다. minimumHealthyPercent는 올림, maximumPercent는 내림으로 계산된다.
@@ -187,7 +187,7 @@
 - **처방:** readiness는 "이 인스턴스가 요청을 처리할 수 있는가"(로컬 상태)만 본다. 의존성 장애는 앱 수준 디그레이드로 다룬다.
 - **검증:** DB에 `LOCK TABLE`을 10초 걸고 엔드포인트 수가 0이 되는지 관찰.
 - **비용 영향:** 중립.
-- **출처:** https://kubernetes.io/docs/concepts/configuration/liveness-readiness-startup-probes/ (readiness 실패 시 모든 Service의 EndpointSlice에서 제거). 의존성을 보지 말라는 권고 자체는 일반 원칙(출처 미확인).
+- **출처:** https://kubernetes.io/docs/concepts/configuration/liveness-readiness-startup-probes/ (readiness 실패 시 모든 Service의 EndpointSlice에서 제거). 의존성을 보지 말라는 권고 자체는 일반 원칙(출처 미확인). ⚠️근거없음
 
 ### U-017 느린 기동에는 startup probe
 - **무엇/왜:** startup probe가 성공할 때까지 liveness·readiness를 실행하지 않는다. 기동이 `initialDelaySeconds + failureThreshold × periodSeconds`보다 길면 startup probe를 두라고 k8s 문서가 권한다.
@@ -207,7 +207,7 @@
 - **처방:** 멀티 스테이지 빌드, 지연 import, 기동 시 작업 제거(U-019).
 - **검증:** 컨테이너 시작부터 Ready까지 시간을 P4에서 기록하고 롤아웃 시간 예측과 비교.
 - **비용 영향:** 감소. 빠른 기동은 최소 인스턴스를 줄일 여지를 준다.
-- **출처:** https://12factor.net/disposability
+- **출처:** https://12factor.net/disposability ⚠️출처부적격
 
 ### U-019 기동 명령에 빌드·설치·마이그레이션을 넣지 않는다
 - **무엇/왜:** `CMD npm run build && npm start`, `npm install`을 엔트리포인트에서 실행, `prisma migrate deploy && node server.js` 같은 패턴은 기동을 느리게 하고 인스턴스마다 다른 결과를 낼 수 있다. 빌드·릴리스·실행 단계 분리 위반이다.
@@ -217,7 +217,7 @@
 - **처방:** 빌드는 이미지 빌드 단계로, 마이그레이션은 별도 단계(U-046)로.
 - **검증:** 컨테이너 시작 로그에 빌드·설치 출력이 없는지 정적 검사.
 - **비용 영향:** 감소(기동 CPU).
-- **출처:** https://12factor.net/build-release-run
+- **출처:** https://12factor.net/build-release-run ⚠️출처부적격
 
 ### U-020 로드밸런서 쪽 준비 상태와 Pod Ready의 정렬 (readiness gate)
 - **무엇/왜:** Pod가 Ready가 되어도 ALB/NEG 타깃 등록과 헬스체크 통과는 조금 늦다. 그 사이 롤링이 이전 Pod를 내리면 LB에 정상 대상이 없을 수 있다.
@@ -237,7 +237,7 @@
 - **처방:** 빌드 인자로 SHA를 넣어 헤더·로그·지표 라벨에 노출(U-035의 버전별 지표에도 쓰임).
 - **검증:** 배포 후 스모크가 기대 SHA를 확인.
 - **비용 영향:** 중립.
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ---
 
@@ -251,12 +251,12 @@
 - **처방:** Node: SIGTERM → `server.close()`(새 연결 거부, v19부터 유휴 연결도 닫음) → 타이머 후 `closeAllConnections()`. Next.js `next start`는 SIGTERM에 진행 중 요청과 `after()`를 마친다.
 - **검증:** 긴 요청(5초) 도중 Pod 삭제 → 응답 정상 완료 확인.
 - **비용 영향:** 중립.
-- **출처:** https://12factor.net/disposability · https://nodejs.org/api/http.html · https://nextjs.org/docs/app/guides/self-hosting
+- **출처:** https://12factor.net/disposability · https://nodejs.org/api/http.html · https://nextjs.org/docs/app/guides/self-hosting ⚠️출처부적격
 
 ### U-023 셸 형식 CMD/ENTRYPOINT와 npm이 신호를 삼킨다 (PID 1)
 - **무엇/왜:** 셸 형식 ENTRYPOINT는 `/bin/sh -c`의 하위 명령으로 실행되어 신호를 전달하지 않는다. 앱이 PID 1이 아니므로 SIGTERM을 받지 못한다.
 - **실패 양상:** 앱에 SIGTERM 핸들러가 있어도 호출되지 않고, 유예 시간(k8s 30초, Cloud Run 10초) 내내 기다렸다가 SIGKILL. 배포가 느려지고 진행 중 요청은 결국 끊긴다.
-- **신호:** 🟢 `CMD npm start`(셸 형식), `CMD ["sh","-c","node server.js"]`, `ENTRYPOINT` 스크립트에 `exec` 없음. 🟡 `CMD ["npm","start"]`(npm이 자식에게 신호를 전달하는지는 npm 버전에 따름, 출처 미확인 → `node` 직접 실행 권장).
+- **신호:** 🟢 `CMD npm start`(셸 형식), `CMD ["sh","-c","node server.js"]`, `ENTRYPOINT` 스크립트에 `exec` 없음. 🟡 `CMD ["npm","start"]`(npm이 자식에게 신호를 전달하는지는 npm 버전에 따름, 출처 미확인 → `node` 직접 실행 권장). ⚠️근거없음
 - **시나리오·수준:** U L1 이상.
 - **처방:** exec 형식 `CMD ["node","server.js"]`, 래퍼 스크립트 끝에 `exec "$@"`, 필요 시 tini/`--init`.
 - **검증:** `docker stop` 시간이 유예 시간 전체(기본 10초)인지 즉시인지 측정.
@@ -296,7 +296,7 @@
 ### U-027 keep-alive 유휴 타임아웃: 앱 > LB
 - **무엇/왜:** ALB 유휴 타임아웃 기본은 60초이고, AWS는 앱의 유휴 타임아웃을 LB보다 길게 두라고 권한다. Node `keepAliveTimeout` 기본은 5초다.
 - **실패 양상:** 앱이 5초 뒤 유휴 연결을 닫는 순간 LB가 그 연결로 요청을 보내면 502. 평시에도 간헐적이고, 배포 직후 연결 재사용이 몰릴 때 늘어난다.
-- **신호:** 🟢 Node/Express에서 `server.keepAliveTimeout` 미설정 + ALB 사용. 🟢 uvicorn `--timeout-keep-alive` 미설정(기본값은 출처 미확인). 🟢 ALB `idle_timeout.timeout_seconds`.
+- **신호:** 🟢 Node/Express에서 `server.keepAliveTimeout` 미설정 + ALB 사용. 🟢 uvicorn `--timeout-keep-alive` 미설정(기본값은 출처 미확인). 🟢 ALB `idle_timeout.timeout_seconds`. ⚠️근거없음
 - **시나리오·수준:** U L1 이상(배포와 무관하게도 발생하지만 배포 시 두드러짐).
 - **처방:** Node: `server.keepAliveTimeout = 65000`, `headersTimeout`은 그보다 크게. Python: 서버 keep-alive를 LB 유휴 타임아웃보다 길게.
 - **검증:** 61초 간격 요청 패턴의 부하로 502 발생 여부.
@@ -311,7 +311,7 @@
 - **처방:** 서버: SIGTERM 시 close 프레임 + 재연결 지시, 연결을 단계적으로 끊기. 클라이언트: 지터 있는 백오프, 마지막 수신 ID로 재개. 티어0 서버리스 함수는 장기 연결 부적합(TIER-001).
 - **검증:** 연결 1,000개를 유지한 채 롤아웃하고 재연결 시간·메시지 손실 측정.
 - **비용 영향:** 중립.
-- **출처:** https://docs.cloud.google.com/run/docs/triggering/websockets (웹소켓도 요청 타임아웃 적용, 최대 60분, 클라이언트가 재연결을 처리해야 함) · 재연결 지터는 일반 원칙(출처 미확인)
+- **출처:** https://docs.cloud.google.com/run/docs/triggering/websockets (웹소켓도 요청 타임아웃 적용, 최대 60분, 클라이언트가 재연결을 처리해야 함) · 재연결 지터는 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### U-029 긴 요청(업로드, 보고서, LLM 스트리밍)과 유예 시간
 - **무엇/왜:** 유예 시간보다 긴 동기 요청은 배포 때마다 잘린다. 플랫폼마다 상한이 다르므로(U-025) 긴 작업은 비동기 작업 + 상태 조회로 바꾸는 편이 낫다.
@@ -321,7 +321,7 @@
 - **처방:** 업로드는 오브젝트 스토리지 사전 서명 URL로 직접, 장시간 작업은 큐로(T-CTL-006과 연결).
 - **검증:** 가장 긴 경로 요청 중 롤아웃.
 - **비용 영향:** 중립~약간 증가(큐).
-- **출처:** https://docs.cloud.google.com/run/docs/container-contract (SIGTERM 후 10초) · https://12factor.net/disposability
+- **출처:** https://docs.cloud.google.com/run/docs/container-contract (SIGTERM 후 10초) · https://12factor.net/disposability ⚠️출처부적격
 
 ### U-030 요청 응답 후 남는 백그라운드 작업
 - **무엇/왜:** 응답을 보낸 뒤 `await` 없이 실행한 프로미스, `setTimeout`, 스레드 작업은 종료 시 사라진다. Next.js `after()`는 `next start`에서 종료 신호를 받으면 끝까지 실행하고, 플랫폼은 10~30초 드레인을 두라고 권한다.
@@ -375,7 +375,7 @@
 - **처방:** 티어1: ECS 배포 알람(`HTTPCode_ELB_5XX_Count` 등 AWS 권장 지표). 티어2: Argo Rollouts + Prometheus 성공률 쿼리. 주의: 배포 시작 시점에 이미 ALARM이면 ECS는 그 배포 동안 알람을 무시한다.
 - **검증:** 일정 비율로 500을 내는 버전 배포 → 자동 중단과 복귀 시간 측정.
 - **비용 영향:** 약간 증가(알람·지표).
-- **출처:** https://docs.aws.amazon.com/AmazonECS/latest/developerguide/deployment-alarm-failure.html · https://argo-rollouts.readthedocs.io/en/stable/features/analysis/
+- **출처:** https://docs.aws.amazon.com/AmazonECS/latest/developerguide/deployment-alarm-failure.html · https://argo-rollouts.readthedocs.io/en/stable/features/analysis/ ⚠️출처확인필요
 
 ### U-035 버전별로 나뉜 지표
 - **무엇/왜:** 카나리 판단은 "새 버전의 오류율 vs 구버전 오류율"이다. 지표에 버전 라벨이 없으면 카나리 5%의 오류가 전체 평균에 묻힌다.
@@ -385,7 +385,7 @@
 - **처방:** 빌드 SHA를 지표·로그 공통 라벨로(U-021). 분석 쿼리는 버전 필터 사용.
 - **검증:** 카나리에만 오류를 주입해 분석이 잡는지 확인.
 - **비용 영향:** 약간 증가(지표 카디널리티).
-- **출처:** https://argo-rollouts.readthedocs.io/en/stable/features/analysis/ (분석 쿼리 예시) · 버전 라벨 원칙은 일반 원칙(출처 미확인)
+- **출처:** https://argo-rollouts.readthedocs.io/en/stable/features/analysis/ (분석 쿼리 예시) · 버전 라벨 원칙은 일반 원칙(출처 미확인) ⚠️출처확인필요 ⚠️근거없음
 
 ### U-036 롤백이 실제로 가능한 상태인가 (스키마·설정·외부 상태)
 - **무엇/왜:** 앱 롤백은 코드만 되돌린다. Vercel Instant Rollback은 환경 변수를 되돌리지 않고, 외부 API·DB·CMS 변경도 그대로라고 명시한다. contract 단계 마이그레이션 뒤에는 이전 코드가 없는 컬럼을 찾는다.
@@ -395,7 +395,7 @@
 - **처방:** "직전 버전으로 롤백 가능"을 배포 불변식으로: 파괴적 변경은 한 릴리스 늦게(U-044), env는 추가 후 제거.
 - **검증:** 배포 후 즉시 롤백 리허설을 P4 U L2에 포함.
 - **비용 영향:** 중립.
-- **출처:** https://vercel.com/docs/instant-rollback · https://martinfowler.com/bliki/ParallelChange.html
+- **출처:** https://vercel.com/docs/instant-rollback · https://martinfowler.com/bliki/ParallelChange.html ⚠️출처부적격
 
 ### U-037 Vercel Instant Rollback 후 자동 승격이 꺼진다
 - **무엇/왜:** Vercel은 롤백 뒤 프로덕션 도메인 자동 할당을 끈다. 이후 main에 푸시해도 프로덕션에 반영되지 않으며 "Undo Rollback" 또는 `vercel promote`로 되살려야 한다. 크론도 롤백된 배포의 정의로 되돌아간다.
@@ -415,7 +415,7 @@
 - **처방:** 티어0: Vercel 배포 이벤트에 연결한 체크. 티어1: 태그 URL(U-012) 대상 스모크. 티어2: 롤아웃 후 Job 또는 Argo Rollouts 사전 분석.
 - **검증:** 핵심 경로를 깨는 변경으로 스모크가 실패하는지 확인.
 - **비용 영향:** 중립.
-- **출처:** 일반 원칙(출처 미확인). 설계 문서 §17.4의 합성 사용자 시나리오와 같은 스크립트를 재사용.
+- **출처:** 일반 원칙(출처 미확인). 설계 문서 §17.4의 합성 사용자 시나리오와 같은 스크립트를 재사용. ⚠️근거없음
 
 ### U-039 롤백 절차가 명령 하나로 정의돼 있는가
 - **무엇/왜:** 장애 중에는 절차를 새로 짤 여유가 없다. `kubectl rollout undo`, `gcloud run services update-traffic --to-revisions R=100`, ECS 이전 태스크 정의, Vercel Instant Rollback 중 이 앱에 맞는 것을 미리 정해 둔다.
@@ -435,7 +435,7 @@
 - **처방:** 티어 공통: 플래그 서비스 또는 DB/설정 저장소 기반 토글. env 기반 플래그는 재배포가 필요하다는 점을 리포트에 표시(U-097).
 - **검증:** 플래그를 끄는 데 걸리는 시간과 반영 범위 측정.
 - **비용 영향:** 증가(SaaS 플래그 서비스) 또는 중립(자체 구현).
-- **출처:** https://martinfowler.com/articles/feature-toggles.html
+- **출처:** https://martinfowler.com/articles/feature-toggles.html ⚠️출처부적격
 
 ### U-041 피처 플래그 부채
 - **무엇/왜:** 토글은 유지 비용이 있는 재고다. 릴리스 토글은 짧게 살아야 하고, 만료일·제거 작업·개수 상한을 두라고 권한다.
@@ -445,7 +445,7 @@
 - **처방:** 플래그에 만료일, CI에서 만료 플래그 검사.
 - **검증:** 정적 검사로 만료 플래그 0개.
 - **비용 영향:** 감소(정리 시).
-- **출처:** https://martinfowler.com/articles/feature-toggles.html
+- **출처:** https://martinfowler.com/articles/feature-toggles.html ⚠️출처부적격
 
 ### U-042 배포 동결과 유지보수 창 (플랫폼 자동 업그레이드 포함)
 - **무엇/왜:** 대형 이벤트(예고된 오픈, 연말 성수기) 동안은 변경을 멈춘다. 이때 앱 배포만 막고 플랫폼 자동 업그레이드를 잊기 쉽다. GKE는 유지보수 창과 제외 기간을 두며, "업그레이드 없음" 제외는 최대 90일이다.
@@ -469,7 +469,7 @@
 - **처방:** Prisma `migrate dev`로 마이그레이션 생성 후 운영은 `migrate deploy`. Supabase `supabase migration new`/`db diff`. Alembic 도입.
 - **검증:** 빈 DB에 마이그레이션 전체 적용 결과 스키마 = 운영 스키마(diff 0).
 - **비용 영향:** 중립.
-- **출처:** https://supabase.com/docs/guides/deployment/database-migrations · https://www.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate
+- **출처:** https://supabase.com/docs/guides/deployment/database-migrations · https://www.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate ⚠️출처확인필요
 
 ### U-044 파괴적 스키마 변경은 expand → migrate → contract로 나눈다
 - **무엇/왜:** 롤링·카나리·블루그린 모두 구버전과 신버전이 같은 DB를 동시에 쓴다. 컬럼 삭제·이름 변경·NOT NULL 추가는 구버전을 깨므로, 먼저 두 버전을 모두 지원하게 확장하고, 클라이언트를 옮긴 뒤, 마지막에 축소한다.
@@ -479,7 +479,7 @@
 - **처방:** 3개 릴리스로 분리: (1) 새 컬럼 추가 + 이중 쓰기, (2) 백필 + 읽기 전환, (3) 이전 컬럼 삭제. Prisma도 확장·축소 2단계 예시를 제공.
 - **검증:** 마이그레이션 적용 후 **구버전** 이미지로 통합 테스트 실행(N-1 호환 테스트).
 - **비용 영향:** 중립(일시적으로 컬럼 중복 저장).
-- **출처:** https://martinfowler.com/bliki/ParallelChange.html · https://www.prisma.io/docs/guides/data-migration
+- **출처:** https://martinfowler.com/bliki/ParallelChange.html · https://www.prisma.io/docs/guides/data-migration ⚠️출처부적격 ⚠️출처확인필요
 
 ### U-045 ORM이 "이름 변경"을 "삭제 + 추가"로 생성하는 함정
 - **무엇/왜:** 스키마 파일에서 필드 이름을 바꾸면 마이그레이션 생성기가 기존 컬럼 삭제와 새 컬럼 추가로 해석할 수 있다. 데이터가 사라진다.
@@ -489,7 +489,7 @@
 - **처방:** 생성된 SQL을 리뷰해 `RENAME`으로 고치되, 무중단이 필요하면 U-044 단계로.
 - **검증:** 마이그레이션 lint에서 같은 파일 DROP+ADD 패턴 경고.
 - **비용 영향:** 중립.
-- **출처:** 일반 원칙(출처 미확인). Prisma 문서에서 생성된 마이그레이션을 직접 편집할 수 있다는 점은 확인(https://www.prisma.io/docs/orm/prisma-migrate/workflows/customizing-migrations)했으나 rename→drop/add 동작을 명시한 문장은 찾지 못함.
+- **출처:** 일반 원칙(출처 미확인). Prisma 문서에서 생성된 마이그레이션을 직접 편집할 수 있다는 점은 확인(https://www.prisma.io/docs/orm/prisma-migrate/workflows/customizing-migrations)했으나 rename→drop/add 동작을 명시한 문장은 찾지 못함. ⚠️출처확인필요 ⚠️근거없음
 
 ### U-046 마이그레이션 실행 위치: 앱 기동이 아니라 별도 단계
 - **무엇/왜:** 마이그레이션 같은 일회성 관리 작업은 같은 릴리스·같은 설정으로 별도 프로세스에서 돌린다. Prisma는 `migrate deploy`를 CI/CD 파이프라인에서 실행하라고 권한다. 앱 기동마다 돌리면 replica 수만큼 동시에 실행되고, 실패 시 모든 Pod가 기동 실패한다.
@@ -499,7 +499,7 @@
 - **처방:** 티어0: Vercel은 빌드 단계에서 실행하는 경우가 많으나 프리뷰 빌드 문제(U-105) 주의 → CI 단계 권장. 티어1: Cloud Run Job / ECS run-task를 배포 전에. 티어2: Job 또는 Argo CD PreSync 훅.
 - **검증:** 마이그레이션에 `pg_sleep(60)`을 넣어 배포해 앱 Pod가 영향받지 않는지 확인.
 - **비용 영향:** 중립.
-- **출처:** https://12factor.net/admin-processes · https://www.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate
+- **출처:** https://12factor.net/admin-processes · https://www.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate ⚠️출처부적격 ⚠️출처확인필요
 
 ### U-047 동시 실행 직렬화 (마이그레이션 잠금)
 - **무엇/왜:** 여러 인스턴스·여러 파이프라인이 같은 마이그레이션을 동시에 돌리면 이중 적용이나 이력 테이블 충돌이 난다. advisory lock 등으로 한 번에 하나만 돌게 해야 한다.
@@ -509,7 +509,7 @@
 - **처방:** 별도 단계 1회 실행(U-046)이 가장 확실. 앱 기동 실행을 유지한다면 잠금 확인.
 - **검증:** 마이그레이션 러너를 동시에 3개 실행해 한 번만 적용되는지.
 - **비용 영향:** 중립.
-- **출처:** 일반 원칙(출처 미확인). 도구별 잠금 동작은 공식 문서에서 확인하지 못함.
+- **출처:** 일반 원칙(출처 미확인). 도구별 잠금 동작은 공식 문서에서 확인하지 못함. ⚠️근거없음
 
 ### U-048 마이그레이션과 롤아웃의 순서
 - **무엇/왜:** "마이그레이션 완료 후 앱 롤아웃"이 기본이다. 동시에 시작하면 새 코드가 아직 없는 컬럼을 조회한다. 동시 진행을 택하면 새 코드도 이전 스키마에서 동작해야 한다.
@@ -519,7 +519,7 @@
 - **처방:** 티어2: Argo CD PreSync 훅 또는 파이프라인에서 Job 완료 대기 후 Deployment 적용. 티어1: 배포 전 Job 실행.
 - **검증:** 컬럼 추가 마이그레이션 + 그 컬럼을 읽는 코드를 한 번에 배포하며 5xx 측정.
 - **비용 영향:** 중립.
-- **출처:** https://argo-cd.readthedocs.io/en/stable/user-guide/sync-waves/ (PreSync로 DB 마이그레이션 먼저, 웨이브 순서)
+- **출처:** https://argo-cd.readthedocs.io/en/stable/user-guide/sync-waves/ (PreSync로 DB 마이그레이션 먼저, 웨이브 순서) ⚠️출처확인필요
 
 ### U-049 DDL 잠금 대기에 `lock_timeout`을 건다
 - **무엇/왜:** 대부분의 `ALTER TABLE`은 ACCESS EXCLUSIVE 잠금을 잡고, 이 잠금은 일반 `SELECT`까지 막는다. 잠금 요청은 충돌하는 잠금이 풀릴 때까지 무기한 기다리며, 그 사이 뒤에 온 쿼리들도 줄을 선다. `lock_timeout` 기본값 0은 무제한이다.
@@ -556,7 +556,7 @@
 - **실패 양상:** FK 추가 마이그레이션 동안 두 테이블 쓰기 정지(ADD FOREIGN KEY는 참조 테이블에도 잠금).
 - **신호:** 🟢 `ADD CONSTRAINT ... FOREIGN KEY|CHECK` without `NOT VALID`. 🟢 `SET NOT NULL` on 기존 테이블.
 - **시나리오·수준:** U L2 이상 + PostgreSQL.
-- **처방:** 2단계: `ADD CONSTRAINT ... NOT VALID` → 다음 마이그레이션에서 `VALIDATE CONSTRAINT`. NOT NULL은 CHECK (col IS NOT NULL) NOT VALID → VALIDATE → SET NOT NULL 순(최신 PG에서 검사 생략 여부는 버전별 확인 필요, 출처 미확인).
+- **처방:** 2단계: `ADD CONSTRAINT ... NOT VALID` → 다음 마이그레이션에서 `VALIDATE CONSTRAINT`. NOT NULL은 CHECK (col IS NOT NULL) NOT VALID → VALIDATE → SET NOT NULL 순(최신 PG에서 검사 생략 여부는 버전별 확인 필요, 출처 미확인). ⚠️근거없음
 - **검증:** 대형 테이블 대상 잠금 시간 측정.
 - **비용 영향:** 중립.
 - **출처:** https://www.postgresql.org/docs/current/sql-altertable.html (VALIDATE CONSTRAINT는 SHARE UPDATE EXCLUSIVE, NOT VALID 2단계 권장)
@@ -569,7 +569,7 @@
 - **처방:** 백필은 별도 Job으로 PK 범위 배치 + 커밋, 진행 상황 저장(재시작 가능), 실행 중에도 이중 쓰기 유지.
 - **검증:** 운영 규모 데이터 스테이징에서 백필 중 앱 p95 지연 측정.
 - **비용 영향:** 중립.
-- **출처:** https://docs.djangoproject.com/en/5.2/topics/migrations/ · https://www.prisma.io/docs/guides/data-migration · 배치 분할은 일반 원칙(출처 미확인)
+- **출처:** https://docs.djangoproject.com/en/5.2/topics/migrations/ · https://www.prisma.io/docs/guides/data-migration · 배치 분할은 일반 원칙(출처 미확인) ⚠️출처확인필요 ⚠️근거없음
 
 ### U-054 마이그레이션에도 `statement_timeout`과 실행 시간 상한
 - **무엇/왜:** 예상보다 오래 걸리는 마이그레이션은 중단되고 알려져야 한다. `statement_timeout` 기본 0은 무제한이다. 실행 단계에도 상한(k8s Job `activeDeadlineSeconds` 등)이 필요하다.
@@ -586,7 +586,7 @@
 - **실패 양상:** 5개 문장 중 3번째에서 실패 → 재실행하면 1·2번이 "이미 존재"로 실패 → 배포 정지.
 - **신호:** 🟢 `provider = "mysql"`(Prisma), Django `ENGINE` mysql, PlanetScale.
 - **시나리오·수준:** U L1 이상 + MySQL.
-- **처방:** 마이그레이션 하나에 DDL 하나, 멱등 DDL(`IF NOT EXISTS`), 온라인 스키마 변경 도구(도구별 출처 미확인).
+- **처방:** 마이그레이션 하나에 DDL 하나, 멱등 DDL(`IF NOT EXISTS`), 온라인 스키마 변경 도구(도구별 출처 미확인). ⚠️근거없음
 - **검증:** 중간 문장을 일부러 실패시켜 재실행 가능성 확인.
 - **비용 영향:** 중립.
 - **출처:** https://docs.djangoproject.com/en/5.2/topics/migrations/ (MySQL은 스키마 변경 트랜잭션 미지원)
@@ -599,17 +599,17 @@
 - **처방:** 운영 롤백 절차에서 다운 마이그레이션 제외, contract 단계는 충분히 늦게.
 - **검증:** 런북 정적 검사.
 - **비용 영향:** 중립.
-- **출처:** https://martinfowler.com/bliki/ParallelChange.html · forward-fix 원칙은 일반 원칙(출처 미확인)
+- **출처:** https://martinfowler.com/bliki/ParallelChange.html · forward-fix 원칙은 일반 원칙(출처 미확인) ⚠️출처부적격 ⚠️근거없음
 
 ### U-057 마이그레이션을 배포 전에 검증한다 (CI)
 - **무엇/왜:** 마이그레이션 오류는 배포 중에 처음 발견하면 비싸다. CI에서 빈 DB 적용, 운영 스키마 사본 적용, 위험 DDL 정적 검사를 돈다. Prisma 문서는 운영 적용 전 마이그레이션 파일이 손으로 수정되거나 지워지지 않았는지 확인하라고 한다.
 - **실패 양상:** 운영에서만 존재하는 데이터(NULL, 중복)가 제약 추가를 실패시켜 배포 중단.
-- **신호:** 🟢 CI에 testcontainers/서비스 컨테이너로 Postgres + 마이그레이션 적용 단계(simple-web-app은 testcontainers 사용). 🟢 `prisma migrate diff`, `manage.py makemigrations --check`, `alembic check`. 🔴 위험 DDL 린터(squawk 등, 출처 미확인).
+- **신호:** 🟢 CI에 testcontainers/서비스 컨테이너로 Postgres + 마이그레이션 적용 단계(simple-web-app은 testcontainers 사용). 🟢 `prisma migrate diff`, `manage.py makemigrations --check`, `alembic check`. 🔴 위험 DDL 린터(squawk 등, 출처 미확인). ⚠️근거없음
 - **시나리오·수준:** U L2 이상.
 - **처방:** CI 단계: (1) 빈 DB에 전체 적용, (2) 스키마 drift 검사, (3) 위험 DDL 패턴 검사(U-044~U-052 신호 재사용).
 - **검증:** 위험 DDL을 넣은 PR이 CI에서 막히는지.
 - **비용 영향:** 중립.
-- **출처:** https://www.prisma.io/docs/orm/prisma-migrate/workflows/development-and-production
+- **출처:** https://www.prisma.io/docs/orm/prisma-migrate/workflows/development-and-production ⚠️출처확인필요
 
 ### U-058 Supabase·BaaS의 마이그레이션 단일 실행자
 - **무엇/왜:** Supabase는 `supabase db push`로 원격에 적용하며, 팀은 한 번에 한 사람만 push하도록 조율하거나 main 머지 시 CI가 push하게 하라고 한다.
@@ -629,7 +629,7 @@
 - **처방:** 구 DB 읽기 전용 전환 → 복제 동기화 확인 → 전환 → 구 DB 차단 순. 풀러는 마이그레이션 전용 직결 URL 분리.
 - **검증:** 전환 리허설 중 쓰기가 구 DB에 도달하지 않는지 확인.
 - **비용 영향:** 일시 증가(병행 운영).
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### U-060 운영 데이터 고유 상태에 의존하는 마이그레이션
 - **무엇/왜:** 유니크 인덱스 추가, enum 값 제거, NOT NULL 추가는 운영 데이터에 위반 행이 있으면 실패한다. 개발 DB에는 그런 데이터가 없어 CI가 통과한다.
@@ -653,7 +653,7 @@
 - **처방:** 필드 추가는 선택으로 시작, 제거는 다음 릴리스. 서버 먼저 배포 → 프론트 배포 순서. 티어0은 Skew Protection(U-070)으로 일부 완화.
 - **검증:** 구버전 클라이언트 테스트 스위트를 신버전 서버에 실행(그 반대도).
 - **비용 영향:** 중립.
-- **출처:** https://vercel.com/docs/skew-protection (버전 스큐 정의와 필수 필드 추가 예시) · https://martinfowler.com/bliki/ParallelChange.html
+- **출처:** https://vercel.com/docs/skew-protection (버전 스큐 정의와 필수 필드 추가 예시) · https://martinfowler.com/bliki/ParallelChange.html ⚠️출처부적격
 
 ### U-062 오래 사는 외부 클라이언트(모바일 앱, SDK, 웹훅 소비자)
 - **무엇/왜:** 모바일 앱은 사용자가 업데이트하지 않으면 몇 달 전 버전이 계속 API를 부른다. 웹 프론트처럼 새로고침으로 해결되지 않는다.
@@ -663,7 +663,7 @@
 - **처방:** URL 또는 헤더 기반 API 버전, 폐기 일정, 최소 지원 앱 버전 검사(강제 업데이트 응답).
 - **검증:** 지원하는 가장 오래된 클라이언트 계약 테스트를 CI에 유지.
 - **비용 영향:** 중립.
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### U-063 이벤트·메시지 스키마 호환
 - **무엇/왜:** 큐·스트림 메시지는 생산자와 소비자가 따로 배포되고, 큐에 남아 있는 동안 버전이 섞인다. Protobuf 규칙: 필드 번호 재사용 금지, 삭제한 번호는 reserved, 필드 추가·삭제는 wire-safe, 번호 변경은 unsafe.
@@ -673,17 +673,17 @@
 - **처방:** 메시지 버전 필드, 소비자는 알 수 없는 필드 무시(관대한 수신), 생산자 형식 변경은 소비자가 양쪽을 다 읽게 된 뒤.
 - **검증:** 구 형식 메시지를 큐에 넣은 상태로 신규 소비자 배포.
 - **비용 영향:** 중립.
-- **출처:** https://protobuf.dev/programming-guides/proto3/ (메시지 타입 업데이트 규칙)
+- **출처:** https://protobuf.dev/programming-guides/proto3/ (메시지 타입 업데이트 규칙) ⚠️출처확인필요
 
 ### U-064 큐에 남은 작업과 생산자·소비자 배포 순서
 - **무엇/왜:** 작업 큐에는 구버전 코드가 넣은 페이로드가 배포 후에도 남는다. 작업 함수 이름·인자를 바꾸면 남은 작업이 실패한다.
 - **실패 양상:** Celery 태스크 이름 변경 후 큐에 남은 수천 건이 "unregistered task"로 실패. BullMQ 잡 데이터 구조 변경으로 워커 예외 반복.
-- **신호:** 🟢 태스크 함수 이름/시그니처 변경 diff, `@app.task(name=...)` 미지정(모듈 경로가 이름이 됨, 출처 미확인). 🟢 웹과 워커가 같은 이미지(simple-web-app board 이미지를 board-api·board-worker가 공유).
+- **신호:** 🟢 태스크 함수 이름/시그니처 변경 diff, `@app.task(name=...)` 미지정(모듈 경로가 이름이 됨, 출처 미확인). 🟢 웹과 워커가 같은 이미지(simple-web-app board 이미지를 board-api·board-worker가 공유). ⚠️근거없음
 - **시나리오·수준:** U L2 이상 + 워커.
 - **처방:** 작업 이름 고정, 인자 추가는 기본값과 함께, 큐를 비운 뒤 구 핸들러 제거. 소비자 먼저(양쪽 읽기) → 생산자 배포.
 - **검증:** 구버전으로 큐를 채운 뒤 신버전 워커 배포, 실패율 측정.
 - **비용 영향:** 중립.
-- **출처:** https://protobuf.dev/programming-guides/proto3/ (호환 변경 원칙) · 작업 큐 이름 고정은 일반 원칙(출처 미확인)
+- **출처:** https://protobuf.dev/programming-guides/proto3/ (호환 변경 원칙) · 작업 큐 이름 고정은 일반 원칙(출처 미확인) ⚠️출처확인필요 ⚠️근거없음
 
 ### U-065 프론트엔드 해시 청크와 구버전 클라이언트 (배포 중 청크 로드 실패)
 - **무엇/왜:** SPA는 해시가 붙은 청크를 지연 로드한다. 새 배포가 이전 자산을 지우면, 배포 전에 페이지를 연 사용자가 다음 화면으로 갈 때 이전 해시의 청크를 요청해 404가 난다. Vite는 이때 `vite:preloadError` 이벤트를 낸다.
@@ -703,7 +703,7 @@
 - **처방:** 위 두 헤더 + CDN에서 HTML 캐시 금지 또는 배포 시 무효화.
 - **검증:** 배포 후 `curl -I`로 헤더 확인, 새 빌드 ID가 즉시 보이는지.
 - **비용 영향:** 감소(자산 캐시 적중 증가).
-- **출처:** https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control · https://nextjs.org/docs/app/guides/self-hosting (immutable 자산 헤더는 덮어쓸 수 없음)
+- **출처:** https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control · https://nextjs.org/docs/app/guides/self-hosting (immutable 자산 헤더는 덮어쓸 수 없음) ⚠️출처부적격
 
 ### U-067 셀프호스팅 Next.js의 버전 스큐: `deploymentId`
 - **무엇/왜:** 여러 인스턴스·롤링 배포에서 Next.js는 자산 누락, Server Function ID 불일치, 프리페치 데이터 비호환을 겪을 수 있다. `deploymentId`를 설정하면 클라이언트와 서버의 배포 ID를 비교해 불일치 시 전체 새로고침한다.
@@ -753,7 +753,7 @@
 - **처방:** 새 워커 대기 시 "새 버전 있음" 안내 후 사용자 동의로 교체, 네비게이션 요청은 network-first, 비상 시 자기 해제(kill switch) 워커 준비.
 - **검증:** 구 워커가 설치된 브라우저로 배포 후 동작 확인.
 - **비용 영향:** 중립.
-- **출처:** https://web.dev/articles/service-worker-lifecycle
+- **출처:** https://web.dev/articles/service-worker-lifecycle ⚠️출처확인필요
 
 ### U-072 세션·쿠키·서명 키 호환
 - **무엇/왜:** 세션 저장 형식, 쿠키 이름·도메인, 서명 키를 바꾸면 배포 순간 모든 사용자가 로그아웃되거나, 롤링 중 구·신 인스턴스가 서로의 세션을 못 읽는다. Django는 `SECRET_KEY`를 바꾸면 세션·비밀번호 재설정 토큰·서명이 무효화되며, `SECRET_KEY_FALLBACKS`로 무중단 교체를 지원한다.
@@ -763,17 +763,17 @@
 - **처방:** 새 키로 서명 + 이전 키로 검증(fallback/키 배열/JWKS의 `kid`) → 만료 주기 지난 뒤 이전 키 제거.
 - **검증:** 키 교체 배포 전후로 기존 세션 쿠키가 유효한지 테스트.
 - **비용 영향:** 중립.
-- **출처:** https://docs.djangoproject.com/en/5.2/ref/settings/ (SECRET_KEY, SECRET_KEY_FALLBACKS). 다른 프레임워크의 키 배열 지원은 일반 원칙(출처 미확인).
+- **출처:** https://docs.djangoproject.com/en/5.2/ref/settings/ (SECRET_KEY, SECRET_KEY_FALLBACKS). 다른 프레임워크의 키 배열 지원은 일반 원칙(출처 미확인). ⚠️근거없음
 
 ### U-073 API 스키마의 하위 호환 깨짐을 CI에서 잡는다
 - **무엇/왜:** OpenAPI/GraphQL 스키마 diff로 필수 필드 추가, 필드 제거, 타입 변경을 자동 탐지하면 U-061·U-062를 사람 리뷰에 의존하지 않는다.
 - **실패 양상:** 리뷰에서 놓친 필드 제거가 배포 후 구 클라이언트를 깨뜨림.
 - **신호:** 🟢 `openapi.yaml`/`openapi.json`, FastAPI 자동 스키마, `schema.graphql`. 🟢 CI에 스키마 diff 단계 유무.
 - **시나리오·수준:** U L2 이상 + 외부 소비자.
-- **처방:** CI에서 main 브랜치 스키마와 PR 스키마를 비교해 breaking change면 실패(도구는 oasdiff, GraphQL Inspector 등, 출처 미확인).
+- **처방:** CI에서 main 브랜치 스키마와 PR 스키마를 비교해 breaking change면 실패(도구는 oasdiff, GraphQL Inspector 등, 출처 미확인). ⚠️근거없음
 - **검증:** 필드 제거 PR이 실패하는지.
 - **비용 영향:** 중립.
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ---
 
@@ -787,7 +787,7 @@
 - **처방:** 새 작업 가져오기 중단 → 현재 작업 완료 또는 반환 → 연결 종료. 처리 후 ack.
 - **검증:** 작업 처리 중 워커 Pod 삭제 → 작업이 정확히 한 번 완료되는지(C의 멱등성과 함께).
 - **비용 영향:** 중립.
-- **출처:** https://12factor.net/disposability · https://docs.celeryq.dev/en/stable/userguide/workers.html
+- **출처:** https://12factor.net/disposability · https://docs.celeryq.dev/en/stable/userguide/workers.html ⚠️출처부적격 ⚠️출처확인필요
 
 ### U-075 워커 유예 시간과 최장 작업 길이
 - **무엇/왜:** 작업이 유예 시간보다 길면 warm shutdown도 SIGKILL로 끝난다. Celery 5.5의 soft shutdown은 시간 제한 후 cold shutdown으로 넘어간다. Spot 중단 통보(설계 S22: Fargate Spot 2분, GKE Spot 30초)도 같은 제약이다.
@@ -797,7 +797,7 @@
 - **처방:** 작업을 짧은 단위로 쪼개 체크포인트, 또는 워커 grace를 최장 작업 + 여유로(ECS는 최대 120초라 긴 작업은 분할 필수).
 - **검증:** 최장 작업 실행 중 롤아웃 → 완료·재개 여부.
 - **비용 영향:** 중립.
-- **출처:** https://docs.celeryq.dev/en/stable/userguide/workers.html · https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html
+- **출처:** https://docs.celeryq.dev/en/stable/userguide/workers.html · https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html ⚠️출처확인필요
 
 ### U-076 배포 중 크론 중복 실행 (서지 Pod, 동시 실행 정책)
 - **무엇/왜:** 앱 프로세스 안의 스케줄러(`node-cron`, APScheduler)는 replica 1이어도 롤링 서지 구간에 구·신 Pod가 동시에 같은 시각에 실행한다. k8s CronJob은 `concurrencyPolicy` 기본 `Allow`이고, 문서는 CronJob이 Job을 두 번 만들거나 안 만들 수 있으니 작업을 멱등하게 하라고 한다.
@@ -827,7 +827,7 @@
 - **처방:** Job 이름에 SHA 접미사 또는 사전 삭제, Argo CD 훅 `BeforeHookCreation`, 마이그레이션은 재시도해도 안전하게(멱등 DDL) 또는 `backoffLimit` 작게.
 - **검증:** 같은 매니페스트를 두 번 연속 배포.
 - **비용 영향:** 중립.
-- **출처:** https://kubernetes.io/docs/concepts/workloads/controllers/job/ · https://argo-cd.readthedocs.io/en/stable/user-guide/sync-waves/
+- **출처:** https://kubernetes.io/docs/concepts/workloads/controllers/job/ · https://argo-cd.readthedocs.io/en/stable/user-guide/sync-waves/ ⚠️출처확인필요
 
 ### U-079 장시간 배치·Job이 배포를 가로지를 때
 - **무엇/왜:** 배치는 시작한 시점의 이미지로 끝까지 돈다. 그 사이 contract 마이그레이션이 나가면 구 코드 배치가 사라진 컬럼을 만난다. 노드 drain에도 중단된다.
@@ -837,7 +837,7 @@
 - **처방:** contract 단계 전 진행 중 배치 완료 확인(배포 전 점검), 배치는 체크포인트·재개 가능하게.
 - **검증:** 배치 실행 중 contract 마이그레이션 배포 리허설.
 - **비용 영향:** 중립.
-- **출처:** https://martinfowler.com/bliki/ParallelChange.html (모든 사용처를 옮긴 뒤 contract) · 나머지는 일반 원칙(출처 미확인)
+- **출처:** https://martinfowler.com/bliki/ParallelChange.html (모든 사용처를 옮긴 뒤 contract) · 나머지는 일반 원칙(출처 미확인) ⚠️출처부적격 ⚠️근거없음
 
 ### U-080 웹·워커·Job이 이미지를 공유할 때의 배포 단위
 - **무엇/왜:** 한 이미지를 웹, 워커, 마이그레이션 Job이 함께 쓰면 하나의 커밋이 세 워크로드를 동시에 바꾼다. 배포 순서(Job → 워커 → 웹 등)와 호환 범위를 명시해야 한다.
@@ -847,7 +847,7 @@
 - **처방:** 순서를 파이프라인에 고정(마이그레이션 → 소비자 → 생산자), 롤백도 세트로.
 - **검증:** 순서를 뒤집은 배포에서 오류가 나는지(호환성 테스트로 활용).
 - **비용 영향:** 중립.
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ---
 
@@ -868,7 +868,7 @@
 - **실패 양상:** 배포 도중 누군가 같은 태그를 다시 푸시 → 한 배포 안에서 Pod마다 다른 코드.
 - **신호:** 🟢 `image@sha256:`, kustomize `images[].digest`. 🟢 ECS `versionConsistency: disabled`.
 - **시나리오·수준:** U L2 이상.
-- **처방:** 티어2: 파이프라인이 빌드 결과 다이제스트를 매니페스트에 기록. 티어1: ECS 기본 유지, Cloud Run은 배포 시 다이제스트로 해석(출처 미확인).
+- **처방:** 티어2: 파이프라인이 빌드 결과 다이제스트를 매니페스트에 기록. 티어1: ECS 기본 유지, Cloud Run은 배포 시 다이제스트로 해석(출처 미확인). ⚠️근거없음
 - **검증:** 실행 중 Pod의 imageID가 모두 같은지.
 - **비용 영향:** 중립.
 - **출처:** https://kubernetes.io/docs/concepts/containers/images/ · https://docs.aws.amazon.com/AmazonECS/latest/developerguide/deployment-type-ecs.html (Container image resolution)
@@ -876,7 +876,7 @@
 ### U-083 레지스트리에서 태그 덮어쓰기 금지
 - **무엇/왜:** ECR은 저장소 단위로 태그 불변을 켤 수 있고, 켜면 기존 태그로 푸시할 때 `ImageTagAlreadyExistsException`을 낸다. 예외 필터로 일부 태그만 가변으로 둘 수 있다.
 - **실패 양상:** 실수로 운영 태그를 다른 빌드로 덮어써 롤백 대상이 오염.
-- **신호:** 🟢 Terraform `aws_ecr_repository.image_tag_mutability = "IMMUTABLE"` 유무. 🟢 Artifact Registry 불변 태그 설정(출처 미확인).
+- **신호:** 🟢 Terraform `aws_ecr_repository.image_tag_mutability = "IMMUTABLE"` 유무. 🟢 Artifact Registry 불변 태그 설정(출처 미확인). ⚠️근거없음
 - **시나리오·수준:** U L2 이상.
 - **처방:** 티어1·2: 저장소 불변 태그 + 수명 주기 정책.
 - **검증:** 같은 태그 재푸시가 거부되는지.
@@ -891,7 +891,7 @@
 - **처방:** 서버 측 런타임 env로 읽기(Next.js는 동적 렌더링에서 런타임 env 사용 가능), 공개 설정은 런타임 `/config.json`. 부득이하면 SHA별 산출물 보관.
 - **검증:** 스테이징과 운영의 이미지 다이제스트가 같은지.
 - **비용 영향:** 감소(빌드 시간).
-- **출처:** https://12factor.net/build-release-run · https://nextjs.org/docs/app/guides/self-hosting (Environment Variables: NEXT_PUBLIC_은 빌드 시 인라인, 런타임 env로 단일 이미지 승격 가능)
+- **출처:** https://12factor.net/build-release-run · https://nextjs.org/docs/app/guides/self-hosting (Environment Variables: NEXT_PUBLIC_은 빌드 시 인라인, 런타임 env로 단일 이미지 승격 가능) ⚠️출처부적격
 
 ### U-085 lock 파일과 고정된 설치 (재현 가능한 빌드)
 - **무엇/왜:** 의존성을 완전하고 정확하게 선언해야 한다. `npm ci`는 lock 파일이 필수이고 package.json과 어긋나면 갱신하지 않고 실패한다. pip 해시 검사 모드는 모든 의존성을 `==`로 고정하고 해시를 요구한다.
@@ -901,7 +901,7 @@
 - **처방:** lock 커밋, CI·Dockerfile에서 `npm ci`/`pnpm install --frozen-lockfile`/`uv sync --frozen`, pip는 `--require-hashes` 고려.
 - **검증:** 같은 커밋 두 번 빌드한 결과 의존성 트리 동일.
 - **비용 영향:** 중립.
-- **출처:** https://12factor.net/dependencies · https://docs.npmjs.com/cli/v11/commands/npm-ci · https://pip.pypa.io/en/stable/topics/secure-installs/
+- **출처:** https://12factor.net/dependencies · https://docs.npmjs.com/cli/v11/commands/npm-ci · https://pip.pypa.io/en/stable/topics/secure-installs/ ⚠️출처부적격 ⚠️출처확인필요
 
 ### U-086 베이스 이미지 고정과 정기 갱신
 - **무엇/왜:** 이미지 태그는 발행자가 다른 이미지로 옮길 수 있다. 일관성을 원하면 다이제스트로 고정하고, 대신 Dependabot 등으로 갱신 PR을 받아 보안 패치를 놓치지 않는다.
@@ -928,10 +928,10 @@
 - **실패 양상:** 공개 레지스트리나 넓은 권한의 레지스트리에서 운영 DB 비밀번호 유출.
 - **신호:** 🟢 `.env` 파일 존재 + `.dockerignore`에 `.env` 없음 + `COPY . .`. 🟢 Dockerfile `ARG .*(TOKEN|SECRET|KEY|PASSWORD)`, `ENV ...SECRET=`. 🟢 `npm config set //registry...:_authToken` in RUN.
 - **시나리오·수준:** 모든 수준.
-- **처방:** `.dockerignore`, BuildKit secret mount(`RUN --mount=type=secret`, 출처 미확인), 런타임 주입.
+- **처방:** `.dockerignore`, BuildKit secret mount(`RUN --mount=type=secret`, 출처 미확인), 런타임 주입. ⚠️근거없음
 - **검증:** `docker history`와 이미지 파일시스템에서 비밀 패턴 스캔.
 - **비용 영향:** 중립.
-- **출처:** https://docs.docker.com/build/building/best-practices/ (.dockerignore) · 비밀 레이어 잔존은 일반 원칙(출처 미확인)
+- **출처:** https://docs.docker.com/build/building/best-practices/ (.dockerignore) · 비밀 레이어 잔존은 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### U-089 멀티 아키텍처 이미지
 - **무엇/왜:** 컨테이너는 호스트 커널을 공유하므로 아키텍처가 다르면 에뮬레이션 없이 실행되지 않는다. Apple Silicon 노트북에서 빌드한 arm64 이미지를 amd64 노드에 올리면 기동 실패한다. `docker buildx build --platform linux/amd64,linux/arm64`로 매니페스트 리스트를 만든다.
@@ -958,10 +958,10 @@
 - **실패 양상:** 누군가 레지스트리에 직접 푸시한 이미지가 CI 산출물인 척 배포됨.
 - **신호:** 🟢 CI에 `cosign sign`, `actions/attest-build-provenance`, `docker buildx --provenance`. 🟢 클러스터 정책(Kyverno/Gatekeeper/Binary Authorization)으로 서명 검증. 🔴 없음.
 - **시나리오·수준:** U L3 또는 규제·B2B(D L2 이상과 함께).
-- **처방:** 티어1: Cloud Run Binary Authorization(출처 미확인). 티어2: 서명 검증 어드미션 정책. 바이브코더 앱(U L1)에는 과잉이므로 요구하지 않는다.
+- **처방:** 티어1: Cloud Run Binary Authorization(출처 미확인). 티어2: 서명 검증 어드미션 정책. 바이브코더 앱(U L1)에는 과잉이므로 요구하지 않는다. ⚠️근거없음
 - **검증:** 서명 없는 이미지 배포가 거부되는지.
 - **비용 영향:** 중립~약간 증가.
-- **출처:** https://slsa.dev/spec/v1.0/levels · https://docs.sigstore.dev/cosign/signing/signing_with_containers/
+- **출처:** https://slsa.dev/spec/v1.0/levels · https://docs.sigstore.dev/cosign/signing/signing_with_containers/ ⚠️출처확인필요
 
 ### U-092 테스트·검증 통과가 배포의 전제
 - **무엇/왜:** 배포 잡이 테스트 잡에 의존(`needs`)하지 않으면 실패한 커밋도 배포된다. 플랫폼 Git 연동(Vercel 등)은 CI 결과와 무관하게 빌드·배포한다.
@@ -971,7 +971,7 @@
 - **처방:** 브랜치 보호 + 필수 체크, 배포 잡 `needs`, Vercel은 Git 연동 대신 CI에서 `vercel deploy`(단 `--prebuilt`는 Skew Protection 불가, U-070) 또는 배포 보호 규칙.
 - **검증:** 실패 테스트 커밋이 배포되지 않는지.
 - **비용 영향:** 중립.
-- **출처:** https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments (배포 브랜치 제한) · `needs` 원칙은 일반 원칙(출처 미확인)
+- **출처:** https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments (배포 브랜치 제한) · `needs` 원칙은 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### U-093 런타임 버전 고정 (Node, Python)
 - **무엇/왜:** 플랫폼 기본 런타임 버전이 바뀌거나 로컬·CI·운영 버전이 다르면 같은 코드가 다르게 동작한다.
@@ -981,7 +981,7 @@
 - **처방:** 한 곳에서 버전을 정하고 CI·Dockerfile·플랫폼 설정이 따른다.
 - **검증:** 정적 비교.
 - **비용 영향:** 중립.
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ---
 
@@ -995,7 +995,7 @@
 - **처방:** env로 이동, 환경 이름 분기 대신 개별 변수.
 - **검증:** 같은 이미지를 env만 바꿔 두 환경에 띄움.
 - **비용 영향:** 중립.
-- **출처:** https://12factor.net/config
+- **출처:** https://12factor.net/config ⚠️출처부적격
 
 ### U-095 저장소에 커밋된 `.env`·하드코딩 비밀
 - **무엇/왜:** 커밋된 비밀은 Git 이력에 영원히 남는다. GitHub 푸시 보호는 푸시 단계에서 비밀을 막지만 이미 들어간 비밀은 교체해야 한다.
@@ -1003,9 +1003,9 @@
 - **신호:** 🟢 `.env`, `.env.production`, `.env.local`이 Git 추적 중. 🟢 `sk_live_`, `service_role`, `AKIA`, `-----BEGIN PRIVATE KEY-----` 패턴. 🟢 `.gitignore`에 `.env` 없음.
 - **시나리오·수준:** 모든 수준(L0 포함).
 - **처방:** 즉시 교체(회전) → 이력 정리 → 비밀 저장소로(U-099) → 푸시 보호 활성.
-- **검증:** gitleaks류 스캔 0건(도구 출처 미확인), 교체 후 이전 키로 요청 시 거부.
+- **검증:** gitleaks류 스캔 0건(도구 출처 미확인), 교체 후 이전 키로 요청 시 거부. ⚠️근거없음
 - **비용 영향:** 중립.
-- **출처:** https://12factor.net/config · https://docs.github.com/en/code-security/secret-scanning/introduction/about-push-protection
+- **출처:** https://12factor.net/config · https://docs.github.com/en/code-security/secret-scanning/introduction/about-push-protection ⚠️출처부적격
 
 ### U-096 클라이언트 번들에 들어가는 "공개" 변수에 비밀을 넣는다
 - **무엇/왜:** `NEXT_PUBLIC_*`는 빌드 시 자바스크립트 번들에 인라인되어 브라우저로 간다. `VITE_*`도 같은 방식이다(Vite 문서 미확인). 이름만 env일 뿐 공개 값이다.
@@ -1045,7 +1045,7 @@
 - **처방:** 티어0: 플랫폼 env(암호화 저장). 티어1: Secret Manager/Secrets Manager 참조. 티어2: External Secrets Operator 또는 Secrets Store CSI.
 - **검증:** 렌더된 매니페스트에 Secret 값 0건.
 - **비용 영향:** 약간 증가(Secret Manager 호출·저장).
-- **출처:** https://kubernetes.io/docs/concepts/configuration/secret/ · https://external-secrets.io/latest/api/externalsecret/
+- **출처:** https://kubernetes.io/docs/concepts/configuration/secret/ · https://external-secrets.io/latest/api/externalsecret/ ⚠️출처확인필요
 
 ### U-100 무중단 비밀 교체
 - **무엇/왜:** 비밀을 한 번에 바꾸면 인스턴스마다 반영 시점이 달라(U-097) 일부가 실패한다. 두 자격 증명을 겹쳐 유효하게 두고 옮긴 뒤 이전 것을 폐기한다. AWS Secrets Manager는 관리형 교체와 Lambda 교체를 제공하고, Vercel은 무중단 교체 절차를 문서로 둔다.
@@ -1075,7 +1075,7 @@
 - **처방:** 설정 스키마를 한 모듈에서 기동 시 파싱, 실패 시 프로세스 종료.
 - **검증:** 필수 env 하나를 뺀 배포가 롤아웃 단계에서 실패하는지.
 - **비용 영향:** 중립.
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### U-103 코드가 읽는 env와 선언된 env의 불일치
 - **무엇/왜:** `.env.example`(또는 플랫폼 설정)에 없는 변수를 코드가 읽으면 새 환경을 만들 때 빠진다. 반대로 더 이상 안 쓰는 비밀이 남아 노출면을 키운다.
@@ -1085,7 +1085,7 @@
 - **처방:** CI에서 차집합 검사, U-102 스키마를 단일 진실로.
 - **검증:** 차집합 0.
 - **비용 영향:** 중립.
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ---
 
@@ -1099,7 +1099,7 @@
 - **처방:** 티어0: Vercel 환경별 변수 + Supabase 프로젝트 분리 또는 브랜칭. 티어1·2: 계정/프로젝트 또는 네임스페이스 + 별도 DB 인스턴스.
 - **검증:** 스테이징 자격 증명으로 운영 DB 접속 불가.
 - **비용 영향:** 증가(스테이징 상시 비용). L1이면 스테이징 없이 프리뷰로 대체 고려.
-- **출처:** https://vercel.com/docs/environment-variables · https://12factor.net/config
+- **출처:** https://vercel.com/docs/environment-variables · https://12factor.net/config ⚠️출처부적격
 
 ### U-105 프리뷰 배포가 운영 DB·운영 비밀을 쓴다 (빌드 단계 마이그레이션 포함)
 - **무엇/왜:** Vercel Preview 변수를 따로 설정하지 않으면 프리뷰가 운영 값을 쓰도록 구성되기 쉽다. 여기에 `"build": "prisma migrate deploy && next build"`가 겹치면 **모든 PR 프리뷰 빌드가 운영 DB에 마이그레이션을 적용**한다.
@@ -1109,14 +1109,14 @@
 - **처방:** 티어0: 마이그레이션을 빌드에서 빼고 main 머지 후 CI 단계로, Preview에는 별도 DB(Supabase 브랜치, U-106).
 - **검증:** 프리뷰 빌드 로그에 마이그레이션 실행 0, 프리뷰 env의 DB 호스트 ≠ 운영.
 - **비용 영향:** 증가(프리뷰 DB).
-- **출처:** https://vercel.com/docs/environment-variables (Preview 환경 변수는 비프로덕션 브랜치 배포에 적용) · https://www.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate (migrate deploy는 CI/CD 파이프라인에서). 두 사실의 결합은 우리 추론이다.
+- **출처:** https://vercel.com/docs/environment-variables (Preview 환경 변수는 비프로덕션 브랜치 배포에 적용) · https://www.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate (migrate deploy는 CI/CD 파이프라인에서). 두 사실의 결합은 우리 추론이다. ⚠️출처확인필요 ⚠️근거없음
 
 ### U-106 프리뷰용 DB 브랜치
 - **무엇/왜:** Supabase Branching은 PR마다 별도 인스턴스와 자격 증명을 만들고 마이그레이션을 적용하며, 기본으로 운영 데이터를 복사하지 않는다. PR이 머지·종료되면 삭제된다.
 - **실패 양상:** 없으면 U-105, 또는 모든 PR이 공유 스테이징 DB에서 서로의 마이그레이션과 충돌.
 - **신호:** 🟢 `supabase/config.toml` + `seed.sql`, Neon 브랜치 연동, CI에서 PR별 DB 생성. 🔴 없음.
 - **시나리오·수준:** U L2 이상 + 마이그레이션 있음 + 프리뷰 사용.
-- **처방:** 티어0: Supabase Branching(또는 Neon 브랜치, 출처 미확인). 티어1·2: PR별 일회성 DB(컨테이너) 또는 공유 스테이징 + 직렬화.
+- **처방:** 티어0: Supabase Branching(또는 Neon 브랜치, 출처 미확인). 티어1·2: PR별 일회성 DB(컨테이너) 또는 공유 스테이징 + 직렬화. ⚠️근거없음
 - **검증:** PR 프리뷰의 DB가 PR 종료 후 사라지는지.
 - **비용 영향:** 증가(브랜치 사용량).
 - **출처:** https://supabase.com/docs/guides/deployment/branching
@@ -1139,7 +1139,7 @@
 - **처방:** docker-compose/testcontainers로 같은 엔진·같은 메이저 버전.
 - **검증:** CI가 운영과 같은 DB 엔진으로 마이그레이션·테스트.
 - **비용 영향:** 중립.
-- **출처:** https://12factor.net/dev-prod-parity
+- **출처:** https://12factor.net/dev-prod-parity ⚠️출처부적격
 
 ---
 
@@ -1153,14 +1153,14 @@
 - **처방:** P3 실행기가 Terraform을 생성.
 - **검증:** 빈 계정에 `terraform apply`로 환경 재현.
 - **비용 영향:** 중립.
-- **출처:** 원칙 §4.4(설계 문서) · 일반 원칙(출처 미확인)
+- **출처:** 원칙 §4.4(설계 문서) · 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### U-110 Terraform 원격 상태 + 잠금 + 버전 관리
 - **무엇/왜:** 백엔드가 지원하면 Terraform은 상태를 쓰는 모든 작업에 잠금을 건다. S3 백엔드는 `use_lockfile = true`로 S3 네이티브 잠금을 쓰고, DynamoDB 잠금은 폐기 예정이다. 실수·삭제 복구를 위해 버킷 버전 관리를 강하게 권한다.
 - **실패 양상:** 로컬 상태 파일로 두 사람이 동시에 apply → 상태 손상, 리소스 중복 생성 또는 고아 리소스. 상태 파일 분실 시 전체 인프라를 다시 import.
 - **신호:** 🟢 `backend "s3"`/`"gcs"`/`"remote"` 없음(로컬 상태). 🟢 S3 백엔드에 `use_lockfile` 없음 또는 `dynamodb_table`만 있음(폐기 예정). 🟢 상태 버킷 `versioning` 비활성.
 - **시나리오·수준:** U L1 이상 + Terraform 사용.
-- **처방:** S3(`use_lockfile = true`, 버전 관리, 암호화) 또는 GCS 백엔드(GCS 잠금 출처 미확인). `force-unlock`은 자기 잠금에만.
+- **처방:** S3(`use_lockfile = true`, 버전 관리, 암호화) 또는 GCS 백엔드(GCS 잠금 출처 미확인). `force-unlock`은 자기 잠금에만. ⚠️근거없음
 - **검증:** 두 터미널에서 동시 `plan`/`apply` → 두 번째가 잠금 대기.
 - **비용 영향:** 미미한 증가.
 - **출처:** https://developer.hashicorp.com/terraform/language/state/locking · https://developer.hashicorp.com/terraform/language/backend/s3
@@ -1193,7 +1193,7 @@
 - **처방:** PR plan, 보호된 환경(U-117)에서 apply, OIDC 자격(U-090).
 - **검증:** 운영 apply 권한이 CI 역할에만 있는지.
 - **비용 영향:** 중립.
-- **출처:** https://www.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate (운영 변경은 CI/CD에서, 로컬 비권장 — 같은 원칙의 DB 쪽 근거) · Terraform 쪽은 일반 원칙(출처 미확인)
+- **출처:** https://www.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate (운영 변경은 CI/CD에서, 로컬 비권장 — 같은 원칙의 DB 쪽 근거) · Terraform 쪽은 일반 원칙(출처 미확인) ⚠️출처확인필요 ⚠️근거없음
 
 ### U-114 파괴적 IaC 변경 보호
 - **무엇/왜:** `prevent_destroy`는 리소스를 파괴하는 계획을 거부한다(설정 블록 자체를 지우면 막지 못함). `create_before_destroy`는 교체 시 새 것을 먼저 만든다. 이름 변경 하나가 DB "교체"(삭제 후 생성)로 계획될 수 있다.
@@ -1213,17 +1213,17 @@
 - **처방:** `kustomize build | kubeconform -strict -summary`, CRD는 `-schema-location` 추가.
 - **검증:** 오타 필드 PR이 실패하는지.
 - **비용 영향:** 중립.
-- **출처:** https://github.com/yannh/kubeconform
+- **출처:** https://github.com/yannh/kubeconform ⚠️출처확인필요
 
 ### U-116 정책 코드화 (Checkov, OPA Gatekeeper)
 - **무엇/왜:** "probe 필수, latest 금지, 리소스 요청 필수, 삭제 보호" 같은 규칙을 PR 단계(Checkov: Terraform·CloudFormation·Kubernetes·Helm·CDK 등)와 클러스터 어드미션 단계(Gatekeeper: OPA 정책을 웹훅으로 강제하고 기존 리소스 감사)에서 강제한다.
 - **실패 양상:** 리뷰어가 놓친 규칙 위반이 운영에 들어가고, 수동 `kubectl apply`는 CI 검사를 우회.
 - **신호:** 🟢 `.checkov.yaml`, CI의 `checkov -d`, `ConstraintTemplate`, Kyverno `ClusterPolicy`. 🔴 없음.
 - **시나리오·수준:** U L2 이상(티어1·2). 바이브코더 단일 서비스엔 PR 단계 검사만으로 충분(어드미션은 과잉 가능).
-- **처방:** infrafit 규칙집의 U 통제를 Checkov/OPA 정책으로 내보내 재사용(새 축 후보 참고). cdk-nag는 출처 미확인.
+- **처방:** infrafit 규칙집의 U 통제를 Checkov/OPA 정책으로 내보내 재사용(새 축 후보 참고). cdk-nag는 출처 미확인. ⚠️근거없음
 - **검증:** 위반 매니페스트가 PR과 어드미션에서 모두 거부되는지.
 - **비용 영향:** 중립.
-- **출처:** https://www.checkov.io/ · https://open-policy-agent.github.io/gatekeeper/website/docs/
+- **출처:** https://www.checkov.io/ · https://open-policy-agent.github.io/gatekeeper/website/docs/ ⚠️출처확인필요
 
 ### U-117 운영 배포 승인과 환경 보호 규칙
 - **무엇/왜:** GitHub Environments는 필수 검토자(최대 6명·팀, 한 명 승인으로 충분), 자기 승인 금지, 대기 타이머, 배포 가능한 브랜치·태그 제한을 제공하고, 환경 비밀은 규칙을 통과한 잡에만 열린다. 단, GitHub Free에서는 공개 저장소에서만 쓸 수 있고 비공개로 바꾸면 보호 규칙과 환경 비밀이 무시된다.
@@ -1238,12 +1238,12 @@
 ### U-118 GitOps: 원하는 상태를 Git에, 동기화는 컨트롤러가
 - **무엇/왜:** Argo CD 같은 GitOps 도구는 Git을 단일 진실로 두고 클러스터를 맞춘다. 롤백은 Git revert, 드리프트는 자동 감지(U-112). PreSync 훅과 sync wave로 마이그레이션 순서(U-048)를 선언할 수 있다.
 - **실패 양상:** 없으면 누가 언제 무엇을 `kubectl apply`했는지 모르고, 장애 중 수동 수정이 다음 배포에서 사라짐.
-- **신호:** 🟢 `Application`/`ApplicationSet`(Argo CD), `Kustomization`/`HelmRelease`(Flux, 출처 미확인). 🟢 CI가 직접 `kubectl apply`.
+- **신호:** 🟢 `Application`/`ApplicationSet`(Argo CD), `Kustomization`/`HelmRelease`(Flux, 출처 미확인). 🟢 CI가 직접 `kubectl apply`. ⚠️근거없음
 - **시나리오·수준:** U L2 이상, 티어2. 단일 서비스·티어1에서는 과잉(티어1은 플랫폼 리비전 이력으로 충분).
 - **처방:** 티어2: Argo CD + PreSync 마이그레이션 훅 + HPA 관리 필드(replicas) 무시 설정(U-004).
 - **검증:** 클러스터에서 수동 변경 → 자동 되돌림 또는 OutOfSync 표시.
 - **비용 영향:** 약간 증가(컨트롤러 리소스).
-- **출처:** https://argo-cd.readthedocs.io/en/stable/user-guide/sync-waves/
+- **출처:** https://argo-cd.readthedocs.io/en/stable/user-guide/sync-waves/ ⚠️출처확인필요
 
 ### U-119 배포 직렬화 (동시 배포 금지)
 - **무엇/왜:** 두 커밋의 배포가 겹치면 마이그레이션 순서가 꼬이고 이미지 지정이 뒤섞인다. GitHub Actions `concurrency` 그룹은 같은 그룹에서 한 번에 하나만 실행하고, 기본으로 대기 중인 이전 실행을 취소한다. 실행 중인 배포를 취소(`cancel-in-progress: true`)하면 절반만 적용된 상태가 남을 수 있다.
@@ -1263,7 +1263,7 @@
 - **처방:** 운영 쓰기 권한을 CI 역할(OIDC)에만, 사람은 읽기 + 긴급 절차(break-glass)만.
 - **검증:** 개인 자격 증명으로 운영 배포 시도 시 거부.
 - **비용 영향:** 중립.
-- **출처:** https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments (배포 브랜치·환경 비밀 제한) · 단일 경로 원칙은 일반 원칙(출처 미확인)
+- **출처:** https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments (배포 브랜치·환경 비밀 제한) · 단일 경로 원칙은 일반 원칙(출처 미확인) ⚠️근거없음
 
 ---
 

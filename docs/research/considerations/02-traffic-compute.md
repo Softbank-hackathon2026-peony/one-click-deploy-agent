@@ -28,7 +28,7 @@
 - **처방:** 티어0: 플랫폼 세션(Supabase Auth·Firebase Auth) 또는 서명 쿠키. 티어1/2: Redis(Memorystore·ElastiCache)나 DB 세션 저장소로 이전.
 - **검증:** 인스턴스 2개 이상으로 띄우고 로그인 후 LB 라운드로빈으로 20회 요청 → 401 0건. 인스턴스 하나를 강제 종료한 뒤에도 세션 유지.
 - **비용 영향:** 증가(소) — Redis 최소 인스턴스 비용. 대신 sticky 해제로 인스턴스 활용률 개선.
-- **출처:** https://12factor.net/processes ("sticky sessions are a violation of twelve-factor", 세션 상태는 Memcached·Redis 같은 저장소로) · https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-target-group-attributes.html (sticky session은 "servers that maintain state information"용, 확장 시 불균등 분배 가능성 명시) — 2026-10-01 확인
+- **출처:** https://12factor.net/processes ("sticky sessions are a violation of twelve-factor", 세션 상태는 Memcached·Redis 같은 저장소로) · https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-target-group-attributes.html (sticky session은 "servers that maintain state information"용, 확장 시 불균등 분배 가능성 명시) — 2026-10-01 확인 ⚠️출처부적격
 
 ### T-002 로컬 디스크 업로드·파일 상태 금지
 - **무엇/왜:** 업로드 파일을 컨테이너 로컬 디스크에 쓰면 다른 인스턴스에서 보이지 않고 재시작 때 사라진다. 큰 업로드가 앱 인스턴스를 통과하는 것 자체도 확장 병목이다.
@@ -38,7 +38,7 @@
 - **처방:** 티어0: Supabase Storage/Vercel Blob 직접 업로드. 티어1/2: S3/GCS 서명 URL로 브라우저가 직접 업로드하고 앱은 메타데이터만 기록.
 - **검증:** 2개 인스턴스에서 업로드→다른 인스턴스로 조회 성공. 업로드 부하 중 앱 인스턴스 메모리·대역폭이 늘지 않음.
 - **비용 영향:** 감소 — 앱 인스턴스가 바이트를 중계하지 않아 컴퓨트·이그레스가 준다(스토리지 비용은 별도).
-- **출처:** https://12factor.net/processes · https://docs.aws.amazon.com/AmazonS3/latest/userguide/PresignedUrlUploadObject.html (자격 증명 없이 서명 URL로 업로드, SDK로 최대 7일 만료) — 2026-10-01 확인
+- **출처:** https://12factor.net/processes · https://docs.aws.amazon.com/AmazonS3/latest/userguide/PresignedUrlUploadObject.html (자격 증명 없이 서명 URL로 업로드, SDK로 최대 7일 만료) — 2026-10-01 확인 ⚠️출처부적격
 
 ### T-003 인스턴스별 인메모리 카운터·캐시의 확장 왜곡
 - **무엇/왜:** 레이트 리밋 카운터, 중복 방지 집합, 메모리 캐시가 프로세스 안에 있으면 인스턴스 수만큼 한도가 늘고 캐시가 쪼개진다. 오토스케일이 보호 장치를 약하게 만든다.
@@ -48,7 +48,7 @@
 - **처방:** 티어0: 플랫폼 WAF 리밋 또는 Upstash 등 외부 저장소. 티어1/2: Redis 기반 카운터, 또는 리밋 값을 `rate / 최대 인스턴스 수`로 문서화하고 엣지(WAF·Cloud Armor)에 전역 리밋을 둔다.
 - **검증:** 인스턴스 1개와 N개에서 같은 부하로 429 발생 시점 비교. 차이가 N배이면 실패.
 - **비용 영향:** 중립~증가(소) — Redis 호출 비용.
-- **출처:** https://12factor.net/processes (메모리는 "brief, single-transaction cache"로만) · https://nginx.org/en/docs/http/ngx_http_limit_req_module.html (존은 공유 메모리 영역, 64비트에서 1MB당 약 8천 상태) — 2026-10-01 확인. nginx 존이 Pod마다 따로라는 점은 공유 메모리 범위에서 나온 추론이며 simple-web-app `docs/deploy.md`가 같은 결론을 기록함.
+- **출처:** https://12factor.net/processes (메모리는 "brief, single-transaction cache"로만) · https://nginx.org/en/docs/http/ngx_http_limit_req_module.html (존은 공유 메모리 영역, 64비트에서 1MB당 약 8천 상태) — 2026-10-01 확인. nginx 존이 Pod마다 따로라는 점은 공유 메모리 범위에서 나온 추론이며 simple-web-app `docs/deploy.md`가 같은 결론을 기록함. ⚠️출처부적격
 
 ### T-004 Next.js 자체 호스팅 멀티 인스턴스 캐시 공유
 - **무엇/왜:** Next.js의 ISR·데이터 캐시는 기본적으로 인스턴스 로컬 파일시스템과 메모리(기본 50MB)에 저장된다. 컨테이너를 여러 개 띄우면 캐시가 인스턴스마다 따로 놀고 `revalidatePath`/`revalidateTag`는 호출을 받은 인스턴스만 무효화한다.
@@ -78,7 +78,7 @@
 - **처방:** 티어0: Supabase Realtime·Firebase 등 관리형 실시간(T-061 한도 확인). 티어1: Cloud Run + Memorystore Pub/Sub + 세션 어피니티 + 재연결 로직, 타임아웃 최대 60분. 티어2: Redis 어댑터 + Ingress 쿠키 어피니티.
 - **검증:** 인스턴스 2개에 클라이언트를 나눠 붙이고 한쪽에서 보낸 메시지가 전원에게 도착하는지. 인스턴스 하나 종료 후 자동 재연결.
 - **비용 영향:** 증가 — Redis + 상시 연결 때문에 Cloud Run은 인스턴스 기반 과금이 된다.
-- **출처:** https://socket.io/docs/v4/redis-adapter/ (어댑터 없으면 브로드캐스트가 현재 서버에만, sticky 없으면 HTTP 400) · https://docs.cloud.google.com/run/docs/triggering/websockets (요청 타임아웃 적용, Redis Pub/Sub 권장, 세션 어피니티는 best-effort) — 2026-10-01 확인
+- **출처:** https://socket.io/docs/v4/redis-adapter/ (어댑터 없으면 브로드캐스트가 현재 서버에만, sticky 없으면 HTTP 400) · https://docs.cloud.google.com/run/docs/triggering/websockets (요청 타임아웃 적용, Redis Pub/Sub 권장, 세션 어피니티는 best-effort) — 2026-10-01 확인 ⚠️출처확인필요
 
 ### T-007 프로세스 타입 분리(web / worker / scheduler)
 - **무엇/왜:** HTTP 처리와 백그라운드 작업이 한 프로세스에 있으면 둘 중 하나의 부하가 다른 하나를 굶기고, 확장 신호도 섞인다. 프로세스 타입을 나눠야 각자 다른 신호로 확장한다.
@@ -88,7 +88,7 @@
 - **처방:** 티어0: Vercel Cron + 큐 서비스(외부), Supabase Edge Functions 스케줄. 티어1: Cloud Run 서비스 + Cloud Run Jobs/워커 서비스, ECS 서비스 분리. 티어2: Deployment 분리 + CronJob.
 - **검증:** 워커에 부하를 주는 동안 웹 p95 변화가 허용 범위 이내.
 - **비용 영향:** 증가(소) — 워커 최소 인스턴스. 대신 웹을 작게 유지.
-- **출처:** https://12factor.net/concurrency (web/worker 프로세스 타입, 프로세스 모델로 수평 확장) — 2026-10-01 확인
+- **출처:** https://12factor.net/concurrency (web/worker 프로세스 타입, 프로세스 모델로 수평 확장) — 2026-10-01 확인 ⚠️출처부적격
 
 ### T-008 인프로세스 스케줄러의 중복 실행
 - **무엇/왜:** 크론을 앱 프로세스 안에서 돌리면 인스턴스 수만큼 같은 작업이 실행된다. 확장할수록 작업 부하와 부작용이 곱해진다.
@@ -98,7 +98,7 @@
 - **처방:** 티어0: Vercel Cron Jobs / Supabase `pg_cron`. 티어1: Cloud Scheduler → Cloud Run Jobs, EventBridge Scheduler → ECS 태스크. 티어2: k8s CronJob(`concurrencyPolicy: Forbid`).
 - **검증:** 인스턴스 3개로 띄우고 스케줄 1주기 동안 작업 실행 로그가 1건인지.
 - **비용 영향:** 감소 — 중복 실행 제거.
-- **출처:** https://12factor.net/concurrency (프로세스 타입 분리) — 2026-10-01 확인. "인스턴스 수만큼 중복 실행"은 프로세스 모델에서 나온 추론.
+- **출처:** https://12factor.net/concurrency (프로세스 타입 분리) — 2026-10-01 확인. "인스턴스 수만큼 중복 실행"은 프로세스 모델에서 나온 추론. ⚠️출처부적격 ⚠️근거없음
 
 ### T-009 SQLite·파일 DB의 단일 쓰기 한계
 - **무엇/왜:** SQLite는 동시에 쓰는 주체를 하나만 허용하고 네트워크 파일시스템 위에서는 잠금이 불안정하다. 여러 인스턴스가 쓰는 순간 확장 불가 구조가 된다.
@@ -152,7 +152,7 @@
 - **처방:** 티어1: Cloud Run 워커 풀/Jobs, ECS 서비스에 큐 지표 step scaling. 티어2: KEDA ScaledObject(Redis Streams·SQS).
 - **검증:** 큐에 N만 건 투입 후 워커 수 증가 시간과 소진 시간 측정.
 - **비용 영향:** 감소 — 빈 큐에서 0~1개로 축소 가능.
-- **출처:** https://keda.sh/docs/2.21/scalers/redis-streams/ (PEL·XLEN·lag 세 방식, lag은 Redis 7+) · https://keda.sh/docs/2.21/concepts/scaling-deployments/ — 2026-10-01 확인
+- **출처:** https://keda.sh/docs/2.21/scalers/redis-streams/ (PEL·XLEN·lag 세 방식, lag은 Redis 7+) · https://keda.sh/docs/2.21/concepts/scaling-deployments/ — 2026-10-01 확인 ⚠️출처확인필요
 
 ### T-014 HPA 확장·축소 동작(behavior) 튜닝
 - **무엇/왜:** 기본 HPA는 확장은 즉시(안정화 0초), 축소는 300초 안정화다. 스파이크가 반복되는 서비스는 축소를 너무 빨리 하면 다음 파도에 다시 콜드 스타트를 맞고, 너무 느리면 비용이 샌다. 확장 정책(15초당 100% 등)이 피크 램프보다 느리면 따라가지 못한다.
@@ -182,7 +182,7 @@
 - **처방:** 티어1: 사용자 대면 서비스 min ≥1. 티어2: KEDA `minReplicaCount: 1` 또는 `idleReplicaCount`, 사용자 대면은 0 금지.
 - **검증:** 0 상태에서 첫 요청 지연 측정, 큐에 메시지 1건 넣고 처리까지 시간 측정.
 - **비용 영향:** min 1 유지 시 증가(소).
-- **출처:** https://keda.sh/docs/2.21/concepts/scaling-deployments/ (pollingInterval 30초, cooldownPeriod 300초, minReplicaCount 기본 0, 0↔1은 KEDA가 결정) · https://docs.cloud.google.com/run/docs/configuring/min-instances — 2026-10-01 확인
+- **출처:** https://keda.sh/docs/2.21/concepts/scaling-deployments/ (pollingInterval 30초, cooldownPeriod 300초, minReplicaCount 기본 0, 0↔1은 KEDA가 결정) · https://docs.cloud.google.com/run/docs/configuring/min-instances — 2026-10-01 확인 ⚠️출처확인필요
 
 ### T-017 상한(maxReplicas·max instances)을 하류 용량에 맞춤
 - **무엇/왜:** 앱 계층의 상한은 DB 커넥션, 외부 API 한도, 노드 수가 감당할 수 있는 수준이어야 한다. 앱만 무한히 늘면 병목이 하류로 이동해 전체가 무너진다.
@@ -286,7 +286,7 @@
 - **처방:** 티어0/1: 모듈 스코프 생성, 풀 크기 1(서버리스 + 트랜잭션 풀러), dev는 global 캐싱.
 - **검증:** 정적 검사(핸들러 내부 생성자 호출) + 동시 100 요청에서 DB 연결 수.
 - **비용 영향:** 감소.
-- **출처:** https://supabase.com/docs/guides/database/connecting-to-postgres ("Create the client once at module scope, not per request", 풀 크기 1) · https://www.prisma.io/docs/orm/prisma-client/setup-and-configuration/databases-connections (핸들러 밖 인스턴스화, 핫 리로드 global 저장) — 2026-10-01 확인
+- **출처:** https://supabase.com/docs/guides/database/connecting-to-postgres ("Create the client once at module scope, not per request", 풀 크기 1) · https://www.prisma.io/docs/orm/prisma-client/setup-and-configuration/databases-connections (핸들러 밖 인스턴스화, 핫 리로드 global 저장) — 2026-10-01 확인 ⚠️출처확인필요
 
 ### T-027 Vercel Fluid compute 활성 여부
 - **무엇/왜:** Fluid compute는 한 인스턴스가 여러 호출을 동시에 처리하고(Node·Python), 프로덕션에서 사전 워밍·바이트코드 캐시로 콜드 스타트를 줄인다. 오래된 프로젝트는 꺼져 있을 수 있다.
@@ -310,7 +310,7 @@
 - **처방:** 티어2(EKS): Karpenter(노드 그룹 없이 Pending Pod에 맞는 인스턴스를 직접 생성) 또는 CA. GKE: Autopilot 또는 노드 풀 오토스케일링.
 - **검증:** HPA 상한까지 부하 → Pending 지속 시간 기록.
 - **비용 영향:** 감소(평시 노드 축소).
-- **출처:** https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/FAQ.md (unschedulable Pod 기준, 스캔 10초, 축소는 10분 미사용 + requests 50% 미만) · https://karpenter.sh/docs/concepts/ — 2026-10-01 확인
+- **출처:** https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/FAQ.md (unschedulable Pod 기준, 스캔 10초, 축소는 10분 미사용 + requests 50% 미만) · https://karpenter.sh/docs/concepts/ — 2026-10-01 확인 ⚠️출처확인필요
 
 ### T-029 노드 여유 용량(저우선순위 자리표시 Pod)
 - **무엇/왜:** 노드 부팅(80~120초)은 1분 램프보다 길다. 음수 우선순위의 pause Pod로 빈 자리를 미리 잡아 두면, 실제 Pod가 이를 선점해 즉시 스케줄되고 CA가 그 뒤에 노드를 보충한다.
@@ -330,7 +330,7 @@
 - **처방:** 티어2: 노드 상한을 계산값 + 시스템 Pod 여유로. 설계 §9.3의 노드 수 계산과 같은 식을 쓴다.
 - **검증:** 정적 계산 + 상한 부하 시 Pending 0.
 - **비용 영향:** 중립(상한일 뿐, 평시 비용은 그대로).
-- **출처:** https://docs.cloud.google.com/kubernetes-engine/docs/concepts/cluster-autoscaler (requests 기준 결정, 노드 풀 min/max) · https://karpenter.sh/docs/concepts/ — 2026-10-01 확인
+- **출처:** https://docs.cloud.google.com/kubernetes-engine/docs/concepts/cluster-autoscaler (requests 기준 결정, 노드 풀 min/max) · https://karpenter.sh/docs/concepts/ — 2026-10-01 확인 ⚠️출처확인필요
 
 ### T-031 예고 이벤트 사전 증설 스케줄
 - **무엇/왜:** 오픈 시각·티켓 판매처럼 시각을 아는 이벤트는 반응형 확장보다 먼저 늘려 두는 것이 싸고 확실하다.
@@ -340,14 +340,14 @@
 - **처방:** 티어1: ECS/Lambda scheduled scaling, Cloud Run은 스케줄러로 min instances 상향. 티어2: KEDA cron 트리거(활성 구간 동안 하한 역할).
 - **검증:** 이벤트 리허설에서 정각 이전에 목표 replica 도달 확인.
 - **비용 영향:** 증가(이벤트 구간만).
-- **출처:** https://keda.sh/docs/2.21/scalers/cron/ (start/end/desiredReplicas, 다른 트리거와 함께면 동적 하한) · https://docs.aws.amazon.com/autoscaling/application/userguide/application-auto-scaling-scheduled-scaling.html — 2026-10-01 확인
+- **출처:** https://keda.sh/docs/2.21/scalers/cron/ (start/end/desiredReplicas, 다른 트리거와 함께면 동적 하한) · https://docs.aws.amazon.com/autoscaling/application/userguide/application-auto-scaling-scheduled-scaling.html — 2026-10-01 확인 ⚠️출처확인필요
 
 ### T-032 로드밸런서 사전 용량(ALB LCU 예약)
 - **무엇/왜:** ALB는 자동 확장하지만 급격한 스파이크는 확장 시간이 필요하다. 예고 이벤트나 갑작스러운 스파이크에는 최소 용량을 예약할 수 있다.
 - **실패 양상:** 앱은 충분한데 LB 단에서 지연·5xx(`ELB 5xx`)가 먼저 난다.
 - **신호:** 🟢 Terraform `aws_lb`의 용량 예약 설정 여부. 🟡 T L2/L3 도메인 + AWS.
 - **시나리오·수준:** T L3 또는 T L2 대규모 이벤트, AWS
-- **처방:** 티어1/2(AWS): 이벤트 전 LCU 예약(최소 100 LCU), `PeakLCUs`로 산정. GCP 전역 LB는 해당 기능 확인 안 함(출처 미확인).
+- **처방:** 티어1/2(AWS): 이벤트 전 LCU 예약(최소 100 LCU), `PeakLCUs`로 산정. GCP 전역 LB는 해당 기능 확인 안 함(출처 미확인). ⚠️근거없음
 - **검증:** 스파이크 테스트 중 LB 5xx와 타깃 5xx 분리 측정.
 - **비용 영향:** 증가 — 예약 LCU 과금.
 - **출처:** https://docs.aws.amazon.com/elasticloadbalancing/latest/application/capacity-unit-reservation.html (예정 이벤트·스파이크용, 최소 100 LCU) — 2026-10-01 확인
@@ -420,7 +420,7 @@
 - **처방:** 티어1: 이벤트 전 쿼터 확인·증설, 최소 태스크 수 상향, 이미지 경량화.
 - **검증:** 0→N 태스크 기동 시간 측정.
 - **비용 영향:** 중립.
-- **출처:** 일반 원칙(출처 미확인). ECS 쿼터 페이지(https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-quotas.html)는 열었으나 구체 수치는 별도 General Reference로 넘겨 이번에 확인하지 못함.
+- **출처:** 일반 원칙(출처 미확인). ECS 쿼터 페이지(https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-quotas.html)는 열었으나 구체 수치는 별도 General Reference로 넘겨 이번에 확인하지 못함. ⚠️근거없음
 
 ---
 
@@ -444,7 +444,7 @@
 - **처방:** 티어0: Supavisor 트랜잭션 모드(6543) + 풀 크기 1 + prepared statement 끄기. 티어1: RDS Proxy(초과 연결은 대기·거절로 셰딩), Cloud SQL은 PgBouncer 사이드카/별도 서비스. 티어2: PgBouncer Deployment.
 - **검증:** 동시 1,000 함수 호출에서 DB 백엔드 연결 수가 풀 크기 이내.
 - **비용 영향:** 증가(소) — RDS Proxy 과금, PgBouncer 컴퓨트.
-- **출처:** https://supabase.com/docs/guides/database/connecting-to-postgres · https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-proxy.html (풀링, 즉시 처리 못하면 대기·스로틀, 한도 초과 시 거절) · https://www.pgbouncer.org/features.html — 2026-10-01 확인
+- **출처:** https://supabase.com/docs/guides/database/connecting-to-postgres · https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-proxy.html (풀링, 즉시 처리 못하면 대기·스로틀, 한도 초과 시 거절) · https://www.pgbouncer.org/features.html — 2026-10-01 확인 ⚠️출처확인필요
 
 ### T-042 트랜잭션 풀링과 호환되지 않는 기능
 - **무엇/왜:** 트랜잭션 모드 풀러에서는 세션 상태가 유지되지 않는다. `SET`, `LISTEN`, 세션 advisory lock, `WITH HOLD` 커서, SQL `PREPARE`가 깨진다. RDS Proxy는 이런 상태 변경 시 세션을 고정(pinning)해 다중화가 사라진다.
@@ -454,7 +454,7 @@
 - **처방:** prepared statement 끄기(`prepare: false`, asyncpg `statement_cache_size=0`) 또는 PgBouncer `max_prepared_statements` 활성, 세션 락은 `pg_advisory_xact_lock`, `LISTEN`은 직접 연결로 분리.
 - **검증:** 풀러 경유 통합 테스트 + 부하 중 오류 0, RDS Proxy pinning 지표 확인.
 - **비용 영향:** 중립.
-- **출처:** https://www.pgbouncer.org/features.html (트랜잭션 풀링에서 깨지는 기능 목록, `max_prepared_statements`) · https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-proxy.html (16KB 넘는 문장은 pinning) · https://supabase.com/docs/guides/database/connecting-to-postgres ("Transaction mode does not support prepared statements") — 2026-10-01 확인
+- **출처:** https://www.pgbouncer.org/features.html (트랜잭션 풀링에서 깨지는 기능 목록, `max_prepared_statements`) · https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-proxy.html (16KB 넘는 문장은 pinning) · https://supabase.com/docs/guides/database/connecting-to-postgres ("Transaction mode does not support prepared statements") — 2026-10-01 확인 ⚠️출처확인필요
 
 ### T-043 풀 크기 과대(크게 잡을수록 느려짐)
 - **무엇/왜:** DB가 동시에 효율적으로 처리할 수 있는 활성 연결은 코어 수 근처다. 풀을 크게 잡으면 DB 내부 경합만 늘어난다. 앱 쪽에서 줄 세우는 편이 빠르다.
@@ -464,7 +464,7 @@
 - **처방:** 공통: DB 측 활성 연결 목표 ≈ (코어 × 2) + 디스크 수, 앱 풀은 작게 + 획득 타임아웃으로 빠른 실패.
 - **검증:** 풀 크기를 바꿔가며 같은 부하의 처리량·p95 곡선 비교.
 - **비용 영향:** 감소(DB 크기 상향을 피함).
-- **출처:** https://github.com/brettwooldridge/HikariCP/wiki/About-Pool-Sizing (공식 라이브러리 위키. `connections = ((core_count * 2) + effective_spindle_count)`, 풀 축소로 응답 ~100ms→~2ms 사례) — 2026-10-01 확인. 프레임워크 공식 문서가 아니라 커넥션 풀 라이브러리 위키이므로 규칙에는 "권장 시작점"으로만 쓴다.
+- **출처:** https://github.com/brettwooldridge/HikariCP/wiki/About-Pool-Sizing (공식 라이브러리 위키. `connections = ((core_count * 2) + effective_spindle_count)`, 풀 축소로 응답 ~100ms→~2ms 사례) — 2026-10-01 확인. 프레임워크 공식 문서가 아니라 커넥션 풀 라이브러리 위키이므로 규칙에는 "권장 시작점"으로만 쓴다. ⚠️출처부적격
 
 ### T-044 Django 요청마다 연결(CONN_MAX_AGE=0)·스레드당 연결
 - **무엇/왜:** Django는 기본 `CONN_MAX_AGE=0`이라 요청마다 DB 연결을 열고 닫는다. 스레드마다 연결을 가지므로 워커×스레드×인스턴스가 연결 수다.
@@ -489,7 +489,7 @@
 ### T-046 인덱스 누락(순차 스캔)
 - **무엇/왜:** WHERE·JOIN·ORDER BY 컬럼에 인덱스가 없으면 테이블 전체를 읽는다. 데이터가 작을 땐 문제없다가 데이터·트래픽이 함께 자라면 급격히 느려진다. 반대로 인덱스는 쓰기 비용을 늘린다.
 - **실패 양상:** 사용자 수 증가에 비례해 목록 쿼리 지연이 선형 증가, DB CPU 100%.
-- **신호:** 🟢 마이그레이션·스키마에서 FK 컬럼(`user_id`, `post_id`)에 인덱스 없음(Postgres는 FK에 자동 인덱스를 만들지 않음 — 이 부분은 이번에 문서 재확인 안 함), 자주 쓰는 필터(`status`, `created_at`) 정렬 컬럼 인덱스 없음. 🟢 Prisma `@@index`, Django `Meta.indexes`/`db_index`, SQL `CREATE INDEX` 유무. 🟡 쿼리 패턴은 ORM 호출에서 추론.
+- **신호:** 🟢 마이그레이션·스키마에서 FK 컬럼(`user_id`, `post_id`)에 인덱스 없음(Postgres는 FK에 자동 인덱스를 만들지 않음 — 이 부분은 이번에 문서 재확인 안 함), 자주 쓰는 필터(`status`, `created_at`) 정렬 컬럼 인덱스 없음. 🟢 Prisma `@@index`, Django `Meta.indexes`/`db_index`, SQL `CREATE INDEX` 유무. 🟡 쿼리 패턴은 ORM 호출에서 추론. ⚠️근거없음
 - **시나리오·수준:** T L1 이상
 - **처방:** 공통: 쿼리 패턴별 복합 인덱스, `EXPLAIN`으로 확인, `pg_stat_statements`로 상위 쿼리 추적, 안 쓰는 인덱스 제거. 티어0(Supabase): `index_advisor`.
 - **검증:** 대표 쿼리 `EXPLAIN (ANALYZE)`에 `Seq Scan` 없음(대형 테이블), 시드 데이터 100만 행에서 p95.
@@ -504,7 +504,7 @@
 - **처방:** 티어0: 정책 컬럼 인덱스, `(select auth.uid())`로 감싸기, 쿼리에도 명시적 필터 추가, 필요 시 security definer 함수.
 - **검증:** 대표 쿼리 EXPLAIN 비교, 대량 시드 후 p95.
 - **비용 영향:** 감소(컴퓨트 업그레이드 회피).
-- **출처:** https://supabase.com/docs/guides/database/postgres/row-level-security ("Add an index on every column your policies filter on", select 래핑으로 initPlan 캐시) — 2026-10-01 확인
+- **출처:** https://supabase.com/docs/guides/database/postgres/row-level-security ("Add an index on every column your policies filter on", select 래핑으로 initPlan 캐시) — 2026-10-01 확인 ⚠️출처부적격
 
 ### T-048 오프셋 페이지네이션
 - **무엇/왜:** `OFFSET n`은 건너뛴 행도 서버에서 계산한다. 깊은 페이지일수록 느리고, 봇·크롤러가 깊은 페이지를 긁으면 DB가 무거워진다. ORDER BY가 유일하지 않으면 결과도 불안정하다. Firestore는 건너뛴 문서도 읽기로 과금한다.
@@ -524,7 +524,7 @@
 - **처방:** 공통: 서버측 최대 페이지 크기(예: 100) 강제, 대량 처리는 스트리밍·`iterator()`.
 - **검증:** 큰 `limit` 요청이 상한으로 잘리는지 테스트.
 - **비용 영향:** 감소.
-- **출처:** https://docs.djangoproject.com/en/stable/ref/models/querysets/ (`iterator()`는 캐시 없이 평가해 메모리 절약) — 2026-10-01 확인. 상한 강제 자체는 일반 원칙.
+- **출처:** https://docs.djangoproject.com/en/stable/ref/models/querysets/ (`iterator()`는 캐시 없이 평가해 메모리 절약) — 2026-10-01 확인. 상한 강제 자체는 일반 원칙. ⚠️근거없음
 
 ### T-050 DB 쪽 타임아웃(statement / idle in transaction / lock)
 - **무엇/왜:** Postgres의 `statement_timeout`, `idle_in_transaction_session_timeout`, `lock_timeout`은 기본 0(무제한)이다. 느린 쿼리 하나나 열린 채 방치된 트랜잭션이 연결과 락을 붙잡아 풀 전체를 고갈시킨다.
@@ -564,7 +564,7 @@
 - **처방:** 공통: Redis `INCR`로 흡수 후 주기적 반영, 샤딩된 카운터, 큐로 직렬화(T-095).
 - **검증:** 단일 행에 동시 1,000 갱신 부하 → p95와 락 대기 시간.
 - **비용 영향:** 증가(소) — Redis.
-- **출처:** https://firebase.google.com/docs/firestore/best-practices (단일 문서 최대 갱신 속도는 워크로드에 따라 다르며 경합 유발) — 2026-10-01 확인. Postgres 행 락 대기 부분은 일반 원칙(출처 미확인).
+- **출처:** https://firebase.google.com/docs/firestore/best-practices (단일 문서 최대 갱신 속도는 워크로드에 따라 다르며 경합 유발) — 2026-10-01 확인. Postgres 행 락 대기 부분은 일반 원칙(출처 미확인). ⚠️근거없음
 
 ### T-054 오브젝트 스토리지 요청률(S3 prefix)
 - **무엇/왜:** S3는 파티션된 prefix당 초당 최소 3,500 쓰기 / 5,500 읽기를 처리하고, 그 이상은 점진적으로 확장하며 그 사이 503 Slow Down을 낸다.
@@ -604,7 +604,7 @@
 - **처방:** 공통: TTL ± 10~20% 지터, 스탬피드 보호(T-062)와 함께.
 - **검증:** 예열 후 만료 시점 부근 DB QPS 그래프가 평탄한지.
 - **비용 영향:** 중립.
-- **출처:** https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/latency/ ("many keys expiring at the same moment can be a source of latency") — 2026-10-01 확인. 앱 측 동시 미스 부분은 일반 원칙.
+- **출처:** https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/latency/ ("many keys expiring at the same moment can be a source of latency") — 2026-10-01 확인. 앱 측 동시 미스 부분은 일반 원칙. ⚠️근거없음
 
 ### T-058 관리형 실시간 서비스 연결 한도(Supabase Realtime 등)
 - **무엇/왜:** BaaS 실시간 기능은 플랜별 동시 연결·초당 메시지·채널 조인 한도가 있다. 앱 서버를 아무리 늘려도 이 한도가 상한이다.
@@ -624,7 +624,7 @@
 - **처방:** 티어0: Supabase Queues(pgmq)·외부 큐. 티어1: Pub/Sub·SQS + 워커 서비스. 티어2: Redis Streams/SQS + KEDA 워커.
 - **검증:** 쓰기 스파이크 중 DB 쓰기 TPS가 평탄하고 큐 길이가 증가 후 소진되는지.
 - **비용 영향:** 증가(큐·워커), DB 크기 상향 회피로 상쇄 가능.
-- **출처:** https://keda.sh/docs/2.21/scalers/redis-streams/ · https://sre.google/sre-book/addressing-cascading-failures/ (큐는 작게, 용량 초과 시 거절) — 2026-10-01 확인. "큐가 쓰기를 평탄화한다"는 설계 문서 T-CTL-006(S7)의 원칙.
+- **출처:** https://keda.sh/docs/2.21/scalers/redis-streams/ · https://sre.google/sre-book/addressing-cascading-failures/ (큐는 작게, 용량 초과 시 거절) — 2026-10-01 확인. "큐가 쓰기를 평탄화한다"는 설계 문서 T-CTL-006(S7)의 원칙. ⚠️출처확인필요
 
 ### T-060 큐 자체의 한도(백프레셔 없는 무한 큐)
 - **무엇/왜:** 큐는 시간을 사는 장치지 용량을 늘리는 장치가 아니다. 길이 상한이 없으면 처리 지연이 끝없이 늘고 메모리(Redis)가 찬다.
@@ -668,7 +668,7 @@
 - **처방:** 티어0: 기본 충족. 티어1/2: CloudFront/Cloud CDN 앞단, 해시 자산 `public, max-age=31536000, immutable`, HTML은 `no-cache`.
 - **검증:** 응답 헤더 정적 검사 + CDN 적중률.
 - **비용 영향:** 감소 — 앱 컴퓨트·이그레스 감소(CDN 전송비는 추가).
-- **출처:** https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Caching (해시 URL + 1년 max-age + immutable, Cache-Control 없으면 휴리스틱 캐시) · https://vercel.com/docs/caching/cdn-cache · https://nextjs.org/docs/app/guides/self-hosting — 2026-10-01 확인
+- **출처:** https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Caching (해시 URL + 1년 max-age + immutable, Cache-Control 없으면 휴리스틱 캐시) · https://vercel.com/docs/caching/cdn-cache · https://nextjs.org/docs/app/guides/self-hosting — 2026-10-01 확인 ⚠️출처부적격
 
 ### T-064 동적 응답의 CDN 캐시(s-maxage)와 캐시 불가 조건
 - **무엇/왜:** 로그인과 무관한 API·SSR 페이지는 `s-maxage` 몇 초만으로도 엣지에서 대부분을 흡수한다. 그러나 `Set-Cookie`, `Authorization` 요청 헤더, `private`/`no-store`, `Vary: Cookie`가 붙으면 CDN이 캐시하지 않는다.
@@ -698,7 +698,7 @@
 - **처방:** 공통: 필요한 헤더만 Vary, 캐시 키에서 추적 파라미터 제외.
 - **검증:** CDN 적중률 지표.
 - **비용 영향:** 감소.
-- **출처:** https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Caching ("Avoid Vary: User-Agent") · https://vercel.com/docs/caching/cdn-cache (Vary는 엔트리를 곱으로 늘림, Cookie는 캐시 안 함) — 2026-10-01 확인
+- **출처:** https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Caching ("Avoid Vary: User-Agent") · https://vercel.com/docs/caching/cdn-cache (Vary는 엔트리를 곱으로 늘림, Cookie는 캐시 안 함) — 2026-10-01 확인 ⚠️출처부적격
 
 ### T-067 CDN 최소 TTL이 private 응답을 캐시하는 함정
 - **무엇/왜:** CloudFront 캐시 정책의 최소 TTL이 0보다 크면 원본이 `no-cache`/`no-store`/`private`를 보내도 최소 TTL만큼 캐시한다. 성능 튜닝으로 최소 TTL을 올리면 개인 응답이 남에게 보일 수 있다.
@@ -728,7 +728,7 @@
 - **처방:** 업로드는 서명 URL 직행(T-002), 앱 본문 한도는 작게 유지(프록시에서도 제한).
 - **검증:** 한도 초과 요청이 앱 도달 전 413으로 거절되는지.
 - **비용 영향:** 감소.
-- **출처:** https://vercel.com/docs/functions/limitations · https://docs.cloud.google.com/run/quotas · https://expressjs.com/en/resources/middleware/body-parser.html (기본 100kb, 초과 413, 높은 한도는 메모리 증가) — 2026-10-01 확인
+- **출처:** https://vercel.com/docs/functions/limitations · https://docs.cloud.google.com/run/quotas · https://expressjs.com/en/resources/middleware/body-parser.html (기본 100kb, 초과 413, 높은 한도는 메모리 증가) — 2026-10-01 확인 ⚠️출처확인필요
 
 ### T-070 이미지 최적화를 요청 경로에서 하는 비용
 - **무엇/왜:** `next/image` 자체 호스팅은 런타임에 이미지를 변환한다(sharp). CPU·메모리 집약 작업이 웹 인스턴스에서 돈다. 신규 이미지가 몰리면 웹 경로가 느려진다.
@@ -748,7 +748,7 @@
 - **처방:** 프록시 버퍼링 끄기(`X-Accel-Buffering: no`), LB가 청크 전송 지원 확인, 스트림 연결 수를 동시성 계산에 포함.
 - **검증:** 첫 토큰 도착 시간(TTFB) 측정, 동시 스트림 N개에서 인스턴스 수.
 - **비용 영향:** 연결 유지 시간만큼 증가(Cloud Run 요청 기반은 응답 끝까지 과금).
-- **출처:** https://nextjs.org/docs/app/guides/self-hosting (Streaming and Suspense 절, nginx `X-Accel-Buffering: no`, 일부 LB 버퍼링) — 2026-10-01 확인
+- **출처:** https://nextjs.org/docs/app/guides/self-hosting (Streaming and Suspense 절, nginx `X-Accel-Buffering: no`, 일부 LB 버퍼링) — 2026-10-01 확인 ⚠️출처부적격
 
 ### T-072 함수·컴퓨트 리전과 DB 리전 불일치
 - **무엇/왜:** Vercel Functions는 기본 `iad1`(미국 동부)에서 돈다. DB가 서울(Supabase `ap-northeast-2`)이면 쿼리마다 태평양을 왕복한다. N+1과 겹치면 요청당 수 초가 된다.
@@ -782,7 +782,7 @@
 - **처방:** 티어1: 동기 앱은 concurrency = 워커×스레드, 비동기 앱은 기본값에서 측정 후 조정, concurrency>1이면 1 vCPU 이상. 티어2: 프로세스 수를 CPU requests에 맞춤.
 - **검증:** concurrency 값을 바꿔가며 인스턴스당 처리량·p95 측정.
 - **비용 영향:** 적정값이 인스턴스 수를 최소화.
-- **출처:** https://docs.cloud.google.com/run/docs/about-concurrency · https://docs.cloud.google.com/run/docs/configuring/services/cpu (concurrency>1이면 최소 1 vCPU) · https://uvicorn.dev/settings/ (workers 기본 `$WEB_CONCURRENCY` 또는 1) · https://firebase.google.com/docs/functions/manage-functions — 2026-10-01 확인
+- **출처:** https://docs.cloud.google.com/run/docs/about-concurrency · https://docs.cloud.google.com/run/docs/configuring/services/cpu (concurrency>1이면 최소 1 vCPU) · https://uvicorn.dev/settings/ (workers 기본 `$WEB_CONCURRENCY` 또는 1) · https://firebase.google.com/docs/functions/manage-functions — 2026-10-01 확인 ⚠️출처확인필요
 
 ### T-075 이벤트 루프 블로킹(Node·Python async)
 - **무엇/왜:** Node와 Python asyncio는 요청을 하나의 루프에서 처리한다. 동기 I/O나 CPU 작업 하나가 루프를 막으면 그 인스턴스의 모든 요청이 멈춘다.
@@ -802,7 +802,7 @@
 - **처방:** 티어0: 관리형 인증(Supabase Auth 등)으로 해시 자체를 외부화. 티어1: 별도 Cloud Run 서비스/큐 워커. 티어2: 별도 Deployment + HPA, 인스턴스당 동시 해시 수 제한 + 대기 초과 시 503.
 - **검증:** 로그인 스파이크 중 읽기 API p95가 기준선 대비 크게 나빠지지 않음.
 - **비용 영향:** 증가(소) — 별도 워크로드 최소 인스턴스.
-- **출처:** https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop (crypto CPU 집약, 별도 워커 풀) · https://12factor.net/concurrency — 2026-10-01 확인
+- **출처:** https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop (crypto CPU 집약, 별도 워커 풀) · https://12factor.net/concurrency — 2026-10-01 확인 ⚠️출처부적격
 
 ### T-077 LLM·유료 외부 API 호출 경로
 - **무엇/왜:** LLM 호출은 지연이 길고(수 초~수십 초) 공급자 레이트 리밋(RPM·입력/출력 토큰)과 급증 제한(acceleration limit)이 있다. 트래픽 폭증이 그대로 공급자 429와 비용 폭증으로 이어진다.
@@ -812,7 +812,7 @@
 - **처방:** 사용자별 요청·토큰 한도, `retry-after` 존중 + 지터 백오프, 동일 프롬프트 응답 캐시와 프롬프트 캐싱, 급증 대비 큐로 평탄화, 스트리밍(T-071).
 - **검증:** 공급자 429를 모킹 주입 → 앱이 재시도 폭주 없이 사용자에게 대기 응답.
 - **비용 영향:** 증가 요인 통제(큰 감소 가능).
-- **출처:** https://platform.claude.com/docs/en/api/rate-limits (RPM·ITPM·OTPM, 토큰 버킷, 429 + `retry-after`, 급증 시 acceleration limit, 티어별 월 지출 한도, 캐시된 입력 토큰은 대부분 모델에서 ITPM 미포함) — 2026-10-01 확인
+- **출처:** https://platform.claude.com/docs/en/api/rate-limits (RPM·ITPM·OTPM, 토큰 버킷, 429 + `retry-after`, 급증 시 acceleration limit, 티어별 월 지출 한도, 캐시된 입력 토큰은 대부분 모델에서 ITPM 미포함) — 2026-10-01 확인 ⚠️출처확인필요
 
 ### T-078 타임아웃 계층 정렬(클라이언트 > LB > 앱 > DB)
 - **무엇/왜:** 바깥 계층 타임아웃이 안쪽보다 짧으면 사용자는 포기했는데 서버는 계속 일한다. 안쪽에 타임아웃이 없으면 느린 하류가 스레드·연결을 끝없이 붙잡는다. 데드라인을 하류로 전파해야 헛일을 줄인다.
@@ -822,7 +822,7 @@
 - **처방:** 공통: 바깥 > 안쪽 순으로 감소하는 예산, 외부 호출마다 명시 타임아웃, 남은 시간을 하류로 전달.
 - **검증:** 하류 지연 주입(예: DB `pg_sleep`, 외부 API 지연) → 앱이 예산 안에 실패 응답하고 자원 회수.
 - **비용 영향:** 감소(헛일 제거).
-- **출처:** https://sre.google/sre-book/addressing-cascading-failures/ (deadline propagation) · https://builder.aws.com/content/3EumjoZascWd1oZiEgL8ORlv3qE/timeouts-retries-and-backoff-with-jitter (지연 백분위수로 타임아웃 선택) · https://docs.cloud.google.com/run/quotas · https://vercel.com/docs/functions/limitations — 2026-10-01 확인
+- **출처:** https://sre.google/sre-book/addressing-cascading-failures/ (deadline propagation) · https://builder.aws.com/content/3EumjoZascWd1oZiEgL8ORlv3qE/timeouts-retries-and-backoff-with-jitter (지연 백분위수로 타임아웃 선택) · https://docs.cloud.google.com/run/quotas · https://vercel.com/docs/functions/limitations — 2026-10-01 확인 ⚠️출처확인필요
 
 ### T-079 앱 keep-alive 타임아웃 < LB idle 타임아웃이면 502
 - **무엇/왜:** LB는 백엔드 연결을 재사용한다. 앱이 LB보다 먼저 유휴 연결을 닫으면 LB가 닫히는 중인 연결에 요청을 보내 502가 난다. ALB 기본 idle 60초인데 uvicorn 기본 keep-alive는 5초다.
@@ -832,7 +832,7 @@
 - **처방:** 앱 keep-alive > LB idle(예: ALB 60초면 앱 65~75초).
 - **검증:** 저부하↔고부하를 반복하는 부하로 502 0건.
 - **비용 영향:** 중립.
-- **출처:** https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-load-balancer-attributes.html ("configure the idle timeout of your application to be larger than the idle timeout configured for the load balancer. Otherwise ... 502", 기본 60초, 1~4,000초) · https://uvicorn.dev/settings/ (keep-alive 기본 5초) — 2026-10-01 확인. Node·gunicorn 기본값은 이번에 수치 미확인.
+- **출처:** https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-load-balancer-attributes.html ("configure the idle timeout of your application to be larger than the idle timeout configured for the load balancer. Otherwise ... 502", 기본 60초, 1~4,000초) · https://uvicorn.dev/settings/ (keep-alive 기본 5초) — 2026-10-01 확인. Node·gunicorn 기본값은 이번에 수치 미확인. ⚠️출처확인필요
 
 ### T-080 플랫폼 요청 최대 시간과 장시간 작업
 - **무엇/왜:** 요청 경로에 수 분짜리 작업이 있으면 플랫폼 상한(Vercel 300초 기본/Pro 800초, Cloud Run 최대 60분)에 걸리고, 그동안 동시성 슬롯을 점유해 확장 수요가 커진다.
@@ -852,7 +852,7 @@
 - **처방:** 공통: 재시도는 한 계층에서만, 지수 백오프 + 지터, 재시도 예산(요청당 최대 3회, 전체의 10% 이내), 4xx·429는 `Retry-After` 존중, 비멱등 요청 재시도는 C 규칙과 함께.
 - **검증:** 하류 503 주입 중 하류 도착 요청 수가 원래 요청의 1.1배 근처인지.
 - **비용 영향:** 감소.
-- **출처:** https://sre.google/sre-book/addressing-cascading-failures/ (4^3=64배 예시, 지수 백오프·재시도 예산) · https://sre.google/sre-book/handling-overload/ (요청당 3회, 클라이언트당 재시도 10%) · https://builder.aws.com/content/3EumjoZascWd1oZiEgL8ORlv3qE/timeouts-retries-and-backoff-with-jitter · https://tanstack.com/query/latest/docs/framework/react/guides/query-retries — 2026-10-01 확인
+- **출처:** https://sre.google/sre-book/addressing-cascading-failures/ (4^3=64배 예시, 지수 백오프·재시도 예산) · https://sre.google/sre-book/handling-overload/ (요청당 3회, 클라이언트당 재시도 10%) · https://builder.aws.com/content/3EumjoZascWd1oZiEgL8ORlv3qE/timeouts-retries-and-backoff-with-jitter · https://tanstack.com/query/latest/docs/framework/react/guides/query-retries — 2026-10-01 확인 ⚠️출처확인필요
 
 ### T-082 아웃바운드 연결 재사용과 플랫폼 아웃바운드 한도
 - **무엇/왜:** 외부 API를 요청마다 새 연결로 부르면 TLS 핸드셰이크 지연과 소켓 고갈이 생긴다. Node `http.Agent`는 문서상 `keepAlive` 기본 false다. Cloud Run은 인스턴스당 아웃바운드 연결 생성 속도·열린 연결 수 한도가 있다.
@@ -872,7 +872,7 @@
 - **처방:** 힙 상한을 컨테이너 한도의 일부로(Go는 한도의 90~95%), 동시성 × 요청당 메모리 ≤ 한도, 누수 의심 시 워커 재활용.
 - **검증:** 피크 부하 + 큰 응답 경로 동시 호출 중 OOMKilled 0, 메모리 그래프 상한 여유.
 - **비용 영향:** 정확한 한도로 중립~증가.
-- **출처:** https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/ (메모리 한도는 OOM kill로 사후 강제) · https://go.dev/doc/gc-guide (GOMEMLIMIT 소프트 한도, 5~10% 여유, 과소 설정 시 thrashing) · https://nodejs.org/api/cli.html (`--max-old-space-size`) · https://uvicorn.dev/settings/ — 2026-10-01 확인
+- **출처:** https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/ (메모리 한도는 OOM kill로 사후 강제) · https://go.dev/doc/gc-guide (GOMEMLIMIT 소프트 한도, 5~10% 여유, 과소 설정 시 thrashing) · https://nodejs.org/api/cli.html (`--max-old-space-size`) · https://uvicorn.dev/settings/ — 2026-10-01 확인 ⚠️출처확인필요
 
 ### T-084 CPU limit 스로틀링
 - **무엇/왜:** k8s CPU limit은 커널 스로틀링으로 강제된다. limit을 requests에 너무 가깝게 두면 순간 버스트(기동, GC, TLS)에서 스로틀되어 지연 꼬리가 길어지고 probe가 실패한다.
@@ -922,7 +922,7 @@
 - **처방:** 폴링 간격에 지터, 캐시 가능한 폴링 엔드포인트(CDN `s-maxage`), 필요 시 SSE/실시간 구독, 서버가 `Retry-After`로 간격 조절.
 - **검증:** 가정 동시 접속 × 폴링 주기로 RPS 계산 + 부하 테스트에 포함.
 - **비용 영향:** 감소.
-- **출처:** https://tanstack.com/query/latest/docs/framework/react/guides/query-retries (재시도 지수 백오프, 지터 언급 없음) — 2026-10-01 확인. 폴링 부하 계산과 지터 권장은 일반 원칙(출처 미확인).
+- **출처:** https://tanstack.com/query/latest/docs/framework/react/guides/query-retries (재시도 지수 백오프, 지터 언급 없음) — 2026-10-01 확인. 폴링 부하 계산과 지터 권장은 일반 원칙(출처 미확인). ⚠️출처확인필요 ⚠️근거없음
 
 ---
 
@@ -936,7 +936,7 @@
 - **처방:** 티어0: Vercel WAF/Upstash 리밋. 티어1/2: 엣지(WAF·Cloud Armor) 거친 IP 리밋 + 앱/게이트웨이의 사용자 리밋. 429 + `Retry-After`.
 - **검증:** 단일 사용자 과다 요청 → 429, 같은 IP의 다른 사용자는 정상.
 - **비용 영향:** 감소(남용 차단).
-- **출처:** https://nginx.org/en/docs/http/ngx_http_limit_req_module.html (leaky bucket, burst/nodelay, 기본 상태 코드 503이므로 429로 바꿔야 함, 빈 키는 미집계) · https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/429 — 2026-10-01 확인
+- **출처:** https://nginx.org/en/docs/http/ngx_http_limit_req_module.html (leaky bucket, burst/nodelay, 기본 상태 코드 503이므로 429로 바꿔야 함, 빈 키는 미집계) · https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/429 — 2026-10-01 확인 ⚠️출처부적격
 
 ### T-090 엣지 레이트 리밋의 근사성과 창 크기
 - **무엇/왜:** WAF·Cloud Armor 리밋은 근사치이고 평가 창이 길다(AWS WAF 60~600초, 최소 한도 10). 초 단위 스파이크 제어에는 느리고, 정확한 쿼터 강제용이 아니다.
@@ -956,7 +956,7 @@
 - **처방:** 공통: 인스턴스당 in-flight 상한 + 대기 시간 상한(예: 해시 슬롯 5초) 초과 시 503 + `Retry-After`. 티어1: Cloud Run concurrency가 1차 상한.
 - **검증:** 용량 2배 부하에서 수락된 요청의 p95가 기준 이내, 나머지는 빠른 거절.
 - **비용 영향:** 중립(상한까지 확장 비용은 그대로).
-- **출처:** https://uvicorn.dev/settings/ (`--limit-concurrency` 초과 시 503) · https://sre.google/sre-book/addressing-cascading-failures/ (in-flight 초과 시 503) · https://sre.google/sre-book/handling-overload/ — 2026-10-01 확인
+- **출처:** https://uvicorn.dev/settings/ (`--limit-concurrency` 초과 시 503) · https://sre.google/sre-book/addressing-cascading-failures/ (in-flight 초과 시 503) · https://sre.google/sre-book/handling-overload/ — 2026-10-01 확인 ⚠️출처확인필요
 
 ### T-092 요청 중요도별 셰딩·디그레이드
 - **무엇/왜:** 과부하 때 모든 요청을 똑같이 거절하면 결제·로그인 같은 핵심 경로도 함께 죽는다. 중요도를 나눠 부가 기능(추천, 통계, 미리보기)부터 끄거나 캐시 결과로 대체한다.
@@ -996,7 +996,7 @@
 - **처방:** Redis 원자 선점 → 큐 → DB 확정(아웃박스는 C 영역), 대기열(T-093)과 결합.
 - **검증:** 동시 1만 요청에서 처리량·초과 판매 0(C 검증과 동시).
 - **비용 영향:** 증가(소).
-- **출처:** 일반 원칙(출처 미확인). 관련 근거로 T-053의 Firestore 단일 문서 경합 문서만 확인.
+- **출처:** 일반 원칙(출처 미확인). 관련 근거로 T-053의 Firestore 단일 문서 경합 문서만 확인. ⚠️근거없음
 
 ### T-096 CPU 집약 경로의 인스턴스당 동시성 제한
 - **무엇/왜:** 해시·이미지 변환처럼 CPU를 쓰는 작업은 인스턴스당 동시 실행 수를 코어 수 근처로 제한해야 메모리·CPU가 폭주하지 않는다. 대기가 길면 빨리 거절해 다른 인스턴스로 가게 한다.
@@ -1016,7 +1016,7 @@
 - **처방:** 서버: 429/503 + `Retry-After`(약간의 지터). 클라이언트: 존중 + 사용자에게 대기 표시.
 - **검증:** 리밋 초과 시 헤더 존재 정적·동적 확인, 클라이언트 재시도 간격 관찰.
 - **비용 영향:** 감소.
-- **출처:** https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/429 (RFC 6585, Retry-After) · https://platform.claude.com/docs/en/api/rate-limits (실제 API 사례: 429 + retry-after) — 2026-10-01 확인
+- **출처:** https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/429 (RFC 6585, Retry-After) · https://platform.claude.com/docs/en/api/rate-limits (실제 API 사례: 429 + retry-after) — 2026-10-01 확인 ⚠️출처부적격 ⚠️출처확인필요
 
 ### T-098 하류 SaaS·API 게이트웨이 스로틀 한도
 - **무엇/왜:** 앱 앞의 API Gateway, 뒤의 결제·메일·지도·인증 SaaS 모두 계정 단위 스로틀이 있다. 앱이 확장해도 이들이 상한이다. API Gateway는 계정·리전 단위 토큰 버킷으로 제한하고 429를 준다.

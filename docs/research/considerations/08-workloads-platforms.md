@@ -60,7 +60,7 @@
 - **처방:** 티어 0: 관리형 실시간(Supabase Realtime, Pusher/Ably) 또는 Vercel Marketplace Redis · 티어 1: Cloud Run은 Memorystore Redis Pub/Sub 또는 Firestore 실시간 리스너, ECS는 ElastiCache · 티어 2: Redis + 어댑터, 연결 수 지표로 HPA
 - **검증:** 인스턴스 2개 강제(min=2) 후 서로 다른 인스턴스에 붙은 두 클라이언트 사이 메시지 도달률 100% 확인
 - **비용 영향:** 최소 Redis 1개(월 수십 달러 수준) 추가
-- **출처:** https://socket.io/docs/v4/using-multiple-nodes/ ("Without an adapter, broadcasts on one server won't reach clients connected to other servers"), https://docs.cloud.google.com/run/docs/triggering/websockets (Redis Pub/Sub 또는 Firestore로 인스턴스 간 동기화 권장)
+- **출처:** https://socket.io/docs/v4/using-multiple-nodes/ ("Without an adapter, broadcasts on one server won't reach clients connected to other servers"), https://docs.cloud.google.com/run/docs/triggering/websockets (Redis Pub/Sub 또는 Firestore로 인스턴스 간 동기화 권장) ⚠️출처확인필요
 
 ### W-002 HTTP 롱폴링 폴백과 스티키 세션
 - **해당:** socket.io(기본 전송이 롱폴링으로 시작), SockJS, SignalR 폴백
@@ -71,7 +71,7 @@
 - **처방:** 코드: 클라이언트 `transports: ['websocket']` (P2 코드 처방) · 티어 1: 세션 어피니티는 보조 수단으로만 · 티어 2: Ingress 쿠키 어피니티는 롱폴링 유지 시에만
 - **검증:** 인스턴스 3개에서 연결 100개 생성, 핸드셰이크 오류율 0%
 - **비용 영향:** 없음(코드 한 줄)
-- **출처:** https://socket.io/docs/v4/using-multiple-nodes/ ("When you configure the Socket.IO client to not use HTTP long-polling ... sticky sessions are no longer required"), https://vercel.com/docs/functions/websockets, https://docs.cloud.google.com/run/docs/configuring/session-affinity (best effort)
+- **출처:** https://socket.io/docs/v4/using-multiple-nodes/ ("When you configure the Socket.IO client to not use HTTP long-polling ... sticky sessions are no longer required"), https://vercel.com/docs/functions/websockets, https://docs.cloud.google.com/run/docs/configuring/session-affinity (best effort) ⚠️출처확인필요
 
 ### W-003 배포·축소 시 대량 재연결 (재연결 폭풍)
 - **해당:** 장시간 연결(웹소켓, SSE, MQTT)을 가진 모든 서비스
@@ -82,7 +82,7 @@
 - **처방:** 코드: 지수 백오프 + 지터, 서버는 SIGTERM 때 "재연결하라" 메시지 후 분산 종료 · 티어 1/2: 종료 유예 시간을 연결 정리 시간보다 길게(W-088), 롤링 maxSurge를 작게 · 티어 2: Karpenter `do-not-disrupt`로 노드 정리 시점 통제(W-087)
 - **검증:** P4 U 검증에서 연결 1,000개 유지 중 롤링 배포, DB 커넥션·CPU 스파이크와 재접속 완료 시간 기록
 - **비용 영향:** 거의 없음. 대신 DB를 스파이크 기준으로 키우는 과잉을 막는다.
-- **출처:** https://render.com/docs/websocket (배포로 인스턴스가 교체되면 연결이 닫힘, 핑과 지수 백오프 재연결 권장), https://vercel.com/docs/functions/websockets (최대 실행 시간에 연결 종료, 재연결·재구독 권장)
+- **출처:** https://render.com/docs/websocket (배포로 인스턴스가 교체되면 연결이 닫힘, 핑과 지수 백오프 재연결 권장), https://vercel.com/docs/functions/websockets (최대 실행 시간에 연결 종료, 재연결·재구독 권장) ⚠️출처확인필요
 
 ### W-004 프레즌스·타이핑 상태의 저장 위치와 만료
 - **해당:** 채팅, 협업 도구, 접속자 표시
@@ -104,7 +104,7 @@
 - **처방:** 코드: 15~30초 간격 하트비트 코멘트(`:\n\n`) · 티어 1 ECS: ALB 유휴 타임아웃 상향(1~4000초 범위) · 티어 2: Ingress 버퍼링 끄기, `X-Accel-Buffering: no`
 - **검증:** 60초 이상 지연 후 첫 토큰을 내는 테스트 엔드포인트로 연결 유지 확인
 - **비용 영향:** 없음
-- **출처:** https://nextjs.org/docs/app/guides/self-hosting (nginx는 `X-Accel-Buffering: no`, LB와 프록시가 청크 응답을 버퍼링하지 않아야 함), https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-load-balancer-attributes.html (유휴 타임아웃 기본 60초, 범위 1~4000초)
+- **출처:** https://nextjs.org/docs/app/guides/self-hosting (nginx는 `X-Accel-Buffering: no`, LB와 프록시가 청크 응답을 버퍼링하지 않아야 함), https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-load-balancer-attributes.html (유휴 타임아웃 기본 60초, 범위 1~4000초) ⚠️출처부적격
 
 ### 미디어·업로드
 
@@ -185,7 +185,7 @@
 - **처방:** 공통: 사용자·테넌트별 한도, 요청 큐 + 동시 호출 상한, `retry-after` 존중 백오프, 프롬프트 캐싱(Anthropic은 대부분 모델에서 캐시 읽기 토큰이 ITPM에 미포함), 비실시간 작업은 Batch API · 티어 1/2: 큐 워커로 LLM 호출 격리
 - **검증:** 피크 가정 × 평균 토큰으로 필요 ITPM/OTPM 계산 → 현재 등급 한도와 비교, 429 주입 시 디그레이드 동작 확인
 - **비용 영향:** 한도 초과로 인한 장애 대신 대기열 지연으로 전환. 캐싱은 비용도 절감
-- **출처:** https://platform.claude.com/docs/en/api/rate-limits (RPM/ITPM/OTPM, 토큰 버킷, 429 + `retry-after`, 월 지출 상한 Start $500·Build $1,000·Scale $200,000, 상한 도달 시 `retry-after` 없는 429), https://developers.openai.com/api/docs/guides/rate-limits (RPM/RPD/TPM/TPD/IPM, 지수 백오프 + 지터, Batch API)
+- **출처:** https://platform.claude.com/docs/en/api/rate-limits (RPM/ITPM/OTPM, 토큰 버킷, 429 + `retry-after`, 월 지출 상한 Start $500·Build $1,000·Scale $200,000, 상한 도달 시 `retry-after` 없는 429), https://developers.openai.com/api/docs/guides/rate-limits (RPM/RPD/TPM/TPD/IPM, 지수 백오프 + 지터, Batch API) ⚠️출처확인필요
 
 ### W-013 긴 AI 작업의 비동기화 (작업 ID + 폴링/웹훅)
 - **해당:** 문서 일괄 임베딩, 긴 에이전트 작업, 영상·음성 생성, 리포트 생성
@@ -218,7 +218,7 @@
 - **처방:** 티어 0: Supabase pgvector · 티어 1/2: RDS/Cloud SQL pgvector, 3072차원은 halfvec 또는 차원 축소
 - **검증:** 인덱스 빌드 시간·메모리, recall@k
 - **비용 영향:** 별도 벡터 DB 제거 시 고정비 절감
-- **출처:** https://github.com/pgvector/pgvector (HNSW는 속도-재현율이 더 좋고 빌드 메모리 많음, IVFFlat은 빌드 빠름, `maintenance_work_mem`, vector 2,000차원·halfvec 4,000차원 인덱싱)
+- **출처:** https://github.com/pgvector/pgvector (HNSW는 속도-재현율이 더 좋고 빌드 메모리 많음, IVFFlat은 빌드 빠름, `maintenance_work_mem`, vector 2,000차원·halfvec 4,000차원 인덱싱) ⚠️출처확인필요
 
 ### W-016 토큰 비용이 트래픽에 비례 (요청당 유료 외부 API)
 - **해당:** LLM, 음성 인식, 번역, 지도 지오코딩 등 호출 건당 과금 API
@@ -229,7 +229,7 @@
 - **처방:** 공통: 인증 필수, 사용자·IP 한도, 일일 예산 차단기, 프롬프트 캐싱 · 크레딧 모델이면 잔액 차감 잠금(C-CTL-005)
 - **검증:** 한도 초과 요청이 429로 막히는지, 예산 차단기 동작
 - **비용 영향:** 상한 없는 변동비를 상한 있는 비용으로 전환
-- **출처:** 설계 원칙 5(§2), https://platform.claude.com/docs/en/api/rate-limits (사용자 정의 지출 한도·워크스페이스 한도, 캐시 읽기 토큰의 ITPM 제외)
+- **출처:** 설계 원칙 5(§2), https://platform.claude.com/docs/en/api/rate-limits (사용자 정의 지출 한도·워크스페이스 한도, 캐시 읽기 토큰의 ITPM 제외) ⚠️출처확인필요
 
 ### 백그라운드·배치·크론
 
@@ -275,7 +275,7 @@
 - **처방:** 코드: 청크 단위 처리 + 체크포인트 + 멱등 재개 · 티어 1: 장시간 작업은 Cloud Run Jobs/ECS RunTask(서비스와 분리) · 티어 2: Job + `do-not-disrupt` 어노테이션 + `terminationGracePeriodSeconds`
 - **검증:** 작업 중간에 SIGTERM 주입, 재개 후 결과 일치
 - **비용 영향:** 체크포인트가 있어야 Spot(최대 70% 할인) 사용 가능
-- **출처:** https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html (`stopTimeout` 기본 30초, 최대 120초), https://karpenter.sh/docs/concepts/disruption/ (`do-not-disrupt`, 만료·중단은 이 어노테이션을 무시, 기본 `expireAfter` 720h), 설계 S3(Cloud Run 10초)
+- **출처:** https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html (`stopTimeout` 기본 30초, 최대 120초), https://karpenter.sh/docs/concepts/disruption/ (`do-not-disrupt`, 만료·중단은 이 어노테이션을 무시, 기본 `expireAfter` 720h), 설계 S3(Cloud Run 10초) ⚠️출처확인필요
 
 ### 메시지 발송 (이메일·푸시·SMS)
 
@@ -288,7 +288,7 @@
 - **처방:** 공통: 전문 발송 서비스(HTTP API) + 도메인 인증 3종 + 트랜잭션/마케팅 서브도메인 분리 · 대량 발송은 큐(W-013)
 - **검증:** DNS에서 SPF/DKIM/DMARC 레코드 확인, 테스트 메일 헤더의 인증 결과
 - **비용 영향:** 발송 서비스 건당 과금. 평판 손상의 복구 비용이 훨씬 큼
-- **출처:** https://support.google.com/a/answer/81126 (일 5,000통 이상 대량 발신자 요건: SPF·DKIM·DMARC, 원클릭 구독 해지, 스팸률 0.30% 미만, 2024-02-01 시행)
+- **출처:** https://support.google.com/a/answer/81126 (일 5,000통 이상 대량 발신자 요건: SPF·DKIM·DMARC, 원클릭 구독 해지, 스팸률 0.30% 미만, 2024-02-01 시행) ⚠️출처확인필요
 
 ### W-022 발송 서비스의 초기 제한 (SES 샌드박스 등)
 - **해당:** Amazon SES를 새로 쓰는 앱
@@ -321,13 +321,13 @@
 - **처방:** 공통: 번호·IP·기기별 한도, 허용 국가 목록, CAPTCHA, 일일 예산 차단기
 - **검증:** 같은 번호·IP로 반복 요청 시 차단
 - **비용 영향:** 남용 차단이 곧 비용 상한
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### 검색·분석·리포트
 
 ### W-025 전문 검색: 엔진 추가 전 Postgres FTS, 추가 시 동기화 경로
 - **해당:** 상품 검색, 게시글 검색, 문서 검색
-- **무엇/왜:** 별도 검색 엔진(Elasticsearch/OpenSearch, Meilisearch, Algolia)은 DB와의 동기화 문제를 만든다. "DB 쓰기 후 검색 엔진 쓰기"를 같은 요청에서 하면 한쪽만 성공하는 이중 쓰기 불일치가 생긴다. 규모가 작으면 Postgres 전문 검색(tsvector + GIN)으로 충분하다. 단 Postgres 기본 설정에 한국어 형태소 분석 설정이 없어 한국어는 별도 확장·엔진 검토가 필요하다(이 부분은 우리 추론).
+- **무엇/왜:** 별도 검색 엔진(Elasticsearch/OpenSearch, Meilisearch, Algolia)은 DB와의 동기화 문제를 만든다. "DB 쓰기 후 검색 엔진 쓰기"를 같은 요청에서 하면 한쪽만 성공하는 이중 쓰기 불일치가 생긴다. 규모가 작으면 Postgres 전문 검색(tsvector + GIN)으로 충분하다. 단 Postgres 기본 설정에 한국어 형태소 분석 설정이 없어 한국어는 별도 확장·엔진 검토가 필요하다(이 부분은 우리 추론). ⚠️근거없음
 - **실패 양상:** 삭제한 상품이 검색에 계속 노출, 검색 엔진 장애 시 글쓰기까지 실패, 작은 앱에 검색 클러스터 고정비.
 - **신호:** 🟢 `@elastic/elasticsearch`, `@opensearch-project/opensearch`, `meilisearch`, `algoliasearch`, `typesense` · 🟢 `tsvector`, `to_tsquery`, `SearchVectorField`(Django) · 🔴 같은 핸들러에서 DB 커밋 후 검색 인덱스 쓰기(트랜잭션 밖)
 - **시나리오·수준:** C≥2(아웃박스/CDC로 동기화), D(검색 인덱스는 재생성 가능 → 백업 대상 아님, 재색인 시간이 RTO에 포함), 비용 필터
@@ -345,7 +345,7 @@
 - **처방:** 티어 0: 외부 분석 SaaS · 티어 1/2: 큐/버퍼 → 배치 삽입, 대량이면 컬럼형 저장소(BigQuery, ClickHouse) · 공통: 이벤트 쓰기 실패가 요청 실패로 번지지 않게
 - **검증:** 피크 부하에서 핵심 쓰기 p95와 이벤트 경로 분리 전후 비교
 - **비용 영향:** OLTP DB 증설 회피
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### W-027 파일·리포트 생성 (PDF·엑셀·헤드리스 브라우저)
 - **해당:** 영수증·인보이스 PDF, 엑셀 내보내기, 스크린샷, 대량 CSV
@@ -380,7 +380,7 @@
 - **처방:** 공통: 테넌트별 레이트 리밋(429 + `Retry-After`), 무거운 작업은 테넌트별 동시 실행 상한, 요금제별 쿼터 · 티어 2: 큰 테넌트 전용 워커 풀
 - **검증:** 한 테넌트 폭주 중 다른 테넌트 p95 유지
 - **비용 영향:** 전체 증설 대신 격리로 해결 → 절감
-- **출처:** https://www.rfc-editor.org/rfc/rfc6585#section-4 (429 Too Many Requests, Retry-After), https://platform.claude.com/docs/en/api/rate-limits (워크스페이스별 한도로 다른 워크스페이스 보호하는 예시: 같은 패턴의 공식 사례)
+- **출처:** https://www.rfc-editor.org/rfc/rfc6585#section-4 (429 Too Many Requests, Retry-After), https://platform.claude.com/docs/en/api/rate-limits (워크스페이스별 한도로 다른 워크스페이스 보호하는 예시: 같은 패턴의 공식 사례) ⚠️출처확인필요
 
 ### W-030 모바일 백엔드: 구버전 앱 호환
 - **해당:** iOS/Android 앱의 API 서버
@@ -391,7 +391,7 @@
 - **처방:** 공통: API 버전 + 최소 버전 응답(강제 업데이트), 필드 삭제는 구버전 사용률 임계치 이하에서만
 - **검증:** 이전 릴리스 앱 빌드로 신규 API 계약 테스트
 - **비용 영향:** 구버전 엔드포인트 유지 비용 소폭
-- **출처:** 일반 원칙(출처 미확인). expand/contract 자체는 설계 S9(https://martinfowler.com/bliki/ParallelChange.html)
+- **출처:** 일반 원칙(출처 미확인). expand/contract 자체는 설계 S9(https://martinfowler.com/bliki/ParallelChange.html) ⚠️출처부적격 ⚠️근거없음
 
 ### W-031 공개 API 제공: 키·쿼터·버전·멱등성
 - **해당:** 개발자용 공개 API, 파트너 API
@@ -413,7 +413,7 @@
 - **처방:** 공통: 아웃박스 → 발송 워커, 엔드포인트별 동시성 상한·서킷 브레이커, `410 Gone`이면 비활성화 · 티어 0: 관리형 웹훅 서비스
 - **검증:** 수신자 지연·5xx 주입 시 다른 고객 발송 지연 없음, 재시도 시 같은 `webhook-id`
 - **비용 영향:** 워커·큐 소폭
-- **출처:** https://github.com/standard-webhooks/standard-webhooks/blob/main/spec/standard-webhooks.md (`webhook-id`·`webhook-timestamp`·`webhook-signature`, 즉시·5초·5분·30분 … 최대 24시간 간격 재시도와 지터, 15~30초 타임아웃 권장, 410은 수신 중단 신호)
+- **출처:** https://github.com/standard-webhooks/standard-webhooks/blob/main/spec/standard-webhooks.md (`webhook-id`·`webhook-timestamp`·`webhook-signature`, 즉시·5초·5분·30분 … 최대 24시간 간격 재시도와 지터, 15~30초 타임아웃 권장, 410은 수신 중단 신호) ⚠️출처확인필요
 
 ### IoT·게임·커머스·예약
 
@@ -448,7 +448,7 @@
 - **처방:** 공통: 대기열 토큰(Redis 기반 또는 CDN 대기실) + 조건부 차감(`UPDATE ... WHERE stock > 0`) + 사전 증설(T-CTL-005) · 티어 1: 최소 인스턴스 상향 스케줄 · 티어 2: 자리표시 Pod로 노드 여유(T-CTL-009)
 - **검증:** P4 C 검증 "마지막 재고 1개에 동시 주문 100건" + T L3 스파이크
 - **비용 영향:** 이벤트 시간대만 증설 → 시간당 피크 비용으로 산정
-- **출처:** 일반 원칙(출처 미확인). 하위 통제는 설계 T-CTL-005/006/009, C-CTL-005의 출처를 따름
+- **출처:** 일반 원칙(출처 미확인). 하위 통제는 설계 T-CTL-005/006/009, C-CTL-005의 출처를 따름 ⚠️근거없음
 
 ### W-036 예약 시스템: 이중 예약 방지
 - **해당:** 숙소·식당·병원·회의실 예약, 시간 슬롯 예약
@@ -496,7 +496,7 @@
 - **처방:** 티어 0: 플랫폼 접근 보호(배포 보호·SSO) · 티어 1: ACA 내부 환경·인그레스, Cloud Run IAP/내부 인그레스, ECS 내부 ALB · 티어 2는 기본 제외(TIER-004)
 - **검증:** 외부 IP에서 접근 차단 확인, SSO 없는 로그인 경로 없음
 - **비용 영향:** 최소 구성이 정답인 도메인 → 축소 처방 중심
-- **출처:** https://learn.microsoft.com/en-us/azure/container-apps/ingress-overview (내부 환경은 공개 엔드포인트 없음, IP 제한, 인증 내장), https://render.com/docs/free (Free 웹 서비스는 사설 네트워크 트래픽 수신 불가)
+- **출처:** https://learn.microsoft.com/en-us/azure/container-apps/ingress-overview (내부 환경은 공개 엔드포인트 없음, IP 제한, 인증 내장), https://render.com/docs/free (Free 웹 서비스는 사설 네트워크 트래픽 수신 불가) ⚠️출처확인필요
 
 ### W-040 재난·공공 알림: 폭증과 장애가 동시에 온다
 - **해당:** 재난 문자 연동 서비스, 대피소 안내, 공공 공지, 속보
@@ -507,7 +507,7 @@
 - **처방:** 공통: 핵심 페이지 정적 생성 + 긴 CDN TTL + stale-while-revalidate, 가벼운 텍스트 전용 페이지, 외부 데이터는 마지막 정상값 캐시 · 티어 0: 정적 호스팅 + 다중 리전 CDN이 오히려 유리 · 티어 1/2: 원본 장애 시 CDN이 stale 응답
 - **검증:** 원본 차단 상태에서 핵심 페이지 응답(P4 D L3), 3G 스로틀링 조건에서 첫 화면 시간
 - **비용 영향:** 정적화는 싸고, 다중 리전 원본은 비쌈 → 정적 폴백 우선
-- **출처:** 일반 원칙(출처 미확인). 설계 §4.1 D L3 정의, https://vercel.com/docs/regions (리전 장애 시 다음 리전으로 자동 우회, 함수 리전 페일오버는 Enterprise)
+- **출처:** 일반 원칙(출처 미확인). 설계 §4.1 D L3 정의, https://vercel.com/docs/regions (리전 장애 시 다음 리전으로 자동 우회, 함수 리전 페일오버는 Enterprise) ⚠️근거없음
 
 ### W-041 규제 데이터(의료·금융): 계약·감사·데이터 위치
 - **해당:** 의료 기록, 결제·계좌, 개인 신용 정보
@@ -529,7 +529,7 @@
 - **처방:** 공통: 최신 위치는 Redis(GEO) 또는 덮어쓰기, 이력은 배치 적재, 공간 인덱스, 지오코딩 결과 캐시
 - **검증:** 가정 이동 사용자 × 주기 부하에서 DB 쓰기 IOPS
 - **비용 영향:** 외부 지도 API가 최대 변동비가 될 수 있음
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### 추가 유형
 
@@ -564,7 +564,7 @@
 - **처방:** 티어 0: 플랫폼 정적 IP 옵션(유료) · 티어 1: Cloud Run/ECS + NAT 게이트웨이 고정 IP · 티어 2: 동일
 - **검증:** 재배포 전후 송신 IP 동일
 - **비용 영향:** Fly.io 정적 egress IP 시간당 $0.005(월 약 $3.60), AWS NAT 서울 시간당 $0.059 + GB당 $0.059(S18)
-- **출처:** https://docs.fly.io/about/pricing/ (Static Egress IPs $0.005/시간), 설계 S18(NAT Gateway 요금)
+- **출처:** https://docs.fly.io/about/pricing/ (Static Egress IPs $0.005/시간), 설계 S18(NAT Gateway 요금) ⚠️출처확인필요
 
 ### W-046 모바일 백엔드의 푸시 토큰·오프라인 동기화
 - **해당:** 모바일 앱, PWA
@@ -575,7 +575,7 @@
 - **처방:** 공통: 클라이언트 생성 UUID + 업서트, 발송 응답의 무효 토큰 삭제
 - **검증:** 같은 요청 3회 재전송 후 레코드 1개
 - **비용 영향:** 없음
-- **출처:** 일반 원칙(출처 미확인). 멱등성 키 관행은 설계 S12(https://docs.stripe.com/api/idempotent_requests)
+- **출처:** 일반 원칙(출처 미확인). 멱등성 키 관행은 설계 S12(https://docs.stripe.com/api/idempotent_requests) ⚠️근거없음
 
 ---
 
@@ -584,7 +584,7 @@
 ### 2.1 읽는 법
 - 수준은 §4.2 규칙을 이 도메인의 **전형적인 신호**에 적용했을 때 나오는 **기본값 제안**이다. 실제 판정은 코드 신호로 다시 계산되며, 여러 규칙이 걸리면 높은 쪽을 쓴다.
 - U는 §4.2 U 규칙(T=0 & D≤1 → U0, T≥2 또는 C≥2 또는 마이그레이션 → U2, C=3 & T≥2 → U3)을 적용한 결과다.
-- 평시 동시 접속 기본값과 피크 배수는 **설계 가정 제안이며 공식 출처가 없다**(§4.3의 T 수준별 배수 ×3/×10/×20과 맞춰 정했다). 근거 칸은 왜 그 값인지에 대한 추론이다.
+- 평시 동시 접속 기본값과 피크 배수는 **설계 가정 제안이며 공식 출처가 없다**(§4.3의 T 수준별 배수 ×3/×10/×20과 맞춰 정했다). 근거 칸은 왜 그 값인지에 대한 추론이다. ⚠️근거없음
 - 굵게 표시한 도메인은 §7.1 목록에 없는 **추가 제안**이다.
 
 ### 2.2 수준과 가정
@@ -855,7 +855,7 @@
 
 ### W-068 Firestore 무료 할당·문서 한도·벤더 종속
 - **해당:** Cloud Firestore
-- **무엇/왜:** 무료 할당은 하루 읽기 5만, 쓰기 2만, 삭제 2만, 저장 1GiB, 월 전송 10GiB. 문서 최대 1MiB, 트랜잭션 270초(유휴 60초). PITR·백업·복원은 결제 필요. 데이터 모델과 쿼리 API가 Firestore 고유라 다른 DB로의 이전 비용이 가장 크다(이전 비용은 우리 추론).
+- **무엇/왜:** 무료 할당은 하루 읽기 5만, 쓰기 2만, 삭제 2만, 저장 1GiB, 월 전송 10GiB. 문서 최대 1MiB, 트랜잭션 270초(유휴 60초). PITR·백업·복원은 결제 필요. 데이터 모델과 쿼리 API가 Firestore 고유라 다른 DB로의 이전 비용이 가장 크다(이전 비용은 우리 추론). ⚠️근거없음
 - **실패 양상:** 피드 화면 하나가 문서 수십 개를 읽어 일일 읽기 할당을 오전에 소진, 카운터 문서 핫스팟(W-034).
 - **신호:** 🟢 `firebase/firestore`, `firebase-admin` `firestore()` · 🟡 `onSnapshot` 다수 사용(읽기 과금 증가)
 - **시나리오·수준:** D≥1이면 백업 기능 위해 결제 필요, 이전 비용 `large`
@@ -875,7 +875,7 @@
 - **처방:** 하트비트(W-005), 업로드는 서명 URL(W-006)
 - **검증:** 설정·경로 정적 분석
 - **비용 영향:** 없음
-- **출처:** https://docs.railway.com/networking/public-networking/specs-and-limits
+- **출처:** https://docs.railway.com/networking/public-networking/specs-and-limits ⚠️출처확인필요
 
 ### W-070 Railway 요금·한도와 앱 슬리핑
 - **해당:** Railway Free/Hobby/Pro
@@ -886,7 +886,7 @@
 - **처방:** 레플리카 ≥2(Hobby 이상), 슬리핑은 T≤1 저트래픽에서만
 - **검증:** 설정 확인
 - **비용 영향:** 상시 컨테이너 1개(0.5vCPU·512MB)는 약 월 $15 수준(단가로 계산한 우리 추정)
-- **출처:** https://docs.railway.com/reference/pricing/plans, https://docs.railway.com/reference/app-sleeping
+- **출처:** https://docs.railway.com/reference/pricing/plans, https://docs.railway.com/reference/app-sleeping ⚠️출처확인필요
 
 ### 티어 0 — Render
 
@@ -899,7 +899,7 @@
 - **처방:** 유료 인스턴스·유료 Postgres
 - **검증:** `render.yaml` 플랜 정적 분석
 - **비용 영향:** 유료 최저 플랜 비용(금액은 이 문서에서 미확인)
-- **출처:** https://render.com/docs/free
+- **출처:** https://render.com/docs/free ⚠️출처확인필요
 
 ### W-072 Render 영속 디스크: 스케일 아웃 불가 + 무중단 배포 불가
 - **해당:** Render 서비스에 Persistent Disk 연결
@@ -910,7 +910,7 @@
 - **처방:** 오브젝트 스토리지·매니지드 DB로 이전 후 디스크 제거
 - **검증:** 디스크 제거 후 인스턴스 2개 + 무중단 배포 확인
 - **비용 영향:** 매니지드 DB 비용 추가, 대신 확장 가능
-- **출처:** https://render.com/docs/disks
+- **출처:** https://render.com/docs/disks ⚠️출처확인필요
 
 ### W-073 Render 웹소켓과 종료 유예
 - **해당:** Render 웹 서비스의 웹소켓
@@ -921,7 +921,7 @@
 - **처방:** 유예 시간 상향 + 서버 측 정리 메시지 + 클라이언트 백오프
 - **검증:** 배포 중 재연결 완료 시간
 - **비용 영향:** 없음
-- **출처:** https://render.com/docs/websocket, https://render.com/docs/web-services (웹소켓·무중단 배포 지원)
+- **출처:** https://render.com/docs/websocket, https://render.com/docs/web-services (웹소켓·무중단 배포 지원) ⚠️출처확인필요
 
 ### 티어 0 — Fly.io
 
@@ -934,7 +934,7 @@
 - **처방:** 매니지드 Postgres 이전(D-PRE-001) 또는 LiteFS류 복제 + 외부 백업
 - **검증:** 머신 파괴 후 복원 리허설
 - **비용 영향:** 볼륨 GB당 월 $0.15, 스냅샷 GB당 월 $0.08(월 10GB 무료)
-- **출처:** https://docs.fly.io/volumes/overview/, https://docs.fly.io/about/pricing/
+- **출처:** https://docs.fly.io/volumes/overview/, https://docs.fly.io/about/pricing/ ⚠️출처확인필요
 
 ### W-075 Fly 자동 정지·시작과 최소 머신
 - **해당:** Fly Machines `auto_stop_machines`, `min_machines_running`
@@ -945,7 +945,7 @@
 - **처방:** 두 설정을 함께 켜고/끄기, T3이면 최소 머신 상향
 - **검증:** 스파이크 테스트에서 첫 요청 지연
 - **비용 영향:** 최소 머신 상시 비용
-- **출처:** https://docs.fly.io/launch/autostop-autostart/, https://docs.fly.io/about/pricing/
+- **출처:** https://docs.fly.io/launch/autostop-autostart/, https://docs.fly.io/about/pricing/ ⚠️출처확인필요
 
 ### 티어 0 — Replit
 
@@ -958,7 +958,7 @@
 - **처방:** 외부 DB·스토리지, 상시 연결은 Reserved VM
 - **검증:** 재배포 후 데이터 유지
 - **비용 영향:** Reserved VM은 상시 비용(금액 미확인)
-- **출처:** https://docs.replit.com/cloud-services/deployments/about-deployments
+- **출처:** https://docs.replit.com/cloud-services/deployments/about-deployments ⚠️출처확인필요
 
 ### 티어 1 — Google Cloud Run
 
@@ -974,7 +974,7 @@
 - **출처:** https://docs.cloud.google.com/run/docs/configuring/request-timeout, https://docs.cloud.google.com/run/quotas, https://docs.cloud.google.com/run/docs/configuring/billing-settings, https://docs.cloud.google.com/run/docs/triggering/websockets, https://docs.cloud.google.com/run/docs/configuring/session-affinity
 
 ### W-078 Cloud Run GPU는 서울 리전에 없음
-- **해당:** Cloud Run GPU(자체 모델 추론)
+- **해당:** Cloud Run GPU(자체 모델 추론) ⚠️근거없음
 - **무엇/왜:** L4·RTX PRO 6000 Blackwell 제공 리전 목록에 서울(`asia-northeast3`)이 없다(가까운 곳은 싱가포르). GPU는 인스턴스 기반 과금 필수, 0으로 축소는 가능, 최소 인스턴스는 전액 과금. 존 중복 옵션은 기본이 용량 예약(비쌈).
 - **실패 양상:** 서울 기본 리전으로 Terraform 적용 시 실패, 또는 앱은 서울·GPU는 싱가포르로 분리되어 지연·전송비.
 - **신호:** W-014 신호 + 리전 추론 결과가 서울
@@ -1087,7 +1087,7 @@
 - **처방:** 상태 연결·배치 워크로드는 별도 NodePool(`WhenEmpty`) 또는 `do-not-disrupt` 기간 지정 + `terminationGracePeriod`
 - **검증:** 통합 이벤트 중 연결 끊김 수, 미정리 노드 수
 - **비용 영향:** 통합이 주된 절감 수단 → 끄지 말고 워크로드별로 분리
-- **출처:** https://karpenter.sh/docs/concepts/disruption/
+- **출처:** https://karpenter.sh/docs/concepts/disruption/ ⚠️출처확인필요
 
 ### 플랫폼 교차 비교
 
@@ -1105,7 +1105,7 @@
 - **처방:** 정리 시간을 상한 아래로, 장기 작업은 W-020
 - **검증:** 부하 중 롤링 배포 5xx 0건(P4 U L2)
 - **비용 영향:** 없음
-- **출처:** https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html, https://render.com/docs/websocket, https://nextjs.org/docs/app/guides/self-hosting, 설계 S3·S6
+- **출처:** https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html, https://render.com/docs/websocket, https://nextjs.org/docs/app/guides/self-hosting, 설계 S3·S6 ⚠️출처확인필요
 
 ### W-089 플랫폼별 요청 본문 한도 비교 (TIER-001 일반화)
 - **해당:** 업로드·대용량 API가 앱을 통과하는 경우
@@ -1122,7 +1122,7 @@
 - **처방:** W-006
 - **검증:** 한도 상수 vs 표
 - **비용 영향:** 없음
-- **출처:** https://vercel.com/docs/functions/limitations, https://docs.netlify.com/build/functions/configuration/, https://docs.cloud.google.com/run/quotas, https://firebase.google.com/docs/functions/quotas, https://developers.cloudflare.com/workers/platform/limits/, https://docs.railway.com/networking/public-networking/specs-and-limits
+- **출처:** https://vercel.com/docs/functions/limitations, https://docs.netlify.com/build/functions/configuration/, https://docs.cloud.google.com/run/quotas, https://firebase.google.com/docs/functions/quotas, https://developers.cloudflare.com/workers/platform/limits/, https://docs.railway.com/networking/public-networking/specs-and-limits ⚠️출처확인필요
 
 ### W-090 플랫폼별 최대 요청 처리 시간 비교 (TIER-002 일반화)
 - **해당:** 긴 동기 요청(LLM, 리포트, 내보내기)
@@ -1142,7 +1142,7 @@
 - **처방:** W-011, W-013
 - **검증:** 경로별 p99 처리 시간 vs 표
 - **비용 영향:** 없음
-- **출처:** https://vercel.com/docs/functions/limitations, https://docs.netlify.com/build/functions/configuration/, https://supabase.com/docs/guides/functions/limits, https://developers.cloudflare.com/workers/platform/limits/, https://firebase.google.com/docs/functions/quotas, https://docs.railway.com/networking/public-networking/specs-and-limits, https://learn.microsoft.com/en-us/azure/container-apps/ingress-overview, https://docs.cloud.google.com/run/docs/configuring/request-timeout, https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-load-balancer-attributes.html
+- **출처:** https://vercel.com/docs/functions/limitations, https://docs.netlify.com/build/functions/configuration/, https://supabase.com/docs/guides/functions/limits, https://developers.cloudflare.com/workers/platform/limits/, https://firebase.google.com/docs/functions/quotas, https://docs.railway.com/networking/public-networking/specs-and-limits, https://learn.microsoft.com/en-us/azure/container-apps/ingress-overview, https://docs.cloud.google.com/run/docs/configuring/request-timeout, https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-load-balancer-attributes.html ⚠️출처확인필요
 
 ### W-091 "장애처럼 보이는" 무료 플랜 동작
 - **해당:** 티어 0 무료·저가 플랜 전반
@@ -1153,7 +1153,7 @@
 - **처방:** 최저 유료 플랜으로 견적
 - **검증:** 사용자 확인 항목
 - **비용 영향:** 견적 하한 상승(정직한 견적)
-- **출처:** https://render.com/docs/free, https://supabase.com/pricing, https://docs.railway.com/reference/app-sleeping, https://vercel.com/docs/limits/fair-use-guidelines, https://firebase.google.com/docs/firestore/quotas
+- **출처:** https://render.com/docs/free, https://supabase.com/pricing, https://docs.railway.com/reference/app-sleeping, https://vercel.com/docs/limits/fair-use-guidelines, https://firebase.google.com/docs/firestore/quotas ⚠️출처확인필요
 
 ### W-092 서울 리전 가용성
 - **해당:** 리전 추론이 서울(§4.3 기본)인 경우
@@ -1164,11 +1164,11 @@
 - **처방:** 앱과 DB 리전 일치
 - **검증:** 설정 정적 분석
 - **비용 영향:** 리전별 단가 차이
-- **출처:** https://vercel.com/docs/regions, https://docs.netlify.com/build/functions/configuration/, https://docs.cloud.google.com/run/docs/configuring/services/gpu. Fly·Railway·Render 서울 여부는 출처 미확인
+- **출처:** https://vercel.com/docs/regions, https://docs.netlify.com/build/functions/configuration/, https://docs.cloud.google.com/run/docs/configuring/services/gpu. Fly·Railway·Render 서울 여부는 출처 미확인 ⚠️근거없음
 
 ### W-093 벤더 종속과 이전 경로 (migration_effort 산정)
 - **해당:** 티어 0 → 1 → 2 이전 비용 계산
-- **무엇/왜:** 이전 비용(§5 `migration_effort`)은 "고유 API 사용량"으로 추정할 수 있다. 공식 문서 근거가 있는 이전 경로: App Runner → ECS Express Mode(DNS 가중치 이전 가이드), Next.js on Vercel → 자체 호스팅(공유 캐시·암호화 키·deploymentId 필요, W-038), Supabase는 표준 Postgres 접속을 제공(W-064)해 DB 이전이 상대적으로 쉬움. Firestore 데이터 모델, Workers 런타임 API(Durable Objects, KV), Vercel 고유 API(`@vercel/functions`, `experimental_upgradeWebSocket`)는 이전 시 코드 수정이 필요하다(난이도 등급은 우리 추론).
+- **무엇/왜:** 이전 비용(§5 `migration_effort`)은 "고유 API 사용량"으로 추정할 수 있다. 공식 문서 근거가 있는 이전 경로: App Runner → ECS Express Mode(DNS 가중치 이전 가이드), Next.js on Vercel → 자체 호스팅(공유 캐시·암호화 키·deploymentId 필요, W-038), Supabase는 표준 Postgres 접속을 제공(W-064)해 DB 이전이 상대적으로 쉬움. Firestore 데이터 모델, Workers 런타임 API(Durable Objects, KV), Vercel 고유 API(`@vercel/functions`, `experimental_upgradeWebSocket`)는 이전 시 코드 수정이 필요하다(난이도 등급은 우리 추론). ⚠️근거없음
 - **실패 양상:** 절감액보다 이전 비용이 더 큰데 이전 처방.
 - **신호:** 🟢 고유 SDK import 수: `firebase/firestore`, `@vercel/functions`, `@vercel/kv`, `@vercel/blob`, `cloudflare:workers`, `__STATIC_CONTENT`, Supabase `rpc(`/RLS 정책 수
 - **시나리오·수준:** TIER-005(유지 vs 교체)의 이전 비용 입력

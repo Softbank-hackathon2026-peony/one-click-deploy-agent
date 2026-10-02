@@ -49,7 +49,7 @@
 | Supabase Pro/Team | 다수 | 가능 | Micro 60/200, Small 90/400, Medium 120/600 … | 읽기 복제본 비동기. 관리형 HA는 미확인 | 미확인 | 일일 백업 24시간 / PITR 애드온 2분 | 있음 | **$25** (Pro, Micro 크레딧 포함) / PITR 쓰면 약 $130 | 컴퓨트 변경 시 2분 미만 중단, 지출 상한이 컴퓨트·PITR 미포함 |
 | Neon Free | 다수 | 가능 | 0.25CU 104 … / 풀러 10,000 클라이언트 | 핫 스탠바이 없음, WAL은 다중 AZ 세이프키퍼 | 컴퓨트 재스케줄 수초~2분, AZ 장애 1~10분 | 복원 창 6시간 (1GB 한도) | **없음** (싱가포르가 가장 가까움) | $0 | 5분 뒤 scale-to-zero 고정, 0.5GB/프로젝트 |
 | Neon Launch/Scale | 다수 | 가능 | 위와 같음, 9CU 이상 4,000 상한 | 위와 같음 | 위와 같음 | 복원 창 Launch 7일 / Scale 30일 | 없음 | 사용량제. 0.25CU 상시면 Launch 약 $19.3 | 서울 없음 → 대륙 간 지연 |
-| PlanetScale Postgres | 다수 | 가능 | 미확인 (PgBouncer 6432 제공) | HA: 주 1 + 복제본 2, 3AZ, 복제본 1개 이상 확인 후 커밋 | 미확인 (검색 요약은 30초 미만, 원문 미확인) | PITR 기본 2일 창, 현재 5분 전까지 | 있음 (GCP asia-northeast3) | $5 (PS-5 단일 노드) / HA $15 (us-east-1 가격) | 무료 플랜 없음, 단일 노드는 HA 없음 |
+| PlanetScale Postgres | 다수 | 가능 | 미확인 (PgBouncer 6432 제공) | HA: 주 1 + 복제본 2, 3AZ, 복제본 1개 이상 확인 후 커밋 | 미확인 (검색 요약은 30초 미만, 원문 미확인) | PITR 기본 2일 창, 현재 5분 전까지 | 있음 (GCP asia-northeast3) | $5 (PS-5 단일 노드) / HA $15 (us-east-1 가격) | 무료 플랜 없음, 단일 노드는 HA 없음 ⚠️근거없음 |
 | Prisma Postgres | 다수 (PG17) | 가능 (TCP·HTTP) | 풀 연결 Starter 100 / Pro 500 / Business 1,000 | 미확인 | 미확인 | 일일 스냅샷 7일 (Business 30일), Free 백업 없음 | 없음 (도쿄 ap-northeast-1) | $0 (Free) / $10 (Starter) | `npx create-db` DB는 24시간 뒤 삭제 |
 | RDS MySQL | 다수 (InnoDB 행 잠금) | 가능 | `메모리/12582880` (t3.micro 약 60) | Single / Multi-AZ 동기 / 클러스터 반동기 | 60~120초 / 클러스터 35초 미만 | 5분 | 있음 | $20.9 (t4g.micro, 8.4 기준) | **8.0은 2026-08-01부터 확장 지원 요금 (t4g.micro 2vCPU면 +$175/월)** |
 | Aurora MySQL | 다수 (쓰기 1) | 가능 | 클래스별 표 (t4g.medium 90, r6g.large 1,000), 최대 16,000 | Aurora PG와 같음 | Aurora PG와 같음 | 미확인 (Backtrack 별도) | 있음 | $82.5+ (t4g.medium) | |
@@ -67,7 +67,7 @@
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
 | DS.concurrent_writers | **1** (DB 파일 전체 잠금). 커밋 중에는 읽기도 막힘 | 잠금 단위 = 데이터베이스 파일 | https://www.sqlite.org/whentouse.html "it will only allow one writer at any instant in time" · https://www.sqlite.org/lockingv3.html "Only one EXCLUSIVE lock is allowed on the file and no other locks of any kind are allowed to coexist with an EXCLUSIVE lock." · 2026-10-01 |
-| DS.row_contention | 행 잠금 없음. 쓰기가 직렬화되므로 `x = x + 1`은 원자적이지만, 읽고-나서-쓰기 트랜잭션은 업그레이드 시 `SQLITE_BUSY` | `SELECT … FOR UPDATE` 문법 없음 | https://www.sqlite.org/lang_transaction.html "upgrading to a write transaction is not possible and the write statement will fail with SQLITE_BUSY" · https://docs.djangoproject.com/en/stable/ref/databases/ "SQLite does not support the SELECT ... FOR UPDATE syntax." · 2026-10-01 |
+| DS.row_contention | 행 잠금 없음. 쓰기가 직렬화되므로 `x = x + 1`은 원자적이지만, 읽고-나서-쓰기 트랜잭션은 업그레이드 시 `SQLITE_BUSY` | `SELECT … FOR UPDATE` 문법 없음 | https://www.sqlite.org/lang_transaction.html "upgrading to a write transaction is not possible and the write statement will fail with SQLITE_BUSY" · https://docs.djangoproject.com/en/stable/ref/databases/ "SQLite does not support the SELECT ... FOR UPDATE syntax." · 2026-10-01 ⚠️출처부적격 |
 | DS.transactions | 다중 행·다중 테이블 트랜잭션, **SERIALIZABLE** (쓰기를 실제로 직렬화). 기본 `DEFERRED`, `IMMEDIATE`로 시작 시 바로 쓰기 잠금 | `busy_timeout`이 지나면 `SQLITE_BUSY` | https://www.sqlite.org/isolation.html "SQLite implements serializable transactions by actually serializing the writes." · https://www.sqlite.org/lang_transaction.html "The default transaction behavior is DEFERRED." · https://www.sqlite.org/c3ref/busy_timeout.html "After at least "ms" milliseconds of sleeping, the handler returns 0 which causes sqlite3_step() to return SQLITE_BUSY." · 2026-10-01 |
 | DS.replication | 없음 | 복제는 LiteFS·libSQL 같은 별도 계층 | https://www.sqlite.org/whentouse.html "SQLite only supports one writer at a time per database file." (복제 기능 언급 없음) · 2026-10-01 |
 | DS.query_models | 조인, JSON 함수 기본 내장(3.38+, JSONB), FTS5 전문 검색 | 벡터·지리는 확장 필요 (미확인) | https://www.sqlite.org/json1.html "The JSON functions and operators are built into SQLite by default, as of SQLite version 3.38." · https://www.sqlite.org/fts5.html (FTS5 문서) · 2026-10-01 |
@@ -80,7 +80,7 @@
 | DS.security | 공개판에는 저장 암호화 없음 (상용 SEE 필요). 감사 로그·행 권한 없음 | 파일 권한에 의존 | https://www.sqlite.org/see/doc/trunk/www/readme.wiki "the public version of SQLite will not be able to read or write an encrypted database file" · 2026-10-01 |
 | DS.regions | 해당 없음 | | — |
 | DS.scaling | 수직 확장만 (호스트 교체). 수평 확장 불가 | | https://www.sqlite.org/whentouse.html (위 인용) · 2026-10-01 |
-| DS.cost_floor | 0 (호스트 디스크 비용에 포함) | | — |
+| DS.cost_floor | 0 (호스트 디스크 비용에 포함) | | — ⚠️근거없음 |
 
 #### 비용 구조
 - 고정비 0. 단, 영속 디스크가 필요하면 플랫폼의 볼륨 비용과 "단일 인스턴스 고정" 제약이 따라온다(컴퓨트 표 CP.local_disk).
@@ -111,18 +111,18 @@
 | DS.backup | 1.1과 같음 | 파일 복사 시 `-wal` 파일까지 함께여야 함 (Backup API 권장) | https://www.sqlite.org/backup.html · 2026-10-01 |
 | DS.connections | 해당 없음 | | — |
 | DS.schema_change | 1.1과 같음 | | 1.1 출처 |
-| DS.availability | 없음 | | — |
+| DS.availability | 없음 | | — ⚠️근거없음 |
 | DS.multi_host_access | **불가.** 공유 메모리가 필요해 네트워크 FS에서 동작하지 않음 | 같은 호스트의 여러 프로세스(예: `gunicorn -w 4`)는 가능 | https://www.sqlite.org/wal.html "All processes using a database must be on the same host computer; WAL does not work over a network filesystem." · 2026-10-01 |
 | DS.security | 1.1과 같음 | | 1.1 출처 |
 | DS.regions | 해당 없음 | | — |
 | DS.scaling | 1.1과 같음 | | — |
-| DS.cost_floor | 0 | | — |
+| DS.cost_floor | 0 | | — ⚠️근거없음 |
 
 #### 비용 구조
 - 1.1과 같음.
 
 #### 교체 계열 정보
-- 1.1과 같음. `better-sqlite3`는 WAL을 권장한다: https://github.com/WiseLibs/better-sqlite3 "it is generally important to set the WAL pragma for performance reasons" (2026-10-01).
+- 1.1과 같음. `better-sqlite3`는 WAL을 권장한다: https://github.com/WiseLibs/better-sqlite3 "it is generally important to set the WAL pragma for performance reasons" (2026-10-01). ⚠️출처확인필요
 
 #### 함정
 - WAL은 "읽기가 쓰기를 막지 않는다"를 해결할 뿐, 쓰기 동시성(C1)을 높이지 않는다. C1이 중간 이상이면 WAL로 바꾸는 것은 교체 대안이 아니다.
@@ -134,21 +134,21 @@
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| DS.concurrent_writers | 기본 **1** (SQLite와 같음). `tursodb` 데이터베이스 + `BEGIN CONCURRENT`(MVCC)로 다중 쓰기는 **조기 미리보기** | 미리보기는 대시보드에서 켜고 `tursodb`로 새로 만들어야 함 | https://docs.turso.tech/sql-reference/statements/transactions "Turso always uses WAL mode, where EXCLUSIVE and IMMEDIATE are equivalent." · https://turso.tech/blog/concurrent-writes-on-turso-cloud (2026-08-03, "Early preview") · 2026-10-01 |
-| DS.row_contention | MVCC 모드에서는 행 단위 충돌 감지, 충돌 시 재시도 필요 (낙관적) | 기본 모드는 SQLite와 같음 | https://docs.turso.tech/tursodb/concurrent-writes "If two transactions touch the same rows, one will receive a conflict error and must roll back and retry." · 2026-10-01 |
-| DS.transactions | DEFERRED / IMMEDIATE / EXCLUSIVE, `BEGIN CONCURRENT`는 스냅샷 격리 | | https://docs.turso.tech/sql-reference/statements/transactions "snapshot isolation" · 2026-10-01 |
-| DS.replication | 임베디드 복제본: 읽기는 로컬, 쓰기는 원격 주 DB. 쓴 복제본은 바로 자기 쓰기를 봄, 다른 복제본은 다음 동기화 때 | `syncInterval`로 주기 동기화 | https://docs.turso.tech/features/embedded-replicas/introduction "Writes are sent to the remote primary database configured at `syncUrl` by default." · "the replica that initiated the write will always be able to see the new data right away" · 2026-10-01 |
+| DS.concurrent_writers | 기본 **1** (SQLite와 같음). `tursodb` 데이터베이스 + `BEGIN CONCURRENT`(MVCC)로 다중 쓰기는 **조기 미리보기** | 미리보기는 대시보드에서 켜고 `tursodb`로 새로 만들어야 함 | https://docs.turso.tech/sql-reference/statements/transactions "Turso always uses WAL mode, where EXCLUSIVE and IMMEDIATE are equivalent." · https://turso.tech/blog/concurrent-writes-on-turso-cloud (2026-08-03, "Early preview") · 2026-10-01 ⚠️출처확인필요 |
+| DS.row_contention | MVCC 모드에서는 행 단위 충돌 감지, 충돌 시 재시도 필요 (낙관적) | 기본 모드는 SQLite와 같음 | https://docs.turso.tech/tursodb/concurrent-writes "If two transactions touch the same rows, one will receive a conflict error and must roll back and retry." · 2026-10-01 ⚠️출처확인필요 |
+| DS.transactions | DEFERRED / IMMEDIATE / EXCLUSIVE, `BEGIN CONCURRENT`는 스냅샷 격리 | | https://docs.turso.tech/sql-reference/statements/transactions "snapshot isolation" · 2026-10-01 ⚠️출처확인필요 |
+| DS.replication | 임베디드 복제본: 읽기는 로컬, 쓰기는 원격 주 DB. 쓴 복제본은 바로 자기 쓰기를 봄, 다른 복제본은 다음 동기화 때 | `syncInterval`로 주기 동기화 | https://docs.turso.tech/features/embedded-replicas/introduction "Writes are sent to the remote primary database configured at `syncUrl` by default." · "the replica that initiated the write will always be able to see the new data right away" · 2026-10-01 ⚠️출처확인필요 |
 | DS.query_models | SQLite와 같음 + 벡터 | 벡터 세부 미확인 | 미확인 |
-| DS.size_limits | 플랜 저장량: Free 5GB, Developer 9GB, Scaler 24GB, Pro 50GB (초과 과금) | 행 쓰기 월 한도: Free 1천만 | https://turso.tech/pricing "Storage: 5GB" (Free) · 2026-10-01 |
-| DS.backup | PITR: Free 1일, Developer 10일, Scaler 30일, Pro 90일 | 최악 RPO 수치 미확인 | https://turso.tech/pricing "Point-in-Time Restore: 1 day" (Free) · 2026-10-01 |
-| DS.connections | 원격 HTTP/WebSocket. 연결 수 한도 미확인 | | 미확인 |
+| DS.size_limits | 플랜 저장량: Free 5GB, Developer 9GB, Scaler 24GB, Pro 50GB (초과 과금) | 행 쓰기 월 한도: Free 1천만 | https://turso.tech/pricing "Storage: 5GB" (Free) · 2026-10-01 ⚠️출처확인필요 |
+| DS.backup | PITR: Free 1일, Developer 10일, Scaler 30일, Pro 90일 | 최악 RPO 수치 미확인 | https://turso.tech/pricing "Point-in-Time Restore: 1 day" (Free) · 2026-10-01 ⚠️출처확인필요 |
+| DS.connections | 원격 HTTP/WebSocket. 연결 수 한도 미확인 | | 미확인 ⚠️근거없음 |
 | DS.schema_change | SQLite와 같음 (제한적 ALTER TABLE) | | 1.1 출처 |
-| DS.availability | AWS 리전에서 S3 Express One Zone + S3에 커밋 후 응답. 컴퓨트 페일오버 시간 미확인 | S3 Express One Zone은 단일 존 | https://docs.turso.tech/cloud/durability "Commits are only acknowledged once data is safely stored in either S3 or S3-express" · 2026-10-01 |
-| DS.multi_host_access | 가능 (원격 접속, 여러 인스턴스) | | https://docs.turso.tech/features/embedded-replicas/introduction · 2026-10-01 |
+| DS.availability | AWS 리전에서 S3 Express One Zone + S3에 커밋 후 응답. 컴퓨트 페일오버 시간 미확인 | S3 Express One Zone은 단일 존 | https://docs.turso.tech/cloud/durability "Commits are only acknowledged once data is safely stored in either S3 or S3-express" · 2026-10-01 ⚠️출처확인필요 |
+| DS.multi_host_access | 가능 (원격 접속, 여러 인스턴스) | | https://docs.turso.tech/features/embedded-replicas/introduction · 2026-10-01 ⚠️출처확인필요 |
 | DS.security | 미확인 | | 미확인 |
-| DS.regions | AWS: us-east-1, us-east-2, us-west-2, eu-west-1, ap-northeast-1, ap-south-1. 서울 없음 | | https://docs.turso.tech/api-reference/locations/list (예시 응답: `aws-ap-northeast-1` "AWS AP NorthEast (Tokyo)") · 2026-10-01 |
-| DS.scaling | 다수 DB(DB per tenant) 모델. 단일 DB 수직 확장 방식 미확인 | | https://turso.tech/pricing "Idle databases cost only storage" · 2026-10-01 |
-| DS.cost_floor | Free $0, Developer $4.99, Scaler $24.92, Pro $416.58 | 비활성 Free DB 보관·삭제 정책 미확인 | https://turso.tech/pricing · 2026-10-01 |
+| DS.regions | AWS: us-east-1, us-east-2, us-west-2, eu-west-1, ap-northeast-1, ap-south-1. 서울 없음 | | https://docs.turso.tech/api-reference/locations/list (예시 응답: `aws-ap-northeast-1` "AWS AP NorthEast (Tokyo)") · 2026-10-01 ⚠️출처확인필요 |
+| DS.scaling | 다수 DB(DB per tenant) 모델. 단일 DB 수직 확장 방식 미확인 | | https://turso.tech/pricing "Idle databases cost only storage" · 2026-10-01 ⚠️출처확인필요 |
+| DS.cost_floor | Free $0, Developer $4.99, Scaler $24.92, Pro $416.58 | 비활성 Free DB 보관·삭제 정책 미확인 | https://turso.tech/pricing · 2026-10-01 ⚠️출처확인필요 |
 
 #### 비용 구조
 - 행 읽기·쓰기·저장량 과금(초과분: Developer 쓰기 $1/백만 행, 저장 $0.75/GB).
@@ -166,21 +166,21 @@
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| DS.concurrent_writers | **1** (주 노드에서만, SQLite 단일 쓰기) | | https://docs.fly.io/litefs/how-it-works/ "SQLite operates as a single-writer database which means only one transaction can write at a time." · 2026-10-01 |
+| DS.concurrent_writers | **1** (주 노드에서만, SQLite 단일 쓰기) | | https://docs.fly.io/litefs/how-it-works/ "SQLite operates as a single-writer database which means only one transaction can write at a time." · 2026-10-01 ⚠️출처확인필요 |
 | DS.row_contention | SQLite와 같음 | | 1.1 출처 |
 | DS.transactions | SQLite와 같음 | | 1.1 출처 |
-| DS.replication | **비동기.** 주 노드 장애 시 미복제 쓰기 유실 가능. 롤링 체크섬으로 분기 감지 후 새 주 노드에서 스냅샷 | Consul 리스로 주 노드 선출 | https://docs.fly.io/litefs/how-it-works/ (비동기 복제, Consul 리스, 분기 시 "automatically snapshot from the new primary") · 2026-10-01 |
+| DS.replication | **비동기.** 주 노드 장애 시 미복제 쓰기 유실 가능. 롤링 체크섬으로 분기 감지 후 새 주 노드에서 스냅샷 | Consul 리스로 주 노드 선출 | https://docs.fly.io/litefs/how-it-works/ (비동기 복제, Consul 리스, 분기 시 "automatically snapshot from the new primary") · 2026-10-01 ⚠️출처확인필요 |
 | DS.query_models | SQLite와 같음 | | 1.1 출처 |
 | DS.size_limits | SQLite와 같음 + 노드 볼륨 크기 | | — |
-| DS.backup | 관리형 백업(LiteFS Cloud)은 **2024-10-15 종료**. 직접 구성 | 오프사이트 백업 권장 | https://docs.fly.io/litefs/cloud-backups/ "refers to a product that was retired on October 15, 2024." · https://docs.fly.io/litefs/ "set up regular off-site backups" · 2026-10-01 |
+| DS.backup | 관리형 백업(LiteFS Cloud)은 **2024-10-15 종료**. 직접 구성 | 오프사이트 백업 권장 | https://docs.fly.io/litefs/cloud-backups/ "refers to a product that was retired on October 15, 2024." · https://docs.fly.io/litefs/ "set up regular off-site backups" · 2026-10-01 ⚠️출처확인필요 |
 | DS.connections | 해당 없음 | | — |
 | DS.schema_change | SQLite와 같음 | | 1.1 출처 |
-| DS.availability | 주 노드 장애 시 리스로 다른 노드 승격. 페일오버 시간 미확인 | autostop/autostart와 함께 쓰면 데이터 손실 위험 | https://docs.fly.io/litefs/ "Do not combine LiteFS with autostop/autostart on Fly Machines" · 2026-10-01 |
-| DS.multi_host_access | 읽기: 모든 노드. 쓰기: 프록시가 `POST`·`PUT` 등을 `fly-replay`로 주 노드에 전달, 쿠키로 자기 쓰기 읽기 보장 | 프록시는 웹소켓 미지원 | https://docs.fly.io/litefs/proxy/ "write requests (POST, PUT, etc) are forwarded to primary node using fly-replay header" · "the proxy does not work with WebSockets" · 2026-10-01 |
+| DS.availability | 주 노드 장애 시 리스로 다른 노드 승격. 페일오버 시간 미확인 | autostop/autostart와 함께 쓰면 데이터 손실 위험 | https://docs.fly.io/litefs/ "Do not combine LiteFS with autostop/autostart on Fly Machines" · 2026-10-01 ⚠️출처확인필요 |
+| DS.multi_host_access | 읽기: 모든 노드. 쓰기: 프록시가 `POST`·`PUT` 등을 `fly-replay`로 주 노드에 전달, 쿠키로 자기 쓰기 읽기 보장 | 프록시는 웹소켓 미지원 | https://docs.fly.io/litefs/proxy/ "write requests (POST, PUT, etc) are forwarded to primary node using fly-replay header" · "the proxy does not work with WebSockets" · 2026-10-01 ⚠️출처확인필요 |
 | DS.security | SQLite와 같음 | | — |
 | DS.regions | 미확인 | | 미확인 |
-| DS.scaling | 읽기 수평 확장, 쓰기는 주 노드 하나 | | https://docs.fly.io/litefs/how-it-works/ · 2026-10-01 |
-| DS.cost_floor | LiteFS 자체 무료(오픈소스), 노드·볼륨 비용만 | | https://docs.fly.io/litefs/ "LiteFS is stable and running in production environments. The project is still pre-1.0" · 2026-10-01 |
+| DS.scaling | 읽기 수평 확장, 쓰기는 주 노드 하나 | | https://docs.fly.io/litefs/how-it-works/ · 2026-10-01 ⚠️출처확인필요 |
+| DS.cost_floor | LiteFS 자체 무료(오픈소스), 노드·볼륨 비용만 | | https://docs.fly.io/litefs/ "LiteFS is stable and running in production environments. The project is still pre-1.0" · 2026-10-01 ⚠️출처확인필요 |
 
 #### 비용 구조
 - 노드(Fly Machine) × 볼륨. 관리형 백업 상품이 없어져 백업 저장소 비용을 따로 잡아야 한다.
@@ -212,10 +212,10 @@
 | DS.connections | `max_connections` 기본 **보통 100**, 서버 시작 시에만 변경. 풀러 없음(PgBouncer 별도) | 슈퍼유저 예약분 제외 | https://www.postgresql.org/docs/current/runtime-config-connection.html "The default is typically 100 connections" · "This parameter can only be set at server start." · 2026-10-01 |
 | DS.schema_change | `ALTER TABLE`은 별도 표기 없으면 ACCESS EXCLUSIVE(읽기까지 막음). 비휘발 기본값 `ADD COLUMN`은 메타데이터만. `CREATE INDEX CONCURRENTLY`는 쓰기를 막지 않지만 트랜잭션 블록 안에서 불가 | `lock_timeout` 기본 0 → 잠금 대기 무한 | https://www.postgresql.org/docs/current/sql-altertable.html "An ACCESS EXCLUSIVE lock is acquired unless explicitly noted." · https://www.postgresql.org/docs/current/sql-createindex.html "CREATE INDEX CONCURRENTLY cannot" (be performed within a transaction block) · 2026-10-01 |
 | DS.availability | 자동 페일오버 **없음** (Patroni 등 외부 도구 필요) | | https://www.postgresql.org/docs/current/warm-standby-failover.html "PostgreSQL does not provide the system software required to identify a failure on the primary and notify the standby database server." · 2026-10-01 |
-| DS.multi_host_access | 가능 (TCP) | | — |
+| DS.multi_host_access | 가능 (TCP) | | — ⚠️근거없음 |
 | DS.security | RLS 내장. 저장 암호화·감사(pgaudit)는 운영자가 구성 | | https://www.postgresql.org/docs/current/ddl-rowsecurity.html "tables can have row security policies that restrict, on a per-user basis, which rows can be returned" · 2026-10-01 |
 | DS.regions | 호스트에 따름 | | — |
-| DS.scaling | 수직(재시작), 읽기 복제본 | | — |
+| DS.scaling | 수직(재시작), 읽기 복제본 | | — ⚠️근거없음 |
 | DS.cost_floor | VM·디스크 비용. 서울 EC2 t4g.micro $0.0104/시간 (≈ $7.6/월) | 06-cost.md [PL] 값을 재사용, 이번에 재조회하지 않음 | considerations/06-cost.md COST-017 (Price List AmazonEC2) |
 
 #### 비용 구조
@@ -243,7 +243,7 @@
 | DS.connections | 기본 `LEAST({DBInstanceClassMemory/9531392}, 5000)`. DBInstanceClassMemory는 OS·관리 프로세스 몫을 뺀 값이라 공칭 메모리보다 작음 (t4g.micro 1GiB면 112 미만). 풀러: RDS Proxy(유료) | 범위 6~262143 | https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html "LEAST({DBInstanceClassMemory/9531392}, 5000)" · "this memory size is smaller than the value in gibibytes (GiB)" · 2026-10-01 |
 | DS.schema_change | 엔진과 같음(2.1). 메이저 업그레이드 등은 Blue/Green으로 전환 1분 미만 | | https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/blue-green-deployments-overview.html "The switchover typically takes under a minute with no data loss" · 2026-10-01 |
 | DS.availability | 단일 존. 자동 페일오버 없음 | 존 장애 시 백업·스냅샷 복원 | (Multi-AZ 문서와 대비) https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZSingleStandby.html · 2026-10-01 |
-| DS.multi_host_access | 가능 (VPC 네트워크) | | — |
+| DS.multi_host_access | 가능 (VPC 네트워크) | | — ⚠️근거없음 |
 | DS.security | KMS 저장 암호화(AES-256, 백업·복제본·스냅샷 포함), IAM DB 인증, VPC 격리, RLS(엔진) | 암호화는 생성 시 선택 | https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Encryption.html "Amazon RDS encrypted DB instances use the industry standard AES-256 encryption algorithm" · https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.IAMDBAuth.html "IAM database authentication works with MariaDB, MySQL, and PostgreSQL." · 2026-10-01 |
 | DS.regions | 서울 있음 | | [PL] APN2-InstanceUsage:db.t4g.micro (PostgreSQL) |
 | DS.scaling | 인스턴스 클래스 변경 시 **중단 발생**. 읽기 복제본으로 읽기 확장 | | https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ModifyInstance.Settings.html "Downtime occurs during this change." (DB instance class) · 2026-10-01 |
@@ -308,7 +308,7 @@
 | DS.connections | 2.2와 같음 | | |
 | DS.schema_change | 2.1과 같음 | | |
 | DS.availability | 페일오버 **보통 35초 미만** | | https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/multi-az-db-clusters-concepts-failover.html "Failover times are typically under 35 seconds." · 2026-10-01 |
-| DS.multi_host_access | 가능 (쓰기·읽기 엔드포인트) | | |
+| DS.multi_host_access | 가능 (쓰기·읽기 엔드포인트) | | ⚠️근거없음 |
 | DS.security | 2.2와 같음 | | |
 | DS.regions | 서울 있음 (PostgreSQL 17·18 전 버전) | | https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RDS_Fea_Regions_DB-eng.Feature.MultiAZDBClusters.html "Asia Pacific (Seoul) \| All PostgreSQL 18 versions \| All PostgreSQL 17 versions" · 2026-10-01 |
 | DS.scaling | 지원 클래스만: db.c6gd, m5d, m6gd, m6id, m6idn, m8gd, r5d, r6gd, r6id, r6idn, r8gd, x2iedn (t 계열 없음) | medium은 c6gd만 | https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/multi-az-db-clusters-concepts.html "Multi-AZ DB cluster deployments are supported for the following DB instance classes" · 2026-10-01 |
@@ -405,7 +405,7 @@
 | DS.connections | 메모리별 기본: ~0.5GB 25, ~1.7GB 50, 3.75GB~ 100, 6GB~ 200, 7.5GB~ 400, 15GB~ 500, 30GB~ 600, 60GB~ 800, 120GB 이상 1,000. **Cloud Run 내장 연결은 인스턴스당 100**. 관리형 풀링은 Enterprise Plus만 | | https://docs.cloud.google.com/sql/docs/postgres/flags "tiny (~0.5) \| 25 \| small (~1.7) \| 50 \| from 3.75 to 100" · https://docs.cloud.google.com/sql/docs/postgres/quotas "Cloud Run container instances are limited to 100 connections per Cloud SQL database" · https://docs.cloud.google.com/sql/docs/postgres/managed-connection-pooling "Your instance must be a Cloud SQL Enterprise Plus edition instance." · 2026-10-01 |
 | DS.schema_change | 2.1과 같음 | | |
 | DS.availability | 존 인스턴스는 자동 페일오버 없음. Enterprise 계획 작업은 수 분 중단, Enterprise Plus는 1초 미만 | SLA: Plus 99.99%, Enterprise 99.95% | https://docs.cloud.google.com/sql/docs/editions-intro "Availability SLA \| 99.99% (includes maintenance) \| 99.95% (excludes maintenance)" · "Sub-second downtime" · 2026-10-01 |
-| DS.multi_host_access | 가능 (사설 IP, Auth Proxy·커넥터) | | — |
+| DS.multi_host_access | 가능 (사설 IP, Auth Proxy·커넥터) | | — ⚠️근거없음 |
 | DS.security | 기본 Google 관리 키, CMEK 선택, IAM DB 인증 | | https://docs.cloud.google.com/sql/docs/postgres/instance-settings "Google-owned and Google-managed encryption key (default value) Cloud KMS key" · 2026-10-01 |
 | DS.regions | 서울 asia-northeast3 | | https://docs.cloud.google.com/sql/docs/postgres/locations "asia-northeast3 \| Seoul" · 2026-10-01 |
 | DS.scaling | 수직(머신 유형 변경, Enterprise는 수 분 중단) | | 위 editions-intro · 2026-10-01 |
@@ -440,7 +440,7 @@
 | DS.availability | 페일오버 중 **약 60초** 사용 불가, 공유 고정 IP 유지 | Enterprise Plus 계획 작업 1초 미만 | 같은 문서 "you can expect the instance to be unavailable for about sixty seconds" · "Through a shared static IP address with the primary instance" · 2026-10-01 |
 | DS.multi_host_access | 2.7과 같음 | | |
 | DS.security | 2.7과 같음 | | |
-| DS.regions | 서울 있음 | | |
+| DS.regions | 서울 있음 | | ⚠️근거없음 |
 | DS.scaling | 2.7과 같음 | | |
 | DS.cost_floor | 단일의 2배 (us-central1: HA vCPU $0.0826, HA 메모리 $0.014/GiB-시간, HA db-f1-micro $0.021/시간 ≈ $15.3/월). **서울 단가 미확인** | | https://cloud.google.com/sql/pricing "HA db-f1-micro* … $0.021 / 1 hour" · 2026-10-01 |
 
@@ -466,7 +466,7 @@
 | DS.connections | 기본 `max_connections`는 인스턴스 크기별 100~1,000 | 크기별 정확한 표는 미확인 | https://docs.cloud.google.com/alloydb/quotas "Default limit varies by instance size" · 2026-10-01 |
 | DS.schema_change | 2.1과 같음 | | |
 | DS.availability | 감지 최대 30초 + 대기 기동 30초 미만 → **약 60초**. PG18 신규 인스턴스는 핫 스탠바이 | 존(비HA) 인스턴스는 긴 중단 가능 | https://docs.cloud.google.com/alloydb/docs/high-availability "This detection can take up to 30 seconds" · "typically takes less than 30 seconds" · 2026-10-01 |
-| DS.multi_host_access | 가능 | | — |
+| DS.multi_host_access | 가능 | | — ⚠️근거없음 |
 | DS.security | 미확인 (CMEK·IAM 세부 이번에 미열람) | | 미확인 |
 | DS.regions | 서울 있음 | | https://docs.cloud.google.com/alloydb/docs/locations "asia-northeast3 \| Seoul" · 2026-10-01 |
 | DS.scaling | 머신 유형 변경, 읽기 풀 노드 추가 | 최대 288 vCPU | https://cloud.google.com/alloydb/pricing "up to 288 vCPUs and 2232 GiB of memory per node" · 2026-10-01 |
@@ -490,7 +490,7 @@
 | DS.concurrent_writers | 다수 (PostgreSQL) | | 2.1 출처 |
 | DS.row_contention | 2.1과 같음 | 클라이언트 SDK 다중 호출은 원자적이지 않음 → `rpc()` 함수로 | considerations/04 C-099 |
 | DS.transactions | 2.1과 같음 | | |
-| DS.replication | 없음 | | — |
+| DS.replication | 없음 | | — ⚠️근거없음 |
 | DS.query_models | 2.1과 같음 (pgvector 등 확장 제공) | 확장 목록 미확인 | — |
 | DS.size_limits | DB **500MB**, 이그레스 5GB | Nano 컴퓨트 | https://supabase.com/pricing (Free "500 MB") · 2026-10-01 |
 | DS.backup | **자동 백업 없음** | 직접 `db dump` | https://supabase.com/docs/guides/platform/backups (Free 플랜 자동 백업 없음) · 2026-10-01 |
@@ -548,20 +548,20 @@
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
 | DS.concurrent_writers | 다수 (PostgreSQL) | | 2.1 출처 |
-| DS.row_contention | 2.1과 같음 | HTTP 드라이버는 대화형 트랜잭션 불가 → `SELECT … FOR UPDATE` 흐름 불가 | https://neon.com/docs/serverless/serverless-driver "require session or interactive transaction support … use WebSockets" · 2026-10-01 |
-| DS.transactions | 2.1과 같음 (WebSocket·TCP). HTTP는 단발 또는 비대화형 `transaction()`만 | | 같은 문서 · 2026-10-01 |
-| DS.replication | 컴퓨트 핫 스탠바이 없음. WAL은 다중 AZ 세이프키퍼에 복제. 교차 리전 복제 없음 | | https://neon.com/docs/introduction/high-availability "WAL is replicated across these multi-AZ Safekeepers" · 2026-10-01 |
+| DS.row_contention | 2.1과 같음 | HTTP 드라이버는 대화형 트랜잭션 불가 → `SELECT … FOR UPDATE` 흐름 불가 | https://neon.com/docs/serverless/serverless-driver "require session or interactive transaction support … use WebSockets" · 2026-10-01 ⚠️출처확인필요 |
+| DS.transactions | 2.1과 같음 (WebSocket·TCP). HTTP는 단발 또는 비대화형 `transaction()`만 | | 같은 문서 · 2026-10-01 ⚠️출처확인필요 |
+| DS.replication | 컴퓨트 핫 스탠바이 없음. WAL은 다중 AZ 세이프키퍼에 복제. 교차 리전 복제 없음 | | https://neon.com/docs/introduction/high-availability "WAL is replicated across these multi-AZ Safekeepers" · 2026-10-01 ⚠️출처확인필요 |
 | DS.query_models | 2.1과 같음 | 확장 목록 미확인 | — |
-| DS.size_limits | 0.5GB/프로젝트, 100 CU-시간/프로젝트, 최대 2CU, 프로젝트 100개 | | https://neon.com/pricing "0.5 GB/project" · "100 CU-hours/project" · 2026-10-01 |
-| DS.backup | 복원 창 **6시간 (1GB 한도)** | 최악 RPO 수치 미확인 | https://neon.com/pricing "6 hours (1 GB limit)" · 2026-10-01 |
-| DS.connections | `max_connections`: 0.25CU 104, 1CU 419, 8CU 3,357, 9CU 이상 4,000. 7개는 슈퍼유저 예약. PgBouncer로 클라이언트 최대 10,000 | 풀 크기 = 0.9 × max_connections | https://neon.com/docs/connect/connection-pooling "up to 10,000 client connections" · "Seven connections are reserved for the Neon superuser account" · 2026-10-01 |
+| DS.size_limits | 0.5GB/프로젝트, 100 CU-시간/프로젝트, 최대 2CU, 프로젝트 100개 | | https://neon.com/pricing "0.5 GB/project" · "100 CU-hours/project" · 2026-10-01 ⚠️출처확인필요 |
+| DS.backup | 복원 창 **6시간 (1GB 한도)** | 최악 RPO 수치 미확인 | https://neon.com/pricing "6 hours (1 GB limit)" · 2026-10-01 ⚠️출처확인필요 |
+| DS.connections | `max_connections`: 0.25CU 104, 1CU 419, 8CU 3,357, 9CU 이상 4,000. 7개는 슈퍼유저 예약. PgBouncer로 클라이언트 최대 10,000 | 풀 크기 = 0.9 × max_connections | https://neon.com/docs/connect/connection-pooling "up to 10,000 client connections" · "Seven connections are reserved for the Neon superuser account" · 2026-10-01 ⚠️출처확인필요 |
 | DS.schema_change | 2.1과 같음 | | |
-| DS.availability | 컴퓨트 장애: Postgres 재시작 수초, 노드 장애 1~2분, AZ 장애 1~10분 재스케줄. 세션 상태(임시 테이블·준비된 문장) 유실 | | https://neon.com/docs/introduction/high-availability (재스케줄 시간) "will not persist across a failover" · 2026-10-01 |
-| DS.multi_host_access | 가능 (TCP, HTTP, WebSocket) | | — |
-| DS.security | SOC2·HIPAA 없음 (Scale부터) | | https://neon.com/pricing · 2026-10-01 |
-| DS.regions | 서울 없음 | | https://neon.com/docs/introduction/regions (AWS ap-southeast-1, ap-southeast-2만 아시아) · 2026-10-01 |
-| DS.scaling | 자동 확장 최대 2CU | | https://neon.com/pricing "Up to 2 CU (8 GB RAM)" · 2026-10-01 |
-| DS.cost_floor | $0. **5분 유휴 후 scale-to-zero, 끌 수 없음**, 재활성화 수백 ms | | https://neon.com/pricing "After 5 min, cannot be turned off" · https://neon.com/docs/introduction/scale-to-zero "reactivates automatically within a few hundred milliseconds" · 2026-10-01 |
+| DS.availability | 컴퓨트 장애: Postgres 재시작 수초, 노드 장애 1~2분, AZ 장애 1~10분 재스케줄. 세션 상태(임시 테이블·준비된 문장) 유실 | | https://neon.com/docs/introduction/high-availability (재스케줄 시간) "will not persist across a failover" · 2026-10-01 ⚠️출처확인필요 |
+| DS.multi_host_access | 가능 (TCP, HTTP, WebSocket) | | — ⚠️근거없음 |
+| DS.security | SOC2·HIPAA 없음 (Scale부터) | | https://neon.com/pricing · 2026-10-01 ⚠️출처확인필요 |
+| DS.regions | 서울 없음 | | https://neon.com/docs/introduction/regions (AWS ap-southeast-1, ap-southeast-2만 아시아) · 2026-10-01 ⚠️출처확인필요 |
+| DS.scaling | 자동 확장 최대 2CU | | https://neon.com/pricing "Up to 2 CU (8 GB RAM)" · 2026-10-01 ⚠️출처확인필요 |
+| DS.cost_floor | $0. **5분 유휴 후 scale-to-zero, 끌 수 없음**, 재활성화 수백 ms | | https://neon.com/pricing "After 5 min, cannot be turned off" · https://neon.com/docs/introduction/scale-to-zero "reactivates automatically within a few hundred milliseconds" · 2026-10-01 ⚠️출처확인필요 |
 
 #### 비용 구조 / 교체 계열 정보
 - 2.13 참고. 표준 PG라 이식성 높음. `@neondatabase/serverless` HTTP 모드에서 `pg`(WebSocket/TCP)로 바꾸면 대화형 트랜잭션이 가능해진다.
@@ -582,16 +582,16 @@
 | DS.transactions | 2.12와 같음 | | |
 | DS.replication | 2.12와 같음 (읽기 복제본 제공 여부 세부 미확인) | | |
 | DS.query_models | 2.12와 같음 | | |
-| DS.size_limits | 스토리지 $0.35/GB-월(무제한), 프로젝트 Launch 100 / Scale 1,000 | | https://neon.com/pricing "$0.35/GB-month" · 2026-10-01 |
-| DS.backup | 복원 창 Launch 최대 7일 / Scale 최대 30일 | 최악 RPO 수치 미확인 | https://neon.com/pricing "Up to 7 days" · "Up to 30 days" · 2026-10-01 |
+| DS.size_limits | 스토리지 $0.35/GB-월(무제한), 프로젝트 Launch 100 / Scale 1,000 | | https://neon.com/pricing "$0.35/GB-month" · 2026-10-01 ⚠️출처확인필요 |
+| DS.backup | 복원 창 Launch 최대 7일 / Scale 최대 30일 | 최악 RPO 수치 미확인 | https://neon.com/pricing "Up to 7 days" · "Up to 30 days" · 2026-10-01 ⚠️출처확인필요 |
 | DS.connections | 2.12와 같음 | | |
 | DS.schema_change | 2.1과 같음 | | |
-| DS.availability | 2.12와 같음. SLA는 Scale만 | | https://neon.com/pricing (Scale "SLA: Yes") · 2026-10-01 |
+| DS.availability | 2.12와 같음. SLA는 Scale만 | | https://neon.com/pricing (Scale "SLA: Yes") · 2026-10-01 ⚠️출처확인필요 |
 | DS.multi_host_access | 2.12와 같음 | | |
-| DS.security | Scale: SOC2·HIPAA 가능 | | https://neon.com/pricing · 2026-10-01 |
+| DS.security | Scale: SOC2·HIPAA 가능 | | https://neon.com/pricing · 2026-10-01 ⚠️출처확인필요 |
 | DS.regions | 서울 없음 | | 2.12 출처 |
-| DS.scaling | Launch 최대 16CU 자동, Scale 16CU 자동 또는 고정 최대 56CU. 16CU 초과는 scale-to-zero 불가 | | https://neon.com/pricing · https://neon.com/docs/introduction/scale-to-zero · 2026-10-01 |
-| DS.cost_floor | 최소 요금 없음(사용량). Launch $0.106/CU-시간, Scale $0.222/CU-시간. scale-to-zero 끄면 0.25CU 상시 ≈ Launch **$19.3/월** + 스토리지 | 유료는 scale-to-zero 끌 수 있음 | https://neon.com/pricing "$0.106/CU-hour" · "After 5 min, can be disabled" · 2026-10-01 |
+| DS.scaling | Launch 최대 16CU 자동, Scale 16CU 자동 또는 고정 최대 56CU. 16CU 초과는 scale-to-zero 불가 | | https://neon.com/pricing · https://neon.com/docs/introduction/scale-to-zero · 2026-10-01 ⚠️출처확인필요 |
+| DS.cost_floor | 최소 요금 없음(사용량). Launch $0.106/CU-시간, Scale $0.222/CU-시간. scale-to-zero 끄면 0.25CU 상시 ≈ Launch **$19.3/월** + 스토리지 | 유료는 scale-to-zero 끌 수 있음 | https://neon.com/pricing "$0.106/CU-hour" · "After 5 min, can be disabled" · 2026-10-01 ⚠️출처확인필요 |
 
 #### 함정
 - scale-to-zero 상태에서 첫 요청 지연(수백 ms)과 세션 상태 초기화. 상시 연결 풀을 두면 0으로 내려가지 않는다(비용 가정과 어긋남).
@@ -602,21 +602,21 @@
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| DS.concurrent_writers | 다수 (주 인스턴스 1) | | https://planetscale.com/docs/postgres/postgres-architecture "Primary instance (1)" · 2026-10-01 |
+| DS.concurrent_writers | 다수 (주 인스턴스 1) | | https://planetscale.com/docs/postgres/postgres-architecture "Primary instance (1)" · 2026-10-01 ⚠️출처확인필요 |
 | DS.row_contention | 2.1과 같음 | | |
 | DS.transactions | 2.1과 같음 | PgBouncer(6432) 경유 시 세션 기능 제약 | |
-| DS.replication | HA: 복제본 2개, 3AZ, **복제본 1개 이상 확인 후 커밋**(반동기) | | 같은 문서 "Changes confirmed by at least one replica" · 2026-10-01 |
+| DS.replication | HA: 복제본 2개, 3AZ, **복제본 1개 이상 확인 후 커밋**(반동기) | | 같은 문서 "Changes confirmed by at least one replica" · 2026-10-01 ⚠️출처확인필요 |
 | DS.query_models | 2.1과 같음 (확장 목록 미확인) | | |
 | DS.size_limits | 미확인 | Metal은 SKU에 스토리지 포함 | 미확인 |
-| DS.backup | PITR: 기본 2일 전 ~ **현재 5분 전** (자동 백업 주기는 원문 미확인) | | https://planetscale.com/docs/postgres/backups/point-in-time-recovery "2 days ago up to 5 minutes before the current time" · 2026-10-01 |
-| DS.connections | 직접 5432, PgBouncer 6432. 한도 미확인 | | https://planetscale.com/docs/postgres/postgres-architecture "Port 6432: PgBouncer connection pooling" · 2026-10-01 |
+| DS.backup | PITR: 기본 2일 전 ~ **현재 5분 전** (자동 백업 주기는 원문 미확인) | | https://planetscale.com/docs/postgres/backups/point-in-time-recovery "2 days ago up to 5 minutes before the current time" · 2026-10-01 ⚠️출처확인필요 ⚠️근거없음 |
+| DS.connections | 직접 5432, PgBouncer 6432. 한도 미확인 | | https://planetscale.com/docs/postgres/postgres-architecture "Port 6432: PgBouncer connection pooling" · 2026-10-01 ⚠️출처확인필요 |
 | DS.schema_change | 2.1과 같음 | | |
-| DS.availability | 자동 승격(커스텀 오퍼레이터). 페일오버 시간 원문 미확인 | 단일 노드 SKU는 HA 아님 | https://planetscale.com/docs/postgres/postgres-architecture "Automated promotion of replica instances when primary fails" · 2026-10-01 |
-| DS.multi_host_access | 가능 | | — |
+| DS.availability | 자동 승격(커스텀 오퍼레이터). 페일오버 시간 원문 미확인 | 단일 노드 SKU는 HA 아님 | https://planetscale.com/docs/postgres/postgres-architecture "Automated promotion of replica instances when primary fails" · 2026-10-01 ⚠️출처확인필요 ⚠️근거없음 |
+| DS.multi_host_access | 가능 | | — ⚠️근거없음 |
 | DS.security | 미확인 | | 미확인 |
-| DS.regions | 서울: GCP만 | | https://planetscale.com/docs/plans/regions "Seoul, South Korea (gcp-asia-northeast3)" · 2026-10-01 |
-| DS.scaling | 클러스터 SKU 변경 (중단 여부 미확인) | | 미확인 |
-| DS.cost_floor | 단일 노드 PS-5 **$5/월**, HA(3노드) PS-5 **$15/월**. 표시 가격은 AWS us-east-1, 리전별 상이(서울 미확인). 무료 플랜 없음 | 백업 포함 | https://planetscale.com/pricing · 2026-10-01 |
+| DS.regions | 서울: GCP만 | | https://planetscale.com/docs/plans/regions "Seoul, South Korea (gcp-asia-northeast3)" · 2026-10-01 ⚠️출처확인필요 |
+| DS.scaling | 클러스터 SKU 변경 (중단 여부 미확인) | | 미확인 ⚠️근거없음 |
+| DS.cost_floor | 단일 노드 PS-5 **$5/월**, HA(3노드) PS-5 **$15/월**. 표시 가격은 AWS us-east-1, 리전별 상이(서울 미확인). 무료 플랜 없음 | 백업 포함 | https://planetscale.com/pricing · 2026-10-01 ⚠️출처확인필요 |
 
 #### 함정
 - $5 단일 노드는 HA·읽기 복제본이 없다. F1이 "짧아야 함"이면 HA SKU($15~) 이상.
@@ -627,21 +627,21 @@
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| DS.concurrent_writers | 다수 (PostgreSQL 17) | | https://www.prisma.io/docs/postgres "Prisma Postgres is based on PostgreSQL v17" · 2026-10-01 |
+| DS.concurrent_writers | 다수 (PostgreSQL 17) | | https://www.prisma.io/docs/postgres "Prisma Postgres is based on PostgreSQL v17" · 2026-10-01 ⚠️출처확인필요 |
 | DS.row_contention | 2.1과 같음 | | |
 | DS.transactions | 2.1과 같음 (HTTP 서버리스 드라이버 경유 시 제약 미확인) | | 미확인 |
 | DS.replication | 미확인 | | 미확인 |
 | DS.query_models | 2.1과 같음 | 확장 목록 미확인 | |
-| DS.size_limits | Free 500MB, Starter 10GB, Pro 50GB, Business 100GB (초과 과금) | | https://www.prisma.io/pricing · 2026-10-01 |
-| DS.backup | Free 백업 없음, Starter·Pro 7일 일일 백업, Business 30일 → 최악 RPO 24시간 | | https://www.prisma.io/pricing "7-day daily backups" · 2026-10-01 |
-| DS.connections | 풀 연결 Starter 100 / Pro 500 / Business 1,000. PgBouncer 내장 | | https://www.prisma.io/pricing "100 pooled connections" · https://www.prisma.io/docs/postgres "a dedicated PgBouncer instance runs alongside your database" · 2026-10-01 |
+| DS.size_limits | Free 500MB, Starter 10GB, Pro 50GB, Business 100GB (초과 과금) | | https://www.prisma.io/pricing · 2026-10-01 ⚠️출처확인필요 |
+| DS.backup | Free 백업 없음, Starter·Pro 7일 일일 백업, Business 30일 → 최악 RPO 24시간 | | https://www.prisma.io/pricing "7-day daily backups" · 2026-10-01 ⚠️출처확인필요 |
+| DS.connections | 풀 연결 Starter 100 / Pro 500 / Business 1,000. PgBouncer 내장 | | https://www.prisma.io/pricing "100 pooled connections" · https://www.prisma.io/docs/postgres "a dedicated PgBouncer instance runs alongside your database" · 2026-10-01 ⚠️출처확인필요 |
 | DS.schema_change | 2.1과 같음 | | |
 | DS.availability | 미확인 | | 미확인 |
-| DS.multi_host_access | 가능 (TCP, HTTP 서버리스 드라이버) | | https://www.prisma.io/docs/postgres "via the serverless driver, which uses HTTP instead of TCP" · 2026-10-01 |
+| DS.multi_host_access | 가능 (TCP, HTTP 서버리스 드라이버) | | https://www.prisma.io/docs/postgres "via the serverless driver, which uses HTTP instead of TCP" · 2026-10-01 ⚠️출처확인필요 |
 | DS.security | 미확인 | | 미확인 |
-| DS.regions | ap-southeast-1, ap-northeast-1, eu-central-1, eu-west-3, us-east-1, us-west-1 | | https://prisma.io/docs/postgres/introduction/npx-create-db (지역 목록) · 2026-10-01 |
+| DS.regions | ap-southeast-1, ap-northeast-1, eu-central-1, eu-west-3, us-east-1, us-west-1 | | https://prisma.io/docs/postgres/introduction/npx-create-db (지역 목록) · 2026-10-01 ⚠️출처확인필요 |
 | DS.scaling | 미확인 | | 미확인 |
-| DS.cost_floor | Free $0 (작업 20만 건/월), Starter $10, Pro $49, Business $129. 작업 수 과금 | `npx create-db` DB는 **24시간 뒤 삭제**(claim 전) | https://www.prisma.io/pricing · https://prisma.io/docs/postgres/introduction/npx-create-db "automatically deleted after 24 hours" · 2026-10-01 |
+| DS.cost_floor | Free $0 (작업 20만 건/월), Starter $10, Pro $49, Business $129. 작업 수 과금 | `npx create-db` DB는 **24시간 뒤 삭제**(claim 전) | https://www.prisma.io/pricing · https://prisma.io/docs/postgres/introduction/npx-create-db "automatically deleted after 24 hours" · 2026-10-01 ⚠️출처확인필요 |
 
 #### 함정
 - 코딩 에이전트가 `npx create-db`로 만든 DB를 그대로 쓰면 하루 뒤 사라진다.
@@ -662,13 +662,13 @@
 | DS.row_contention | 행 잠금 + 갭·넥스트키 잠금 (REPEATABLE READ에서 범위 잠금 → 데드락 패턴이 PG와 다름) | | 같은 문서 "A next-key lock is a combination of a record lock on the index record and a gap lock" · 2026-10-01 |
 | DS.transactions | 기본 **REPEATABLE READ** | | https://dev.mysql.com/doc/refman/8.4/en/innodb-transaction-isolation-levels.html "The default isolation level for InnoDB is REPEATABLE READ." · 2026-10-01 |
 | DS.replication | Single-AZ: 읽기 복제본 비동기(최대 15) / Multi-AZ 인스턴스: 동기 대기(읽기 불가) / 클러스터: 반동기 | | 2.2~2.4 출처 |
-| DS.query_models | 조인, JSON, InnoDB 전문 검색 | | 미확인 (세부 미열람) |
+| DS.query_models | 조인, JSON, InnoDB 전문 검색 | | 미확인 (세부 미열람) ⚠️근거없음 |
 | DS.size_limits | 64 TiB | | https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Storage.html · 2026-10-01 |
 | DS.backup | 2.2와 같음 (5분 로그 업로드, API 기본 1일) | | 2.2 출처 |
 | DS.connections | 기본 `{DBInstanceClassMemory/12582880}` (≈ MB/12). t3.micro 약 60, 8GiB 클래스 약 630 | 범위 1~100000 | https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html "{DBInstanceClassMemory/12582880}" · "the default maximum number of connections for a MySQL DB instance running on a db.t3.micro DB instance class is approximately 60" · 2026-10-01 |
 | DS.schema_change | 온라인 DDL: 열 추가·삭제·이름 변경 등 `ALGORITHM=INSTANT`, 동시 DML 허용. **DDL은 암묵적 커밋**(트랜잭션 DDL 아님) | INSTANT 미지원 작업과 섞을 수 없음 | https://dev.mysql.com/doc/refman/8.4/en/innodb-online-ddl-operations.html "Adding a column Yes* \| Yes \| No* \| Yes*" · https://dev.mysql.com/doc/refman/8.4/en/implicit-commit.html "implicitly end any transaction active in the current session" · 2026-10-01 |
 | DS.availability | 2.2~2.4와 같음 (60~120초 / 35초 미만) | | 2.3·2.4 출처 |
-| DS.multi_host_access | 가능 | | |
+| DS.multi_host_access | 가능 | | ⚠️근거없음 |
 | DS.security | KMS 암호화, IAM DB 인증 | | 2.2 출처 |
 | DS.regions | 서울 있음 (Multi-AZ 클러스터 "All available versions") | | https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RDS_Fea_Regions_DB-eng.Feature.MultiAZDBClusters.html "Asia Pacific (Seoul) \| All available versions" · 2026-10-01 |
 | DS.scaling | 2.2와 같음 | | |
@@ -724,7 +724,7 @@
 | DS.connections | 메모리로 결정. 기본값 수치 **미확인**. Cloud Run 인스턴스당 100 | | https://docs.cloud.google.com/sql/docs/mysql/quotas "The amount of available memory determines the connection limits for the instance." · 2026-10-01 |
 | DS.schema_change | 3.1과 같음 (엔진) | | |
 | DS.availability | HA 페일오버 약 60초, 기존 연결 종료 후 재연결 | | https://docs.cloud.google.com/sql/docs/mysql/high-availability "it will take approximately 60 seconds for connections to the primary instance to be reestablished" · 2026-10-01 |
-| DS.multi_host_access | 가능 | | |
+| DS.multi_host_access | 가능 | | ⚠️근거없음 |
 | DS.security | 2.7과 같음 | | |
 | DS.regions | 서울 있음 | | 2.7 출처 |
 | DS.scaling | 2.7과 같음 | | |
@@ -736,21 +736,21 @@
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| DS.concurrent_writers | 다수 | | — |
-| DS.row_contention | InnoDB 기반 (세부 미확인) | | 미확인 |
+| DS.concurrent_writers | 다수 | | — ⚠️근거없음 |
+| DS.row_contention | InnoDB 기반 (세부 미확인) | | 미확인 ⚠️근거없음 |
 | DS.transactions | 미확인 (샤드 간 트랜잭션 제약 미열람) | | 미확인 |
-| DS.replication | HA 3노드 SKU | 복제 방식 미확인 | https://planetscale.com/pricing (Vitess "HA (3-node)") · 2026-10-01 |
-| DS.query_models | MySQL 호환. **FK 제약은 DB 설정으로 켜야 하고, 샤딩 환경에서는 불가.** FK가 켜진 상태에서 `INSERT … ON DUPLICATE KEY UPDATE` 등 일부 미지원 | | https://planetscale.com/docs/vitess/foreign-key-constraints "the foreign key constraints are only supported in unsharded environments" · 2026-10-01 |
+| DS.replication | HA 3노드 SKU | 복제 방식 미확인 | https://planetscale.com/pricing (Vitess "HA (3-node)") · 2026-10-01 ⚠️출처확인필요 |
+| DS.query_models | MySQL 호환. **FK 제약은 DB 설정으로 켜야 하고, 샤딩 환경에서는 불가.** FK가 켜진 상태에서 `INSERT … ON DUPLICATE KEY UPDATE` 등 일부 미지원 | | https://planetscale.com/docs/vitess/foreign-key-constraints "the foreign key constraints are only supported in unsharded environments" · 2026-10-01 ⚠️출처확인필요 |
 | DS.size_limits | 미확인 | | 미확인 |
-| DS.backup | 12시간마다 자동 백업. PITR 미확인 | | https://planetscale.com/docs/vitess/backups "automated backups every 12 hours" · 2026-10-01 |
+| DS.backup | 12시간마다 자동 백업. PITR 미확인 | | https://planetscale.com/docs/vitess/backups "automated backups every 12 hours" · 2026-10-01 ⚠️출처확인필요 |
 | DS.connections | 미확인 | | 미확인 |
-| DS.schema_change | 비차단 스키마 변경(배포 요청). 안전 마이그레이션을 켜면 운영 브랜치 직접 DDL 불가, 배포 요청당 최대 10개 테이블, 직접 `RENAME` 미지원 | | https://planetscale.com/docs/vitess/schema-changes · 2026-10-01 |
+| DS.schema_change | 비차단 스키마 변경(배포 요청). 안전 마이그레이션을 켜면 운영 브랜치 직접 DDL 불가, 배포 요청당 최대 10개 테이블, 직접 `RENAME` 미지원 | | https://planetscale.com/docs/vitess/schema-changes · 2026-10-01 ⚠️출처확인필요 |
 | DS.availability | 미확인 | | 미확인 |
-| DS.multi_host_access | 가능 (MySQL 프로토콜, `@planetscale/database` HTTP 드라이버) | 드라이버 세부 미열람 | 미확인 |
+| DS.multi_host_access | 가능 (MySQL 프로토콜, `@planetscale/database` HTTP 드라이버) | 드라이버 세부 미열람 | 미확인 ⚠️근거없음 |
 | DS.security | 미확인 | | 미확인 |
-| DS.regions | 서울 GCP | | https://planetscale.com/docs/plans/regions · 2026-10-01 |
-| DS.scaling | 수평 샤딩(Vitess) | | — |
-| DS.cost_floor | HA PS-10 **$39/월**(us-east-1 가격, 서울 미확인). 무료 플랜 없음 | | https://planetscale.com/pricing · 2026-10-01 |
+| DS.regions | 서울 GCP | | https://planetscale.com/docs/plans/regions · 2026-10-01 ⚠️출처확인필요 |
+| DS.scaling | 수평 샤딩(Vitess) | | — ⚠️근거없음 |
+| DS.cost_floor | HA PS-10 **$39/월**(us-east-1 가격, 서울 미확인). 무료 플랜 없음 | | https://planetscale.com/pricing · 2026-10-01 ⚠️출처확인필요 |
 
 #### 함정
 - Prisma에서 `relationMode = "prisma"`로 FK 없이 쓰던 앱은 FK 무결성이 앱에 있다(considerations/04 C-020). PostgreSQL로 옮길 때 FK를 새로 걸면 고아 행이 드러난다.
@@ -781,35 +781,35 @@
 | DDL 트랜잭션 | 트랜잭션 안에서 실행 (12단계 절차가 트랜잭션 사용) | 트랜잭션 블록 안에서 실행 가능 (예외: `CREATE INDEX CONCURRENTLY`) | **암묵적 커밋** | https://www.sqlite.org/lang_altertable.html "Start a transaction." · https://www.postgresql.org/docs/current/sql-createindex.html "a regular CREATE INDEX command can be performed within a transaction block, but CREATE INDEX CONCURRENTLY cannot" · https://dev.mysql.com/doc/refman/8.4/en/implicit-commit.html |
 | 기본 SQL 모드·엄격성 | 동적 타이핑 (STRICT 테이블은 3.37+) | 정적 타이핑 | `STRICT_TRANS_TABLES` 포함 (8.4 기본) | https://www.sqlite.org/datatype3.html · https://dev.mysql.com/doc/refman/8.4/en/sql-mode.html "The default SQL mode in MySQL 8.4 includes these modes: ONLY_FULL_GROUP_BY, STRICT_TRANS_TABLES, …" |
 
-PostgreSQL의 "트랜잭션 DDL 전반" 원칙을 직접 명시한 문서 문장은 이번에 찾지 못했다(위 인용은 `CREATE INDEX` 사례). 일반 원칙으로 쓰되 출처는 미확인으로 둔다.
+PostgreSQL의 "트랜잭션 DDL 전반" 원칙을 직접 명시한 문서 문장은 이번에 찾지 못했다(위 인용은 `CREATE INDEX` 사례). 일반 원칙으로 쓰되 출처는 미확인으로 둔다. ⚠️근거없음
 
 ### 5.2 드라이버 (언어별 대표, 동기/비동기)
 
 | 언어 | 드라이버 | 대상 DB | 동기/비동기 | 플레이스홀더 | 교체 시 주의 | 출처 (2026-10-01) |
 |---|---|---|---|---|---|---|
-| Node | `better-sqlite3` | SQLite | **동기** | `?`, 이름 (SQLite 규칙) | PG 드라이버로 바꾸면 모든 호출이 `await`로 바뀐다(호출 체인 전체 async화) | https://github.com/WiseLibs/better-sqlite3 "Easy-to-use synchronous API" |
-| Node | `sqlite3` (node-sqlite3) | SQLite | 비동기 (콜백) | 같음 | **보관(archived), 유지보수 중단** | https://github.com/TryGhost/node-sqlite3 "This repository is currently unmaintained." · "Asynchronous, non-blocking SQLite3 bindings for Node.js" |
+| Node | `better-sqlite3` | SQLite | **동기** | `?`, 이름 (SQLite 규칙) | PG 드라이버로 바꾸면 모든 호출이 `await`로 바뀐다(호출 체인 전체 async화) | https://github.com/WiseLibs/better-sqlite3 "Easy-to-use synchronous API" ⚠️출처확인필요 |
+| Node | `sqlite3` (node-sqlite3) | SQLite | 비동기 (콜백) | 같음 | **보관(archived), 유지보수 중단** | https://github.com/TryGhost/node-sqlite3 "This repository is currently unmaintained." · "Asynchronous, non-blocking SQLite3 bindings for Node.js" ⚠️출처확인필요 |
 | Node | `@libsql/client` | libSQL/Turso | 비동기 | SQLite 규칙 | 원격·임베디드 | §1.3 |
-| Node | `pg` (node-postgres) | PostgreSQL | 비동기 (Promise) | `$1, $2` | `Pool` 기본 `max` 10, 연결 타임아웃 기본 0(무한) | https://node-postgres.com/apis/pool "By default this is set to 10." · "By default this is 0 which means no timeout." · https://node-postgres.com/features/queries |
-| Node | `postgres` (postgres.js) | PostgreSQL | 비동기 | 태그드 템플릿 `${v}` | 기본 `max: 10`, 준비된 문장 기본 켜짐 → 트랜잭션 풀러면 `prepare: false`, 트랜잭션은 `sql.begin` | https://github.com/porsager/postgres |
-| Node | `@neondatabase/serverless` | Neon | 비동기 (HTTP/WebSocket) | `$1` | HTTP는 대화형 트랜잭션 불가 | https://neon.com/docs/serverless/serverless-driver |
-| Node | `mysql2` | MySQL | 비동기 (`mysql2/promise`) | `?` | 풀 `connectionLimit` 기본 10 | https://sidorares.github.io/node-mysql2/docs |
+| Node | `pg` (node-postgres) | PostgreSQL | 비동기 (Promise) | `$1, $2` | `Pool` 기본 `max` 10, 연결 타임아웃 기본 0(무한) | https://node-postgres.com/apis/pool "By default this is set to 10." · "By default this is 0 which means no timeout." · https://node-postgres.com/features/queries ⚠️출처확인필요 |
+| Node | `postgres` (postgres.js) | PostgreSQL | 비동기 | 태그드 템플릿 `${v}` | 기본 `max: 10`, 준비된 문장 기본 켜짐 → 트랜잭션 풀러면 `prepare: false`, 트랜잭션은 `sql.begin` | https://github.com/porsager/postgres ⚠️출처확인필요 |
+| Node | `@neondatabase/serverless` | Neon | 비동기 (HTTP/WebSocket) | `$1` | HTTP는 대화형 트랜잭션 불가 | https://neon.com/docs/serverless/serverless-driver ⚠️출처확인필요 |
+| Node | `mysql2` | MySQL | 비동기 (`mysql2/promise`) | `?` | 풀 `connectionLimit` 기본 10 | https://sidorares.github.io/node-mysql2/docs ⚠️출처확인필요 |
 | Python | `sqlite3` (표준) | SQLite | **동기** (DB-API) | `qmark` (`?`) 고정 | `connect(timeout=5.0)` 기본 | https://docs.python.org/3/library/sqlite3.html "Hard-coded to "qmark"." · "connect(database, timeout=5.0, …)" |
-| Python | `aiosqlite` | SQLite | 비동기 래퍼 (연결당 스레드 1개) | `?` | 진짜 비동기 I/O 아님, 쓰기 동시성 그대로 | https://aiosqlite.omnilib.dev/en/stable/ "using a single, shared thread per connection" |
-| Python | `psycopg` (3) | PostgreSQL | **동기와 비동기 둘 다** (`AsyncConnection`) | `%s`, `%(name)s` | `?`에서 `%s`로, 리터럴 `%`는 `%%` | https://www.psycopg.org/psycopg3/docs/basic/params.html · https://www.psycopg.org/psycopg3/docs/advanced/async.html |
-| Python | `asyncpg` | PostgreSQL | 비동기 전용 | `$1` | PgBouncer 트랜잭션 모드면 `statement_cache_size=0` | https://magicstack.github.io/asyncpg/current/faq.html "statement_cache_size=0 to asyncpg.connect() and asyncpg.create_pool()" |
-| Python | `PyMySQL` | MySQL | 동기 | `%s` | 기본 autocommit 아님 → `commit()` 필요 | https://pymysql.readthedocs.io/en/latest/user/examples.html "connection is not autocommit by default." |
+| Python | `aiosqlite` | SQLite | 비동기 래퍼 (연결당 스레드 1개) | `?` | 진짜 비동기 I/O 아님, 쓰기 동시성 그대로 | https://aiosqlite.omnilib.dev/en/stable/ "using a single, shared thread per connection" ⚠️출처확인필요 |
+| Python | `psycopg` (3) | PostgreSQL | **동기와 비동기 둘 다** (`AsyncConnection`) | `%s`, `%(name)s` | `?`에서 `%s`로, 리터럴 `%`는 `%%` | https://www.psycopg.org/psycopg3/docs/basic/params.html · https://www.psycopg.org/psycopg3/docs/advanced/async.html ⚠️출처확인필요 |
+| Python | `asyncpg` | PostgreSQL | 비동기 전용 | `$1` | PgBouncer 트랜잭션 모드면 `statement_cache_size=0` | https://magicstack.github.io/asyncpg/current/faq.html "statement_cache_size=0 to asyncpg.connect() and asyncpg.create_pool()" ⚠️출처확인필요 |
+| Python | `PyMySQL` | MySQL | 동기 | `%s` | 기본 autocommit 아님 → `commit()` 필요 | https://pymysql.readthedocs.io/en/latest/user/examples.html "connection is not autocommit by default." ⚠️출처확인필요 |
 
 ### 5.3 ORM
 
 | ORM | DB 전환 방식 | 교체 시 바뀌는 것 | 출처 (2026-10-01) |
 |---|---|---|---|
-| Prisma | `datasource.provider` 변경 | 마이그레이션 SQL이 공급자별 → `migrations` 폴더를 지우고 새로 생성, 수동 SQL 재작성, 새 DB는 비어 있음(데이터 이전 별도). SQLite에서는 enum이 DB에서 강제되지 않음 | https://www.prisma.io/docs/orm/prisma-migrate/understanding-prisma-migrate/limitations-and-known-issues ("The datasource provider `postgresql` specified in your schema does not match the one specified in the migration_lock.toml") · https://www.prisma.io/docs/orm/overview/databases/sqlite "SQLite doesn't enforce enum values at the database level." |
-| Drizzle | 방언별 모듈 (`drizzle-orm/sqlite-core`, `pg-core`, `mysql-core`) | **스키마 코드 자체를 다시 써야 함** (`sqliteTable` → `pgTable`, 컬럼 빌더 상이) | https://orm.drizzle.team/docs/sql-schema-declaration "there is no such thing as a common table object in drizzle" |
-| TypeORM | `type` 옵션 (`better-sqlite3`, `postgres`, `mysql` …) | 설정 + 컬럼 타입. `synchronize`는 운영 금지 | https://typeorm.io/docs/data-source/data-source-options/ "don't use this in production - otherwise you can lose production data" |
-| Sequelize | `dialect` 옵션 + 방언별 드라이버 설치(`pg pg-hstore`, `mysql2`, `sqlite3`) | 설정 + 드라이버 패키지. SQLite 드라이버 `sqlite3`는 유지보수 중단(§5.2) | https://sequelize.org/docs/v6/getting-started/ |
+| Prisma | `datasource.provider` 변경 | 마이그레이션 SQL이 공급자별 → `migrations` 폴더를 지우고 새로 생성, 수동 SQL 재작성, 새 DB는 비어 있음(데이터 이전 별도). SQLite에서는 enum이 DB에서 강제되지 않음 | https://www.prisma.io/docs/orm/prisma-migrate/understanding-prisma-migrate/limitations-and-known-issues ("The datasource provider `postgresql` specified in your schema does not match the one specified in the migration_lock.toml") · https://www.prisma.io/docs/orm/overview/databases/sqlite "SQLite doesn't enforce enum values at the database level." ⚠️출처확인필요 |
+| Drizzle | 방언별 모듈 (`drizzle-orm/sqlite-core`, `pg-core`, `mysql-core`) | **스키마 코드 자체를 다시 써야 함** (`sqliteTable` → `pgTable`, 컬럼 빌더 상이) | https://orm.drizzle.team/docs/sql-schema-declaration "there is no such thing as a common table object in drizzle" ⚠️출처확인필요 |
+| TypeORM | `type` 옵션 (`better-sqlite3`, `postgres`, `mysql` …) | 설정 + 컬럼 타입. `synchronize`는 운영 금지 | https://typeorm.io/docs/data-source/data-source-options/ "don't use this in production - otherwise you can lose production data" ⚠️출처확인필요 |
+| Sequelize | `dialect` 옵션 + 방언별 드라이버 설치(`pg pg-hstore`, `mysql2`, `sqlite3`) | 설정 + 드라이버 패키지. SQLite 드라이버 `sqlite3`는 유지보수 중단(§5.2) | https://sequelize.org/docs/v6/getting-started/ ⚠️출처확인필요 |
 | Django ORM | `DATABASES.ENGINE` | SQLite에서 `select_for_update()`는 효과 없음 → PG로 가면 실제 잠금이 걸림(동작 변화). SQLite는 `timeout`·`transaction_mode: IMMEDIATE`로 완화만 가능 | https://docs.djangoproject.com/en/stable/ref/databases/ "SQLite does not support the SELECT ... FOR UPDATE syntax. Calling it will have no effect." |
-| SQLAlchemy | URL 방언 (`sqlite+pysqlite`, `sqlite+aiosqlite`, `postgresql+psycopg`, `postgresql+asyncpg`) | 방언·드라이버. SQLite는 쓰기 시 파일 전체 잠금, aiosqlite는 스레드 기반 | https://docs.sqlalchemy.org/en/20/dialects/sqlite.html |
+| SQLAlchemy | URL 방언 (`sqlite+pysqlite`, `sqlite+aiosqlite`, `postgresql+psycopg`, `postgresql+asyncpg`) | 방언·드라이버. SQLite는 쓰기 시 파일 전체 잠금, aiosqlite는 스레드 기반 | https://docs.sqlalchemy.org/en/20/dialects/sqlite.html ⚠️출처확인필요 |
 
 ### 5.4 SQL 방언 차이 (코드가 바뀌는 지점)
 
@@ -832,7 +832,7 @@ PostgreSQL의 "트랜잭션 DDL 전반" 원칙을 직접 명시한 문서 문장
 
 | 도구 | 지원 경로 | 성격 | 출처 (2026-10-01) |
 |---|---|---|---|
-| pgloader | SQLite·MySQL·MS SQL → PostgreSQL | 한 명령으로 스키마·데이터·인덱스·FK 이전, COPY 사용, 타입 변환 규칙 사용자 정의 | https://pgloader.readthedocs.io/en/latest/ "The whole migration is started with a single command line and then runs unattended." · "pgloader considers SQLite as a database source" |
+| pgloader | SQLite·MySQL·MS SQL → PostgreSQL | 한 명령으로 스키마·데이터·인덱스·FK 이전, COPY 사용, 타입 변환 규칙 사용자 정의 | https://pgloader.readthedocs.io/en/latest/ "The whole migration is started with a single command line and then runs unattended." · "pgloader considers SQLite as a database source" ⚠️출처확인필요 |
 | AWS DMS | 소스: Oracle, SQL Server, PostgreSQL, MySQL 호환, MongoDB, S3 등. **SQLite 소스 없음** | 연속 복제 가능 | https://docs.aws.amazon.com/dms/latest/userguide/CHAP_Source.html (소스 목록) |
 | Google Database Migration Service | 동종: → Cloud SQL MySQL/PostgreSQL, → AlloyDB. 이종: Oracle·SQL Server → PG. **MySQL→PG, SQLite 미지원** | | https://docs.cloud.google.com/database-migration/docs/overview |
 | Prisma Migrate | 스키마만 (새 공급자로 초기 마이그레이션 생성), 데이터 이전 없음 | | §5.3 Prisma 출처 |

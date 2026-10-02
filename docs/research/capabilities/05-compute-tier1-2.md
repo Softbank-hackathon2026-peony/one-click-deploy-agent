@@ -135,16 +135,16 @@ Deployment·Service·Ingress(또는 Gateway) 매니페스트, `resources.request
 | CP.cold_start | 기본 scale-to-zero, min-instances 기본 0. 최소 인스턴스도 재시작될 수 있음. 시작 CPU 부스트: 기동 + 10초 동안 vCPU 증설(부스트분 과금). 부스트 기본 켜짐 여부 미확인 | 유휴 인스턴스는 최대 15분 유지 | https://docs.cloud.google.com/run/docs/about-instance-autoscaling · "when a revision does not receive any traffic, by default, it is scaled to zero instances" / https://docs.cloud.google.com/run/docs/configuring/min-instances · "Minimum instances can be restarted at any time." · 2026-10-01 |
 | CP.instance_size | 최대 8 vCPU, 32 GiB(8 vCPU는 4~32 GiB). GPU는 인스턴스 기반 과금에서만(§2.2) | — | https://docs.cloud.google.com/run/quotas · "The maximum amount of vCPU you can configure is 8 vCPU." · 2026-10-01 |
 | CP.request_size | HTTP/1 요청 32 MiB, 응답 32 MiB. HTTP/2 서버면 제한 없음. HTTP/1 인바운드 인스턴스당 초당 800건 | 큰 업로드(A7)는 서명 URL로 | https://docs.cloud.google.com/run/quotas · "Maximum HTTP/1 request size: 32 MiB per request" / "No limit if using HTTP/2 server" · 2026-10-01 |
-| CP.local_disk | 쓰기 가능한 파일시스템은 **메모리 위**(쓰면 메모리 차감, 인스턴스 종료 시 소멸). 인메모리 볼륨은 컨테이너 메모리 차감. 임시 디스크 1~100 Gi는 **Preview**(2세대 실행 환경). Cloud Storage FUSE·NFS 볼륨 마운트 지원(해당 문서 인용 미확인) | 영속 블록 볼륨 없음 → SQLite·업로드 저장(B2) 불가 | https://docs.cloud.google.com/run/docs/container-contract · "It is an in-memory file system, so writing to it uses the instance's memory. Data written to the file system doesn't persist when the instance stops." / https://docs.cloud.google.com/run/docs/configuring/services/ephemeral-disk (Preview) · 2026-10-01 |
+| CP.local_disk | 쓰기 가능한 파일시스템은 **메모리 위**(쓰면 메모리 차감, 인스턴스 종료 시 소멸). 인메모리 볼륨은 컨테이너 메모리 차감. 임시 디스크 1~100 Gi는 **Preview**(2세대 실행 환경). Cloud Storage FUSE·NFS 볼륨 마운트 지원(해당 문서 인용 미확인) | 영속 블록 볼륨 없음 → SQLite·업로드 저장(B2) 불가 | https://docs.cloud.google.com/run/docs/container-contract · "It is an in-memory file system, so writing to it uses the instance's memory. Data written to the file system doesn't persist when the instance stops." / https://docs.cloud.google.com/run/docs/configuring/services/ephemeral-disk (Preview) · 2026-10-01 ⚠️근거없음 |
 | CP.scaling | 리비전당 최대 인스턴스 기본 100, 급증 시 잠시 초과 가능. 오토스케일러 목표 CPU·동시성 60%. 대기 요청은 max(평균 기동 시간 × 3.5, 10초)까지 보류. 절대 상한 미확인 | max-instances는 DB 연결 상한과 맞출 것 | https://docs.cloud.google.com/run/docs/configuring/max-instances · "By default, Cloud Run sets 100 instances for each revision." / "this maximum setting can be exceeded for a brief period" · 2026-10-01 |
 | CP.concurrency | 기본 **80 × vCPU**(gcloud·Terraform 배포), 콘솔 배포는 80. 최대 1,000. 1로 두면 Lambda처럼 요청당 인스턴스 | — | https://docs.cloud.google.com/run/docs/about-concurrency · "maximum concurrency that is 80 times the number of vCPUs" / "You can increase this to a maximum of 1,000." · 2026-10-01 |
 | CP.shutdown | SIGTERM → **10초** → SIGKILL | 조정 불가 | https://docs.cloud.google.com/run/docs/container-contract · "sends a SIGTERM signal to all the containers in an instance, indicating the start of a 10 second period before the actual shutdown" · 2026-10-01 |
-| CP.deploy | 불변 리비전, 비율 트래픽 분할, `--no-traffic` 후 점진 이전, `update-traffic`로 즉시 롤백, 태그 URL. 진행 중 요청은 완료. 서킷 브레이커형 자동 롤백 없음(헬스체크 실패 리비전은 트래픽을 받지 않음, 인용 미확인) | 리비전 최대 1,000개 보관 | https://docs.cloud.google.com/run/docs/rollouts-rollbacks-traffic-migration · "When you change traffic for revisions, all requests being processed will continue to completion." · 2026-10-01 |
-| CP.availability | 리전 안 멀티 존 기본(존 중복은 GPU 서비스만 끌 수 있음). 멀티 리전은 외부 LB + 서버리스 NEG(인용 미확인) | — | https://docs.cloud.google.com/run/docs/zonal-redundancy · "Data and traffic are automatically load balanced across zones within a region." · 2026-10-01 |
+| CP.deploy | 불변 리비전, 비율 트래픽 분할, `--no-traffic` 후 점진 이전, `update-traffic`로 즉시 롤백, 태그 URL. 진행 중 요청은 완료. 서킷 브레이커형 자동 롤백 없음(헬스체크 실패 리비전은 트래픽을 받지 않음, 인용 미확인) | 리비전 최대 1,000개 보관 | https://docs.cloud.google.com/run/docs/rollouts-rollbacks-traffic-migration · "When you change traffic for revisions, all requests being processed will continue to completion." · 2026-10-01 ⚠️근거없음 |
+| CP.availability | 리전 안 멀티 존 기본(존 중복은 GPU 서비스만 끌 수 있음). 멀티 리전은 외부 LB + 서버리스 NEG(인용 미확인) | — | https://docs.cloud.google.com/run/docs/zonal-redundancy · "Data and traffic are automatically load balanced across zones within a region." · 2026-10-01 ⚠️근거없음 |
 | CP.networking | Direct VPC egress(권장) 또는 Serverless VPC Access 커넥터로 사설 DB 접근. 고정 출구 IP = Cloud NAT + 예약 IP + `--vpc-egress=all-traffic`. Direct VPC는 인스턴스당 IP 2개, /26 이상 서브넷 | Cloud NAT 사용 시 콜드 스타트 지연 가능 | https://docs.cloud.google.com/run/docs/configuring/static-outbound-ip · "route all outbound traffic through a VPC network that has a Cloud NAT gateway configured with the static IP address" · 2026-10-01 |
 | CP.regions | asia-northeast3 있음(Tier 2). 서울에서 도메인 매핑 제외 여부는 미확인(제외라면 LB 필요) | — | https://docs.cloud.google.com/run/docs/locations · "Subject to Tier 2 pricing … asia-northeast3 (Seoul, South Korea)" · 2026-10-01 |
 | CP.plan_limits | 프로젝트·리전당 서비스 1,000개, 최대 인스턴스 할당량 100(상향 가능), 인스턴스당 열린 파일 25,000, 아웃바운드 연결 초당 700 | — | https://docs.cloud.google.com/run/quotas · "Maximum number of services: 1000 per project and region" · 2026-10-01 |
-| CP.ops_burden | 낮음(평가): 노드·OS·LB·인증서 관리 없음. 남는 일은 이미지, 리비전, IAM, VPC 연결, max-instances 산정 | — | https://cloud.google.com/run/pricing · "requires low operations because Site Reliability Engineers do a lot in the background" · 2026-10-01 |
+| CP.ops_burden | 낮음(평가): 노드·OS·LB·인증서 관리 없음. 남는 일은 이미지, 리비전, IAM, VPC 연결, max-instances 산정 | — | https://cloud.google.com/run/pricing · "requires low operations because Site Reliability Engineers do a lot in the background" · 2026-10-01 ⚠️근거없음 |
 | CP.cost_floor | **$0**(scale-to-zero). 서울 활성 vCPU $0.0000336/초, 유휴(최소 인스턴스) vCPU $0.0000035/초, 메모리 $0.0000035/GiB초, 요청 $0.40/100만. min 1(1 vCPU·0.5 GiB) 유휴 상시 ≈ **월 $13.8** | 100 ms 단위 올림. 무료 등급(아래)은 Tier 1 단가로 적용 | https://cloud.google.com/run/pricing (페이지 내 리전 표) · "Idle instances that are not minimum instances are not charged." · 2026-10-01 |
 
 ### 비용 구조
@@ -188,7 +188,7 @@ Deployment·Service·Ingress(또는 Gateway) 매니페스트, `resources.request
 | CP.networking | Direct VPC egress, Cloud NAT 고정 IP | — | https://docs.cloud.google.com/run/docs/configuring/static-outbound-ip · "configured with the static IP address" · 2026-10-01 |
 | CP.regions | 서울 있음(Tier 2), GPU는 서울 없음 | — | https://docs.cloud.google.com/run/docs/locations · "asia-northeast3 (Seoul, South Korea)" · 2026-10-01 |
 | CP.plan_limits | §2.1과 같음 | — | https://docs.cloud.google.com/run/quotas · "Maximum number of services: 1000 per project and region" · 2026-10-01 |
-| CP.ops_burden | 낮음(평가), §2.1과 같음 | — | https://cloud.google.com/run/pricing · "requires low operations" · 2026-10-01 |
+| CP.ops_burden | 낮음(평가), §2.1과 같음 | — | https://cloud.google.com/run/pricing · "requires low operations" · 2026-10-01 ⚠️근거없음 |
 | CP.cost_floor | **$0**(min 0). 서울 vCPU $0.0000216/초, 메모리 $0.0000024/GiB초, 요청 요금 없음, 인스턴스 수명 전체 과금(최소 1분). min 1(1 vCPU·0.5 GiB) 상시 ≈ **월 $59.9**(무료 등급 전) | 같은 페이지 서울 두 번째 표는 $0.000018/$0.000002 | https://cloud.google.com/run/pricing · "from the time the container is started to when it is terminated, with a minimum of 1 minute" · 2026-10-01 |
 
 ### 비용 구조
@@ -224,19 +224,19 @@ Deployment·Service·Ingress(또는 Gateway) 매니페스트, `resources.request
 | CP.scaling | 작업당 태스크 최대 10,000, 재시도 최대 10, 실행 중 실행 1,000. 병렬도는 리전별(콘솔 표시) | — | https://docs.cloud.google.com/run/quotas · "Maximum number of tasks in a single job: 10,000" · 2026-10-01 |
 | CP.concurrency | 해당 없음(태스크 단위) | — | — |
 | CP.shutdown | SIGTERM → 10초 → SIGKILL | — | https://docs.cloud.google.com/run/docs/container-contract · "indicating the start of a 10 second period before the actual shutdown" · 2026-10-01 |
-| CP.deploy | 작업 정의 갱신(트래픽 개념 없음) | — | 미확인 |
-| CP.availability | 존 중복 여부 미확인 | — | 미확인 |
+| CP.deploy | 작업 정의 갱신(트래픽 개념 없음) | — | 미확인 ⚠️근거없음 |
+| CP.availability | 존 중복 여부 미확인 | — | 미확인 ⚠️근거없음 |
 | CP.networking | Direct VPC egress(태스크당 IP 1개, 종료 후 7분 유지). **1시간 넘는 작업은 연결이 끊길 수 있음** | — | https://docs.cloud.google.com/run/docs/configuring/vpc-direct-vpc · "Cloud Run jobs that run for more than 1 hour might experience connection breaks" · 2026-10-01 |
 | CP.regions | 서울 있음 | — | https://docs.cloud.google.com/run/docs/locations · "asia-northeast3 (Seoul, South Korea)" · 2026-10-01 |
 | CP.plan_limits | 프로젝트·리전당 작업 1,000개 | — | https://docs.cloud.google.com/run/quotas · "Maximum number of tasks in a single job: 10,000" · 2026-10-01 |
-| CP.ops_burden | 낮음(평가). 중복 실행 방지(B3)는 Scheduler 재시도·작업 멱등성으로 직접 | — | — |
+| CP.ops_burden | 낮음(평가). 중복 실행 방지(B3)는 Scheduler 재시도·작업 멱등성으로 직접 | — | — ⚠️근거없음 |
 | CP.cost_floor | $0. 서울 vCPU $0.0000216/초, 메모리 $0.0000024/GiB초(인스턴스 기반 요율, 최소 1분). "Delayed Jobs" SKU 서울 $0.00001512 / $0.00000168(동적 가격) | — | https://cloud.google.com/run/pricing · "with a minimum of 1 minute" · 2026-10-01 |
 
 ### 비용 구조
 실행 시간만 과금, 최소 1분. 무료 등급은 인스턴스 기반과 같음. Cloud Scheduler 요금은 별도([03](03-cache-queue-scheduler-realtime-storage.md)).
 
 ### 교체 계열 정보
-- 티어 0 크론(Vercel Cron 등 HTTP 호출)에서 올 때: 핸들러를 "실행 후 종료하는 프로세스" 엔트리포인트로 분리. `CLOUD_RUN_TASK_INDEX`·`CLOUD_RUN_TASK_COUNT` 환경변수로 분할(인용 미확인).
+- 티어 0 크론(Vercel Cron 등 HTTP 호출)에서 올 때: 핸들러를 "실행 후 종료하는 프로세스" 엔트리포인트로 분리. `CLOUD_RUN_TASK_INDEX`·`CLOUD_RUN_TASK_COUNT` 환경변수로 분할(인용 미확인). ⚠️근거없음
 - 티어 2로 갈 때: Kubernetes CronJob/Job으로 1:1 대응.
 
 ### 함정
@@ -253,9 +253,9 @@ Deployment·Service·Ingress(또는 Gateway) 매니페스트, `resources.request
 |---|---|---|---|
 | CP.process_types | 상시 백그라운드 워커(Pub/Sub, Kafka 등 풀 기반). **URL·LB 엔드포인트 없음** → 웹 불가 | — | https://docs.cloud.google.com/run/docs/deploy-worker-pools · "worker pools do not have a load balanced endpoint/URL and do not support autoscaling" · 2026-10-01 |
 | CP.request_timeout | 해당 없음(요청 없음) | — | — |
-| CP.long_connection | 아웃바운드 장시간 연결은 가능, 인바운드 공개 연결 없음. Direct VPC ingress로 인스턴스별 사설 IP(2026-02-05부터) | — | https://docs.cloud.google.com/run/docs/release-notes · 2026-10-01 (인용 미확인) |
+| CP.long_connection | 아웃바운드 장시간 연결은 가능, 인바운드 공개 연결 없음. Direct VPC ingress로 인스턴스별 사설 IP(2026-02-05부터) | — | https://docs.cloud.google.com/run/docs/release-notes · 2026-10-01 (인용 미확인) ⚠️근거없음 |
 | CP.cpu_outside_request | 있음(항상 활성 과금) | — | https://docs.cloud.google.com/run/docs/configuring/workerpools/manual-scaling · "all the instances that you requested are billed as active instances, even if they happen to be idle" · 2026-10-01 |
-| CP.cold_start | 수동 인스턴스 수. 0으로 둘 수 있는지 미확인 | — | 미확인 |
+| CP.cold_start | 수동 인스턴스 수. 0으로 둘 수 있는지 미확인 | — | 미확인 ⚠️근거없음 |
 | CP.instance_size | 미확인(서비스 한도와 같은지 확인 못 함). GPU L4·RTX PRO 6000 지원, 서울 없음 | — | https://docs.cloud.google.com/run/docs/release-notes · 2026-10-01 |
 | CP.request_size | 해당 없음 | — | — |
 | CP.local_disk | 메모리 FS | — | https://docs.cloud.google.com/run/docs/container-contract · "It is an in-memory file system" · 2026-10-01 |
@@ -263,11 +263,11 @@ Deployment·Service·Ingress(또는 Gateway) 매니페스트, `resources.request
 | CP.concurrency | 해당 없음 | — | — |
 | CP.shutdown | SIGTERM → 10초 → SIGKILL(서비스·작업·워커 풀 공통) | — | https://docs.cloud.google.com/run/docs/container-contract · "indicating the start of a 10 second period before the actual shutdown" · 2026-10-01 |
 | CP.deploy | 리비전 + 인스턴스 분할(instance split)·롤백 | — | https://docs.cloud.google.com/run/docs/deploy-worker-pools · "instance splits and rollbacks" · 2026-10-01 |
-| CP.availability | 존 중복 미확인 | — | 미확인 |
-| CP.networking | Direct VPC egress·ingress | — | https://docs.cloud.google.com/run/docs/release-notes · 2026-10-01 (인용 미확인) |
+| CP.availability | 존 중복 미확인 | — | 미확인 ⚠️근거없음 |
+| CP.networking | Direct VPC egress·ingress | — | https://docs.cloud.google.com/run/docs/release-notes · 2026-10-01 (인용 미확인) ⚠️근거없음 |
 | CP.regions | 서울: Cloud Run 리전이므로 있음으로 보되 워커 풀 가격표 서울 단가로 확인 | — | https://cloud.google.com/run/pricing (서울 워커 풀 단가 존재) · 2026-10-01 |
-| CP.plan_limits | 프로젝트·리전당 워커 풀 1,000개 | — | https://docs.cloud.google.com/run/quotas · 2026-10-01 (인용 미확인) |
-| CP.ops_burden | 낮음(평가), 단 확장 로직은 직접 | — | — |
+| CP.plan_limits | 프로젝트·리전당 워커 풀 1,000개 | — | https://docs.cloud.google.com/run/quotas · 2026-10-01 (인용 미확인) ⚠️근거없음 |
+| CP.ops_burden | 낮음(평가), 단 확장 로직은 직접 | — | — ⚠️근거없음 |
 | CP.cost_floor | 서울 vCPU $0.000013493/초, 메모리 $0.000001482/GiB초. 1 vCPU·0.5 GiB 1개 상시 ≈ **월 $37.4** | 무료 등급 월 384,204 vCPU초, 728,744 GiB초 | https://cloud.google.com/run/pricing · "CPU - First 384,204 vCPU-seconds free per month" · 2026-10-01 |
 
 ### 비용 구조
@@ -296,7 +296,7 @@ Deployment·Service·Ingress(또는 Gateway) 매니페스트, `resources.request
 | CP.instance_size | 미확인: 비교 페이지 "Up to 16 GiB RAM with 4 vCPU", functions 할당량 페이지 32 GiB로 불일치 | — | https://docs.cloud.google.com/run/docs/functions/comparison · 2026-10-01 |
 | CP.request_size | 요청 32 MB, 응답 32 MB(비스트리밍)·10 MB(스트리밍), Eventarc 이벤트 512 KB | — | https://docs.cloud.google.com/functions/quotas · "10MB for streaming responses. 32MB for non-streaming responses" · 2026-10-01 |
 | CP.local_disk | 메모리 FS | — | https://docs.cloud.google.com/run/docs/container-contract · "It is an in-memory file system" · 2026-10-01 |
-| CP.scaling | HTTP 기본 최대 100, 1,000까지. Cloud Run 서비스 할당량(리전당 1,000) 공유 | — | https://docs.cloud.google.com/functions/quotas · 2026-10-01 (인용 미확인) |
+| CP.scaling | HTTP 기본 최대 100, 1,000까지. Cloud Run 서비스 할당량(리전당 1,000) 공유 | — | https://docs.cloud.google.com/functions/quotas · 2026-10-01 (인용 미확인) ⚠️근거없음 |
 | CP.concurrency | 인스턴스당 최대 1,000 | 기본값 미확인 | https://docs.cloud.google.com/run/docs/functions/comparison · "Up to 1000 concurrent requests per function instance" · 2026-10-01 |
 | CP.shutdown | SIGTERM → 10초 | — | https://docs.cloud.google.com/run/docs/container-contract · "10 second period" · 2026-10-01 |
 | CP.deploy | Cloud Run 리비전·트래픽 분할 | — | https://docs.cloud.google.com/run/docs/functions/comparison · "a Cloud Run service that is deployed from source code" · 2026-10-01 |
@@ -304,7 +304,7 @@ Deployment·Service·Ingress(또는 Gateway) 매니페스트, `resources.request
 | CP.networking | Cloud Run과 같음(Direct VPC egress, Cloud NAT) | — | https://docs.cloud.google.com/run/docs/configuring/static-outbound-ip · 2026-10-01 |
 | CP.regions | 서울 있음 | — | https://docs.cloud.google.com/run/docs/locations · "asia-northeast3 (Seoul, South Korea)" · 2026-10-01 |
 | CP.plan_limits | 이벤트 9분 상한, 서비스 할당량 공유 | — | https://docs.cloud.google.com/functions/quotas · "540 seconds for event-driven functions" · 2026-10-01 |
-| CP.ops_burden | 가장 낮음(평가): Dockerfile도 없음 | — | — |
+| CP.ops_burden | 가장 낮음(평가): Dockerfile도 없음 | — | — ⚠️근거없음 |
 | CP.cost_floor | $0 + **배포마다 Cloud Build·Artifact Registry 요금**(무료 등급 안이어도) | — | https://cloud.google.com/run/pricing · "you will incur charges for deploying your functions, even when your use of Cloud Run falls within the free tier" · 2026-10-01 |
 
 ### 비용 구조
@@ -341,7 +341,7 @@ Cloud Run 요청 기반 요율 + 빌드·레지스트리·Eventarc.
 | CP.networking | awsvpc 전용(태스크마다 ENI·사설 IP) → 같은 VPC의 RDS에 사설 연결. 사설 서브넷 + NAT Gateway(탄력적 IP)로 고정 출구 IP. 사설 서브넷 이미지 풀은 NAT 또는 ECR VPC 엔드포인트 | — | https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-tasks-services.html · "For a Fargate task in a private subnet to pull container images, you need a NAT gateway in the subnet" · 2026-10-01 |
 | CP.regions | 서울 있음 | — | https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate-Regions.html · "Asia Pacific (Seoul) \| ap-northeast-2" · 2026-10-01 |
 | CP.plan_limits | 서비스당 태스크 5,000, 클러스터당 서비스 5,000. **Fargate 온디맨드 vCPU 기본 할당량 6**(조정 가능, 신규 계정은 더 낮을 수 있음) | — | https://docs.aws.amazon.com/general/latest/gr/ecs-service.html · "Fargate On-Demand vCPU resource count \| Each supported Region: 6" · 2026-10-01 |
-| CP.ops_burden | 중간(평가): VPC·서브넷·NAT, ALB·대상 그룹·리스너·인증서, 태스크 정의, 오토스케일 정책, IAM 역할 2개, 로그 그룹을 직접 구성. 노드·OS 패치는 없음 | — | — |
+| CP.ops_burden | 중간(평가): VPC·서브넷·NAT, ALB·대상 그룹·리스너·인증서, 태스크 정의, 오토스케일 정책, IAM 역할 2개, 로그 그룹을 직접 구성. 노드·OS 패치는 없음 | — | — ⚠️근거없음 |
 | CP.cost_floor | 서울 vCPU $0.04656/시간, 메모리 $0.00511/GB-시간(ARM $0.03725 / $0.00409), 임시 스토리지 20 GiB 초과분 $0.000127/GB-시간. 0.25 vCPU·0.5 GB 1개 ≈ 월 $10.4, 1 vCPU·2 GB ≈ 월 $41.4. **+ ALB 월 $16.43 + LCU** + 공인 IPv4 $3.65/개. 사설 서브넷이면 NAT 월 $43.07/AZ | — | [PL] AmazonECS ap-northeast-2 · "AWS Fargate - vCPU - Asia Pacific (Seoul)" 0.04656 / "AWS Fargate - Memory - Asia Pacific (Seoul)" 0.00511 · 2026-10-01 |
 
 ### 비용 구조
@@ -377,14 +377,14 @@ Cloud Run 요청 기반 요율 + 빌드·레지스트리·Eventarc.
 | CP.request_size | ALB와 같음, 본문 미확인 | — | https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-limits.html · "Entire request header \| 64 K \| No" · 2026-10-01 |
 | CP.local_disk | 임시 20 GiB(Fargate 기본). 영속 볼륨을 Express에서 지정할 수 있는지 미확인 | 상태 없는 앱 전제 | https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-task-storage.html · "receive a minimum of 20 GiB of ephemeral storage" · 2026-10-01 |
 | CP.scaling | 기본 min 1, max 20, CPU 60% 목표. 지표 CPU·메모리·대상당 요청 수 | — | https://docs.aws.amazon.com/AmazonECS/latest/developerguide/express-service-work.html · "autoScalingTargetValue: 60 - Target CPU utilization percentage for scaling" / "desiredMaxTaskCount: 20" · 2026-10-01 |
-| CP.concurrency | 앱이 결정 | — | — |
+| CP.concurrency | 앱이 결정 | — | — ⚠️근거없음 |
 | CP.shutdown | stopTimeout 30초. 등록 해제 지연은 ALB 기본 300초로 보이나 Express 전용 확인 미확인 | — | https://docs.aws.amazon.com/AmazonECS/latest/developerguide/express-service-work.html · "stopTimeout: 30 seconds - Time between SIGTERM and SIGKILL signals." · 2026-10-01 |
 | CP.deploy | **카나리 고정** + 5XX 롤백 알람. 배포 전략 변경 불가. 헬스체크 30초 간격, 유예 300초 | — | https://docs.aws.amazon.com/AmazonECS/latest/developerguide/express-service-work.html · "Note that deployment strategy can not be updated on Express Mode services." · 2026-10-01 |
 | CP.availability | AZ 재균형 켜짐, 운영은 3 AZ 권장. 공용 서브넷 2 AZ 이상 필요 | — | https://docs.aws.amazon.com/AmazonECS/latest/developerguide/express-service-best-practices.html · "we recommend running in three availability zones to follow availability best practices." · 2026-10-01 |
 | CP.networking | 기본: 기본 VPC **공용 서브넷 + 공인 IP**. 사설 서브넷을 주면 내부 ALB가 되고 NAT는 직접 구성. VPC의 첫 Express 서비스가 ALB 서브넷을 고정. VPC당 ALB 하나를 최대 25개 서비스가 공유 | — | https://docs.aws.amazon.com/AmazonECS/latest/developerguide/express-service-work.html · "This is disabled if you provide a private subnet, and you are then responsible for configuring a NAT gateway" / "Up to 25 Express Mode services in the same VPC can share an Application Load Balancer." · 2026-10-01 |
 | CP.regions | 서울 있음 | — | https://docs.aws.amazon.com/AmazonECS/latest/developerguide/express-service-overview.html · "available in all AWS Regions where Amazon ECS and Fargate are supported." · 2026-10-01 |
 | CP.plan_limits | Fargate vCPU 할당량 6(§3.1). 로드밸런서 구성·배포 전략은 Express로 갱신 불가 | — | https://docs.aws.amazon.com/general/latest/gr/ecs-service.html · "Fargate On-Demand vCPU resource count \| Each supported Region: 6" · 2026-10-01 |
-| CP.ops_burden | 낮음~중간(평가): 생성은 한 번 호출. 자원은 계정에 남아 이후 세부 조정은 일반 ECS와 같다 | — | https://docs.aws.amazon.com/AmazonECS/latest/developerguide/express-service-overview.html · "There is no additional charge for using an Amazon ECS Express Mode service." · 2026-10-01 |
+| CP.ops_burden | 낮음~중간(평가): 생성은 한 번 호출. 자원은 계정에 남아 이후 세부 조정은 일반 ECS와 같다 | — | https://docs.aws.amazon.com/AmazonECS/latest/developerguide/express-service-overview.html · "There is no additional charge for using an Amazon ECS Express Mode service." · 2026-10-01 ⚠️근거없음 |
 | CP.cost_floor | Express 추가 요금 없음. 기본 1 vCPU·2 GB 1개 월 $41.4 + ALB $16.4 ≈ **월 $58** + 공인 IPv4(태스크·ALB) + LCU + 로그 | — | [PL] AmazonECS·AWSELB ap-northeast-2 · 2026-10-01 |
 
 ### 비용 구조
@@ -416,15 +416,15 @@ Cloud Run 요청 기반 요율 + 빌드·레지스트리·Eventarc.
 | CP.instance_size | §3.1과 같음. x86_64(플랫폼 1.3.0+), ARM64(1.4.0+). Windows 미지원 여부 명시 미확인 | — | https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_CapacityProviderStrategyItem.html · "`FARGATE_SPOT` supports Linux tasks with the ARM64 architecture on platform version 1.4.0 or later." · 2026-10-01 |
 | CP.request_size | §3.1과 같음 | — | §1.3 |
 | CP.local_disk | §3.1과 같음 | — | https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-task-storage.html · "minimum of 20 GiB" · 2026-10-01 |
-| CP.scaling | 캐퍼시티 프로바이더 전략(base/weight)으로 온디맨드와 혼합 | — | https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-capacity-providers.html · 2026-10-01 (인용 미확인) |
-| CP.concurrency | 앱 | — | — |
+| CP.scaling | 캐퍼시티 프로바이더 전략(base/weight)으로 온디맨드와 혼합 | — | https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-capacity-providers.html · 2026-10-01 (인용 미확인) ⚠️근거없음 |
+| CP.concurrency | 앱 | — | — ⚠️근거없음 |
 | CP.shutdown | **2분 경고**(EventBridge 이벤트 + SIGTERM). stopTimeout ≤120초 지정 가능 | — | https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-capacity-providers.html · "The warning is sent as a task state change event to Amazon EventBridge and as a SIGTERM signal to the running task." · 2026-10-01 |
 | CP.deploy | §3.1과 같음 | — | — |
 | CP.availability | 단일 태스크 서비스는 용량이 돌아올 때까지 중단. 온디맨드로 자동 대체 안 됨 | — | https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-capacity-providers.html · "Fargate doesn't replace Spot capacity with on-demand capacity." · 2026-10-01 |
 | CP.networking | §3.1과 같음 | — | — |
-| CP.regions | 서울 미확인 | — | 미확인 |
+| CP.regions | 서울 미확인 | — | 미확인 ⚠️근거없음 |
 | CP.plan_limits | Fargate Spot vCPU 기본 할당량 6 | — | https://docs.aws.amazon.com/general/latest/gr/ecs-service.html · "Fargate Spot vCPU resource count \| Each supported Region: 6" · 2026-10-01 |
-| CP.ops_burden | §3.1 + 중단 대비 설계(평가) | — | — |
+| CP.ops_burden | §3.1 + 중단 대비 설계(평가) | — | — ⚠️근거없음 |
 | CP.cost_floor | 온디맨드 대비 최대 70% 할인. 서울 Spot 단가 미확인(Price List 오퍼 파일에 없음, 변동가) | — | https://aws.amazon.com/fargate/pricing/ · "at up to a 70% discount off the regular Fargate price." · 2026-10-01 |
 
 ### 비용 구조
@@ -462,7 +462,7 @@ SIGTERM 2분 안에 작업 체크포인트·큐 반납 처리가 필요하다. �
 | CP.networking | 기본 공용 출구. VPC 커넥터를 붙이면 아웃바운드 전체가 VPC로 가고 인터넷은 NAT 필요 | — | https://docs.aws.amazon.com/apprunner/latest/dg/network-vpc.html · "When you connect your service to a VPC, the outbound traffic doesn't have access to the public internet." · 2026-10-01 |
 | CP.regions | 서울 없음(11개 리전) | — | https://docs.aws.amazon.com/general/latest/gr/apprunner.html · 2026-10-01 |
 | CP.plan_limits | 리전당 서비스 30(조정 가능), VPC 커넥터 10. 신규 고객 생성 불가 | — | https://docs.aws.amazon.com/general/latest/gr/apprunner.html · "Services \| Each supported Region: 30" · 2026-10-01 |
-| CP.ops_burden | 낮음(평가), 단 서비스 종료 방향 | — | — |
+| CP.ops_burden | 낮음(평가), 단 서비스 종료 방향 | — | — ⚠️근거없음 |
 | CP.cost_floor | (us-east-1 등) 프로비저닝 $0.007/GB-시간, 활성 시 +$0.064/vCPU-시간 + $0.007/GB-시간. 도쿄 $0.081 / $0.009. 서울 해당 없음 | — | https://aws.amazon.com/apprunner/pricing/ · "$0.064 / vCPU-hour" · 2026-10-01 |
 
 ### 비용 구조
@@ -498,11 +498,11 @@ SIGTERM 2분 안에 작업 체크포인트·큐 반납 처리가 필요하다. �
 | CP.networking | 기본 인터넷 가능. VPC에 붙이면 인터넷은 사설 서브넷 + NAT 필요(고정 IP는 NAT의 탄력적 IP). **Function URL은 공용 인터넷 전용** | — | https://docs.aws.amazon.com/lambda/latest/dg/configuration-vpc-internet.html · "Connecting a function to a public subnet doesn't give it internet access." / https://docs.aws.amazon.com/lambda/latest/dg/urls-configuration.html · "You can access your function URL through the public Internet only." · 2026-10-01 |
 | CP.regions | 서울 있음, SnapStart 서울 포함(뉴질랜드·타이베이 제외), Managed Instances 서울 GA | — | https://docs.aws.amazon.com/general/latest/gr/lambda-service.html · "ap-northeast-2" · 2026-10-01 |
 | CP.plan_limits | 환경변수 4 KB, 파일 디스크립터 1,024, 프로세스·스레드 1,024, 레이어 5, zip 50 MB(압축)/250 MB(해제) | — | https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html · "10 GB (maximum uncompressed image size, including all layers)" · 2026-10-01 |
-| CP.ops_burden | 낮음(평가): 서버 없음. 남는 일은 동시성 할당량, VPC·NAT, DB 연결(RDS Proxy) | — | — |
+| CP.ops_burden | 낮음(평가): 서버 없음. 남는 일은 동시성 할당량, VPC·NAT, DB 연결(RDS Proxy) | — | — ⚠️근거없음 |
 | CP.cost_floor | **$0**. 서울 x86 $0.0000166667/GB초(티어 1), ARM $0.0000133334, 요청 $0.20/100만, 프로비저닝 동시성 $0.0000051254/GB초(1 GB × 1 상시 ≈ 월 $13.5) | 무료 월 100만 요청 + 40만 GB초 | [PL] AWSLambda ap-northeast-2 · "AWS Lambda - Total Compute - Asia Pacific (Seoul)-Tier-1" 0.0000166667 / https://aws.amazon.com/lambda/pricing/ · "one million requests and 400,000 GB-seconds per month" · 2026-10-01 |
 
 ### 비용 구조
-요청 + GB초. Function URL 자체는 추가 요금 없음(별도 단가 행 없음, 인용 미확인). 스트리밍 응답 6 MB 초과분 $0.008/GB(가격 페이지).
+요청 + GB초. Function URL 자체는 추가 요금 없음(별도 단가 행 없음, 인용 미확인). 스트리밍 응답 6 MB 초과분 $0.008/GB(가격 페이지). ⚠️근거없음
 
 ### 교체 계열 정보
 - 티어 0 함수(Vercel·Netlify)에서 올 때: 핸들러 시그니처 변경(이벤트 객체) 또는 Lambda Web Adapter로 일반 HTTP 서버를 그대로. DB 연결은 핸들러 밖에서 생성하고 RDS Proxy.
@@ -534,12 +534,12 @@ SIGTERM 2분 안에 작업 체크포인트·큐 반납 처리가 필요하다. �
 | CP.scaling | §3.5 + API Gateway 계정 스로틀 기본 10,000 RPS(버스트 5,000) | — | https://docs.aws.amazon.com/apigateway/latest/developerguide/limits.html · "API Gateway has a default throttle limit of 10,000 requests per second, whereas Lambda has a default concurrency limit of 1,000." · 2026-10-01 |
 | CP.concurrency | 1(§3.5) | — | — |
 | CP.shutdown | §3.5와 같음 | — | — |
-| CP.deploy | 스테이지 + 카나리 배포(REST, 인용 미확인) + Lambda 별칭 가중치 | — | https://docs.aws.amazon.com/lambda/latest/dg/configuring-alias-routing.html · "maximum of two Lambda function versions" · 2026-10-01 |
+| CP.deploy | 스테이지 + 카나리 배포(REST, 인용 미확인) + Lambda 별칭 가중치 | — | https://docs.aws.amazon.com/lambda/latest/dg/configuring-alias-routing.html · "maximum of two Lambda function versions" · 2026-10-01 ⚠️근거없음 |
 | CP.availability | 리전 서비스, 멀티 AZ(Lambda 쪽 인용) | — | https://docs.aws.amazon.com/lambda/latest/dg/security-resilience.html · "multiple Availability Zones" · 2026-10-01 |
-| CP.networking | REST 사설 API·VPC 링크 지원(인용 미확인). 함수 쪽은 §3.5 | — | 미확인 |
+| CP.networking | REST 사설 API·VPC 링크 지원(인용 미확인). 함수 쪽은 §3.5 | — | 미확인 ⚠️근거없음 |
 | CP.regions | 서울 있음 | — | [PL] AmazonApiGateway ap-northeast-2 · 2026-10-01 |
 | CP.plan_limits | REST 유휴 연결 310초, 스로틀 10,000 RPS | — | https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-execution-service-limits-table.html · "Idle connection timeout \| 310 seconds \| No" · 2026-10-01 |
-| CP.ops_burden | 낮음(평가) | — | — |
+| CP.ops_burden | 낮음(평가) | — | — ⚠️근거없음 |
 | CP.cost_floor | $0 + 요청당. 서울 REST $3.50/100만(첫 3.33억), HTTP API $1.23/100만, WebSocket 메시지 $1.14/100만 + 연결 분 $0.285/100만 | — | [PL] AmazonApiGateway ap-northeast-2 · "$1.23/million requests - API Gateway HTTP API (first 300 million)" / "$3.50/million requests - first 333 million requests/month" · 2026-10-01 |
 
 ### 비용 구조
@@ -578,7 +578,7 @@ Lambda 요금 + API Gateway 요청 요금. 고정비 0.
 | CP.networking | VNet 통합(/27 이상), NAT Gateway로 고정 출구 IP, UDR, 사설 엔드포인트. 기본 출구 IP는 바뀔 수 있음. 네트워크 유형은 생성 후 변경 불가 | — | https://learn.microsoft.com/en-us/azure/container-apps/networking · "Outbound IPs might change over time." / "the NAT gateway provides a static public IP address for your environment." · 2026-10-01 |
 | CP.regions | Korea Central 있음, 서버리스 GPU는 없음 | — | https://prices.azure.com/api/retail/prices (armRegionName koreacentral) · 2026-10-01 |
 | CP.plan_limits | 구독별 기본 할당량(환경 수, 환경당 Consumption 코어). 숫자 기본값은 문서에서 제거되어 미확인 | — | https://learn.microsoft.com/en-us/azure/container-apps/quotas · "Your default quotas depend on factors that include the age and type of your subscription and your service usage." · 2026-10-01 |
-| CP.ops_burden | 낮음~중간(평가): 노드 없음. 환경 유형·VNet·서브넷 크기·존 중복을 생성 시 한 번에 맞게 정해야 함 | — | — |
+| CP.ops_burden | 낮음~중간(평가): 노드 없음. 환경 유형·VNet·서브넷 크기·존 중복을 생성 시 한 번에 맞게 정해야 함 | — | — ⚠️근거없음 |
 | CP.cost_floor | **$0**(scale-to-zero). Korea Central: 활성 vCPU $0.000024/초, 유휴 vCPU $0.000003/초, 메모리 $0.000003/GiB초(API가 활성·유휴 같은 반올림값 반환), 요청 $0.40/100만. min 1(0.5 vCPU·1 GiB) 유휴 상시 ≈ 월 $11.8(무료 할당 전). 사설 엔드포인트·계획 유지보수 각 $0.135/시간 | 무료: 월 180,000 vCPU초, 360,000 GiB초, 요청 200만 | https://learn.microsoft.com/en-us/azure/container-apps/billing · "The first 180,000 vCPU-seconds and 360,000 GiB-seconds in each subscription per calendar month are free." · 2026-10-01 |
 
 ### 비용 구조
@@ -603,20 +603,20 @@ Lambda 요금 + API Gateway 요청 요금. 고정비 0.
 | CP.process_types | Deployment(웹·워커), CronJob/Job, 장시간 연결. CronJob은 상황에 따라 한 일정에 Job을 여러 개 만들 수 있고 `concurrencyPolicy` 기본은 Allow(중복 실행 허용). DaemonSet·특권 컨테이너는 제한 | — | https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/ · "in certain circumstances, a single CronJob can create multiple concurrent Jobs." / "`Allow` (default): The CronJob allows concurrently running Jobs" · 2026-10-01 |
 | CP.request_timeout | GKE Ingress → **클래식 Application LB, 백엔드 타임아웃 기본 30초**. BackendConfig `timeoutSec`로 변경. Gateway API는 클래스별 LB | — | https://docs.cloud.google.com/kubernetes-engine/docs/how-to/ingress-configuration · "If you do not specify a value, the default value is 30 seconds." / https://docs.cloud.google.com/kubernetes-engine/docs/concepts/ingress · "Ingress for external Application Load Balancers deploys the classic Application Load Balancer." · 2026-10-01 |
 | CP.long_connection | 클래식 ALB(Ingress 기본): 웹소켓이 유휴·활성 관계없이 **백엔드 타임아웃(기본 30초)에 종료**. Gateway `gke-l7-global-external-managed`(전역 외부 ALB): 활성 웹소켓 24시간. 클라이언트 keepalive 610초 | — | https://docs.cloud.google.com/load-balancing/docs/https/request-distribution · "Websocket connections, whether idle or active, automatically close after the backend service times out." · 2026-10-01 |
-| CP.cpu_outside_request | 있음(Pod는 항상 실행, 요청 단위 CPU 제한 없음) | GCP 문서 인용 없음(쿠버네티스 일반 동작) | 미확인(인용) |
+| CP.cpu_outside_request | 있음(Pod는 항상 실행, 요청 단위 CPU 제한 없음) | GCP 문서 인용 없음(쿠버네티스 일반 동작) | 미확인(인용) ⚠️근거없음 |
 | CP.cold_start | 워크로드가 없으면 **노드 0까지** 축소. Pod 0은 HPA로 자동 아님(KEDA 등 필요). 새 노드 부팅 약 80~120초 | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/autopilot-overview · "If a cluster has no running workloads, Autopilot can automatically scale the cluster down to zero nodes." / https://docs.cloud.google.com/kubernetes-engine/docs/how-to/capacity-provisioning · "Each new node takes approximately 80 to 120 seconds to boot." · 2026-10-01 |
 | CP.instance_size | requests 미지정 시 0.5 vCPU·2 GiB·임시 1 GiB. 범용 최대 30 vCPU·110 GiB, Balanced 222 vCPU, Scale-Out 54 vCPU. GPU: T4·L4·A100·H100·H200·RTX PRO 6000 등. 서울 존: a=G2(L4), b=A2·G2·N1+T4, c=A3 High·A3 Edge·N1+T4 | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/autopilot-resource-requests · "30 vCPU" / https://docs.cloud.google.com/compute/docs/gpus/gpu-regions-zones · "asia-northeast3-b Seoul, South Korea, APAC Standard • A2 Standard • G2 • N1+T4" · 2026-10-01 |
 | CP.request_size | LB: URL + 요청 헤더 60 KiB 이하. 본문 한도 미확인 | — | https://docs.cloud.google.com/load-balancing/docs/quotas · "must be less than or equal to 60 KiB" · 2026-10-01 |
 | CP.local_disk | Pod 임시 스토리지 10 MiB~10 GiB(더 크면 일반 임시 볼륨). 영속: PD 기반 PV는 **ReadWriteOnce**(RWX 불가), 리전 PD는 2개 존 복제. RWO 볼륨을 쓰는 Deployment는 1 레플리카여도 비권장 | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/persistent-volumes · "Even Deployments with one replica using ReadWriteOnce volume are not recommended." · 2026-10-01 |
 | CP.scaling | HPA(Pod) + Autopilot 노드 자동 프로비저닝. 오토스케일은 **실사용이 아닌 requests 기준**. 노드 부팅 80~120초 | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/cluster-autoscaler · "based on the resource requests (rather than actual resource utilization)" · 2026-10-01 |
-| CP.concurrency | 앱이 결정(서버 워커·스레드 수) | — | — |
+| CP.concurrency | 앱이 결정(서버 워커·스레드 수) | — | — ⚠️근거없음 |
 | CP.shutdown | terminationGracePeriodSeconds 기본 30초. 노드 업그레이드 시 최대 600초(Spot 25초), PDB 1시간 존중. Spot Pod 선점 시 최대 15초 | — | https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/ · "which defaults to 30 seconds." / https://docs.cloud.google.com/kubernetes-engine/docs/concepts/cluster-upgrades-autopilot · "terminationGracePeriodSeconds is limited to 10 minutes (600 seconds) for most Pods except for Spot Pods , which are limited to 25 seconds." · 2026-10-01 |
 | CP.deploy | 롤링 업데이트 maxSurge·maxUnavailable 기본 25%, `kubectl rollout undo`. 트래픽 분할은 Gateway 가중치 등 별도 | — | https://kubernetes.io/docs/concepts/workloads/controllers/deployment/ · "The default value is 25%." · 2026-10-01 |
 | CP.availability | **리전 클러스터가 기본**. SLA: 컨트롤 플레인 99.95%, 여러 존 Pod 99.9% | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/autopilot-overview · "New Autopilot clusters are regional clusters that have a publicly accessible IP address." / https://cloud.google.com/kubernetes-engine/sla · "Autopilot Cluster (control plane) 99.95% Autopilot Pods in Multiple Zones 99.9%" · 2026-10-01 |
-| CP.networking | VPC 네이티브 기본(Pod IP가 VPC 별칭 IP) → Cloud SQL 사설 IP 연결. 사설 노드의 인터넷은 Cloud NAT(고정 IP는 NAT IP 예약, 인용 미확인) | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/network-isolation · "To allow egress traffic to the internet, enable Cloud NAT or a custom NAT solution." · 2026-10-01 |
+| CP.networking | VPC 네이티브 기본(Pod IP가 VPC 별칭 IP) → Cloud SQL 사설 IP 연결. 사설 노드의 인터넷은 Cloud NAT(고정 IP는 NAT IP 예약, 인용 미확인) | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/network-isolation · "To allow egress traffic to the internet, enable Cloud NAT or a custom NAT solution." · 2026-10-01 ⚠️근거없음 |
 | CP.regions | 서울 있음 | — | https://cloud.google.com/kubernetes-engine/pricing · "Seoul (asia-northeast3)" · 2026-10-01 |
 | CP.plan_limits | 범용 최소 requests: 버스팅 지원 클러스터 50m·52 MiB, 아니면 250m·512 MiB. CPU:메모리 1:1~1:6.5 | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/autopilot-resource-requests · "Clusters that support bursting : 50m CPU Clusters that don't support bursting : 250m CPU" · 2026-10-01 |
-| CP.ops_burden | 중간(평가): 노드는 Google 관리, 항상 릴리스 채널, **자동 업그레이드 끌 수 없음**(유지보수 창·제외로 시점만 조절). 매니페스트·Ingress·HPA·PDB는 직접 | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/cluster-upgrades-autopilot · "You can't disable automatic upgrades, however you can control their timing with maintenance windows and exclusions ." · 2026-10-01 |
+| CP.ops_burden | 중간(평가): 노드는 Google 관리, 항상 릴리스 채널, **자동 업그레이드 끌 수 없음**(유지보수 창·제외로 시점만 조절). 매니페스트·Ingress·HPA·PDB는 직접 | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/cluster-upgrades-autopilot · "You can't disable automatic upgrades, however you can control their timing with maintenance windows and exclusions ." · 2026-10-01 ⚠️근거없음 |
 | CP.cost_floor | 클러스터 요금 $0.10/시간(월 $73) — 결제 계정당 월 $74.40 크레딧으로 Autopilot 1개 상쇄. Pod requests 초 단위 과금: 서울 범용 vCPU $0.0571/시간, 메모리 $0.0063215/GiB-시간. 기본 0.5 vCPU·2 GiB Pod 1개 ≈ 월 $30.1. + 외부 LB 포워딩 규칙 약 $18.25 | 시스템 DaemonSet·대기 Pod 무과금 | https://cloud.google.com/kubernetes-engine/pricing · "The GKE free tier provides $74.40 in monthly credits per billing account, which is equivalent to one free Autopilot or zonal Standard cluster per month." / "you are charged in one-second increments for the CPU, memory, and ephemeral storage resources that your running Pods request" · 2026-10-01 |
 
 ### 비용 구조
@@ -626,7 +626,7 @@ Lambda 요금 + API Gateway 요청 요금. 고정비 0.
 
 ### 교체 계열 정보
 - 티어 1(Cloud Run)에서 올 때: 같은 이미지. 추가: Deployment(requests 필수), Service, Ingress/Gateway + BackendConfig(timeoutSec, 헬스체크 경로), HPA, PDB, readiness/liveness/startup probe, `preStop`. Cloud Run 동시성·max-instances → 앱 동시성 + HPA maxReplicas. Cloud Run IAM 호출자 → IAP 또는 앱 인증.
-- 티어 0에서 바로 오는 것은 비권장(평가): §1.1 + §1.2 전부.
+- 티어 0에서 바로 오는 것은 비권장(평가): §1.1 + §1.2 전부. ⚠️근거없음
 
 ### 함정
 - Ingress 기본값으로 웹소켓을 붙이면 30초마다 끊긴다. Cloud Run(최대 60분)에서 옮겨 올 때 가장 흔히 깨지는 지점.
@@ -645,20 +645,20 @@ Lambda 요금 + API Gateway 요청 요금. 고정비 0.
 | CP.process_types | 모든 워크로드(DaemonSet·특권 포함). CronJob 중복 가능성 §5.1 | — | https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/ · "`Allow` (default)" · 2026-10-01 |
 | CP.request_timeout | Ingress 30초 기본(§5.1) | — | https://docs.cloud.google.com/kubernetes-engine/docs/how-to/ingress-configuration · "the default value is 30 seconds." · 2026-10-01 |
 | CP.long_connection | §5.1과 같음 | — | https://docs.cloud.google.com/load-balancing/docs/https/request-distribution · "Websocket connections, whether idle or active, automatically close after the backend service times out." · 2026-10-01 |
-| CP.cpu_outside_request | 있음 | 쿠버네티스 일반 동작 | 미확인(인용) |
+| CP.cpu_outside_request | 있음 | 쿠버네티스 일반 동작 | 미확인(인용) ⚠️근거없음 |
 | CP.cold_start | 클러스터 오토스케일러는 **자동으로 0노드로 줄이지 않음**(최소 1노드 상시). 노드 부팅 80~120초 | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/cluster-autoscaler · "the cluster autoscaler never _automatically_ scales down a cluster to zero nodes. One or more nodes must always be available in the cluster to run system Pods." · 2026-10-01 |
 | CP.instance_size | 노드 VM 크기(E2 최대 32 vCPU·128 GB 등). GPU는 존별(§5.1 서울 존 목록) | — | https://docs.cloud.google.com/compute/docs/gpus/gpu-regions-zones · "asia-northeast3-b … G2 • N1+T4" · 2026-10-01 |
 | CP.request_size | LB 헤더 60 KiB, 본문 미확인 | — | https://docs.cloud.google.com/load-balancing/docs/quotas · "60 KiB" · 2026-10-01 |
 | CP.local_disk | 노드 부트 디스크(임시). PD PV는 RWO·**존 단위**(존 클러스터는 한 존) | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/persistent-volumes · "PersistentVolume resources that are backed by Compute Engine persistent disks don't support this access mode." · 2026-10-01 |
 | CP.scaling | HPA + 클러스터 오토스케일러(노드 풀 min/max, requests 기준), 최대 15,000노드 | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/cluster-autoscaler · "based on the resource requests (rather than actual resource utilization)" · 2026-10-01 |
-| CP.concurrency | 앱 | — | — |
+| CP.concurrency | 앱 | — | — ⚠️근거없음 |
 | CP.shutdown | 30초 기본. 서지 업그레이드는 PDB·grace를 최대 1시간 존중. Spot VM 노드는 기본 30초(앱 15초 + 시스템 15초), 최대 120초 | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/cluster-upgrades · "GKE respects the Pod's PodDisruptionBudget and GracefulTerminationPeriod settings for up to one hour." / https://docs.cloud.google.com/kubernetes-engine/docs/concepts/spot-vms · "This period is split into 15 seconds for your Pods to shut down" · 2026-10-01 |
 | CP.deploy | 롤링 25%/25%, rollout undo | — | https://kubernetes.io/docs/concepts/workloads/controllers/deployment/ · "The default value is 25%." · 2026-10-01 |
 | CP.availability | **단일 컨트롤 플레인**, SLA 99.5%. 컨트롤 플레인 업그레이드 중 워크로드 배포·변경 불가. 노드도 한 존 | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/cluster-upgrades · "Zonal clusters have only a single control plane. During the upgrade, your workloads continue to run, but you cannot deploy new workloads" / https://cloud.google.com/kubernetes-engine/sla · "Zonal Cluster (control plane) 99.5%" · 2026-10-01 |
 | CP.networking | §5.1과 같음(VPC 네이티브, Cloud NAT) | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/alias-ips · "VPC-native is the default network mode for all new clusters" · 2026-10-01 |
 | CP.regions | 서울 있음 | — | https://cloud.google.com/products/compute/pricing/general-purpose · 2026-10-01 |
 | CP.plan_limits | 클러스터 요금 $0.10/시간, 무료 크레딧 적용 대상 | — | https://cloud.google.com/kubernetes-engine/pricing · "A flat cluster management fee of $0.10 per cluster per hour (charged in 1 second increments) applies to all GKE clusters" · 2026-10-01 |
-| CP.ops_burden | 높음(평가): 노드 풀, 업그레이드 전략(서지·블루그린), 유지보수 창, 노드 크기·오토스케일 범위, 노드 OS 이미지 | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/cluster-upgrades · "GKE honors maintenance windows and exclusions during automatic upgrades when possible." · 2026-10-01 |
+| CP.ops_burden | 높음(평가): 노드 풀, 업그레이드 전략(서지·블루그린), 유지보수 창, 노드 크기·오토스케일 범위, 노드 OS 이미지 | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/cluster-upgrades · "GKE honors maintenance windows and exclusions during automatic upgrades when possible." · 2026-10-01 ⚠️근거없음 |
 | CP.cost_floor | 요금 $73 − 크레딧(첫 클러스터 0) + 노드 1대: 서울 e2-medium $0.04298286/시간 ≈ 월 $31.4(e2-small $15.7) + 부트 디스크(서울 PD 단가 미확인) + LB 약 $18.25 | 노드 초 단위, 최소 1분 | https://cloud.google.com/products/compute/pricing/general-purpose · "$0.04298286 / 1 hour" (e2-medium, Seoul) · 2026-10-01 |
 
 ### 비용 구조
@@ -683,20 +683,20 @@ Lambda 요금 + API Gateway 요청 요금. 고정비 0.
 | CP.process_types | §5.2와 같음 | — | https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/ · "`Allow` (default)" · 2026-10-01 |
 | CP.request_timeout | Ingress 30초 기본 | — | https://docs.cloud.google.com/kubernetes-engine/docs/how-to/ingress-configuration · "the default value is 30 seconds." · 2026-10-01 |
 | CP.long_connection | §5.1과 같음 | — | https://docs.cloud.google.com/load-balancing/docs/https/request-distribution · 2026-10-01 |
-| CP.cpu_outside_request | 있음 | — | 미확인(인용) |
+| CP.cpu_outside_request | 있음 | — | 미확인(인용) ⚠️근거없음 |
 | CP.cold_start | 노드 0 자동 축소 없음. **기본 노드 풀 9노드(존당 3)** | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/regional-clusters · "The default node pool created for regional Standard clusters consists of nine nodes (three per zone)" · 2026-10-01 |
 | CP.instance_size | VM 크기. **GPU는 요청 GPU가 있는 존이 하나 이상인 리전 선택** | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/regional-clusters · "choose a region that has at least one zone where the requested GPUs are available." · 2026-10-01 |
 | CP.request_size | §5.2와 같음 | — | https://docs.cloud.google.com/load-balancing/docs/quotas · "60 KiB" · 2026-10-01 |
 | CP.local_disk | PD RWO(존 단위) → Pod가 다른 존으로 옮기면 볼륨이 따라가지 않음. 리전 PD는 2개 존 복제 | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/persistent-volumes · 2026-10-01 (인용 §5.1) |
 | CP.scaling | §5.2와 같음(노드 풀은 존마다 복제) | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/cluster-autoscaler · 2026-10-01 |
-| CP.concurrency | 앱 | — | — |
+| CP.concurrency | 앱 | — | — ⚠️근거없음 |
 | CP.shutdown | §5.2와 같음 | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/cluster-upgrades · "for up to one hour." · 2026-10-01 |
 | CP.deploy | §5.2와 같음 | — | https://kubernetes.io/docs/concepts/workloads/controllers/deployment/ · "The default value is 25%." · 2026-10-01 |
 | CP.availability | **컨트롤 플레인과 노드를 여러 존에 복제**, SLA 99.95% | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/regional-clusters · "Regional clusters replicate the cluster's control plane and nodes across multiple zones within a single region." / https://cloud.google.com/kubernetes-engine/sla · "Regional Cluster (control plane) 99.95%" · 2026-10-01 |
-| CP.networking | §5.1과 같음. 존 간 트래픽 과금 | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/regional-clusters · 2026-10-01 (인용 미확인) |
+| CP.networking | §5.1과 같음. 존 간 트래픽 과금 | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/regional-clusters · 2026-10-01 (인용 미확인) ⚠️근거없음 |
 | CP.regions | 서울 있음(3개 존) | — | https://docs.cloud.google.com/compute/docs/gpus/gpu-regions-zones · "asia-northeast3-b Seoul, South Korea" · 2026-10-01 |
 | CP.plan_limits | **무료 크레딧 적용 안 됨** | — | https://cloud.google.com/kubernetes-engine/pricing · "cannot be applied to ... the cluster fee for Regional clusters" · 2026-10-01 |
-| CP.ops_burden | 높음(평가), §5.2와 같음 | — | — |
+| CP.ops_burden | 높음(평가), §5.2와 같음 | — | — ⚠️근거없음 |
 | CP.cost_floor | 요금 월 $73(상쇄 없음) + 존당 노드 1대 이상: e2-medium 3대 ≈ 월 $94.1 + LB 약 $18.25 → **약 $185**. 기본 9노드면 e2-medium 기준 약 $282 | — | https://cloud.google.com/kubernetes-engine/pricing · "$0.10 per cluster per hour" · 2026-10-01 |
 
 ### 비용 구조
@@ -721,8 +721,8 @@ EKS 네 모드 공통 사항(컨트롤 플레인, 버전 수명, ALB 컨트롤�
 | CP.process_types | 모든 워크로드(Deployment, DaemonSet, CronJob/Job, 장시간 연결). CronJob 중복 가능성은 §5.1 | — | https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/ · "`Allow` (default): The CronJob allows concurrently running Jobs" · 2026-10-01 |
 | CP.request_timeout | AWS Load Balancer Controller가 만드는 **ALB 유휴 기본 60초**(어노테이션 `load-balancer-attributes: idle_timeout.timeout_seconds=N`로 변경). NLB TCP 350초 | — | https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/guide/ingress/annotations/ · "alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=600" / https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html · "The idle timeout value, in seconds. The default is 60 seconds." · 2026-10-01 |
 | CP.long_connection | ALB 웹소켓 지원, 유휴 타임아웃 내 무기한. 노드 축소·교체 때 끊김 | — | https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html · "native support for WebSockets" · 2026-10-01 |
-| CP.cpu_outside_request | 있음(Pod 상시 실행) | EKS 문서 인용 없음 | 미확인(인용) |
-| CP.cold_start | 노드 그룹 최소값까지 축소(0 가능 여부는 CA 설정, 인용 미확인). 노드 프로비저닝 시간 미확인 | — | 미확인 |
+| CP.cpu_outside_request | 있음(Pod 상시 실행) | EKS 문서 인용 없음 | 미확인(인용) ⚠️근거없음 |
+| CP.cold_start | 노드 그룹 최소값까지 축소(0 가능 여부는 CA 설정, 인용 미확인). 노드 프로비저닝 시간 미확인 | — | 미확인 ⚠️근거없음 |
 | CP.instance_size | EC2 인스턴스 크기. 서울 GPU 계열: G4dn, G5, G5g, G6, G6e, G6f, Gr6, G7e, Inf1, Inf2, P4d, P5, P5en, P6-B300 등(AZ별 차이) | — | https://docs.aws.amazon.com/ec2/latest/instancetypes/ec2-instance-regions.html · "Accelerated Computing: F2 \| G4dn \| G5 \| G5g \| G6 \| G6e \| ... \| P4d \| P5 \| P5en \| P6-B300" / "An instance type that is supported in a Region might not be supported in all of the Availability Zones" · 2026-10-01 |
 | CP.request_size | ALB 헤더 64K, 본문 미확인 | — | https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-limits.html · "Entire request header \| 64 K \| No" · 2026-10-01 |
 | CP.local_disk | 노드 EBS(임시 성격). 영속: EBS CSI(RWO, **단일 AZ** — 볼륨과 인스턴스가 같은 AZ). 여러 AZ에 EBS 상태 워크로드를 두면 AZ마다 노드 그룹 + `--balance-similar-node-groups`. RWX는 EFS | — | https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html · "you should configure multiple node groups, each scoped to a single Availability Zone" / https://docs.aws.amazon.com/ebs/latest/userguide/ebs-volumes.html · "The volume and instance must be in the same Availability Zone." · 2026-10-01 |
@@ -734,7 +734,7 @@ EKS 네 모드 공통 사항(컨트롤 플레인, 버전 수명, ALB 컨트롤�
 | CP.networking | VPC CNI: Pod마다 VPC 사설 IP → RDS 사설 연결. 사설 서브넷 노드는 NAT 또는 ECR·S3 VPC 엔드포인트로 이미지 풀. 고정 출구 IP = NAT 탄력적 IP(§1.3) | — | https://docs.aws.amazon.com/eks/latest/userguide/managing-vpc-cni.html · "assigns a private IPv4 or IPv6 address from your VPC to each Pod" · 2026-10-01 |
 | CP.regions | 서울 있음 | — | https://docs.aws.amazon.com/general/latest/gr/eks.html · "ap-northeast-2" · 2026-10-01 |
 | CP.plan_limits | 표준 지원 14개월 + 연장 12개월. **연장 지원 기본 켜짐** → 업그레이드 안 하면 $0.10 → **$0.60/시간**. 연장 종료 시 컨트롤 플레인 자동 업그레이드(알림 없음), MNG 노드는 구버전에 남음 | — | https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html · "A minor version is under standard support in Amazon EKS for the first 14 months after it's released." / "Extended support is enabled by default." / "You won't receive any notification before the update." · 2026-10-01 |
-| CP.ops_burden | 높음(평가): 버전 업그레이드(연 1회 이상), 노드 AMI 패치 배포, 애드온(VPC CNI, CoreDNS, kube-proxy, EBS CSI, LB 컨트롤러, metrics-server, CA), IAM(Pod Identity), 서브넷 IP 계획 | — | https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html · "you're responsible for deploying these patched AMI versions to your managed node groups" · 2026-10-01 |
+| CP.ops_burden | 높음(평가): 버전 업그레이드(연 1회 이상), 노드 AMI 패치 배포, 애드온(VPC CNI, CoreDNS, kube-proxy, EBS CSI, LB 컨트롤러, metrics-server, CA), IAM(Pod Identity), 서브넷 IP 계획 | — | https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html · "you're responsible for deploying these patched AMI versions to your managed node groups" · 2026-10-01 ⚠️근거없음 |
 | CP.cost_floor | 컨트롤 플레인 $0.10/시간(월 $73). MNG 추가 요금 없음. t3.medium $0.052/시간(월 $37.96) × 2 + gp3 20 GB × 2($0.0912/GB-월) + ALB $16.43 + NAT 1개 $43.07 ≈ **월 $212** | 연장 지원 시 요금 월 $438 | [PL] AmazonEKS ap-northeast-2 · "Amazon EKS cluster usage in Asia Pacific (Seoul)" 0.10 / "Amazon EKS extended support usage in Asia Pacific (Seoul)" 0.50 / https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html · "There are no additional costs to use Amazon EKS managed node groups" · 2026-10-01 |
 
 ### 비용 구조
@@ -742,7 +742,7 @@ EKS 네 모드 공통 사항(컨트롤 플레인, 버전 수명, ALB 컨트롤�
 
 ### 교체 계열 정보
 - ECS(§3.1)에서 올 때: 태스크 정의 → Deployment·Service, 서비스 오토스케일 → HPA, 태스크 역할 → Pod Identity, ALB 대상 그룹 → LB 컨트롤러 Ingress(`target-type`), 서킷 브레이커 → 롤아웃 감시. SIGTERM 계약은 같지만 기본 유예가 30초로 같아도 preStop 시간이 그 안에 포함된다.
-- 티어 0에서 바로 오는 것은 비권장(평가).
+- 티어 0에서 바로 오는 것은 비권장(평가). ⚠️근거없음
 
 ### 함정
 - 등록 해제 지연 300초 vs Pod grace 30초 불일치: preStop sleep + `deregistration_delay` 단축 없이는 배포 중 502/504.
@@ -761,24 +761,24 @@ EKS 네 모드 공통 사항(컨트롤 플레인, 버전 수명, ALB 컨트롤�
 | CP.process_types | §6.1과 같음 | — | §6.1 |
 | CP.request_timeout | ALB 60초(§6.1) | — | §6.1 |
 | CP.long_connection | §6.1과 같음. 노드 만료·통합(consolidation) 때 끊김 | — | §6.1 |
-| CP.cpu_outside_request | 있음 | — | 미확인(인용) |
+| CP.cpu_outside_request | 있음 | — | 미확인(인용) ⚠️근거없음 |
 | CP.cold_start | 부하에 맞는 노드를 **1분 안에** 기동 | — | https://docs.aws.amazon.com/eks/latest/userguide/autoscaling.html · "Karpenter launches right-sized compute resources (for example, Amazon EC2 instances) in response to changing application load in under a minute." · 2026-10-01 |
 | CP.instance_size | 기본은 리전의 모든 인스턴스 유형. GPU는 NodePool로 | — | https://docs.aws.amazon.com/eks/latest/best-practices/karpenter.html · "By default, Karpenter will use all Instance Types EC2 offers in the region" · 2026-10-01 |
 | CP.request_size | §6.1 | — | §6.1 |
 | CP.local_disk | §6.1과 같음(EBS 단일 AZ) | — | §6.1 |
 | CP.scaling | 대기 Pod 기준 노드 직접 생성(ASG 없음), 통합으로 축소. **클러스터 전역 상한 설정 불가**(NodePool별 limits만) | — | https://docs.aws.amazon.com/eks/latest/best-practices/karpenter.html · "It is not possible to set a global limit for the whole cluster." · 2026-10-01 |
-| CP.concurrency | 앱 | — | — |
-| CP.shutdown | Pod 30초 기본. 노드 `expireAfter` 기본 **720시간(30일)**, 중단 예산 기본 노드 10%. `karpenter.sh/do-not-disrupt`로 보호. Spot 중단 처리는 SQS 큐 필요 | — | https://karpenter.sh/docs/concepts/disruption/ · "By default, expireAfter is set to 720h (30 days)." / "If undefined, Karpenter will default to one budget with nodes: 10%." · 2026-10-01 |
+| CP.concurrency | 앱 | — | — ⚠️근거없음 |
+| CP.shutdown | Pod 30초 기본. 노드 `expireAfter` 기본 **720시간(30일)**, 중단 예산 기본 노드 10%. `karpenter.sh/do-not-disrupt`로 보호. Spot 중단 처리는 SQS 큐 필요 | — | https://karpenter.sh/docs/concepts/disruption/ · "By default, expireAfter is set to 720h (30 days)." / "If undefined, Karpenter will default to one budget with nodes: 10%." · 2026-10-01 ⚠️출처확인필요 |
 | CP.deploy | §6.1 | — | §6.1 |
 | CP.availability | §6.1 + 컨트롤러는 Karpenter가 관리하지 않는 노드(MNG 또는 Fargate)에서 실행해야 함. **Karpenter에는 AWS SLA 없음** | — | https://docs.aws.amazon.com/eks/latest/best-practices/karpenter.html · "Do not run Karpenter on a node that is managed by Karpenter." / https://docs.aws.amazon.com/eks/latest/userguide/autoscaling.html · "There is no AWS Service Level Agreement (SLA) for Karpenter" · 2026-10-01 |
 | CP.networking | §6.1 | — | §6.1 |
 | CP.regions | 서울 있음 | — | §6.1 |
 | CP.plan_limits | §6.1(버전 정책) | — | §6.1 |
-| CP.ops_burden | 높음(평가): §6.1 + Karpenter 자체 설치·업그레이드(OSS), NodePool·EC2NodeClass, 중단 큐 | — | https://docs.aws.amazon.com/eks/latest/userguide/autoscaling.html · "There is no AWS Service Level Agreement (SLA) for Karpenter" · 2026-10-01 |
+| CP.ops_burden | 높음(평가): §6.1 + Karpenter 자체 설치·업그레이드(OSS), NodePool·EC2NodeClass, 중단 큐 | — | https://docs.aws.amazon.com/eks/latest/userguide/autoscaling.html · "There is no AWS Service Level Agreement (SLA) for Karpenter" · 2026-10-01 ⚠️근거없음 |
 | CP.cost_floor | 요금 $73 + 컨트롤러용 노드(MNG 소형 또는 Fargate Pod) + 워크로드 노드 + ALB + NAT ≈ §6.1과 비슷(정확한 최소 구성 단가는 미확인) | — | [PL] AmazonEKS ap-northeast-2 · 2026-10-01 |
 
 ### 비용 구조
-노드 크기를 Pod requests에 맞춰 골라 대규모에서 절감. 소규모에서는 컨트롤러 노드 때문에 MNG보다 싸지 않다(평가). NodePool limits가 없으면 비용 상한이 없다.
+노드 크기를 Pod requests에 맞춰 골라 대규모에서 절감. 소규모에서는 컨트롤러 노드 때문에 MNG보다 싸지 않다(평가). NodePool limits가 없으면 비용 상한이 없다. ⚠️근거없음
 
 ### 교체 계열 정보
 MNG(§6.1)에서 올 때 앱 코드 변경 없음. 노드 중단이 잦아지므로 PDB·preStop·재연결이 필수가 된다.
@@ -797,20 +797,20 @@ MNG(§6.1)에서 올 때 앱 코드 변경 없음. 노드 중단이 잦아지므
 | CP.process_types | 모든 워크로드, DaemonSet 지원 | — | https://docs.aws.amazon.com/eks/latest/userguide/automode.html · "Rather than modify services installed on your nodes, you can instead use Kubernetes DaemonSets." · 2026-10-01 |
 | CP.request_timeout | 내장 ALB 연동, 유휴 60초 기본. `group.name` Ingress 어노테이션 미지원(IngressClassParams로) | — | https://docs.aws.amazon.com/eks/latest/userguide/auto-configure-alb.html · "Not supported / Specify groups in IngressClass only" · 2026-10-01 |
 | CP.long_connection | §6.1과 같음, 노드 교체(최대 21일) 때 끊김 | — | §6.1 |
-| CP.cpu_outside_request | 있음 | — | 미확인(인용) |
-| CP.cold_start | Karpenter 기반 노드 생성(시간 수치 미확인). 노드 0까지 축소 여부 인용 미확인 | — | https://docs.aws.amazon.com/eks/latest/userguide/autoscaling.html · "EKS Auto Mode builds upon Karpenter." · 2026-10-01 |
+| CP.cpu_outside_request | 있음 | — | 미확인(인용) ⚠️근거없음 |
+| CP.cold_start | Karpenter 기반 노드 생성(시간 수치 미확인). 노드 0까지 축소 여부 인용 미확인 | — | https://docs.aws.amazon.com/eks/latest/userguide/autoscaling.html · "EKS Auto Mode builds upon Karpenter." · 2026-10-01 ⚠️근거없음 |
 | CP.instance_size | CPU 1개 초과, nano·micro·small 제외. **기본 내장 풀은 C·M·R, 온디맨드, 5세대 이상만(GPU·Spot 제외)** → GPU(g4dn·g5·g6·p4d·p5 등)는 사용자 NodePool | — | https://docs.aws.amazon.com/eks/latest/userguide/auto-cost-control.html · "No accelerated (P, G, Inf, Trn) or exotic instance types are permitted." · 2026-10-01 |
 | CP.request_size | §6.1 | — | §6.1 |
 | CP.local_disk | EBS는 `ebs.csi.eks.amazonaws.com` 프로비저너만. 기존 볼륨은 스냅샷 이전 필요 | — | https://docs.aws.amazon.com/eks/latest/userguide/ebs-csi.html · "EKS Auto Mode requires storage classes to use ebs.csi.eks.amazonaws.com as the provisioner." · 2026-10-01 |
 | CP.scaling | Karpenter 기반 자동 확장·통합. 내장 풀은 CPU·메모리 상한 없음, 지속 실패 시 다른 허용 유형으로 대체 기동 | — | https://docs.aws.amazon.com/eks/latest/userguide/auto-cost-control.html · "when sustained launch failures occur, EKS Auto Mode will launch from any remaining available instance type" · 2026-10-01 |
-| CP.concurrency | 앱 | — | — |
+| CP.concurrency | 앱 | — | — ⚠️근거없음 |
 | CP.shutdown | Pod 30초 기본. **노드 최대 수명 21일**(줄일 수 있음), 자동 교체 | — | https://docs.aws.amazon.com/eks/latest/userguide/automode.html · "nodes launched by EKS Auto Mode have a maximum lifetime of 21 days (which you can reduce)" · 2026-10-01 |
 | CP.deploy | §6.1. ALB 대상 유형 기본 `ip` | — | https://docs.aws.amazon.com/eks/latest/userguide/auto-configure-alb.html · "Valid values are instance and ip. The default is ip." · 2026-10-01 |
 | CP.availability | §6.1(컨트롤 플레인 3 AZ) | — | §6.1 |
 | CP.networking | VPC CNI·네트워크 정책 내장. IMDSv2 홉 1 고정. 노드 SSH·SSM 접근 불가 | — | https://docs.aws.amazon.com/eks/latest/userguide/automode.html · "Prevents direct access to the nodes by disallowing SSH or SSM access." · 2026-10-01 |
 | CP.regions | 서울 있음 | — | [PL] AmazonEKS ap-northeast-2 · "$0.00624 per hour for EKS Auto Mode management of t3.medium in Asia Pacific (Seoul)" · 2026-10-01 |
 | CP.plan_limits | §6.1 버전 정책 + 인스턴스별 관리비 | — | https://aws.amazon.com/eks/pricing/ · "a management fee that varies based on the EC2 instance type launched, in addition to your regular EC2 instance costs" · 2026-10-01 |
-| CP.ops_burden | 중간(평가): AWS가 컴퓨트 오토스케일, Pod 네트워킹, ELB 연동, EBS 드라이버, 노드 OS 패치(주간 AMI) 관리. 남는 일: 클러스터 버전 업그레이드, 매니페스트, NodePool(GPU 등) | — | https://docs.aws.amazon.com/eks/latest/userguide/automode.html · "AWS manages compute autoscaling, Pod networking with network policy enforcement, Elastic Load Balancing integration, and storage drivers configuration." · 2026-10-01 |
+| CP.ops_burden | 중간(평가): AWS가 컴퓨트 오토스케일, Pod 네트워킹, ELB 연동, EBS 드라이버, 노드 OS 패치(주간 AMI) 관리. 남는 일: 클러스터 버전 업그레이드, 매니페스트, NodePool(GPU 등) | — | https://docs.aws.amazon.com/eks/latest/userguide/automode.html · "AWS manages compute autoscaling, Pod networking with network policy enforcement, Elastic Load Balancing integration, and storage drivers configuration." · 2026-10-01 ⚠️근거없음 |
 | CP.cost_floor | 요금 $73 + 노드 1대(예: c6g.large $0.077 + 관리비 $0.00924 = 월 $63.0, 기본 풀에서 Graviton 허용 여부는 미확인) + ALB $16.43 + NAT $43.07 ≈ **월 $195** + EBS | — | [PL] AmazonEC2 ap-northeast-2 · "$0.077 per On Demand Linux c6g.large Instance Hour" / [PL] AmazonEKS · "EKS-Auto:c6g.large-management-hours" 0.00924 · 2026-10-01 |
 
 ### 비용 구조
@@ -835,19 +835,19 @@ MNG·Karpenter에서 올 때: StorageClass 프로비저너 교체 + 볼륨 스�
 | CP.request_timeout | ALB 60초. **대상 유형 `ip` 필수**(LB 컨트롤러 기본은 `instance`) | — | https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/guide/ingress/annotations/ · "target-type / instance \| ip / instance" · 2026-10-01 |
 | CP.long_connection | §6.1과 같음. AWS가 주기적으로 Pod를 패치·축출 | — | https://docs.aws.amazon.com/eks/latest/userguide/fargate.html · "there are times when Pods must be deleted if they aren't successfully evicted" · 2026-10-01 |
 | CP.cpu_outside_request | 있음, 단 요청한 만큼만(버스트 불가) | — | https://docs.aws.amazon.com/eks/latest/userguide/fargate.html · "No – The Pod can be re-deployed using a larger vCPU and memory configuration though." · 2026-10-01 |
-| CP.cold_start | scale-to-zero 없음(노드 개념 없음, Pod 기동 시간 미확인) | — | 미확인 |
+| CP.cold_start | scale-to-zero 없음(노드 개념 없음, Pod 기동 시간 미확인) | — | 미확인 ⚠️근거없음 |
 | CP.instance_size | 최대 16 vCPU·120 GB, requests = limits, Pod마다 256 MB 추가(1 vCPU·8 GB → 2 vCPU·9 GB로 과금). **GPU·Arm·Windows 없음** | — | https://docs.aws.amazon.com/eks/latest/userguide/fargate-pod-configuration.html · "16 vCPU \| Between 32 GB and 120 GB in 8-GB increments" / https://docs.aws.amazon.com/eks/latest/userguide/fargate.html · "GPUs aren't currently available on Fargate." · 2026-10-01 |
 | CP.request_size | §6.1 | — | §6.1 |
 | CP.local_disk | 임시 20 GiB 기본, 최대 175 GiB(Pod 종료 시 삭제). **EBS 불가**, EFS 정적 프로비저닝만 | — | https://docs.aws.amazon.com/eks/latest/userguide/fargate-pod-configuration.html · "each Pod running on Fargate receives a default 20 GiB of ephemeral storage" / https://docs.aws.amazon.com/eks/latest/userguide/fargate.html · "You can't mount Amazon EBS volumes to Fargate Pods." · 2026-10-01 |
 | CP.scaling | HPA. 노드 오토스케일러 불필요. Fargate 온디맨드 vCPU 할당량 기본 6 | — | https://docs.aws.amazon.com/general/latest/gr/eks.html · "Fargate On-Demand vCPU resource count \| 6" · 2026-10-01 |
-| CP.concurrency | 앱 | — | — |
+| CP.concurrency | 앱 | — | — ⚠️근거없음 |
 | CP.shutdown | Pod 30초 기본(§6.1) | — | https://docs.aws.amazon.com/eks/latest/best-practices/application.html · "This grace period is 30 seconds by default" · 2026-10-01 |
 | CP.deploy | §6.1 | — | §6.1 |
 | CP.availability | §6.1 컨트롤 플레인. Fargate SLA 미확인 | — | 미확인 |
 | CP.networking | **사설 서브넷 전용**(NAT 필요), IMDS 없음 | — | https://docs.aws.amazon.com/eks/latest/userguide/fargate.html · "Pods that run on Fargate are only supported on private subnets" · 2026-10-01 |
 | CP.regions | 서울 있음 | — | 위 whats-new · 2026-10-01 |
 | CP.plan_limits | **EKS에서 Fargate Spot 미지원**. 컨트롤 플레인 업그레이드 시 Fargate Pod는 재배포로 직접 갱신 | — | https://docs.aws.amazon.com/eks/latest/userguide/fargate.html · "Amazon EKS doesn't support Fargate Spot." / https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html · "you must still update the Fargate nodes yourself" · 2026-10-01 |
-| CP.ops_burden | 중간(평가): 노드 없음. 남는 일: 클러스터 업그레이드, Pod 재배포, 프로필 셀렉터, 사설 서브넷·NAT | — | — |
+| CP.ops_burden | 중간(평가): 노드 없음. 남는 일: 클러스터 업그레이드, Pod 재배포, 프로필 셀렉터, 사설 서브넷·NAT | — | — ⚠️근거없음 |
 | CP.cost_floor | 요금 $73 + Pod 과금(이미지 다운로드 시작부터, 최소 1분; 서울 vCPU $0.04656/시간, GB $0.00511/시간) + **NAT 필수** $43.07 + ALB $16.43. 앱 Pod 0.25 vCPU·0.5 GB(→ 1 GB 과금) ≈ 월 $12.2. CoreDNS도 Fargate Pod로 과금 → **월 약 $145 + CoreDNS** | — | [PL] AmazonEKS ap-northeast-2 · "AWS Fargate - vCPU - Asia Pacific (Seoul)" 0.04656 · 2026-10-01 |
 
 ### 비용 구조
@@ -868,23 +868,23 @@ ECS Fargate에서 올 때 같은 격리 모델이다. Ingress `target-type: ip`,
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| CP.process_types | 모든 쿠버네티스 워크로드 | — | https://docs.k3s.io/installation/requirements · 2026-10-01 |
+| CP.process_types | 모든 쿠버네티스 워크로드 | — | https://docs.k3s.io/installation/requirements · 2026-10-01 ⚠️출처확인필요 |
 | CP.request_timeout | 기본 내장 Traefik 인그레스 설정에 따름(기본값 미확인). 앞에 클라우드 LB를 두면 그 LB 값 | — | 미확인 |
 | CP.long_connection | Traefik 설정에 따름(미확인) | — | 미확인 |
-| CP.cpu_outside_request | 있음 | — | 미확인(인용) |
-| CP.cold_start | 노드 오토스케일 없음(VM 고정) | — | 평가 |
-| CP.instance_size | VM 크기. 서버 최소 2코어·2 GB, 에이전트 1코어·512 MB | — | https://docs.k3s.io/installation/requirements · server "2 cores" "2 GB"; agent "1 core" "512 MB" · 2026-10-01 |
-| CP.request_size | Traefik 설정(미확인) | — | 미확인 |
-| CP.local_disk | Local Path Provisioner: 볼륨이 **노드에 고정**(노드 장애 시 Pod 이동 불가). 분산 저장은 Longhorn | — | https://docs.k3s.io/add-ons/storage · "Note that this does result in permanently binding the pod to the node hosting the volume" · 2026-10-01 |
-| CP.scaling | HPA만(노드 증설은 수동) | — | 평가 |
-| CP.concurrency | 앱 | — | — |
+| CP.cpu_outside_request | 있음 | — | 미확인(인용) ⚠️근거없음 |
+| CP.cold_start | 노드 오토스케일 없음(VM 고정) | — | 평가 ⚠️근거없음 |
+| CP.instance_size | VM 크기. 서버 최소 2코어·2 GB, 에이전트 1코어·512 MB | — | https://docs.k3s.io/installation/requirements · server "2 cores" "2 GB"; agent "1 core" "512 MB" · 2026-10-01 ⚠️출처확인필요 |
+| CP.request_size | Traefik 설정(미확인) | — | 미확인 ⚠️근거없음 |
+| CP.local_disk | Local Path Provisioner: 볼륨이 **노드에 고정**(노드 장애 시 Pod 이동 불가). 분산 저장은 Longhorn | — | https://docs.k3s.io/add-ons/storage · "Note that this does result in permanently binding the pod to the node hosting the volume" · 2026-10-01 ⚠️출처확인필요 |
+| CP.scaling | HPA만(노드 증설은 수동) | — | 평가 ⚠️근거없음 |
+| CP.concurrency | 앱 | — | — ⚠️근거없음 |
 | CP.shutdown | Pod 30초 기본(쿠버네티스) | — | https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/ · "which defaults to 30 seconds." · 2026-10-01 |
 | CP.deploy | 롤링 25%(쿠버네티스) | — | https://kubernetes.io/docs/concepts/workloads/controllers/deployment/ · "The default value is 25%." · 2026-10-01 |
-| CP.availability | 기본 데이터스토어 SQLite는 **서버 1대 전용**. HA는 임베디드 etcd 서버 **3대 이상**(홀수) | — | https://docs.k3s.io/datastore · "SQLite cannot be used on clusters with multiple servers." / https://docs.k3s.io/datastore/ha-embedded · "Three or more server nodes that will serve the Kubernetes API and run other control plane services" · 2026-10-01 |
-| CP.networking | ServiceLB(Klipper)가 모든 노드의 80/443을 hostPort로 점유. 포트 6443(API), UDP 8472(VXLAN), 10250 | — | https://docs.k3s.io/networking/networking-services · "ports 80 and 443 will not be usable for other HostPort or NodePort pods" · 2026-10-01 |
-| CP.regions | VM 리전 | — | — |
-| CP.plan_limits | 없음(자체 운영) | — | — |
-| CP.ops_burden | **가장 높음**(평가): OS 패치, k3s 업그레이드, etcd 백업, 인증서, 저장소, LB, 모니터링 전부 직접 | — | — |
+| CP.availability | 기본 데이터스토어 SQLite는 **서버 1대 전용**. HA는 임베디드 etcd 서버 **3대 이상**(홀수) | — | https://docs.k3s.io/datastore · "SQLite cannot be used on clusters with multiple servers." / https://docs.k3s.io/datastore/ha-embedded · "Three or more server nodes that will serve the Kubernetes API and run other control plane services" · 2026-10-01 ⚠️출처확인필요 |
+| CP.networking | ServiceLB(Klipper)가 모든 노드의 80/443을 hostPort로 점유. 포트 6443(API), UDP 8472(VXLAN), 10250 | — | https://docs.k3s.io/networking/networking-services · "ports 80 and 443 will not be usable for other HostPort or NodePort pods" · 2026-10-01 ⚠️출처확인필요 |
+| CP.regions | VM 리전 | — | — ⚠️근거없음 |
+| CP.plan_limits | 없음(자체 운영) | — | — ⚠️근거없음 |
+| CP.ops_burden | **가장 높음**(평가): OS 패치, k3s 업그레이드, etcd 백업, 인증서, 저장소, LB, 모니터링 전부 직접 | — | — ⚠️근거없음 |
 | CP.cost_floor | VM 1대: EC2 t3.small $0.026/시간(월 $18.98) + gp3 20 GB $1.82 + 공인 IPv4 $3.65 ≈ **월 $24.5**. HA는 서버 3대(×3) | — | [PL] AmazonEC2 ap-northeast-2 · "$0.026 per On Demand Linux t3.small Instance Hour" · 2026-10-01 |
 
 ### 비용 구조
@@ -906,21 +906,21 @@ VM 비용뿐. 관리형 컨트롤 플레인 요금·LB 요금이 없는 대신 �
 |---|---|---|---|
 | CP.process_types | 모두(웹, 상시 워커, cron, 장시간 연결). 컨테이너 재시작 기본은 `no` → `restart:` 지정 필요 | — | https://docs.docker.com/reference/compose-file/services/ · "no: The default restart policy. It does not restart the container under any circumstances." · 2026-10-01 |
 | CP.request_timeout | 플랫폼 상한 없음(리버스 프록시·앞단 LB 설정에 따름). ALB를 붙이면 60초 기본 | — | 평가 / §1.3 |
-| CP.long_connection | 제한 없음(프록시 설정에 따름) | — | 평가 |
-| CP.cpu_outside_request | 있음 | — | 평가 |
-| CP.cold_start | 해당 없음(상시). scale-to-zero 없음 | — | 평가 |
+| CP.long_connection | 제한 없음(프록시 설정에 따름) | — | 평가 ⚠️근거없음 |
+| CP.cpu_outside_request | 있음 | — | 평가 ⚠️근거없음 |
+| CP.cold_start | 해당 없음(상시). scale-to-zero 없음 | — | 평가 ⚠️근거없음 |
 | CP.instance_size | 인스턴스 유형 크기. 서울 GPU: g4dn.xlarge $0.647/시간, g5.xlarge $1.237, g6.xlarge $0.9896 | AZ별 제공 차이 | [PL] AmazonEC2 ap-northeast-2 · "$0.9896 per On Demand Linux g6.xlarge Instance Hour" · 2026-10-01 |
-| CP.request_size | 리버스 프록시 설정(nginx 기본 등, 미확인) | — | 미확인 |
+| CP.request_size | 리버스 프록시 설정(nginx 기본 등, 미확인) | — | 미확인 ⚠️근거없음 |
 | CP.local_disk | EBS: **인스턴스와 독립적으로 영속**, 같은 AZ에서만 연결. 인스턴스 스토어는 정지·종료 시 소멸 | 인스턴스 1대만 쓰므로 B2(로컬 파일·SQLite)와 맞음, 대신 확장 불가 | https://docs.aws.amazon.com/ebs/latest/userguide/ebs-volumes.html · "EBS volumes persist independently from the running life of an EC2 instance." / https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-store-lifetime.html · "the data does not persist if the instance is stopped, hibernated, or terminated" · 2026-10-01 |
-| CP.scaling | 오토스케일 없음(수직 확장 = 유형 변경, 재시작 필요) | — | 평가 |
-| CP.concurrency | 앱 | — | — |
+| CP.scaling | 오토스케일 없음(수직 확장 = 유형 변경, 재시작 필요) | — | 평가 ⚠️근거없음 |
+| CP.concurrency | 앱 | — | — ⚠️근거없음 |
 | CP.shutdown | compose `stop_grace_period` 기본 **10초** 후 SIGKILL | — | https://docs.docker.com/reference/compose-file/services/ · "Default value is 10 seconds for the container to exit before sending SIGKILL." · 2026-10-01 |
-| CP.deploy | `docker compose up -d`로 컨테이너 교체 = **배포 중 순단**(무중단·롤백 수단 없음, 직접 구성) | — | 평가 |
+| CP.deploy | `docker compose up -d`로 컨테이너 교체 = **배포 중 순단**(무중단·롤백 수단 없음, 직접 구성) | — | 평가 ⚠️근거없음 |
 | CP.availability | 단일 AZ. 인스턴스 수준 SLA 99.5%. AWS 예약 이벤트(재부팅·정지·폐기) | — | https://aws.amazon.com/compute/sla/ · "Single EC2 Instance available with an Instance-Level Uptime Percentage of at least 99.5%" / https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/monitoring-instances-status-check_sched.html · "AWS can schedule events to reboot, stop, and retire your instances." · 2026-10-01 |
 | CP.networking | 같은 VPC의 RDS에 사설 연결. 고정 IP = 탄력적 IP(리전당 기본 5개, 유휴도 과금) | — | https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html · "An Elastic IP address is static; it does not change over time." · 2026-10-01 |
 | CP.regions | 서울 있음 | — | [PL] AmazonEC2 ap-northeast-2 · 2026-10-01 |
-| CP.plan_limits | 계정 vCPU 할당량(미확인) | — | 미확인 |
-| CP.ops_burden | 높음(평가): OS 패치, Docker 업데이트, TLS 인증서, 백업(EBS 스냅샷), 모니터링, 디스크 가득 참 | — | — |
+| CP.plan_limits | 계정 vCPU 할당량(미확인) | — | 미확인 ⚠️근거없음 |
+| CP.ops_burden | 높음(평가): OS 패치, Docker 업데이트, TLS 인증서, 백업(EBS 스냅샷), 모니터링, 디스크 가득 참 | — | — ⚠️근거없음 |
 | CP.cost_floor | t4g.small $0.0208/시간(월 $15.18) 또는 t3.small $0.026(월 $18.98) + gp3 20 GB $1.82 + 공인 IPv4 $3.65 → **월 $20.7~24.5**. LB·NAT 없음 | — | [PL] AmazonEC2 ap-northeast-2 · "$0.0208 per On Demand Linux t4g.small Instance Hour" / "$0.0912 per GB-month of General Purpose (gp3) provisioned storage - Asia Pacific (Seoul)" · 2026-10-01 |
 
 ### 비용 구조
@@ -944,21 +944,21 @@ VM 비용뿐. 관리형 컨트롤 플레인 요금·LB 요금이 없는 대신 �
 |---|---|---|---|
 | CP.process_types | 모두 | — | https://docs.docker.com/reference/compose-file/services/ · "no: The default restart policy." · 2026-10-01 |
 | CP.request_timeout | 상한 없음(프록시 설정). 외부 ALB를 붙이면 30초 기본 | — | §1.3 |
-| CP.long_connection | 제한 없음 | — | 평가 |
-| CP.cpu_outside_request | 있음 | — | 평가 |
-| CP.cold_start | 해당 없음 | — | 평가 |
+| CP.long_connection | 제한 없음 | — | 평가 ⚠️근거없음 |
+| CP.cpu_outside_request | 있음 | — | 평가 ⚠️근거없음 |
+| CP.cold_start | 해당 없음 | — | 평가 ⚠️근거없음 |
 | CP.instance_size | E2 최대 e2-standard-32(32 vCPU·128 GB), VM당 PD 합계 257 TiB. GPU: 서울 존 a=G2(L4), b=A2·G2·N1+T4, c=A3·N1+T4. GPU VM은 라이브 마이그레이션 안 됨 | — | https://docs.cloud.google.com/compute/docs/general-purpose-machines · "the total Persistent Disk capacity can't exceed 257 TiB" / https://docs.cloud.google.com/compute/docs/instances/live-migration-process · "VM instances with GPUs attached must be set to stop and optionally restart." · 2026-10-01 |
-| CP.request_size | 프록시 설정(미확인) | — | 미확인 |
-| CP.local_disk | Persistent Disk 영속(존 단위) | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/persistent-volumes · 2026-10-01 (PD 존 단위는 GKE 문서 기준, VM 문서 인용 미확인) |
-| CP.scaling | 없음 | — | 평가 |
-| CP.concurrency | 앱 | — | — |
+| CP.request_size | 프록시 설정(미확인) | — | 미확인 ⚠️근거없음 |
+| CP.local_disk | Persistent Disk 영속(존 단위) | — | https://docs.cloud.google.com/kubernetes-engine/docs/concepts/persistent-volumes · 2026-10-01 (PD 존 단위는 GKE 문서 기준, VM 문서 인용 미확인) ⚠️근거없음 |
+| CP.scaling | 없음 | — | 평가 ⚠️근거없음 |
+| CP.concurrency | 앱 | — | — ⚠️근거없음 |
 | CP.shutdown | compose 10초 | — | https://docs.docker.com/reference/compose-file/services/ · "Default value is 10 seconds for the container to exit before sending SIGKILL." · 2026-10-01 |
-| CP.deploy | 순단 배포(직접 구성) | — | 평가 |
+| CP.deploy | 순단 배포(직접 구성) | — | 평가 ⚠️근거없음 |
 | CP.availability | 단일 인스턴스 SLA ≥99.9%, 여러 존 ≥99.99% | — | https://cloud.google.com/compute/sla · "A Single Instance of all other families** >= 99.9%" · 2026-10-01 |
-| CP.networking | VPC 사설 IP로 Cloud SQL 사설 연결. 고정 외부 IP 예약(단가 미확인) | — | 미확인 |
+| CP.networking | VPC 사설 IP로 Cloud SQL 사설 연결. 고정 외부 IP 예약(단가 미확인) | — | 미확인 ⚠️근거없음 |
 | CP.regions | 서울 있음 | — | https://cloud.google.com/products/compute/pricing/general-purpose · 2026-10-01 |
 | CP.plan_limits | 무료 e2-micro는 **미국 3개 리전만**(서울 아님) | — | https://cloud.google.com/free/docs/free-cloud-features · "1 non-preemptible e2-micro VM instance per month in one of the following US regions" · 2026-10-01 |
-| CP.ops_burden | 높음(평가), §7.1과 같음 | — | — |
+| CP.ops_burden | 높음(평가), §7.1과 같음 | — | — ⚠️근거없음 |
 | CP.cost_floor | 서울 e2-micro $0.010745715/시간(월 $7.84), e2-small $0.02149143(월 $15.69), e2-medium $0.04298286(월 $31.38) + 디스크·외부 IP(서울 단가 미확인) | — | https://cloud.google.com/products/compute/pricing/general-purpose · "$0.04298286 / 1 hour" (e2-medium, Seoul) · 2026-10-01 |
 
 ### 비용 구조

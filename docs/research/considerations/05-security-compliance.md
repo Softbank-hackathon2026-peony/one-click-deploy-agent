@@ -64,7 +64,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어1·2: BuildKit `RUN --mount=type=secret`, `.dockerignore`에 `.env*` 추가, 런타임 주입으로 전환.
 - **검증:** `docker history --no-trunc`와 trivy secret 스캔으로 이미지 검사.
 - **비용 영향:** 중립
-- **출처:** https://docs.docker.com/build/building/secrets/ (빌드 인자·환경변수는 최종 이미지에 남음, secret mount 사용) · https://trivy.dev/docs/latest/ (이미지 내 secret 스캔)
+- **출처:** https://docs.docker.com/build/building/secrets/ (빌드 인자·환경변수는 최종 이미지에 남음, secret mount 사용) · https://trivy.dev/docs/latest/ (이미지 내 secret 스캔) ⚠️출처확인필요
 
 ### S-004 비밀 교체(로테이션) 불가 구조
 - **무엇/왜:** 키가 코드 상수이거나 여러 서비스에 복사돼 있으면 유출 시 교체에 배포가 필요하고, 교체를 미루게 된다. 세션·JWT 서명 키는 이전 키를 잠깐 함께 허용하는 구조가 필요하다.
@@ -104,7 +104,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어0: Vercel 환경별(Production/Preview/Development) 변수 분리, 프리뷰는 별도 Supabase 프로젝트·브랜치 / 티어1·2: 환경별 계정·프로젝트·네임스페이스와 별도 비밀.
 - **검증:** IaC에서 환경별 비밀 리소스가 다른지 확인.
 - **비용 영향:** 증가 (별도 개발 DB 비용)
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### S-008 비밀 저장소 접근 권한 과다
 - **무엇/왜:** 모든 서비스·사람이 모든 비밀을 읽을 수 있으면 한 곳만 뚫려도 전부 유출된다. k8s에서는 네임스페이스에 Pod를 만들 수 있는 사람이 그 네임스페이스 Secret을 모두 읽을 수 있다.
@@ -163,7 +163,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 ### S-013 Supabase Storage 공개 버킷·정책 누락
 - **무엇/왜:** 공개 버킷은 접근 제어 없이 다운로드된다. 프로필 사진은 괜찮지만 신분증·계약서·영수증을 공개 버킷에 두면 URL만 알면 누구나 받는다.
 - **실패 양상:** 경로 추측이나 링크 공유로 개인 서류 유출.
-- **신호:** 🟢 `storage.createBucket(..., { public: true })`, 마이그레이션 `insert into storage.buckets ... public = true`. 🟡 버킷 이름(`documents`, `ids`, `receipts`)과 공개 여부 조합은 추론.
+- **신호:** 🟢 `storage.createBucket(..., { public: true })`, 마이그레이션 `insert into storage.buckets ... public = true`. 🟡 버킷 이름(`documents`, `ids`, `receipts`)과 공개 여부 조합은 추론. ⚠️근거없음
 - **시나리오·수준:** S L1 이상
 - **처방:** 티어0: 민감 파일은 비공개 버킷 + `storage.objects` RLS + 짧은 만료 서명 URL.
 - **검증:** 익명 세션으로 객체 URL 요청 시 401/403.
@@ -326,7 +326,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어1·2: SSM Session Manager/IAP 터널로 대체, 인바운드는 SG 참조로.
 - **검증:** checkov/tfsec, 외부 포트 스캔.
 - **비용 영향:** 중립
-- **출처:** https://docs.aws.amazon.com/vpc/latest/userguide/security-group-rules.html (SG 참조 구조) · SSM·IAP 대체는 일반 원칙(출처 미확인)
+- **출처:** https://docs.aws.amazon.com/vpc/latest/userguide/security-group-rules.html (SG 참조 구조) · SSM·IAP 대체는 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### S-029 k8s NetworkPolicy 없음 (Pod 간 전부 허용)
 - **무엇/왜:** k8s Pod는 기본적으로 격리되지 않는다. 정책이 없으면 침해된 Pod가 DB·Redis·내부 API 어디든 닿는다. 정책을 써도 CNI가 지원하지 않으면 효과가 없다.
@@ -361,7 +361,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 ### S-032 Cloud Run·함수의 의도치 않은 공개 호출
 - **무엇/왜:** 내부 워커·크론 대상 서비스에 `allUsers` invoker를 주거나 IAM 검사를 끄면 인터넷 누구나 호출한다.
 - **실패 양상:** 내부 배치 엔드포인트 반복 호출로 비용·데이터 변경.
-- **신호:** 🟢 `--allow-unauthenticated`, Terraform `member = "allUsers"` + `roles/run.invoker`가 워커·크론 서비스에 적용. 🟡 서비스 이름(`worker`, `cron`, `internal`)으로 내부용 추론.
+- **신호:** 🟢 `--allow-unauthenticated`, Terraform `member = "allUsers"` + `roles/run.invoker`가 워커·크론 서비스에 적용. 🟡 서비스 이름(`worker`, `cron`, `internal`)으로 내부용 추론. ⚠️근거없음
 - **시나리오·수준:** S L1 이상
 - **처방:** 티어1: 내부 서비스는 invoker IAM 유지 + Scheduler/Pub/Sub 서비스 계정에만 부여.
 - **검증:** 익명 호출 403.
@@ -376,7 +376,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어1·2: 외부 노출 제거, IAP/VPN/포트포워딩으로만 접근. 앱 내 관리 화면은 S-047.
 - **검증:** 외부에서 경로 접근 시 404/401.
 - **비용 영향:** 중립
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ---
 
@@ -390,7 +390,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어0: 기본 제공 / 티어1: ALB 80→443 리다이렉트, Cloud Run 기본 HTTPS / 티어2: Ingress 리다이렉트 어노테이션.
 - **검증:** `curl -I http://...` 301 + `Location: https://`.
 - **비용 영향:** 중립
-- **출처:** https://expressjs.com/en/advanced/best-practice-security.html (TLS 사용) · https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/ (HTTPS 후 SESSION/CSRF_COOKIE_SECURE)
+- **출처:** https://expressjs.com/en/advanced/best-practice-security.html (TLS 사용) · https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/ (HTTPS 후 SESSION/CSRF_COOKIE_SECURE) ⚠️출처확인필요
 
 ### S-035 HSTS 헤더 없음
 - **무엇/왜:** HSTS는 브라우저가 이 도메인에 HTTP로 접속하지 않게 만든다. 첫 리다이렉트 순간의 다운그레이드를 막는다. `preload`는 되돌리기 어려우므로 신중히.
@@ -410,7 +410,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어0: 플랫폼 자동 / 티어1: ACM, Google 관리형 인증서 / 티어2: cert-manager 또는 클라우드 관리형 인증서.
 - **검증:** 만료 30일 전 알림, 인증서 만료일 모니터링.
 - **비용 영향:** 중립 (ACM 공인 인증서는 LB 연동 시 무료로 알려져 있으나 이 문서에서는 미확인)
-- **출처:** https://cert-manager.io/docs/ (만료 전 자동 갱신) · https://letsencrypt.org/2025/12/02/from-90-to-45/
+- **출처:** https://cert-manager.io/docs/ (만료 전 자동 갱신) · https://letsencrypt.org/2025/12/02/from-90-to-45/ ⚠️출처확인필요
 
 ### S-037 DB·캐시 연결 평문 (내부 TLS 없음)
 - **무엇/왜:** VPC 안이라도 DB·Redis 연결을 TLS 없이 쓰면 같은 네트워크의 침해 지점에서 도청·변조가 가능하다. ElastiCache는 노드 기반 클러스터에서 전송 암호화를 명시적으로 켜야 하고, AUTH는 클라이언트 인증을 제공한다.
@@ -430,7 +430,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 공통: CA 번들 지정(RDS CA 등), `verify-full`.
 - **검증:** semgrep 규칙.
 - **비용 영향:** 중립
-- **출처:** https://supabase.com/docs/guides/platform/ssl-enforcement (`verify-full` 권장) · 그 외 일반 원칙(출처 미확인)
+- **출처:** https://supabase.com/docs/guides/platform/ssl-enforcement (`verify-full` 권장) · 그 외 일반 원칙(출처 미확인) ⚠️근거없음
 
 ---
 
@@ -484,7 +484,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어0: Supabase Auth 레이트 리밋 조정, 서버 대리 호출 시 `Sb-Forwarded-For` 전달, CAPTCHA 켜기 / 티어1·2: 엣지·앱 이중 제한(IP + 계정), 실패 누적 시 지연·CAPTCHA, 유출 비밀번호 검사.
 - **검증:** 같은 계정으로 N회 실패 후 429·지연 확인(P4).
 - **비용 영향:** 중립 (WAF 봇 기능을 쓰면 증가)
-- **출처:** https://cheatsheetseries.owasp.org/cheatsheets/Credential_Stuffing_Prevention_Cheat_Sheet.html · https://supabase.com/docs/guides/auth/rate-limits · https://expressjs.com/en/advanced/best-practice-security.html (로그인 브루트포스 방지)
+- **출처:** https://cheatsheetseries.owasp.org/cheatsheets/Credential_Stuffing_Prevention_Cheat_Sheet.html · https://supabase.com/docs/guides/auth/rate-limits · https://expressjs.com/en/advanced/best-practice-security.html (로그인 브루트포스 방지) ⚠️출처확인필요
 
 ### S-044 계정 열거 (가입·로그인·재설정 응답 차이)
 - **무엇/왜:** "존재하지 않는 이메일"과 "비밀번호 틀림"을 다르게 응답하면 유효 계정 목록을 만들 수 있고, 스터핑·피싱 정확도가 올라간다.
@@ -514,7 +514,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 공통: `jwt.verify` + 알고리즘 고정, 짧은 액세스 토큰 + 갱신 토큰(HttpOnly 쿠키), 폐기 목록이 필요하면 서버 세션 고려.
 - **검증:** semgrep(`jwt.decode` 후 인가 사용), `alg: none` 토큰 거부 테스트.
 - **비용 영향:** 중립
-- **출처:** https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_Cheat_Sheet.html (`none` 알고리즘, HMAC 비밀, 폐기 어려움) · 저장 위치 권고는 일반 원칙(출처 미확인)
+- **출처:** https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_Cheat_Sheet.html (`none` 알고리즘, HMAC 비밀, 폐기 어려움) · 저장 위치 권고는 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### S-047 관리자 페이지·관리 API 노출 (인가 누락)
 - **무엇/왜:** `/admin` 화면은 숨기거나 UI에서 리다이렉트할 뿐 API·Server Action에 권한 검사가 없는 경우가 흔하다. Next.js는 페이지 수준 인증이 그 안의 Server Action으로 이어지지 않는다고 명시한다.
@@ -534,7 +534,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 공통: 정확한 리다이렉트 URL 목록, 검증된 라이브러리(Auth.js, Supabase Auth) 사용.
 - **검증:** 허용되지 않은 redirect_to로 로그인 시 거부.
 - **비용 영향:** 중립
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ---
 
@@ -548,7 +548,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 공통: 정확한 Origin 허용 목록, 같은 도메인 구조면 CORS 자체를 끄기.
 - **검증:** `Origin: https://evil.example` 요청 시 ACAO 헤더 없음.
 - **비용 영향:** 중립
-- **출처:** https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS (credentials 요청에 와일드카드 금지)
+- **출처:** https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS (credentials 요청에 와일드카드 금지) ⚠️출처부적격
 
 ### S-050 보안 헤더 없음 (CSP·frame-ancestors·nosniff)
 - **무엇/왜:** CSP는 XSS 피해를 줄이고, `frame-ancestors`는 클릭재킹을 막는다(X-Frame-Options 대체). Express는 helmet으로 한 번에 설정한다.
@@ -558,7 +558,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어0: `next.config.js` headers / Vercel `vercel.json` headers / 티어1·2: 앱 미들웨어 또는 nginx·LB 응답 헤더.
 - **검증:** 응답 헤더 검사, CSP report-only 단계 후 강제.
 - **비용 영향:** 중립
-- **출처:** https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html · https://expressjs.com/en/advanced/best-practice-security.html (helmet, x-powered-by 끄기)
+- **출처:** https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html · https://expressjs.com/en/advanced/best-practice-security.html (helmet, x-powered-by 끄기) ⚠️출처확인필요
 
 ### S-051 운영 디버그 모드 (Django `DEBUG=True`, Flask debug, Werkzeug 디버거)
 - **무엇/왜:** Django DEBUG는 소스 일부, 지역 변수, 설정을 오류 페이지에 노출한다. Flask/Werkzeug 디버거는 브라우저에서 임의 Python 코드 실행을 허용한다(PIN은 보안 장치가 아님).
@@ -663,7 +663,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 ### S-061 미들웨어에만 의존한 인가 (Next.js middleware 우회 CVE)
 - **무엇/왜:** Next.js 미들웨어만으로 인증을 걸면 미들웨어가 우회될 때 전부 뚫린다. CVE-2025-29927은 `x-middleware-subrequest` 헤더로 미들웨어를 건너뛰는 취약점이었다(15.2.3, 14.2.25 등에서 수정, Vercel 호스팅은 자동 보호). 자체 호스팅(Docker, `next start`)이 영향을 받았다.
 - **실패 양상:** 보호 페이지·API 무인증 접근.
-- **신호:** 🟢 `package.json`의 `next` 버전이 취약 범위, `middleware.ts`에서만 인증하고 Route Handler·Server Action·데이터 계층에 검사 없음. 🟡 자체 호스팅 여부는 Dockerfile·`output: 'standalone'`으로 추론.
+- **신호:** 🟢 `package.json`의 `next` 버전이 취약 범위, `middleware.ts`에서만 인증하고 Route Handler·Server Action·데이터 계층에 검사 없음. 🟡 자체 호스팅 여부는 Dockerfile·`output: 'standalone'`으로 추론. ⚠️근거없음
 - **시나리오·수준:** S L1 이상
 - **처방:** 공통: Next.js 업그레이드, 데이터 접근 계층에서 다시 인가, 자체 호스팅이면 엣지에서 해당 헤더 제거.
 - **검증:** 의존성 스캐너(S-079), 해당 헤더를 넣은 요청 테스트.
@@ -688,7 +688,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어0: Vercel Protected Source Maps 또는 소스맵을 오류 추적 도구에만 업로드 / 티어1·2: 빌드 산출물만 복사, `.dockerignore`.
 - **검증:** `/.git/HEAD`, `/.env`, `*.map` 요청 404.
 - **비용 영향:** 중립
-- **출처:** https://vercel.com/docs/deployment-protection (Protected Source Maps) · 그 외 일반 원칙(출처 미확인)
+- **출처:** https://vercel.com/docs/deployment-protection (Protected Source Maps) · 그 외 일반 원칙(출처 미확인) ⚠️근거없음
 
 ---
 
@@ -702,7 +702,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어0: 플랫폼이 주는 IP 헤더 사용(Vercel 등), Supabase 서버 대리 호출은 `Sb-Forwarded-For` / 티어1·2: 신뢰 대역을 LB CIDR·홉 수로 고정.
 - **검증:** 임의 `X-Forwarded-For`를 넣은 요청이 레이트 리밋 키를 바꾸지 못함(simple-web-app tests/nginx 패턴).
 - **비용 영향:** 중립
-- **출처:** https://expressjs.com/en/guide/behind-proxies.html · https://nginx.org/en/docs/http/ngx_http_realip_module.html · https://supabase.com/docs/guides/auth/rate-limits (`Sb-Forwarded-For`)
+- **출처:** https://expressjs.com/en/guide/behind-proxies.html · https://nginx.org/en/docs/http/ngx_http_realip_module.html · https://supabase.com/docs/guides/auth/rate-limits (`Sb-Forwarded-For`) ⚠️출처확인필요
 
 ### S-065 WAF 없음 (공개 API·로그인·결제)
 - **무엇/왜:** 관리형 WAF 규칙은 OWASP Top 10 유형의 흔한 공격 패턴과 알려진 악성 IP를 엣지에서 거른다. 앱 수정 없이 붙는 방어층이지만 오탐과 비용이 있다.
@@ -803,7 +803,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **실패 양상:** etcd 백업·스냅샷 유출 시 비밀 평문 노출.
 - **신호:** 🟢 EKS 버전 < 1.28 + `encryption_config` 없음, kubeadm/kind 운영. 🟡 GKE 애플리케이션 레이어 암호화(CMEK) 여부는 L3에서만 요구.
 - **시나리오·수준:** S L2 이상 (CMK는 L3)
-- **처방:** 티어2: EKS 1.28+ 기본, L3는 CMK 지정 / GKE L3는 애플리케이션 레이어 비밀 암호화(출처 미확인).
+- **처방:** 티어2: EKS 1.28+ 기본, L3는 CMK 지정 / GKE L3는 애플리케이션 레이어 비밀 암호화(출처 미확인). ⚠️근거없음
 - **검증:** 클러스터 암호화 설정 조회.
 - **비용 영향:** 중립 (CMK는 키당 월 $1 + 요청 과금)
 - **출처:** https://kubernetes.io/docs/concepts/configuration/secret/ · https://docs.aws.amazon.com/eks/latest/userguide/envelope-encryption.html
@@ -816,7 +816,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어1·2: CI 스캔 + 심각도 기준 게이트, 레지스트리 스캔 켜기.
 - **검증:** CI 실패 기준(CRITICAL 0) 동작 확인.
 - **비용 영향:** 중립~소폭 증가 (레지스트리 고급 스캔 과금)
-- **출처:** https://trivy.dev/docs/latest/
+- **출처:** https://trivy.dev/docs/latest/ ⚠️출처확인필요
 
 ### S-076 이미지 서명·검증
 - **무엇/왜:** 레지스트리나 CI 침해로 바뀐 이미지가 배포되지 않도록 서명하고, 배포 시 서명을 검증한다. 서명은 태그가 아니라 다이제스트에 한다.
@@ -826,7 +826,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어1·2: cosign keyless 서명(CI OIDC) + 배포 시 검증 정책.
 - **검증:** 서명 없는 이미지 배포 거부 테스트.
 - **비용 영향:** 소폭 증가 (운영 부담)
-- **출처:** https://docs.sigstore.dev/cosign/signing/signing_with_containers/
+- **출처:** https://docs.sigstore.dev/cosign/signing/signing_with_containers/ ⚠️출처확인필요
 
 ### S-077 베이스 이미지 다이제스트 고정·최소 이미지
 - **무엇/왜:** `FROM node:20` 같은 태그는 게시자가 바꿀 수 있다. 다이제스트 고정은 재현성과 공급망 무결성을 준다. 멀티 스테이지로 빌드 도구를 운영 이미지에서 빼면 공격 표면이 준다.
@@ -850,7 +850,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 공통: lock 커밋, `npm ci`/`pnpm install --frozen-lockfile`/`uv sync --frozen`.
 - **검증:** CI 로그에서 frozen 설치 확인.
 - **비용 영향:** 중립
-- **출처:** https://docs.npmjs.com/cli/v11/commands/npm-ci
+- **출처:** https://docs.npmjs.com/cli/v11/commands/npm-ci ⚠️출처확인필요
 
 ### S-079 의존성 취약점 검사·자동 갱신 없음
 - **무엇/왜:** 알려진 취약 버전(예: S-061의 Next.js)을 계속 쓰는 것이 가장 흔한 침해 경로다. Dependabot 보안 업데이트, `npm audit`, `pip-audit`, OSV 스캐너로 잡는다.
@@ -860,7 +860,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 공통: Dependabot 보안 업데이트 + CI audit(HIGH 이상 실패).
 - **검증:** 스캐너 결과 HIGH/CRITICAL 0.
 - **비용 영향:** 중립
-- **출처:** https://docs.github.com/en/code-security/dependabot/dependabot-security-updates/about-dependabot-security-updates · https://expressjs.com/en/advanced/best-practice-security.html (npm audit)
+- **출처:** https://docs.github.com/en/code-security/dependabot/dependabot-security-updates/about-dependabot-security-updates · https://expressjs.com/en/advanced/best-practice-security.html (npm audit) ⚠️출처확인필요
 
 ### S-080 GitHub Actions 서드파티 액션 태그 참조
 - **무엇/왜:** `uses: some/action@v3`는 태그가 옮겨지면 다른 코드가 실행된다. 전체 커밋 SHA 고정이 가장 안전하다. 이 워크플로가 비밀과 배포 권한을 갖는다면 공급망 공격의 직통로다.
@@ -868,7 +868,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **신호:** 🟢 `uses:` 뒤가 40자 SHA가 아님(공식 `actions/*`는 위험이 낮다고 볼지 규칙에서 결정).
 - **시나리오·수준:** S L1 이상 (CI가 비밀을 가지면)
 - **처방:** 공통: SHA 고정 + Dependabot `github-actions` 생태계로 갱신.
-- **검증:** zizmor/actionlint 류 정적 검사(출처 미확인).
+- **검증:** zizmor/actionlint 류 정적 검사(출처 미확인). ⚠️근거없음
 - **비용 영향:** 중립
 - **출처:** https://docs.github.com/en/actions/reference/security/secure-use
 
@@ -890,17 +890,17 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어1·2: 빌드 시 SBOM 생성·이미지에 첨부.
 - **검증:** 릴리스 아티팩트에 SBOM 존재.
 - **비용 영향:** 중립
-- **출처:** https://trivy.dev/docs/latest/ (SBOM 생성)
+- **출처:** https://trivy.dev/docs/latest/ (SBOM 생성) ⚠️출처확인필요
 
 ### S-083 빌드 출처 증명 (SLSA)
 - **무엇/왜:** SLSA Build L1은 출처 기록, L2는 호스팅 빌드 + 서명된 출처, L3는 빌드 간섭과 서명 자격 증명 접근을 막는 강화 빌드다. 개발자 노트북에서 빌드해 푸시하는 구조는 L0다.
 - **실패 양상:** 누가 어떤 소스로 만든 이미지인지 증명 불가, 내부자·탈취된 PC 빌드 유입.
-- **신호:** 🟢 README·Makefile에 로컬 `docker build && docker push`만 있음, CI에서 provenance 생성 없음(`actions/attest-build-provenance` 류 — 출처 미확인).
+- **신호:** 🟢 README·Makefile에 로컬 `docker build && docker push`만 있음, CI에서 provenance 생성 없음(`actions/attest-build-provenance` 류 — 출처 미확인). ⚠️근거없음
 - **시나리오·수준:** S L3 (L2는 "CI에서만 빌드" 정도)
 - **처방:** 티어1·2: CI 빌드 + 서명된 provenance, 배포 시 검증.
 - **검증:** 이미지에 provenance attestation 존재.
 - **비용 영향:** 중립
-- **출처:** https://slsa.dev/spec/v1.0/levels
+- **출처:** https://slsa.dev/spec/v1.0/levels ⚠️출처확인필요
 
 ### S-084 설치 스크립트·타이포스쿼팅 의존성
 - **무엇/왜:** npm `postinstall` 스크립트는 설치 시 임의 코드를 실행한다. 이름이 비슷한 가짜 패키지, 갓 만들어진 무명 패키지는 공급망 공격의 흔한 형태다. 바이브코딩에서는 LLM이 존재하지 않는 패키지 이름을 제안하기도 한다.
@@ -910,7 +910,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 공통: 새 의존성 리뷰, 필요 없는 설치 스크립트 차단, 내부 레지스트리 프록시.
 - **검증:** 의존성 추가 PR에 자동 평판 검사.
 - **비용 영향:** 중립
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ---
 
@@ -919,7 +919,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 ### S-085 저장 데이터 암호화 (DB·스토리지·디스크)
 - **무엇/왜:** RDS는 생성 시에만 암호화를 켤 수 있고, 켜면 로그·자동 백업·복제본·스냅샷이 모두 암호화된다. 나중에 켜려면 스냅샷 암호화 복사 후 복원(=이전 작업)이 필요하다. 그래서 처음부터 켜는 것이 싸다.
 - **실패 양상:** 스냅샷·디스크 유출 시 평문 데이터, 규제 위반.
-- **신호:** 🟢 Terraform `storage_encrypted` 없음/false(RDS), `aws_ebs_volume encrypted = false`, S3 SSE 설정 제거. 🟡 GCP·Supabase는 기본 암호화(출처 미확인).
+- **신호:** 🟢 Terraform `storage_encrypted` 없음/false(RDS), `aws_ebs_volume encrypted = false`, S3 SSE 설정 제거. 🟡 GCP·Supabase는 기본 암호화(출처 미확인). ⚠️근거없음
 - **시나리오·수준:** S L1 이상 (기본 키), S L3 (고객 관리 키)
 - **처방:** 티어1·2: `storage_encrypted = true`(AWS 관리 키로 시작), L3는 CMK.
 - **검증:** `describe-db-instances` `StorageEncrypted: true`, checkov.
@@ -944,7 +944,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 티어1·2: 관리형 백업 사용(암호화 상속), 덤프는 암호화 버킷 + BPA.
 - **검증:** 스냅샷 공개 여부 점검, 버킷 정책 점검.
 - **비용 영향:** 중립
-- **출처:** https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Encryption.html (암호화된 인스턴스의 백업·스냅샷 암호화) · 공유 관련은 일반 원칙(출처 미확인)
+- **출처:** https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Encryption.html (암호화된 인스턴스의 백업·스냅샷 암호화) · 공유 관련은 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### S-088 로그에 개인정보·비밀 기록
 - **무엇/왜:** 요청 본문 전체 로깅, 오류 시 사용자 객체 덤프, 쿼리 로그에 비밀번호·토큰·전화번호·주민번호가 남는다. 로그는 접근 권한이 넓고 보관이 길어 2차 유출 창구가 된다. 로그 주입(CR/LF)도 막아야 한다.
@@ -974,7 +974,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 공통: 관리자 행위 감사 로그(append-only 테이블 또는 별도 로그 저장소), 보관 기간 설정, 월 1회 점검 절차.
 - **검증:** 관리자 조회 후 감사 레코드 생성 테스트, 보관 정책 확인.
 - **비용 영향:** 소폭 증가 (로그 저장)
-- **출처:** https://www.law.go.kr/행정규칙/개인정보의안전성확보조치기준 (제8조 접속기록 — 조문 제목 수준만 확인, 보관 기간 수치는 검색 요약 기준이라 원문 재확인 필요)
+- **출처:** https://www.law.go.kr/행정규칙/개인정보의안전성확보조치기준 (제8조 접속기록 — 조문 제목 수준만 확인, 보관 기간 수치는 검색 요약 기준이라 원문 재확인 필요) ⚠️근거없음
 
 ### S-091 데이터 최소화·보관 기간·파기
 - **무엇/왜:** 쓰지 않는 개인정보(주민번호, 생년월일 전체, 원본 신분증 이미지)를 모으지 않고, 목적이 끝나면 파기한다. 저장하지 않은 데이터는 유출되지 않는다.
@@ -984,7 +984,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 공통: 수집 항목 축소, 탈퇴·보관 기간 경과 시 파기 배치, 가명처리.
 - **검증:** 탈퇴 후 DB·스토리지·로그에서 사용자 데이터 잔존 검사.
 - **비용 영향:** 감소
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ---
 
@@ -998,7 +998,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 공통: 사고 대응 런북(누가 판단, 72시간 타임라인, 신고 채널), S-089·S-090 로그와 연결.
 - **검증:** 탁상 훈련 기록.
 - **비용 영향:** 중립
-- **출처:** https://pipc.go.kr/np/default/page.do?mCode=D030040000 (신고 기준과 72시간) · https://gdpr-info.eu/art-33-gdpr/ (GDPR 제33조 72시간 — 비공식 정리 사이트이며 EUR-Lex 원문은 이번에 열지 못함)
+- **출처:** https://pipc.go.kr/np/default/page.do?mCode=D030040000 (신고 기준과 72시간) · https://gdpr-info.eu/art-33-gdpr/ (GDPR 제33조 72시간 — 비공식 정리 사이트이며 EUR-Lex 원문은 이번에 열지 못함) ⚠️출처부적격
 
 ### S-093 개인정보 국외 이전 (해외 리전·해외 SaaS)
 - **무엇/왜:** 한국 개인정보보호법 제28조의8은 국외 제공·처리위탁·보관을 "이전"으로 보고, 별도 동의, 계약 이행에 필요한 처리위탁·보관(처리방침 공개 등), 인증, 적정성 인정 등 요건을 둔다. Vercel·Supabase·Firebase 기본 리전이 미국이거나, 해외 LLM API·분석 도구로 개인정보를 보내는 경우가 바이브코더 앱에서 흔한 국외 이전이다.
@@ -1013,12 +1013,12 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 ### S-094 데이터 레지던시 고정 (규제·계약상 국내 보관)
 - **무엇/왜:** 공공, 금융, 의료, 일부 B2B 계약은 데이터를 국내에 두도록 요구한다. 그때는 DB만이 아니라 백업, 로그, CDN 캐시, 오류 추적 도구, LLM 호출까지 리전을 맞춰야 한다.
 - **실패 양상:** 백업·로그만 해외 리전에 복제돼 계약 위반.
-- **신호:** 🟢 백업 복제 대상 리전, 로그 싱크 리전, Sentry·Datadog 사이트 설정(`us`/`eu`), 멀티 리전 DR이 해외. 🟡 도메인(공공·금융·의료) 추론.
+- **신호:** 🟢 백업 복제 대상 리전, 로그 싱크 리전, Sentry·Datadog 사이트 설정(`us`/`eu`), 멀티 리전 DR이 해외. 🟡 도메인(공공·금융·의료) 추론. ⚠️근거없음
 - **시나리오·수준:** S L3
 - **처방:** 티어1·2: 모든 데이터 경로를 국내 리전에 고정, 조직 정책으로 리전 제한(GCP resource locations, AWS SCP).
 - **검증:** 리전 목록 자동 점검.
 - **비용 영향:** 증가 (D 축의 해외 DR 선택지 제한)
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### S-095 ISMS·ISMS-P 의무 대상 여부
 - **무엇/왜:** 정보통신망법 제47조에 따라 정보통신서비스 부문 전년도 매출 100억 원 이상, 전년도 일평균 이용자 100만 명 이상 등은 ISMS 인증 의무 대상이고, 처음 대상이 되면 다음 해 8월 31일까지 취득해야 한다. 코드로 매출은 알 수 없지만, 가정 사용자 수와 도메인으로 "검토 필요" 경고는 낼 수 있다.
@@ -1038,7 +1038,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 공통: 티어 규칙에 "공공 납품이면 인증·검증 받은 클라우드 리전·서비스만" 제약 추가. 제도 전환기라 시점 확인 필수.
 - **검증:** 해당 없음(조달 요건 확인).
 - **비용 영향:** 증가 (선택 가능한 플랫폼 축소)
-- **출처:** https://zdnet.co.kr/view/?no=20260420130424 (언론 보도, 1차 자료 아님. 국정원·과기정통부 원문 지침은 미확인)
+- **출처:** https://zdnet.co.kr/view/?no=20260420130424 (언론 보도, 1차 자료 아님. 국정원·과기정통부 원문 지침은 미확인) ⚠️출처부적격
 
 ### S-097 PCI DSS 범위: 카드 데이터를 직접 받는가, 토큰화하는가
 - **무엇/왜:** 카드 번호를 자체 폼으로 받아 서버를 거치면 앱 전체가 PCI DSS 범위에 들어간다. 결제대행(PG)의 호스팅 결제창·리다이렉트·iframe을 쓰면 SAQ A 같은 가벼운 자가평가 대상이 될 수 있다. 2025년 개정된 SAQ A는 상점 사이트가 스크립트 공격에 취약하지 않음을 확인하는 적격 기준을 추가했다.
@@ -1058,7 +1058,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 공통: 쿠키·추적 동의, 삭제·내보내기 기능, 리전·이전 장치 검토.
 - **검증:** 계정 삭제·데이터 내보내기 E2E 테스트.
 - **비용 영향:** 증가 (EU 리전·법무)
-- **출처:** https://gdpr-info.eu/art-3-gdpr/ (제3조(2)(a) — 비공식 정리 사이트, EUR-Lex 원문은 이번에 열지 못함)
+- **출처:** https://gdpr-info.eu/art-3-gdpr/ (제3조(2)(a) — 비공식 정리 사이트, EUR-Lex 원문은 이번에 열지 못함) ⚠️출처부적격
 
 ### S-099 민감정보·고유식별정보 처리 (주민번호·건강·생체)
 - **무엇/왜:** 주민등록번호, 여권·운전면허 번호, 건강·생체 정보는 한국법상 별도 동의·암호화 의무가 붙고, 유출 시 1명이라도 신고 대상이 된다(S-092). 주민번호는 법령 근거 없이 수집 자체가 제한된다.
@@ -1068,7 +1068,7 @@ infrafit 설계(§4)의 D/T/U/C 네 시나리오에는 보안 축이 없다. 이
 - **처방:** 공통: 수집 중단 또는 본인확인기관 연동(CI/DI 사용), 컬럼 단위 암호화, 접근 기록.
 - **검증:** DB·로그에 주민번호 패턴 0건.
 - **비용 영향:** 증가
-- **출처:** https://pipc.go.kr/np/default/page.do?mCode=D030040000 (민감·고유식별정보 유출 시 신고 대상) · 수집 제한·암호화 의무 세부는 원문 미확인(출처 미확인)
+- **출처:** https://pipc.go.kr/np/default/page.do?mCode=D030040000 (민감·고유식별정보 유출 시 신고 대상) · 수집 제한·암호화 의무 세부는 원문 미확인(출처 미확인) ⚠️근거없음
 
 ### S-100 개인정보 안전성 확보조치의 클라우드 매핑
 - **무엇/왜:** 한국 개인정보 안전성 확보조치 기준(접근 권한 관리, 접근 통제, 암호화, 접속기록, 악성 프로그램 방지 등)을 이 카탈로그 통제로 매핑하면, 별도 체크리스트 없이 진단 결과로 준수 근거를 보일 수 있다. 예: 접근 통제 ↔ S-025/S-028/S-045, 암호화 ↔ S-042/S-085/S-037, 접속기록 ↔ S-090.

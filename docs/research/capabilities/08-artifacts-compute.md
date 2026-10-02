@@ -52,7 +52,7 @@
 | 9 | Render | `render-oss/render` (파트너) | `render.yaml` | API 키 | 있음: Blueprint 최초 생성과 Git 연결(대시보드) |
 | 10 | Fly.io | **보관됨**(`fly-apps/fly`, 비권장) → flyctl | `fly.toml` | 배포 토큰 | 있음: DNS 레코드 |
 | 11 | Firebase App Hosting | `hashicorp/google` `google_firebase_app_hosting_backend` | `apphosting.yaml` + `firebase.json` | OIDC 가능(ADC) | 있음: GitHub 앱 연결(Git 배포 시) |
-| 12 | Cloud Functions for Firebase | `hashicorp/google` (2세대 = `google_cloudfunctions2_function`) / Firebase CLI | `firebase.json` + 코드 옵션 | OIDC 가능(ADC) | 없음(추론) |
+| 12 | Cloud Functions for Firebase | `hashicorp/google` (2세대 = `google_cloudfunctions2_function`) / Firebase CLI | `firebase.json` + 코드 옵션 | OIDC 가능(ADC) | 없음(추론) ⚠️근거없음 |
 | 13 | Supabase Edge | `supabase/supabase` (커뮤니티 등급, 함수 포함) | `supabase/config.toml` | 액세스 토큰 | 있음: 액세스 토큰 발급 |
 | 14 | Replit | **없음** | `.replit` | **없음**(UI 게시) | 있음: 게시 버튼, 결제 수단 → 사실상 자동화 불가 |
 | 15 | Heroku | `heroku/heroku` (파트너) | `Procfile`, `app.json`, `heroku.yml` | API 키 | 있음: 카드 등록으로 계정 인증 |
@@ -92,7 +92,7 @@
 |---|---|---|---|
 | D1 | 멀티스테이지. 최종 단계에는 실행에 필요한 파일만 둔다 | `FROM … AS deps` → `AS build` → 런타임 단계, `COPY --from=build` | https://docs.docker.com/build/building/best-practices/ · "Split your Dockerfile instructions into distinct stages to make sure that the resulting output only contains the files that are needed to run the application." · https://docs.docker.com/build/building/multi-stage/ |
 | D2 | 베이스 이미지 태그를 고정한다. `latest`와 태그 없는 이미지는 금지. 가능하면 다이제스트로 고정 | `FROM node:24.13.0-slim` (또는 `@sha256:…`) | best-practices · "By pinning your images to a digest, you're guaranteed to always use the same image version, even if a publisher replaces the tag" |
-| D3 | lock 파일로 재현 가능하게 빌드한다. lock이 없으면 먼저 생성하고 커밋한다 | Node `npm ci`(lock 필수, 불일치 시 실패), pnpm `--frozen-lockfile`(`미확인`), uv `uv sync --locked`, pip `requirements.lock` | https://docs.npmjs.com/cli/v11/commands/npm-ci · lock이 맞지 않으면 "exit with an error, instead of updating the package lock" · https://docs.astral.sh/uv/guides/integration/docker/ |
+| D3 | lock 파일로 재현 가능하게 빌드한다. lock이 없으면 먼저 생성하고 커밋한다 | Node `npm ci`(lock 필수, 불일치 시 실패), pnpm `--frozen-lockfile`(`미확인`), uv `uv sync --locked`, pip `requirements.lock` | https://docs.npmjs.com/cli/v11/commands/npm-ci · lock이 맞지 않으면 "exit with an error, instead of updating the package lock" · https://docs.astral.sh/uv/guides/integration/docker/ ⚠️출처확인필요 |
 | D4 | 의존성 레이어를 소스보다 먼저 복사해 캐시를 살린다. 캐시 마운트를 쓴다 | `COPY package.json package-lock.json ./` → `RUN --mount=type=cache,target=/root/.npm npm ci` | https://docs.docker.com/build/cache/optimize/ · "Cache mounts are a way to specify a persistent cache location to be used during builds." |
 | D5 | `.dockerignore`를 함께 생성한다(`.git`, `node_modules`, `.venv`, `.env*`, 빌드 산출물) | 빌드 컨텍스트 루트에 둔다 | best-practices · "use a `.dockerignore` file" · https://docs.docker.com/build/concepts/context/ |
 | D6 | non-root 사용자로 실행한다. UID를 숫자로 고정한다(k8s `runAsNonRoot` 검증과 Checkov CKV_K8S_40 때문) | `USER node` / `USER 10001` / distroless `nonroot` | best-practices · "If a service can run without privileges, use `USER` to change to a non-root user." · https://docs.docker.com/reference/dockerfile/ · "When the user doesn't have a primary group then the image will be run with the `root` group." |
@@ -101,10 +101,10 @@
 | D9 | PID 1 문제: 자식 프로세스를 띄우는 앱(Node, 셸 래퍼)은 init을 둔다. 플랫폼이 `--init`을 줄 수 없으면 `tini`를 이미지에 넣는다 | `docker run --init` 또는 `ENTRYPOINT ["/usr/bin/tini","--"]` | https://docs.docker.com/reference/cli/docker/container/run/ · "an init process should be used as the PID 1 in the container" · docker-node BestPractices · "Node.js was not designed to run as PID 1" |
 | D10 | 종료 신호는 SIGTERM(기본값)을 그대로 쓴다. Fly는 기본 SIGINT라 `fly.toml` `kill_signal`로 맞춘다(P10) | `STOPSIGNAL`은 생략 | https://docs.docker.com/reference/dockerfile/ · STOPSIGNAL "The default is `SIGTERM` if not defined." |
 | D11 | 포트는 환경변수 `PORT`로 받고 `0.0.0.0`에 바인드한다. `EXPOSE`는 기본값(8080)만 문서화한다 | `ENV PORT=8080`, 앱이 `process.env.PORT` / `$PORT`를 읽음 | https://docs.cloud.google.com/run/docs/container-contract · "must listen for requests on `0.0.0.0`" (05 문서 §1.1) |
-| D12 | `HEALTHCHECK`는 Docker·compose·ECS 컨테이너 헬스체크용으로만 넣는다. k8s·Cloud Run은 이 지시어를 쓰지 않고 자체 probe를 쓴다(추론). 이미지에 `curl`이 없으면 런타임 자체로 검사한다 | `HEALTHCHECK --interval=30s --timeout=3s --start-period=10s CMD ["node","healthcheck.js"]` | https://docs.docker.com/reference/dockerfile/ · 기본값 interval 30s, timeout 30s, start-period 0s, retries 3. "There can only be one `HEALTHCHECK` instruction in a Dockerfile." |
-| D13 | 파이프가 있는 `RUN`은 `set -o pipefail` | `SHELL ["/bin/bash","-o","pipefail","-c"]` | best-practices · "Prepend `set -o pipefail &&`" · hadolint DL4006 |
-| D14 | 비밀 값을 `ENV`/`ARG`에 넣지 않는다. 런타임 환경변수나 비밀 저장소로 주입한다 | — | https://12factor.net/config · "the codebase could be made open source at any moment, without compromising any credentials." |
-| D15 | 로그는 stdout/stderr로, 버퍼링 없이 | Python `ENV PYTHONUNBUFFERED=1` | https://docs.python.org/3/using/cmdline.html · "equivalent to specifying the -u option" (stdout/stderr 비버퍼) · https://12factor.net/logs |
+| D12 | `HEALTHCHECK`는 Docker·compose·ECS 컨테이너 헬스체크용으로만 넣는다. k8s·Cloud Run은 이 지시어를 쓰지 않고 자체 probe를 쓴다(추론). 이미지에 `curl`이 없으면 런타임 자체로 검사한다 | `HEALTHCHECK --interval=30s --timeout=3s --start-period=10s CMD ["node","healthcheck.js"]` | https://docs.docker.com/reference/dockerfile/ · 기본값 interval 30s, timeout 30s, start-period 0s, retries 3. "There can only be one `HEALTHCHECK` instruction in a Dockerfile." ⚠️근거없음 |
+| D13 | 파이프가 있는 `RUN`은 `set -o pipefail` | `SHELL ["/bin/bash","-o","pipefail","-c"]` | best-practices · "Prepend `set -o pipefail &&`" · hadolint DL4006 ⚠️출처확인필요 |
+| D14 | 비밀 값을 `ENV`/`ARG`에 넣지 않는다. 런타임 환경변수나 비밀 저장소로 주입한다 | — | https://12factor.net/config · "the codebase could be made open source at any moment, without compromising any credentials." ⚠️출처부적격 |
+| D15 | 로그는 stdout/stderr로, 버퍼링 없이 | Python `ENV PYTHONUNBUFFERED=1` | https://docs.python.org/3/using/cmdline.html · "equivalent to specifying the -u option" (stdout/stderr 비버퍼) · https://12factor.net/logs ⚠️출처부적격 |
 | D16 | 개발 서버 금지(`next dev`, `vite`, `flask run`, `manage.py runserver`, `uvicorn --reload`, `nodemon`) | 아래 런타임별 운영 서버 | Flask · "Do not use the development server when deploying to production." (https://flask.palletsprojects.com/en/stable/deploying/) · Django · "DO NOT USE THIS SERVER IN A PRODUCTION SETTING." (https://docs.djangoproject.com/en/stable/ref/django-admin/) |
 
 ### 1.1.2 런타임별 규칙
@@ -165,7 +165,7 @@ CMD ["node", "server.js"]
 - 최종 단계에는 `.venv`만 복사하고, `.dockerignore`에 `.venv`를 넣는다.
 - pip: `requirements.lock`(해시 고정)과 `pip install --no-cache-dir`(hadolint DL3042).
 - `ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1`.
-- 출처: https://docs.astral.sh/uv/guides/integration/docker/ (확인 2026-10-01)
+- 출처: https://docs.astral.sh/uv/guides/integration/docker/ (확인 2026-10-01) ⚠️출처확인필요
 
 #### FastAPI / Starlette (ASGI)
 - 실행 형태는 플랫폼에 따라 다르다.
@@ -175,14 +175,14 @@ CMD ["node", "server.js"]
     - 또는 FastAPI CLI 형식 `CMD ["fastapi","run","app/main.py","--proxy-headers","--port","8080"]`.
   - **단일 VM**: `--workers N`(Uvicorn 자체) 또는 Gunicorn + `uvicorn-worker`.
     - `uvicorn.workers` 모듈은 deprecated이므로 `uvicorn-worker` 패키지를 쓴다.
-- `--forwarded-allow-ips=*`는 LB 뒤에서만 쓴다. 문서는 "Only trust clients you can actually trust!"라고 경고한다. LB 대역을 알면 그 대역을 넣는다(추론).
+- `--forwarded-allow-ips=*`는 LB 뒤에서만 쓴다. 문서는 "Only trust clients you can actually trust!"라고 경고한다. LB 대역을 알면 그 대역을 넣는다(추론). ⚠️근거없음
 - `--timeout-graceful-shutdown`은 플랫폼 종료 유예보다 짧게 잡는다(1.3.2 표).
 - `tiangolo/uvicorn-gunicorn-fastapi` 이미지는 deprecated다. 공식 Python 이미지로 빌드한다.
 
 출처 (확인 2026-10-01)
 - https://fastapi.tiangolo.com/deployment/docker/ · "Always use the exec form of the CMD instruction" / 쿠버네티스에서는 "a single Uvicorn process per container"
-- https://uvicorn.dev/deployment/ · "The `uvicorn.workers` module is deprecated"
-- https://uvicorn.dev/settings/ · "--timeout-graceful-shutdown <int>"
+- https://uvicorn.dev/deployment/ · "The `uvicorn.workers` module is deprecated" ⚠️출처확인필요
+- https://uvicorn.dev/settings/ · "--timeout-graceful-shutdown <int>" ⚠️출처확인필요
 
 #### Django (WSGI) / Flask
 - 실행: `gunicorn project.wsgi:application --bind 0.0.0.0:$PORT --workers N --graceful-timeout G --timeout T --access-logfile -`
@@ -190,7 +190,7 @@ CMD ["node", "server.js"]
   - 기본 바인드가 `127.0.0.1:8000`이라 컨테이너에서는 `--bind`가 필수다.
 - 워커 수
   - Gunicorn 문서 기준은 2~4 × 코어 또는 `(2 × 코어) + 1`이다.
-  - 생성 규칙: 할당 vCPU가 1 미만이면 2, 그 외에는 `2 × vCPU + 1`로 잡고 메모리 한도로 상한을 둔다(추론).
+  - 생성 규칙: 할당 vCPU가 1 미만이면 2, 그 외에는 `2 × vCPU + 1`로 잡고 메모리 한도로 상한을 둔다(추론). ⚠️근거없음
   - `DATABASE` 연결 수 = 인스턴스 최대 수 × 워커 × 풀 크기. 이 값을 DB `max_connections`와 맞춘다(simple-web-app `docs/deploy.md` "DB 커넥션 계산" 참고).
 - `--graceful-timeout`은 기본 30초다. 플랫폼 종료 유예보다 짧게 둔다(예: Cloud Run 10초 → 8초).
 - Django
@@ -199,25 +199,25 @@ CMD ["node", "server.js"]
   - 정적 파일은 빌드 단계에서 `collectstatic`으로 모은다. 플래그 원문은 `미확인`.
 
 출처 (확인 2026-10-01)
-- https://gunicorn.org/reference/settings/ · workers "generally in the 2-4 x $(NUM_CORES) range" / graceful_timeout "Default: 30"
-- https://gunicorn.org/signals/ · "TERM — graceful shutdown; waits for workers to finish requests up to graceful_timeout."
+- https://gunicorn.org/reference/settings/ · workers "generally in the 2-4 x $(NUM_CORES) range" / graceful_timeout "Default: 30" ⚠️출처확인필요
+- https://gunicorn.org/signals/ · "TERM — graceful shutdown; waits for workers to finish requests up to graceful_timeout." ⚠️출처확인필요
 - https://docs.djangoproject.com/en/stable/howto/deployment/checklist/ · "DEBUG must never be enabled in production"
 - https://docs.djangoproject.com/en/stable/howto/deployment/wsgi/gunicorn/
 
 #### Go
 - 빌드 단계는 `CGO_ENABLED=0 GOOS=linux go build`다.
 - 최종 단계는 `gcr.io/distroless/static-debian13`(또는 `base-debian12`)과 `USER nonroot:nonroot`다.
-- distroless에는 셸이 없어 `ENTRYPOINT`가 반드시 exec 형식이어야 한다. 셸이 없으므로 `HEALTHCHECK`는 앱 바이너리의 서브커맨드로 둔다(추론).
-- 출처: https://docs.docker.com/guides/golang/build-images/ · https://github.com/GoogleContainerTools/distroless · "distroless images by default do not contain a shell" (확인 2026-10-01)
+- distroless에는 셸이 없어 `ENTRYPOINT`가 반드시 exec 형식이어야 한다. 셸이 없으므로 `HEALTHCHECK`는 앱 바이너리의 서브커맨드로 둔다(추론). ⚠️근거없음
+- 출처: https://docs.docker.com/guides/golang/build-images/ · https://github.com/GoogleContainerTools/distroless · "distroless images by default do not contain a shell" (확인 2026-10-01) ⚠️출처확인필요
 
 #### Ruby on Rails
 - Rails 7.1 이상은 새 앱에 운영용 Dockerfile을 생성한다. 이 Dockerfile이 있으면 1.2 기준으로 판정해서 유지를 우선한다.
-- 출처: https://guides.rubyonrails.org/7_1_release_notes.html · "Rails will now include Docker-related files in the application." (확인 2026-10-01)
+- 출처: https://guides.rubyonrails.org/7_1_release_notes.html · "Rails will now include Docker-related files in the application." (확인 2026-10-01) ⚠️출처확인필요
 - Rails 8 Dockerfile의 세부 내용은 `미확인`.
 
 #### 정적 SPA (Vite·CRA 빌드 결과)
 - 컨테이너가 필요하면 빌드 단계 + nginx-unprivileged(포트 8080)로 만든다. 이미지 이름은 `미확인`.
-- 티어 0(Vercel·Netlify·Cloudflare Pages)이나 오브젝트 스토리지 + CDN이 더 싸다(추론).
+- 티어 0(Vercel·Netlify·Cloudflare Pages)이나 오브젝트 스토리지 + CDN이 더 싸다(추론). ⚠️근거없음
 
 ## 1.2 기존 Dockerfile 판정 기준
 
@@ -226,7 +226,7 @@ CMD ["node", "server.js"]
 2. 아래 신호 표에 적용한다.
 3. 1.5의 동작 검증(빌드, 기동, 헬스, SIGTERM)을 돌린다.
 
-교체 신호가 하나라도 있거나, 부분 수정이 4개 이상 쌓이면 교체한다(추론, 임계값은 검토 대상). 교체할 때도 기존 파일에 담긴 비표준 단계(시스템 패키지, 빌드 인자, 추가 COPY)는 새 파일로 옮긴다.
+교체 신호가 하나라도 있거나, 부분 수정이 4개 이상 쌓이면 교체한다(추론, 임계값은 검토 대상). 교체할 때도 기존 파일에 담긴 비표준 단계(시스템 패키지, 빌드 인자, 추가 COPY)는 새 파일로 옮긴다. ⚠️근거없음
 
 | 신호 | 탐지 | 판정 | 근거 규칙 |
 |---|---|---|---|
@@ -249,8 +249,8 @@ CMD ["node", "server.js"]
 | 이미지가 플랫폼 한도를 넘음 (Lambda 압축 해제 10GB 등) | `docker image inspect` 크기 | **교체** (멀티스테이지로 축소) | P25 |
 
 검사 규칙 ID (실제 존재 확인)
-- hadolint: DL3002, DL3006, DL3007, DL3008, DL3009, DL3013, DL3018, DL3020, DL3025, DL3042, DL4006. 출처는 https://github.com/hadolint/hadolint README(확인 2026-10-01).
-- Checkov Dockerfile: CKV_DOCKER_1(22번 포트), _2(HEALTHCHECK), _3(사용자 생성), _4(ADD 대신 COPY), _5(update 단독 사용), _6(MAINTAINER), _7(latest가 아닌 태그), _8(마지막 USER가 root가 아님), _9(APT), _10(절대 경로 WORKDIR), _11(FROM 별칭 중복). 출처는 https://www.checkov.io/5.Policy%20Index/dockerfile.html (확인 2026-10-01).
+- hadolint: DL3002, DL3006, DL3007, DL3008, DL3009, DL3013, DL3018, DL3020, DL3025, DL3042, DL4006. 출처는 https://github.com/hadolint/hadolint README(확인 2026-10-01). ⚠️출처확인필요
+- Checkov Dockerfile: CKV_DOCKER_1(22번 포트), _2(HEALTHCHECK), _3(사용자 생성), _4(ADD 대신 COPY), _5(update 단독 사용), _6(MAINTAINER), _7(latest가 아닌 태그), _8(마지막 USER가 root가 아님), _9(APT), _10(절대 경로 WORKDIR), _11(FROM 별칭 중복). 출처는 https://www.checkov.io/5.Policy%20Index/dockerfile.html (확인 2026-10-01). ⚠️출처확인필요
 
 ## 1.3 앱 쪽 계약
 
@@ -262,10 +262,10 @@ CMD ["node", "server.js"]
 |---|---|---|---|
 | `/healthz` | **얕은**(liveness) | 프로세스가 응답할 수 있는가. 외부 의존성은 보지 않는다. 항상 200, 수 ms 안에 응답 | k8s livenessProbe, Cloud Run liveness probe, Docker `HEALTHCHECK` |
 | `/readyz` | **깊은**(readiness) | DB `SELECT 1`, 캐시 ping 등 필수 의존성을 짧은 타임아웃(1~2초)으로 확인한다. 종료 중이면 503 | k8s readinessProbe, Cloud Run startup·readiness probe, 배포 후 스모크 |
-| LB 헬스체크 (ALB 대상 그룹, GCP BackendConfig, Render `healthCheckPath`, Railway `healthcheckPath`, DO `health_check`, Fly `checks`) | 플랫폼별 | 기본은 `/healthz`. DB 장애 때 모든 인스턴스가 빠지면 정적 페이지도 못 낸다 → 의존성 확인은 readiness 쪽에만 둔다(추론) | — |
+| LB 헬스체크 (ALB 대상 그룹, GCP BackendConfig, Render `healthCheckPath`, Railway `healthcheckPath`, DO `health_check`, Fly `checks`) | 플랫폼별 | 기본은 `/healthz`. DB 장애 때 모든 인스턴스가 빠지면 정적 페이지도 못 낸다 → 의존성 확인은 readiness 쪽에만 둔다(추론) | — ⚠️근거없음 |
 
 - 근거: https://kubernetes.io/docs/concepts/configuration/liveness-readiness-startup-probes/ · "The liveness probe passes when the app itself is healthy, but the readiness probe additionally checks that each required back-end service is available." / "Incorrect implementation of liveness probes can lead to cascading failures." (확인 2026-10-01)
-- "liveness는 외부 의존성을 보면 안 된다"는 문장 자체는 공식 문서에서 찾지 못했다. 위 인용에서 이끌어 낸 규칙이다(추론).
+- "liveness는 외부 의존성을 보면 안 된다"는 문장 자체는 공식 문서에서 찾지 못했다. 위 인용에서 이끌어 낸 규칙이다(추론). ⚠️근거없음
 - Cloud Run
   - liveness나 startup probe를 명시하지 않으면 TCP startup probe가 자동으로 들어간다.
   - HTTP probe는 2xx와 3xx를 성공으로 본다.
@@ -284,7 +284,7 @@ CMD ["node", "server.js"]
 
 3~6단계의 총 시간은 **플랫폼 유예 시간에서 여유분을 뺀 값**으로 잡는다. 서버 설정(Gunicorn `--graceful-timeout`, Uvicorn `--timeout-graceful-shutdown`, Node 종료 타이머)에 이 값을 넣는다.
 
-| 플랫폼 | 종료 신호 → 강제 종료 | 설정 키 | 앱 쪽 목표값 (추론) |
+| 플랫폼 | 종료 신호 → 강제 종료 | 설정 키 | 앱 쪽 목표값 (추론) ⚠️근거없음 |
 |---|---|---|---|
 | Vercel Functions | SIGTERM 후 500ms (컨테이너 이미지 함수 30초) | 없음 | 정리 작업 불가로 간주. `waitUntil`/`after`로 처리 |
 | Lambda | 확장(extension) 없으면 0ms, 내부 확장 500ms, 외부 확장 2,000ms | 없음 (Lambda Web Adapter가 graceful shutdown 제공) | 정리 불가로 간주 |
@@ -306,17 +306,17 @@ CMD ["node", "server.js"]
 
 ### 1.3.3 설정의 환경변수화
 - 모든 환경 의존 값(DB URL, Redis URL, 외부 API 키, 허용 호스트, 쿠키 Secure 여부, 로그 레벨)은 환경변수로 읽는다. 비밀 값은 플랫폼 비밀 저장소에서 주입한다(각 플랫폼 "주변 자원").
-  - 출처: https://12factor.net/config · "The twelve-factor app stores config in environment variables" (확인 2026-10-01)
+  - 출처: https://12factor.net/config · "The twelve-factor app stores config in environment variables" (확인 2026-10-01) ⚠️출처부적격
 - 빌드 시점에 값이 박히는 변수(`NEXT_PUBLIC_*`, Vite `VITE_*`)는 따로 표시한다. 이미지 하나를 여러 환경에 승격하려면 런타임에 주입하는 방식으로 바꾼다. Next.js 문서는 런타임 env로 "a singular Docker image that can be promoted through multiple environments"가 가능하다고 한다.
 - 에이전트는 `.env.example`을 생성한다. 실제 값은 저장소에 쓰지 않는다.
 
 ### 1.3.4 stdout 로그
-- 로그를 파일에 쓰는 설정(`logging.FileHandler`, `winston` file transport, `access.log`)은 stdout으로 바꾼다. JSON 한 줄 형식을 권장한다(추론: Cloud Logging·CloudWatch가 필드를 파싱한다).
-- 출처: https://12factor.net/logs · "A twelve-factor app never concerns itself with routing or storage of its output stream." (확인 2026-10-01)
+- 로그를 파일에 쓰는 설정(`logging.FileHandler`, `winston` file transport, `access.log`)은 stdout으로 바꾼다. JSON 한 줄 형식을 권장한다(추론: Cloud Logging·CloudWatch가 필드를 파싱한다). ⚠️근거없음
+- 출처: https://12factor.net/logs · "A twelve-factor app never concerns itself with routing or storage of its output stream." (확인 2026-10-01) ⚠️출처부적격
 
 ### 1.3.5 마이그레이션 실행 위치
 
-**앱 기동 시점에는 실행하지 않는다.** 인스턴스가 여러 개면 동시에 실행되고, 시간이 기동 제한(Cloud Run 4분 포트 대기 등)을 잡아먹는다(추론). 배포 직전에 **단일 실행 단계**로 돌린다.
+**앱 기동 시점에는 실행하지 않는다.** 인스턴스가 여러 개면 동시에 실행되고, 시간이 기동 제한(Cloud Run 4분 포트 대기 등)을 잡아먹는다(추론). 배포 직전에 **단일 실행 단계**로 돌린다. ⚠️근거없음
 
 | 플랫폼 | 위치 | 키 / 명령 |
 |---|---|---|
@@ -338,8 +338,8 @@ CMD ["node", "server.js"]
   - ORM 8에서는 `prisma migrate deploy`가 `prisma db migrate`로, `prisma db push`가 `prisma db update`로 바뀌었다. 저장소의 Prisma 버전을 읽고 명령을 고른다.
   - ORM 7 이하는 `prisma migrate deploy`를 쓰고, `migrate dev`는 운영에서 금지된다.
 - 출처 (확인 2026-10-01)
-  - https://www.prisma.io/docs/orm/migrations/applying-a-migration · `prisma db migrate` "replaces Prisma ORM 7's prisma migrate deploy"
-  - https://www.prisma.io/docs/orm/v7/prisma-migrate/workflows/development-and-production · "`migrate dev` is a development command and should never be used in a production environment."
+  - https://www.prisma.io/docs/orm/migrations/applying-a-migration · `prisma db migrate` "replaces Prisma ORM 7's prisma migrate deploy" ⚠️출처확인필요
+  - https://www.prisma.io/docs/orm/v7/prisma-migrate/workflows/development-and-production · "`migrate dev` is a development command and should never be used in a production environment." ⚠️출처확인필요
   - https://docs.cloud.google.com/run/docs/overview/what-is-cloud-run · Jobs 용도 "Run a script to perform database migrations"
   - Django: `migrate`를 별도 배포 단계로 두라는 공식 문장은 `미확인`.
 
@@ -387,7 +387,7 @@ CMD ["node", "server.js"]
 | supabase/setup-cli | 문서 예시 `@v1` | — | 토큰(`SUPABASE_ACCESS_TOKEN`) |
 | railwayapp/config | 존재 확인, 버전 `미확인` | — | 토큰 |
 
-- azure/container-apps-deploy-action은 2024년 이후 릴리스가 없고 node16 런타임이다(추론: 러너에서 경고나 실패가 날 수 있다). 대안은 `az containerapp update --image`를 직접 호출하는 것이다.
+- azure/container-apps-deploy-action은 2024년 이후 릴리스가 없고 node16 런타임이다(추론: 러너에서 경고나 실패가 날 수 있다). 대안은 `az containerapp update --image`를 직접 호출하는 것이다. ⚠️근거없음
 
 ### 1.4.3 클라우드 인증: OIDC (정적 키 금지)
 
@@ -400,7 +400,7 @@ CMD ["node", "server.js"]
 - GitHub 문서: "requires a `permissions` setting with `id-token: write`" / "No cloud secrets: You won't need to duplicate your cloud credentials as long-lived GitHub secrets." (https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-cloud-providers, 확인 2026-10-01)
 - Checkov로 OIDC 신뢰 범위를 검사한다: CKV_GCP_118("Ensure IAM workload identity pool provider is restricted"), CKV_GCP_125("Ensure GCP GitHub Actions OIDC trust policy is configured securely").
 
-**OIDC를 쓸 수 없는 플랫폼**: Vercel, Netlify, Cloudflare, Railway, Render, Fly, Heroku, DigitalOcean, Koyeb, Supabase는 GitHub OIDC로 배포 인증을 받지 못한다(열어 본 CI 문서 기준). Vercel은 "Vercel doesn't support OIDC for authenticating the GitHub Actions deployment itself."라고 명시한다(https://vercel.com/kb/guide/how-can-i-use-github-actions-with-vercel). 이들 플랫폼은 정적 토큰을 GitHub Environment secret에 넣고 다음 규칙을 따른다(추론).
+**OIDC를 쓸 수 없는 플랫폼**: Vercel, Netlify, Cloudflare, Railway, Render, Fly, Heroku, DigitalOcean, Koyeb, Supabase는 GitHub OIDC로 배포 인증을 받지 못한다(열어 본 CI 문서 기준). Vercel은 "Vercel doesn't support OIDC for authenticating the GitHub Actions deployment itself."라고 명시한다(https://vercel.com/kb/guide/how-can-i-use-github-actions-with-vercel). 이들 플랫폼은 정적 토큰을 GitHub Environment secret에 넣고 다음 규칙을 따른다(추론). ⚠️근거없음
 - 범위가 가장 좁은 토큰을 쓴다(Railway 프로젝트 토큰은 환경 단위, Fly `fly tokens create deploy`는 앱 단위 배포 토큰).
 - `environment` 보호 규칙(브랜치 제한)을 건다.
 - 만료일을 둔다(Fly `-x`).
@@ -448,8 +448,8 @@ jobs:
 | non-root | `docker image inspect app:ci --format '{{.Config.User}}'` | 빈 값, `root`, `0`이 아님 |
 | 기동·헬스 | `docker run -d --name app -e PORT=8080 -p 8080:8080 --env-file .env.ci app:ci` → `curl -fsS --retry 10 --retry-connrefused localhost:8080/healthz` | 200 |
 | 포트 계약 | `-e PORT=9090 -p 9090:9090`으로 다시 실행 → 9090에서 200 | `PORT`를 따른다 |
-| SIGTERM | `time docker stop -t 30 app` → `docker inspect app --format '{{.State.ExitCode}}'` | 30초보다 훨씬 빨리 끝나고 종료 코드가 0 또는 143(SIGTERM). 137이면 SIGKILL로 끝난 것(PID 1이 신호를 받지 못함) (추론: 코드 의미는 128+신호 번호 관례) |
-| 진행 중 요청 | 느린 엔드포인트 호출 중 `docker stop` → 그 요청이 200으로 끝나는가 | 드레인 동작 (추론) |
+| SIGTERM | `time docker stop -t 30 app` → `docker inspect app --format '{{.State.ExitCode}}'` | 30초보다 훨씬 빨리 끝나고 종료 코드가 0 또는 143(SIGTERM). 137이면 SIGKILL로 끝난 것(PID 1이 신호를 받지 못함) (추론: 코드 의미는 128+신호 번호 관례) ⚠️근거없음 |
+| 진행 중 요청 | 느린 엔드포인트 호출 중 `docker stop` → 그 요청이 200으로 끝나는가 | 드레인 동작 (추론) ⚠️근거없음 |
 | compose | `docker compose config --quiet` | 오류 없음 (https://docs.docker.com/reference/cli/docker/compose/config/ · "only validate the configuration, don't print anything") |
 | Terraform | `terraform fmt -check` → `terraform init -backend=false` → `terraform validate` → `terraform plan` (실제 계정) | validate 성공, plan에 의도하지 않은 destroy 없음 |
 | Terraform 정적 | `checkov -d infra/ --framework terraform` | 각 플랫폼 절의 Checkov ID 통과(예외는 사유와 함께 `#checkov:skip=`) |
@@ -457,7 +457,7 @@ jobs:
 | k8s 정적 | `checkov -d k8s/ --framework kubernetes` | P-K 절의 ID |
 | 배포 후 스모크 | `curl -fsS https://<url>/readyz` + 핵심 경로. 실패하면 롤백 | 200 |
 
-- kubeconform 플래그: `-strict`("disallow additional properties not in schema or duplicated keys"), `-summary`, `-schema-location`(여러 번 지정 가능), `-ignore-missing-schemas`. CRD 카탈로그 예: `https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json`. 최신 v0.8.0. 출처는 https://github.com/yannh/kubeconform (확인 2026-10-01).
+- kubeconform 플래그: `-strict`("disallow additional properties not in schema or duplicated keys"), `-summary`, `-schema-location`(여러 번 지정 가능), `-ignore-missing-schemas`. CRD 카탈로그 예: `https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json`. 최신 v0.8.0. 출처는 https://github.com/yannh/kubeconform (확인 2026-10-01). ⚠️출처확인필요
 - `docker stop`의 SIGTERM → 타임아웃 → SIGKILL 동작을 설명하는 docker stop 문서 원문은 열지 않았다(`미확인`). Dockerfile 레퍼런스의 "doesn't receive a `SIGTERM` from `docker stop`"(셸 형식일 때)만 확인했다.
 
 ---
@@ -478,7 +478,7 @@ jobs:
   - Terraform `vercel/vercel`(v5.18.0)
     - 리소스: `vercel_project`, `vercel_project_environment_variable`(또는 `vercel_project_environment_variables`), `vercel_project_domain`, `vercel_project_crons`, `vercel_dns_record`, `vercel_oidc_federation_policy`
     - `vercel_project.resource_config`(`fluid`, `function_default_cpu_type`, `function_default_regions`, `function_default_timeout`)가 메모리·CPU를 정하는 유일한 IaC 경로다. `vercel.json`에서는 메모리를 정할 수 없다.
-    - 배포는 Terraform `vercel_deployment`보다 CLI가 단순하다(추론).
+    - 배포는 Terraform `vercel_deployment`보다 CLI가 단순하다(추론). ⚠️근거없음
   - CI 단계: `vercel pull --yes --environment=production` → `vercel build --prod` → `vercel deploy --prebuilt --prod`. 마이그레이션은 deploy 앞의 별도 단계다.
   - Dockerfile은 없다.
 - **요구 수준에 따라 바뀌는 핵심 설정:**
@@ -498,7 +498,7 @@ jobs:
   - **자동화 불가 단계**: Git 연동 앱 설치(`vercel_project.git_repository`의 전제 조건), CI용 `VERCEL_TOKEN` 발급, Secure Compute 네트워크 생성(대시보드나 영업 담당).
 - **검증 명령:**
   - `npx vercel build`(로컬에서 `.vercel/output` 생성 성공 = 설정과 빌드 검증)
-  - JSON 스키마 검증(`ajv validate -s https://openapi.vercel.sh/vercel.json -d vercel.json`, 도구 사용은 추론)
+  - JSON 스키마 검증(`ajv validate -s https://openapi.vercel.sh/vercel.json -d vercel.json`, 도구 사용은 추론) ⚠️근거없음
   - `terraform validate`
   - 배포 후 `curl -fsS $(vercel deploy --prebuilt)/api/health`(deploy의 stdout은 항상 배포 URL)
   - Checkov 규칙은 없다(`미확인`: Vercel provider 대상 체크를 찾지 못함).
@@ -643,9 +643,9 @@ jobs:
     - `railway.json`과 `railway.toml`(Config as Code)은 deprecated다.
     - 기존 파일은 이미 쓰던 서비스에 한해 **2026-12-01까지만** 동작하고, 새 서비스는 쓸 수 없다.
     - 기존 `railway.json`이 있으면 판정은 **교체**(railway.ts로 이전)다.
-  - Dockerfile(파트 1). Railpack 자동 빌드 대신 Dockerfile로 재현성을 확보한다(추론).
+  - Dockerfile(파트 1). Railpack 자동 빌드 대신 Dockerfile로 재현성을 확보한다(추론). ⚠️근거없음
   - CLI: `railway config plan`, `railway config apply`. GitHub Action `railwayapp/config`.
-  - Terraform: 공식 provider는 없다. 커뮤니티 `terraform-community-providers/railway`(v0.6.2, 리소스 `railway_project`, `railway_environment`, `railway_service`, `railway_service_domain`, `railway_custom_domain`, `railway_variable` 등)가 있다. 신규 생성에는 쓰지 않는다(추론: 공식 IaC가 생겼고 커뮤니티 provider는 유지 보장이 없다).
+  - Terraform: 공식 provider는 없다. 커뮤니티 `terraform-community-providers/railway`(v0.6.2, 리소스 `railway_project`, `railway_environment`, `railway_service`, `railway_service_domain`, `railway_custom_domain`, `railway_variable` 등)가 있다. 신규 생성에는 쓰지 않는다(추론: 공식 IaC가 생겼고 커뮤니티 provider는 유지 보장이 없다). ⚠️근거없음
   - CI 단계: `RAILWAY_TOKEN=… railway up --service <id> --ci`, 또는 `railway config apply`.
 - **요구 수준에 따라 바뀌는 핵심 설정:** 이름은 railway.ts 키이고, 괄호 안은 레거시 railway.json 키다.
   - F1과 D2: `replicas`(`deploy.multiRegionConfig.<region>.numReplicas`).
@@ -663,16 +663,16 @@ jobs:
   - **자동화 불가 단계:** 프로젝트 토큰 발급, GitHub 앱 승인(`미확인`).
 - **검증 명령:**
   - `railway config plan`(적용 전 차이)
-  - 레거시 파일이면 `$schema` `https://railway.com/railway.schema.json`으로 JSON 스키마 검증(추론)
+  - 레거시 파일이면 `$schema` `https://railway.com/railway.schema.json`으로 JSON 스키마 검증(추론) ⚠️근거없음
   - 파트 1 docker 검증
   - 배포 후 스모크
 - **출처 (확인 2026-10-01):**
-  - https://docs.railway.com/config-as-code · "continue to work for services that already use them until 2026-12-01 (hard cutoff)."
-  - https://docs.railway.com/infrastructure-as-code · "Config as Code (`railway.json` / `railway.toml`) is deprecated. Infrastructure as Code is the replacement."
-  - https://docs.railway.com/infrastructure-as-code/reference
-  - https://docs.railway.com/reference/config-as-code
-  - https://docs.railway.com/cli/deploying
-  - https://registry.terraform.io/providers/terraform-community-providers/railway/latest
+  - https://docs.railway.com/config-as-code · "continue to work for services that already use them until 2026-12-01 (hard cutoff)." ⚠️출처확인필요
+  - https://docs.railway.com/infrastructure-as-code · "Config as Code (`railway.json` / `railway.toml`) is deprecated. Infrastructure as Code is the replacement." ⚠️출처확인필요
+  - https://docs.railway.com/infrastructure-as-code/reference ⚠️출처확인필요
+  - https://docs.railway.com/reference/config-as-code ⚠️출처확인필요
+  - https://docs.railway.com/cli/deploying ⚠️출처확인필요
+  - https://registry.terraform.io/providers/terraform-community-providers/railway/latest ⚠️출처확인필요
 
 ## P9. Render
 - **산출물 목록:**
@@ -682,7 +682,7 @@ jobs:
     - `databases[]`
   - Dockerfile(파트 1).
   - Terraform `render-oss/render`(파트너, v1.9.1): `render_web_service`, `render_background_worker`, `render_cron_job`, `render_private_service`, `render_postgres`, `render_keyvalue`, `render_env_group`, `render_env_group_link`, `render_registry_credential`, `render_project`.
-  - **Blueprint와 Terraform 중 하나만** 고른다. 같은 자원을 여러 Blueprint로 관리하지 말라는 문서 경고가 있다. Terraform과 Blueprint를 섞는 문제는 (추론)이다.
+  - **Blueprint와 Terraform 중 하나만** 고른다. 같은 자원을 여러 Blueprint로 관리하지 말라는 문서 경고가 있다. Terraform과 Blueprint를 섞는 문제는 (추론)이다. ⚠️근거없음
   - CI 단계: 이미지를 레지스트리에 푸시한 뒤 `render deploys create <service> --wait`(`RENDER_API_KEY`), 또는 deploy hook URL에 `imgURL`을 넘긴다.
 - **요구 수준에 따라 바뀌는 핵심 설정:**
   - F4: `maxShutdownDelaySeconds`(기본 30, 최대 300).
@@ -705,10 +705,10 @@ jobs:
   - 파트 1 docker 검증
   - 배포 후 스모크
 - **출처 (확인 2026-10-01):**
-  - https://render.com/docs/blueprint-spec · "Validate your Blueprint file with the following Render CLI command: `render blueprints validate render.yaml`"
-  - https://render.com/docs/deploys · "default 30 seconds"
-  - https://render.com/docs/cli · https://render.com/docs/deploy-hooks · https://render.com/docs/infrastructure-as-code
-  - https://registry.terraform.io/providers/render-oss/render/latest
+  - https://render.com/docs/blueprint-spec · "Validate your Blueprint file with the following Render CLI command: `render blueprints validate render.yaml`" ⚠️출처확인필요
+  - https://render.com/docs/deploys · "default 30 seconds" ⚠️출처확인필요
+  - https://render.com/docs/cli · https://render.com/docs/deploy-hooks · https://render.com/docs/infrastructure-as-code ⚠️출처확인필요
+  - https://registry.terraform.io/providers/render-oss/render/latest ⚠️출처확인필요
 
 ## P10. Fly.io Machines
 - **산출물 목록:**
@@ -725,7 +725,7 @@ jobs:
   - F4
     - `kill_signal = "SIGTERM"`. 기본이 SIGINT라 파트 1 규칙과 맞추려면 반드시 넣는다.
     - `kill_timeout`(기본 5초, 최대 300초).
-    - `strategy`: `rolling`/`bluegreen`/`canary`/`immediate`. bluegreen은 헬스체크가 있어야 한다(추론).
+    - `strategy`: `rolling`/`bluegreen`/`canary`/`immediate`. bluegreen은 헬스체크가 있어야 한다(추론). ⚠️근거없음
   - A5와 G3: `auto_stop_machines = "stop"|"suspend"|"off"`, `min_machines_running`(주 리전에서만 적용).
   - A1과 A4: 상시 워커가 있으면 `[processes]`에 `worker`를 두고 `auto_stop_machines = "off"`로 한다.
   - D2: `[http_service.concurrency] type = "requests", soft_limit, hard_limit`.
@@ -738,18 +738,18 @@ jobs:
   - 사설 네트워크: 6PN(앱 간, 원문 `미확인`).
   - DB: 외부 관리형 DB 또는 Fly 제공 Postgres(`미확인`).
   - 인증서: `fly certs add example.com` 후 DNS A/AAAA 또는 CNAME 설정.
-  - 배포 토큰: `fly tokens create deploy -x 999999h`. 만료를 짧게 두는 것을 권장한다(추론).
+  - 배포 토큰: `fly tokens create deploy -x 999999h`. 만료를 짧게 두는 것을 권장한다(추론). ⚠️근거없음
   - **자동화 불가 단계:** DNS 레코드 설정(외부 DNS일 때), 결제 수단(`미확인`).
 - **검증 명령:**
   - `fly config validate --strict`(알 수 없는 섹션·키도 검사, Fly 플랫폼 기준 검증)
   - 파트 1 docker 검증. 컨테이너 신호는 `kill_signal`과 같게 맞춘다.
   - 배포 후 `fly status`(명령 원문 `미확인`)와 `curl`
 - **출처 (확인 2026-10-01):**
-  - https://docs.fly.io/reference/configuration/ · "You can set it up to a maximum of 300 seconds (5 minutes)." / release_command "run a one-off task, like a database migration, before any of your deployed Machines are created or updated"
-  - https://docs.fly.io/flyctl/config-validate/
-  - https://docs.fly.io/launch/continuous-deployment-with-github-actions/
-  - https://docs.fly.io/networking/custom-domain/
-  - https://github.com/fly-apps/terraform-provider-fly · "not a recommended method of deployment to Fly.io."
+  - https://docs.fly.io/reference/configuration/ · "You can set it up to a maximum of 300 seconds (5 minutes)." / release_command "run a one-off task, like a database migration, before any of your deployed Machines are created or updated" ⚠️출처확인필요
+  - https://docs.fly.io/flyctl/config-validate/ ⚠️출처확인필요
+  - https://docs.fly.io/launch/continuous-deployment-with-github-actions/ ⚠️출처확인필요
+  - https://docs.fly.io/networking/custom-domain/ ⚠️출처확인필요
+  - https://github.com/fly-apps/terraform-provider-fly · "not a recommended method of deployment to Fly.io." ⚠️출처확인필요
 
 ## P11. Firebase App Hosting
 - **산출물 목록:**
@@ -767,8 +767,8 @@ jobs:
   - D2: `maxInstances`(기본 100), `concurrency`(기본 80).
   - A6: `cpu`, `memoryMiB`(기본 512).
   - C8과 F5: `vpcAccess.egress` + `connector` 또는 `networkInterfaces`(사설 DB 연결).
-  - D5: 리전은 us-central1, us-east4, us-east5, asia-east1, asia-southeast1, europe-west4뿐이고 **서울은 없다.** 서울 DB와 함께 쓰려면 Cloud Run(P18)이 낫다(추론).
-  - 하부가 Cloud Run이라 종료 유예는 10초라고 보는 것은 (추론)이다. App Hosting 문서에 값은 `미확인`.
+  - D5: 리전은 us-central1, us-east4, us-east5, asia-east1, asia-southeast1, europe-west4뿐이고 **서울은 없다.** 서울 DB와 함께 쓰려면 Cloud Run(P18)이 낫다(추론). ⚠️근거없음
+  - 하부가 Cloud Run이라 종료 유예는 10초라고 보는 것은 (추론)이다. App Hosting 문서에 값은 `미확인`. ⚠️근거없음
 - **함께 필요한 주변 자원:** Blaze 요금제, Secret Manager(`env[].secret`, 버전 고정 `secret@5`), 서비스 계정, VPC 커넥터 또는 Direct VPC, 커스텀 도메인(리소스 이름 `미확인`).
   - **자동화 불가 단계:** Git 배포를 쓰면 Developer Connect UI에서 Firebase GitHub 앱을 설치해야 한다. CLI 소스 배포를 쓰면 이 단계를 건너뛸 수 있다.
 - **검증 명령:**
@@ -785,7 +785,7 @@ jobs:
   - 함수 코드 옵션: `setGlobalOptions({...})`와 함수별 옵션 `{ region, timeoutSeconds, memory, maxInstances, minInstances, secrets }`. `setGlobalOptions`에 이 키를 모두 넣는 예시는 `미확인`.
   - 환경 파일 `.env`, `.env.<projectId>`.
   - CI 단계: `firebase deploy --only functions`(ADC 인증).
-  - Terraform: 2세대 함수는 `google_cloudfunctions2_function`(P21)으로도 관리할 수 있지만, Firebase SDK 트리거 코드와 둘 중 하나만 쓴다(추론).
+  - Terraform: 2세대 함수는 `google_cloudfunctions2_function`(P21)으로도 관리할 수 있지만, Firebase SDK 트리거 코드와 둘 중 하나만 쓴다(추론). ⚠️근거없음
 - **요구 수준에 따라 바뀌는 핵심 설정:**
   - D5: `region: "asia-northeast3"`(서울, 1세대·2세대 모두 지원). 기본은 `us-central1`이다.
   - A2: `timeoutSeconds`. HTTP·callable은 최대 3600초, 예약·태스크 큐는 1800초, 그 밖의 이벤트 함수는 540초다. Hosting을 경유하면 60초다(04 문서).
@@ -809,7 +809,7 @@ jobs:
   - 함수 코드 `supabase/functions/<name>/index.ts`.
   - Terraform `supabase/supabase`(v1.11.0, 커뮤니티 등급)
     - 리소스: `supabase_project`, `supabase_settings`, **`supabase_edge_function`**(`entrypoint`, `project_ref`, `slug`), **`supabase_edge_function_secrets`**
-    - `supabase_edge_function_secrets`는 비밀 값을 state에 평문으로 저장한다. 비밀은 CLI로 넣는다(추론).
+    - `supabase_edge_function_secrets`는 비밀 값을 state에 평문으로 저장한다. 비밀은 CLI로 넣는다(추론). ⚠️근거없음
   - CI 단계: `supabase/setup-cli@v1` → `supabase functions deploy --project-ref $PROJECT_ID`(`SUPABASE_ACCESS_TOKEN`). DB 마이그레이션은 `supabase db push`(명령 원문 `미확인`)로 별도 단계에서 한다.
 - **요구 수준에 따라 바뀌는 핵심 설정:**
   - F5: `verify_jwt`. 웹훅 수신 함수(E4)만 `false`로 두고 서명 검증 코드를 생성한다. false면 "anyone to invoke your Edge Function without a valid JWT"가 된다.
@@ -820,7 +820,7 @@ jobs:
   - 기본 주입: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`.
   - **자동화 불가 단계:** 액세스 토큰 발급. Free 프로젝트는 1주 동안 활동이 없으면 정지된다(04 문서).
 - **검증 명령:**
-  - `deno check supabase/functions/<name>/index.ts`(도구 사용은 추론)
+  - `deno check supabase/functions/<name>/index.ts`(도구 사용은 추론) ⚠️근거없음
   - `supabase functions serve`(로컬, 원문 `미확인`)
   - `terraform validate`
   - 배포 후 `curl -H "Authorization: Bearer $ANON_KEY" https://<ref>.supabase.co/functions/v1/<name>`(URL 형식 `미확인`)
@@ -834,9 +834,9 @@ jobs:
   - **Terraform, 배포 CLI, API, GitHub Action 모두 확인되지 않았다.** 게시는 UI의 "Publish" 버튼으로 한다.
 - **요구 수준에 따라 바뀌는 핵심 설정:** 배포 유형(Autoscale / Reserved VM / Scheduled)은 UI에서 고른다. A1: 상시 워커면 Reserved VM. B3: Scheduled(공개 URL 없음).
 - **함께 필요한 주변 자원:** Replit Secrets(UI), 결제 수단.
-  - **자동화 불가 단계:** 게시와 설정 전부. 에이전트는 Replit을 **최종 목적지로 선택하지 않는다.** 기존 앱이면 `.replit`의 `run`과 `build`만 운영 서버로 고치고(1.2 기준) 게시 절차를 안내한다(추론).
+  - **자동화 불가 단계:** 게시와 설정 전부. 에이전트는 Replit을 **최종 목적지로 선택하지 않는다.** 기존 앱이면 `.replit`의 `run`과 `build`만 운영 서버로 고치고(1.2 기준) 게시 절차를 안내한다(추론). ⚠️근거없음
 - **검증 명령:** `run` 명령을 로컬에서 실행하고 헬스체크를 확인한다(파트 1과 같은 방식). 플랫폼 검증 명령은 없다.
-- **출처 (확인 2026-10-01):** https://docs.replit.com/replit-workspace/configuring-repl · https://docs.replit.com/features/publishing/deployment-types · https://docs.replit.com/cloud-services/deployments/scheduled-deployments · https://docs.replit.com/learn/projects-and-artifacts/replit-deployments · https://docs.replit.com/references/deployment-customization/static-deployments-advanced
+- **출처 (확인 2026-10-01):** https://docs.replit.com/replit-workspace/configuring-repl · https://docs.replit.com/features/publishing/deployment-types · https://docs.replit.com/cloud-services/deployments/scheduled-deployments · https://docs.replit.com/learn/projects-and-artifacts/replit-deployments · https://docs.replit.com/references/deployment-customization/static-deployments-advanced ⚠️출처확인필요
 
 ## P15. Heroku
 - **산출물 목록:**
@@ -911,7 +911,7 @@ jobs:
 - **함께 필요한 주변 자원:** `koyeb_secret`, `koyeb_domain` + DNS, 외부 DB.
   - **자동화 불가 단계:** API 토큰 발급.
 - **검증 명령:** `terraform validate`, 파트 1 docker 검증, 배포 후 스모크.
-- **출처 (확인 2026-10-01):** https://www.koyeb.com/docs/build-and-deploy/cli/reference · https://www.koyeb.com/docs/integrations/infrastructure-as-code/terraform · https://www.koyeb.com/docs/run-and-scale/health-checks · https://www.koyeb.com/docs/reference/instances · https://github.com/koyeb/action-git-deploy · https://registry.terraform.io/providers/koyeb/koyeb/latest
+- **출처 (확인 2026-10-01):** https://www.koyeb.com/docs/build-and-deploy/cli/reference · https://www.koyeb.com/docs/integrations/infrastructure-as-code/terraform · https://www.koyeb.com/docs/run-and-scale/health-checks · https://www.koyeb.com/docs/reference/instances · https://github.com/koyeb/action-git-deploy · https://registry.terraform.io/providers/koyeb/koyeb/latest ⚠️출처부적격
 
 ## 티어 1
 
@@ -930,7 +930,7 @@ jobs:
     - WIF 풀과 프로바이더(1.4.3)
   - 선택: Knative 형식 `service.yaml` + `gcloud run services replace`(Terraform 대신).
   - CI 단계: 빌드 → AR 푸시 → 마이그레이션 Job(P19) → `deploy-cloudrun@v3`(`no_traffic`, `tag`) → 태그 URL 스모크 → `update-traffic --to-latest`.
-  - Terraform과 CI가 같은 서비스의 이미지를 함께 바꾸면 드리프트가 생긴다. Terraform 쪽에 `lifecycle { ignore_changes = [template[0].containers[0].image, client, client_version] }`를 둔다(추론).
+  - Terraform과 CI가 같은 서비스의 이미지를 함께 바꾸면 드리프트가 생긴다. Terraform 쪽에 `lifecycle { ignore_changes = [template[0].containers[0].image, client, client_version] }`를 둔다(추론). ⚠️근거없음
 - **요구 수준에 따라 바뀌는 핵심 설정 (`google_cloud_run_v2_service`):**
   - A4: `template.containers.resources.cpu_idle`
     - `true`는 요청 기반 과금, `false`는 인스턴스 기반 과금이다.
@@ -964,7 +964,7 @@ jobs:
   - `terraform validate` / `plan`
   - Checkov
     - **`google_cloud_run_v2_*`를 대상으로 하는 체크가 없다.** CKV_GCP_102는 v1 `google_cloud_run_service_iam_*`만 본다.
-    - 공개 접근 검사는 커스텀 정책으로 한다: `allUsers` + `roles/run.invoker`가 의도된 경우만 허용(추론).
+    - 공개 접근 검사는 커스텀 정책으로 한다: `allUsers` + `roles/run.invoker`가 의도된 경우만 허용(추론). ⚠️근거없음
     - 사용할 수 있는 ID: CKV_GCP_84·CKV_GCP_101(AR), CKV_GCP_118·CKV_GCP_125(WIF).
   - 파트 1 docker 검증. PORT는 8080, SIGTERM 후 10초 안에 종료되어야 한다.
   - `gcloud run services describe app --region asia-northeast3 --format='value(status.conditions)'`
@@ -979,14 +979,14 @@ jobs:
   - https://docs.cloud.google.com/run/docs/configuring/services/secrets
   - https://docs.cloud.google.com/sql/docs/postgres/connect-run
   - https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/vpc_access_connector · https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_router_nat · https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/artifact_registry_repository
-  - https://www.checkov.io/5.Policy%20Index/terraform.html
+  - https://www.checkov.io/5.Policy%20Index/terraform.html ⚠️출처확인필요
 
 ## P19. Cloud Run Jobs
 - **산출물 목록:** Terraform `google_cloud_run_v2_job`. 마이그레이션 Job과 정기 작업 Job을 만든다. 정기 실행에는 `google_cloud_scheduler_job`을 더한다. 이미지는 서비스와 같은 것을 쓴다.
 - **요구 수준에 따라 바뀌는 핵심 설정:**
   - C9(마이그레이션)
     - `template.task_count = 1`, `parallelism = 1`.
-    - `template.template.max_retries`: 기본 3이다. 마이그레이션이 멱등이 아니면 0으로 둔다(추론).
+    - `template.template.max_retries`: 기본 3이다. 마이그레이션이 멱등이 아니면 0으로 둔다(추론). ⚠️근거없음
     - `template.template.timeout`: 시도당 적용된다.
   - B3(정기 작업): Cloud Scheduler `http_target` POST `https://run.googleapis.com/v2/projects/P/locations/R/jobs/J:run` + `oauth_token`(GCP 엔드포인트). `time_zone = "Asia/Seoul"`.
   - C8: `template.template.volumes.cloud_sql_instance`, `vpc_access`(서비스와 같다).
@@ -1001,9 +1001,9 @@ jobs:
   - A1(상시 워커): `scaling.scaling_mode = "MANUAL"`(기본), `scaling.manual_instance_count`.
   - 큐 길이 기반 확장(QU.consumer_scaling): `scaling_mode = "AUTOMATIC"`. 지표 조건은 `미확인`.
   - F4: 10초 안에 메시지를 반환하고 종료한다.
-  - URL이 없으므로 HTTP probe 대상이 없다. 헬스는 프로세스 생존으로 판단한다(추론).
+  - URL이 없으므로 HTTP probe 대상이 없다. 헬스는 프로세스 생존으로 판단한다(추론). ⚠️근거없음
 - **함께 필요한 주변 자원:** P18과 같다(VPC, 비밀, SA). 큐(Pub/Sub, Redis)는 03 문서를 따른다.
-- **검증 명령:** `terraform validate`. 파트 1 docker 검증은 HTTP 헬스 대신 SIGTERM 종료만 확인한다. 배포 후 큐에 시험 메시지를 넣어 처리되는지 확인한다(추론).
+- **검증 명령:** `terraform validate`. 파트 1 docker 검증은 HTTP 헬스 대신 SIGTERM 종료만 확인한다. 배포 후 큐에 시험 메시지를 넣어 처리되는지 확인한다(추론). ⚠️근거없음
 - **출처 (확인 2026-10-01):** https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloud_run_v2_worker_pool · https://docs.cloud.google.com/run/docs/deploy-worker-pools
 
 ## P21. Cloud Run functions
@@ -1024,7 +1024,7 @@ jobs:
   - Checkov: CKV_GCP_107(함수 IAM 공개 금지), CKV_GCP_124(과도한 ingress), CKV2_GCP_10(1세대 HTTP 트리거 보안).
   - 로컬에서 Functions Framework로 실행한 뒤 `curl`(명령 원문 `미확인`).
   - 배포 후 스모크.
-- **출처 (확인 2026-10-01):** https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloudfunctions2_function · https://docs.cloud.google.com/functions/docs/functions-framework · https://www.checkov.io/5.Policy%20Index/terraform.html
+- **출처 (확인 2026-10-01):** https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloudfunctions2_function · https://docs.cloud.google.com/functions/docs/functions-framework · https://www.checkov.io/5.Policy%20Index/terraform.html ⚠️출처확인필요
 
 ## P22. ECS on Fargate (일반 서비스 + Fargate Spot)
 - **산출물 목록:**
@@ -1042,7 +1042,7 @@ jobs:
     - IAM: OIDC provider + 배포 역할
     - 모듈: `terraform-aws-modules/vpc`, `terraform-aws-modules/ecs`를 쓸 수 있다.
   - CI 단계: `configure-aws-credentials@v6` → `amazon-ecr-login@v2` → `build-push-action@v7` → `amazon-ecs-render-task-definition@v1` → `amazon-ecs-deploy-task-definition@v2`(`run-task: true`로 마이그레이션을 먼저 실행, `wait-for-service-stability: true`).
-  - Terraform과 CI가 태스크 정의를 함께 바꾸므로 드리프트가 생긴다. 서비스에 `lifecycle { ignore_changes = [task_definition, desired_count] }`를 둔다. `desired_count`는 공식 문서도 권장한다. `task_definition`은 (추론)이다.
+  - Terraform과 CI가 태스크 정의를 함께 바꾸므로 드리프트가 생긴다. 서비스에 `lifecycle { ignore_changes = [task_definition, desired_count] }`를 둔다. `desired_count`는 공식 문서도 권장한다. `task_definition`은 (추론)이다. ⚠️근거없음
 - **요구 수준에 따라 바뀌는 핵심 설정:**
   - F4(배포)
     - `deployment_circuit_breaker { enable = true, rollback = true }`.
@@ -1052,7 +1052,7 @@ jobs:
   - F4(종료)
     - 컨테이너 정의 `stopTimeout`(기본 30, Fargate 최대 120).
     - `aws_lb_target_group.deregistration_delay`(기본 300 → 30~60으로 낮춘다. 롤아웃 속도 때문이다. simple-web-app은 30).
-    - 두 값의 관계: 앱 드레인 시간 ≤ stopTimeout, deregistration_delay ≥ 진행 중 요청의 최대 시간(추론).
+    - 두 값의 관계: 앱 드레인 시간 ≤ stopTimeout, deregistration_delay ≥ 진행 중 요청의 최대 시간(추론). ⚠️근거없음
   - F4(헬스)
     - 컨테이너 정의 `healthCheck { command = ["CMD-SHELL","curl -f http://localhost:8080/healthz || exit 1"], interval = 30, timeout = 5, retries = 3, startPeriod }`. 이미지에 curl이 없으면 런타임 명령으로 바꾼다.
     - `aws_lb_target_group.health_check { path = "/healthz", matcher = "200", interval, healthy_threshold }`.
@@ -1063,7 +1063,7 @@ jobs:
   - **충돌:** ECS Exec(`enable_execute_command = true`)는 `readonlyRootFilesystem`과 함께 쓸 수 없다. 운영 디버깅이 필요하면 CKV_AWS_336을 사유와 함께 건너뛴다.
   - G3(Spot)
     - `capacity_provider_strategy { capacity_provider = "FARGATE_SPOT", weight }`, 안정분은 `FARGATE` + `base`.
-    - Spot은 2분 경고와 SIGTERM을 주고 온디맨드로 대체하지 않는다. 그래서 `stopTimeout` ≤ 120으로 두고, 웹 서비스는 FARGATE `base ≥ 1`을 섞는다(추론).
+    - Spot은 2분 경고와 SIGTERM을 주고 온디맨드로 대체하지 않는다. 그래서 `stopTimeout` ≤ 120으로 두고, 웹 서비스는 FARGATE `base ≥ 1`을 섞는다(추론). ⚠️근거없음
 - **함께 필요한 주변 자원:**
   - 네트워크: VPC, 공용 서브넷(ALB), 사설 서브넷(태스크).
     - 출구가 필요하면 NAT Gateway(AZ당 월 $43, 05 문서).
@@ -1099,7 +1099,7 @@ jobs:
   - https://docs.aws.amazon.com/AmazonECS/latest/developerguide/vpc-endpoints.html
   - https://docs.aws.amazon.com/cli/latest/reference/ecs/wait/services-stable.html
   - https://github.com/aws-actions/amazon-ecs-deploy-task-definition
-  - https://www.checkov.io/5.Policy%20Index/terraform.html
+  - https://www.checkov.io/5.Policy%20Index/terraform.html ⚠️출처확인필요
 
 ## P23. ECS Express Mode
 - **산출물 목록:**
@@ -1132,7 +1132,7 @@ jobs:
 
 ## P25. Lambda — Function URL
 - **산출물 목록:**
-  - 컨테이너 이미지 방식(웹 앱을 그대로 옮길 때 권장, 추론)
+  - 컨테이너 이미지 방식(웹 앱을 그대로 옮길 때 권장, 추론) ⚠️근거없음
     - Dockerfile + **AWS Lambda Web Adapter**: `COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:1.1.0 /lambda-adapter /opt/extensions/lambda-adapter`.
     - 앱은 일반 웹 서버로 둔다(`AWS_LWA_PORT`, 없으면 `PORT`. 기본 8080).
   - 이미지 요건
@@ -1140,23 +1140,23 @@ jobs:
     - Linux만 된다.
     - 압축 해제 기준 10GB 이하다.
     - 멀티 아키텍처 이미지는 안 된다(단일 플랫폼으로 빌드: `--platform linux/arm64`).
-    - AWS 베이스 이미지가 아니면 런타임 인터페이스 클라이언트가 필요하다. Web Adapter를 쓰면 대신한다(추론).
+    - AWS 베이스 이미지가 아니면 런타임 인터페이스 클라이언트가 필요하다. Web Adapter를 쓰면 대신한다(추론). ⚠️근거없음
   - Terraform: `aws_lambda_function`(`package_type = "Image"`, `image_uri`, `timeout`, `memory_size`, `vpc_config`, `reserved_concurrent_executions`), `aws_lambda_function_url`(`authorization_type`, `invoke_mode`), ECR, IAM 실행 역할.
   - 대안 IaC: SAM `template.yaml`.
 - **요구 수준에 따라 바뀌는 핵심 설정:**
   - A2: `timeout`(기본 3초, 최대 900). **기본 3초는 웹 앱에 거의 항상 부족하다.** 반드시 설정한다.
   - A6: `memory_size`(기본 128). 1,769MB가 vCPU 1개다(05 문서).
   - A7과 A3: `invoke_mode = "RESPONSE_STREAM"`(스트리밍 응답 200MB), Web Adapter `AWS_LWA_INVOKE_MODE = response_stream`. 동기 응답은 6MB까지다.
-  - D2와 C8: `reserved_concurrent_executions`. 인스턴스당 동시성이 1이므로 DB 연결 = 동시 실행 수다. RDS Proxy를 더한다(추론).
+  - D2와 C8: `reserved_concurrent_executions`. 인스턴스당 동시성이 1이므로 DB 연결 = 동시 실행 수다. RDS Proxy를 더한다(추론). ⚠️근거없음
   - F5: `authorization_type = "AWS_IAM"`(기본 공개 `NONE`이면 CKV_AWS_258이 실패). 공개 웹 앱은 `NONE` + 앱 인증으로 하고 사유와 함께 건너뛴다.
   - F4: 확장이 없으면 종료 시간이 0ms다. Web Adapter는 graceful shutdown을 지원한다. 응답 후 작업(A4)은 불가하다(동결).
-  - F5와 C8: `vpc_config { subnet_ids, security_group_ids }`. VPC 안에서 외부로 나가려면 NAT가 필요하다(추론).
+  - F5와 C8: `vpc_config { subnet_ids, security_group_ids }`. VPC 안에서 외부로 나가려면 NAT가 필요하다(추론). ⚠️근거없음
 - **함께 필요한 주변 자원:** ECR, 실행 역할(`AWSLambdaBasicExecutionRole` 계열, 이름 원문 `미확인`), 사설 DB면 VPC + SG + RDS Proxy, 비밀(Secrets Manager + 확장 또는 SDK), 커스텀 도메인은 CloudFront 앞단(`미확인`).
 - **검증 명령:**
   - `terraform validate`
   - `sam validate --lint`(SAM 경로)
   - Checkov: CKV_AWS_45, CKV_AWS_50, CKV_AWS_115, CKV_AWS_116, CKV_AWS_117, CKV_AWS_173, CKV_AWS_272, CKV_AWS_258
-  - 로컬: 파트 1 docker 검증. Web Adapter가 있어도 일반 컨테이너로 돈다. 확장은 Lambda 밖에서 동작하지 않는다(추론).
+  - 로컬: 파트 1 docker 검증. Web Adapter가 있어도 일반 컨테이너로 돈다. 확장은 Lambda 밖에서 동작하지 않는다(추론). ⚠️근거없음
   - 배포 후: `curl` 함수 URL, 또는 `aws lambda invoke --function-name F --cli-binary-format raw-in-base64-out --payload '{}' out.json`.
 - **출처 (확인 2026-10-01):**
   - https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_function · `timeout` "Defaults to 3. Valid between 1 and 900."
@@ -1171,7 +1171,7 @@ jobs:
 - **산출물 목록:** P25의 함수 + `aws_apigatewayv2_api`(`protocol_type = "HTTP"|"WEBSOCKET"`), `aws_apigatewayv2_integration`(`integration_type = "AWS_PROXY"`, `payload_format_version = "2.0"`, 기본 1.0), `aws_apigatewayv2_route`, `aws_apigatewayv2_stage`(`auto_deploy = true`, HTTP API만), `aws_lambda_permission`. REST API(v1) 리소스의 세부 인자는 `미확인`.
 - **요구 수준에 따라 바뀌는 핵심 설정:**
   - A2: HTTP API는 30초로 고정이다(05 문서). 넘으면 Function URL(P25, 900초)이나 컨테이너로 옮긴다.
-  - A3: `protocol_type = "WEBSOCKET"` + `route_selection_expression = "$request.body.action"`. 연결 상태는 DynamoDB 등 외부에 둔다(추론).
+  - A3: `protocol_type = "WEBSOCKET"` + `route_selection_expression = "$request.body.action"`. 연결 상태는 DynamoDB 등 외부에 둔다(추론). ⚠️근거없음
   - A7: API Gateway 10MB와 Lambda 6MB 중 작은 쪽이 적용된다(05 문서).
   - Web Adapter를 쓰면 `payload_format_version`과 어댑터 호환을 확인한다. 어댑터는 REST, HTTP, ALB를 지원한다.
 - **함께 필요한 주변 자원:** P25와 같다. 커스텀 도메인은 `aws_apigatewayv2_domain_name` + ACM(인자 원문 `미확인`).
@@ -1221,7 +1221,7 @@ jobs:
   - https://learn.microsoft.com/en-us/azure/container-apps/azure-resource-manager-api-spec
   - https://learn.microsoft.com/en-us/azure/container-apps/managed-identity-image-pull
   - https://learn.microsoft.com/en-us/azure/container-apps/manage-secrets
-  - https://www.checkov.io/5.Policy%20Index/terraform.html
+  - https://www.checkov.io/5.Policy%20Index/terraform.html ⚠️출처확인필요
 
 ## 티어 2
 
@@ -1260,7 +1260,7 @@ P28~P34에 공통이다. 구성은 simple-web-app `k8s/`(base + overlays + compo
 - `kubectl apply --dry-run=server -k <overlay>`
 - `checkov -d k8s --framework kubernetes`
   - 대상 ID: CKV_K8S_8(liveness), CKV_K8S_9(readiness), CKV_K8S_10/11/12/13(CPU·메모리 requests/limits), CKV_K8S_14(latest 태그), CKV_K8S_20(권한 상승), CKV_K8S_22(읽기 전용 FS), CKV_K8S_23(root), CKV_K8S_28(NET_RAW), CKV_K8S_29(securityContext), CKV_K8S_31(seccomp), CKV_K8S_37(capabilities), CKV_K8S_38(SA 토큰), CKV_K8S_40(높은 UID), CKV_K8S_43(다이제스트)
-  - CKV_K8S_15(imagePullPolicy Always)와 CKV_K8S_43(다이제스트)은 sha 태그 운영과 충돌할 수 있다. 정책에 따라 건너뛴다(추론).
+  - CKV_K8S_15(imagePullPolicy Always)와 CKV_K8S_43(다이제스트)은 sha 태그 운영과 충돌할 수 있다. 정책에 따라 건너뛴다(추론). ⚠️근거없음
 
 **출처 (확인 2026-10-01)**
 - https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/ · "A Pod is granted a term to terminate gracefully, which defaults to 30 seconds."
@@ -1272,10 +1272,10 @@ P28~P34에 공통이다. 구성은 simple-web-app `k8s/`(base + overlays + compo
 - https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
 - https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/job-v1/ · https://kubernetes.io/docs/concepts/workloads/controllers/ttlafterfinished/
 - https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
-- https://keda.sh/docs/latest/reference/scaledobject-spec/
-- https://github.com/yannh/kubeconform
+- https://keda.sh/docs/latest/reference/scaledobject-spec/ ⚠️출처확인필요
+- https://github.com/yannh/kubeconform ⚠️출처확인필요
 - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_apply/
-- https://www.checkov.io/5.Policy%20Index/kubernetes.html
+- https://www.checkov.io/5.Policy%20Index/kubernetes.html ⚠️출처확인필요
 
 ## P28. GKE Autopilot
 - **산출물 목록:**
@@ -1310,7 +1310,7 @@ P28~P34에 공통이다. 구성은 simple-web-app `k8s/`(base + overlays + compo
   - `REAL_IP_FROM`에 LB IP를 넣는다(simple-web-app 계약).
 - **검증 명령:**
   - `terraform validate` / `plan`
-  - Checkov: GKE는 CKV_GCP_1, 7, 8, 12, 13, 18, 20, 21, 23, 25, 61, 64, 65, 66, 69, 70, 123, CKV2_GCP_19. Autopilot은 노드 풀 체크(CKV_GCP_9, 10, 22, 68, 71, 72)가 해당 없을 수 있다(추론).
+  - Checkov: GKE는 CKV_GCP_1, 7, 8, 12, 13, 18, 20, 21, 23, 25, 61, 64, 65, 66, 69, 70, 123, CKV2_GCP_19. Autopilot은 노드 풀 체크(CKV_GCP_9, 10, 22, 68, 71, 72)가 해당 없을 수 있다(추론). ⚠️근거없음
   - K의 검증 명령
   - 배포 후 `kubectl get managedcertificate`가 Active인지, 도메인 스모크
 - **출처 (확인 2026-10-01):**
@@ -1322,7 +1322,7 @@ P28~P34에 공통이다. 구성은 simple-web-app `k8s/`(base + overlays + compo
   - https://docs.cloud.google.com/kubernetes-engine/docs/how-to/deploying-gateways · https://docs.cloud.google.com/kubernetes-engine/docs/how-to/configure-gateway-resources
   - https://docs.cloud.google.com/kubernetes-engine/docs/how-to/workload-identity
   - https://docs.cloud.google.com/kubernetes-engine/docs/how-to/container-native-load-balancing
-  - https://www.checkov.io/5.Policy%20Index/terraform.html
+  - https://www.checkov.io/5.Policy%20Index/terraform.html ⚠️출처확인필요
 
 ## P29. GKE Standard (존 · 리전)
 - **산출물 목록:**
@@ -1382,11 +1382,11 @@ P28~P34에 공통이다. 구성은 simple-web-app `k8s/`(base + overlays + compo
     - 스모크
 - **출처 (확인 2026-10-01):**
   - https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_cluster · https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_node_group · https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association · https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_addon
-  - https://github.com/terraform-aws-modules/terraform-aws-eks
+  - https://github.com/terraform-aws-modules/terraform-aws-eks ⚠️출처확인필요
   - https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/guide/ingress/annotations/ · https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/deploy/pod_readiness_gate/ · "this only works with `target-type: ip`"
   - https://docs.aws.amazon.com/eks/latest/best-practices/load-balancing.html
   - https://docs.aws.amazon.com/cli/latest/reference/eks/update-kubeconfig.html
-  - https://www.checkov.io/5.Policy%20Index/terraform.html
+  - https://www.checkov.io/5.Policy%20Index/terraform.html ⚠️출처확인필요
 
 ## P31. EKS — Karpenter
 - **산출물 목록:**
@@ -1404,7 +1404,7 @@ P28~P34에 공통이다. 구성은 simple-web-app `k8s/`(base + overlays + compo
   - A6과 G3: NodePool `requirements`(인스턴스 패밀리, `capacity-type` spot/on-demand, 키 원문 `미확인`).
 - **함께 필요한 주변 자원:** P30과 같다. 노드 IAM 역할, Karpenter 컨트롤러 권한(Pod Identity), 서브넷과 SG 태그(셀렉터 대상), 인터럽션 큐(SQS, `미확인`).
 - **검증 명령:** P30 + kubeconform에 Karpenter CRD 스키마를 넣는다(카탈로그). 배포 후 `kubectl get nodeclaims`(리소스 이름 `미확인`).
-- **출처 (확인 2026-10-01):** https://karpenter.sh/docs/concepts/disruption/ · "By default, `expireAfter` is set to `720h` (30 days)." / "If undefined, Karpenter will default to one budget with `nodes: 10%`." · https://karpenter.sh/docs/concepts/nodeclasses/
+- **출처 (확인 2026-10-01):** https://karpenter.sh/docs/concepts/disruption/ · "By default, `expireAfter` is set to `720h` (30 days)." / "If undefined, Karpenter will default to one budget with `nodes: 10%`." · https://karpenter.sh/docs/concepts/nodeclasses/ ⚠️출처확인필요
 
 ## P32. EKS — Auto Mode
 - **산출물 목록:**
@@ -1425,8 +1425,8 @@ P28~P34에 공통이다. 구성은 simple-web-app `k8s/`(base + overlays + compo
   - F4: 노드 수명은 최대 21일(05 문서). PDB와 graceful shutdown이 필수다.
   - 나머지는 P30과 같다.
 - **함께 필요한 주변 자원:** P30에서 LB 컨트롤러와 Cluster Autoscaler를 뺀 것. 노드 IAM 역할.
-- **검증 명령:** P30과 같다. 정적 검사(grep 또는 커스텀 정책, 추론)로 지원하지 않는 어노테이션을 찾는다.
-- **출처 (확인 2026-10-01):** https://docs.aws.amazon.com/eks/latest/userguide/auto-configure-alb.html · https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_cluster · https://github.com/terraform-aws-modules/terraform-aws-eks · "to disable EKS Auto Mode you will have to explicitly set: compute_config = { enabled = false }"
+- **검증 명령:** P30과 같다. 정적 검사(grep 또는 커스텀 정책, 추론)로 지원하지 않는 어노테이션을 찾는다. ⚠️근거없음
+- **출처 (확인 2026-10-01):** https://docs.aws.amazon.com/eks/latest/userguide/auto-configure-alb.html · https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_cluster · https://github.com/terraform-aws-modules/terraform-aws-eks · "to disable EKS Auto Mode you will have to explicitly set: compute_config = { enabled = false }" ⚠️출처확인필요
 
 ## P33. EKS — Fargate 프로필
 - **산출물 목록:** P30 + `aws_eks_fargate_profile`(`subnet_ids` = 사설 서브넷만, `selector { namespace }` 필수, `pod_execution_role_arn`은 `eks-fargate-pods.amazonaws.com`이 맡을 수 있는 역할). 노드 그룹은 없거나 시스템용만 둔다. LB 컨트롤러는 Helm으로 설치한다.
@@ -1446,7 +1446,7 @@ P28~P34에 공통이다. 구성은 simple-web-app `k8s/`(base + overlays + compo
     - HA는 서버 3대(홀수)다. 첫 서버는 `--cluster-init`, 나머지는 `--server https://<ip>:6443`으로 붙는다.
     - 에이전트는 `K3S_URL`, `K3S_TOKEN`으로 합류한다.
   - k8s: 공통(K). Ingress는 기본 Traefik이고 ServiceLB를 쓴다. 인증서는 cert-manager(`미확인`) 또는 Traefik ACME(`미확인`).
-  - CI: kubeconfig(`/etc/rancher/k3s/k3s.yaml`)를 안전하게 전달해야 한다. 이것이 자동화의 약한 고리다(추론).
+  - CI: kubeconfig(`/etc/rancher/k3s/k3s.yaml`)를 안전하게 전달해야 한다. 이것이 자동화의 약한 고리다(추론). ⚠️근거없음
 - **요구 수준에 따라 바뀌는 핵심 설정:**
   - F1: 단일 서버면 VM 장애가 곧 서비스 중단이다. 3대 HA는 비용이 3배다.
   - B2: 기본 스토리지는 local-path(`/var/lib/rancher/k3s/storage`)라 노드에 고정된다. DB는 관리형 DB로 뺀다.
@@ -1455,7 +1455,7 @@ P28~P34에 공통이다. 구성은 simple-web-app `k8s/`(base + overlays + compo
 - **함께 필요한 주변 자원:** VM, 고정 IP, DNS, 백업(etcd 스냅샷, `미확인`), OS 패치. 운영 부담은 05 문서 G2를 따른다.
   - **자동화 불가 단계:** 노드 OS와 k3s 업그레이드 운영(사람이 맡는다).
 - **검증 명령:** `terraform validate`, K의 검증 명령. 설치 후 `kubectl get nodes`가 Ready인지 확인한다.
-- **출처 (확인 2026-10-01):** https://docs.k3s.io/quick-start · https://docs.k3s.io/datastore/ha-embedded · "must be comprised of an odd number of server nodes" · https://docs.k3s.io/networking/networking-services · https://docs.k3s.io/add-ons/storage · https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_instance · https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance
+- **출처 (확인 2026-10-01):** https://docs.k3s.io/quick-start · https://docs.k3s.io/datastore/ha-embedded · "must be comprised of an odd number of server nodes" · https://docs.k3s.io/networking/networking-services · https://docs.k3s.io/add-ons/storage · https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_instance · https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance ⚠️출처확인필요
 
 ## 기준선
 
@@ -1475,7 +1475,7 @@ P28~P34에 공통이다. 구성은 simple-web-app `k8s/`(base + overlays + compo
     - EBS 스냅샷 정책(`aws_dlm_lifecycle_policy`, `미확인`)
   - CI: OIDC → ECR 푸시 → SSM Run Command로 `docker compose pull && docker compose run --rm migrate && docker compose up -d`(SSM 명령 원문 `미확인`).
 - **요구 수준에 따라 바뀌는 핵심 설정:**
-  - F4: `stop_grace_period`(기본 10초). `up -d`로 재생성하는 동안 짧은 중단이 생긴다. 무중단이 필요하면(F4 "불가") 이 기준선은 맞지 않는다(추론).
+  - F4: `stop_grace_period`(기본 10초). `up -d`로 재생성하는 동안 짧은 중단이 생긴다. 무중단이 필요하면(F4 "불가") 이 기준선은 맞지 않는다(추론). ⚠️근거없음
   - F4: `healthcheck { test, interval, timeout, retries, start_period }`, `restart: unless-stopped`.
   - F1: 단일 AZ, 단일 인스턴스다. F1이 "짧아야 함" 이상이면 교체한다.
   - B2: EBS 영속. 단일 AZ다(05 문서).
@@ -1489,7 +1489,7 @@ P28~P34에 공통이다. 구성은 simple-web-app `k8s/`(base + overlays + compo
   - 파트 1 docker 검증
   - 배포 후 `curl https://<domain>/readyz`
   - Checkov는 `aws_instance` 체크가 있지만 이번에 ID를 확인하지 않았다(`미확인`).
-- **출처 (확인 2026-10-01):** https://docs.docker.com/reference/compose-file/services/ · https://raw.githubusercontent.com/compose-spec/compose-spec/main/05-services.md · "Default value is 10 seconds for the container to exit before sending SIGKILL" · https://docs.docker.com/reference/cli/docker/compose/config/ · https://caddyserver.com/docs/automatic-https · https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance
+- **출처 (확인 2026-10-01):** https://docs.docker.com/reference/compose-file/services/ · https://raw.githubusercontent.com/compose-spec/compose-spec/main/05-services.md · "Default value is 10 seconds for the container to exit before sending SIGKILL" · https://docs.docker.com/reference/cli/docker/compose/config/ · https://caddyserver.com/docs/automatic-https · https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance ⚠️출처확인필요
 
 ## P36. 단일 VM + docker compose — Compute Engine
 - **산출물 목록:** P35와 같다. Terraform만 다르다.

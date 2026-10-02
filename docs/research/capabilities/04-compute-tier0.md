@@ -21,10 +21,10 @@
 | 생성 도구 | 기본 배포 대상 | 이 문서 항목 | 출처 (URL · 인용 · 2026-10-01) |
 |---|---|---|---|
 | v0 (Vercel) | Vercel. v0 계정 = Vercel 계정. 게시하면 Vercel 프로젝트가 자동 생성됨. 업그레이드하지 않으면 Hobby | §1 Vercel | https://v0.app/docs/vercel-integration · "v0 accounts are just Vercel accounts." / "a corresponding Vercel Project is automatically created" · 2026-10-01 |
-| Lovable | Lovable 자체 호스팅(`*.lovable.app`)과 내장 백엔드 "Cloud"(DB·인증·스토리지·함수). 하부 인프라 제공자는 `미확인`. 커스텀 도메인은 유료 플랜 | 이 표에 별도 항목 없음(능력 미공개) | https://docs.lovable.dev/features/deploy · "Lovable hosts the published app for you" / "Connecting a new custom domain requires a paid plan." · https://docs.lovable.dev/features/hosting · "database, authentication, storage, and functions" · 2026-10-01 |
-| Bolt.new | Bolt 호스팅(`*.bolt.host`)이 기본. Netlify로 게시하도록 바꿀 수 있음. 하부 인프라는 `미확인` | Netlify를 고른 경우 §2 | https://support.bolt.new/cloud/hosting/publish · "publish your Bolt project for free at a web address ending in `bolt.host`" · https://support.bolt.new/integrations/netlify · "published using Bolt hosting by default, though you can choose to publish new projects to Netlify instead" · 2026-10-01 |
-| Replit Agent | Replit Deployments | §9 Replit | https://docs.replit.com/cloud-services/deployments/about-deployments · 2026-10-01 |
-| Google AI Studio (Build) | Cloud Run(티어 1). Starter Tier는 서비스 2개까지, Cloud Run 리전 1개 | 05 문서 Cloud Run | https://ai.google.dev/gemini-api/docs/aistudio-deploying · "up to two services" / "a single Cloud Run region" · 2026-10-01 |
+| Lovable | Lovable 자체 호스팅(`*.lovable.app`)과 내장 백엔드 "Cloud"(DB·인증·스토리지·함수). 하부 인프라 제공자는 `미확인`. 커스텀 도메인은 유료 플랜 | 이 표에 별도 항목 없음(능력 미공개) | https://docs.lovable.dev/features/deploy · "Lovable hosts the published app for you" / "Connecting a new custom domain requires a paid plan." · https://docs.lovable.dev/features/hosting · "database, authentication, storage, and functions" · 2026-10-01 ⚠️출처확인필요 |
+| Bolt.new | Bolt 호스팅(`*.bolt.host`)이 기본. Netlify로 게시하도록 바꿀 수 있음. 하부 인프라는 `미확인` | Netlify를 고른 경우 §2 | https://support.bolt.new/cloud/hosting/publish · "publish your Bolt project for free at a web address ending in `bolt.host`" · https://support.bolt.new/integrations/netlify · "published using Bolt hosting by default, though you can choose to publish new projects to Netlify instead" · 2026-10-01 ⚠️출처확인필요 |
+| Replit Agent | Replit Deployments | §9 Replit | https://docs.replit.com/cloud-services/deployments/about-deployments · 2026-10-01 ⚠️출처확인필요 |
+| Google AI Studio (Build) | Cloud Run(티어 1). Starter Tier는 서비스 2개까지, Cloud Run 리전 1개 | 05 문서 Cloud Run | https://ai.google.dev/gemini-api/docs/aistudio-deploying · "up to two services" / "a single Cloud Run region" · 2026-10-01 ⚠️출처확인필요 |
 
 ## 목차
 
@@ -92,7 +92,7 @@
 | Railway Pro | 15분 | 무기한 | 가능 | 가능 | 5분 | 5분 내 업로드 | 볼륨 1TB 또는 50GB `[충돌]` | 기본 0초 | **없음** | 레플리카 42, 고정 IP 가능 | 하드 한도 시 전체 오프라인 | 월 $20 |
 | Render Free | 100분 | 지원 (배포 시 끊김) | 15분 유휴 시 스핀다운 | 불가 (웹만) | 해당 없음 (크론은 유료) | `미확인` | 임시, 디스크 불가 | 기본 30초 | **없음** (싱가포르) | 월 750시간, **Postgres 30일 만료** | 해당 없음 | $0 |
 | Render 유료 | 100분 | 지원 (배포 시 끊김) | 가능 | 가능 (worker) | `미확인`, 실행 최대 12시간 | `미확인` | 디스크 부착 시 **인스턴스 1개·무중단 배포 불가** | 30초, 최대 300초 | **없음** | 오토스케일은 Pro 워크스페이스 | 빌드 분만 상한, 서비스는 계속 실행 | 월 $7 |
-| Fly.io Machines | 프록시 유휴 타임아웃 설정 가능, 기본값 `미확인` | 공식 인용 `미확인` | 자동 정지 끄면 가능 | 가능 (`[processes]`) | 시간 단위 (hourly 등, 대략) | `미확인` | 볼륨: 머신 1대, 호스트 고정, 복제 없음 | 기본 SIGINT 5초, 최대 300초 | **없음** (도쿄 `nrt`) | 무료 등급 없음 (체험 2시간·7일) | 상한 `미확인` | 약 월 $2 (추론) |
+| Fly.io Machines | 프록시 유휴 타임아웃 설정 가능, 기본값 `미확인` | 공식 인용 `미확인` | 자동 정지 끄면 가능 | 가능 (`[processes]`) | 시간 단위 (hourly 등, 대략) | `미확인` | 볼륨: 머신 1대, 호스트 고정, 복제 없음 | 기본 SIGINT 5초, 최대 300초 | **없음** (도쿄 `nrt`) | 무료 등급 없음 (체험 2시간·7일) | 상한 `미확인` | 약 월 $2 (추론) ⚠️근거없음 |
 | Firebase App Hosting | `미확인` | `미확인` | `미확인` | 불가 | 해당 없음 | `미확인` | `미확인` | `미확인` | **없음** (대만·싱가포르) | Blaze 필수, Node.js만 | 선택형 지출 상한 시 그달 정지 | $0 고정비 |
 | Cloud Functions for Firebase | 2세대 HTTP 60분, 이벤트 540초, **Hosting 경유 60초** | `미확인` | **없음** | 불가 | `미확인` | 32MB (1세대 10MB) | 메모리 소비하는 임시 | `미확인` | `asia-northeast3` 있음 | Blaze 필수 | 선택형 상한 시 그달 정지 | $0 고정비 |
 | Supabase Edge Free | 벽시계 150초, CPU 2초, 유휴 150초 | 가능, 150초 한도 | `EdgeRuntime.waitUntil`, 한도 안 | 불가 | 1분 (pg_cron) | `미확인` | `/tmp` 256MB, 호출마다 초기화 | `미확인` | `ap-northeast-2` 지정 가능 | **1주 무활동 시 프로젝트 정지** | 해당 없음 (한도 초과 시 `미확인`) | $0 |
@@ -134,7 +134,7 @@
 | CP.networking | 고정 출구 IP·VPC 피어링 불가(Pro·Enterprise 기능). DB는 공개 엔드포인트와 풀러로 연결. `attachDatabasePool`로 정지 전 유휴 연결 반환 | | https://vercel.com/docs/networking/static-ips (Pro·Enterprise 전용) · https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package · "ensures that idle pool clients are properly released before functions suspend" · 2026-10-01 |
 | CP.regions | 컴퓨트 리전 19개, 서울 `icn1`·도쿄 `hnd1`·오사카 `kix1`. 새 프로젝트 기본 `iad1` | | https://vercel.com/docs/regions · "icn1 \| ap-northeast-2 \| Seoul, South Korea" / "Vercel Functions default to running in the `iad1` (Washington, D.C., USA) region" · 2026-10-01 |
 | CP.plan_limits | **비상업 개인 용도만**(결제·광고·유료 제작 사이트는 상업). 크론 하루 1회·±59분, 더 잦으면 배포 실패. 프로젝트당 크론 100개. 비 Next.js·SvelteKit 프레임워크는 배포당 함수 12개. 하루 배포 100회. 런타임 로그 1시간. 한도 초과 시 대부분 30일 대기 | | https://vercel.com/docs/limits/fair-use-guidelines · "Hobby teams are restricted to non-commercial personal use only." · https://vercel.com/docs/cron-jobs/usage-and-pricing · "Cron expressions that would run more frequently will fail during deployment." · https://vercel.com/docs/plans/hobby · "you will have to wait until 30 days have passed" · 2026-10-01 |
-| CP.ops_burden | 서버·노드 관리 없음. 리전·`maxDuration`·크론 설정과 DB 연결 관리만 남음 (추론, 명시 문장 `미확인`) | | 위 문서들의 범위에서 추론 |
+| CP.ops_burden | 서버·노드 관리 없음. 리전·`maxDuration`·크론 설정과 DB 연결 관리만 남음 (추론, 명시 문장 `미확인`) | | 위 문서들의 범위에서 추론 ⚠️근거없음 |
 | CP.cost_floor | $0. 포함량: 호출 100만, 활성 CPU 4시간, 프로비저닝 메모리 360GB-시간, Fast Data Transfer 100GB | 무료 한도 도달 시 프로젝트 자동 일시 정지 | https://vercel.com/docs/plans/hobby · https://vercel.com/changelog/spend-management-now-pauses-production-deployments-by-default · "automatically paused when reaching the included free tier limits" · 2026-10-01 |
 
 #### 비용 구조
@@ -147,7 +147,7 @@
 - 저장소: Vercel Blob, Global Config(이전 Edge Config). KV·Postgres는 더 이상 Vercel 자체 상품이 아니고 Marketplace(Upstash, Neon 등)가 환경변수로 자격 증명을 주입한다. https://vercel.com/docs/storage
 - `@vercel/queue`, `workflow` SDK(`'use workflow'`, `'use step'`).
 - Next.js 자체 호스팅: 여러 인스턴스면 공유 `cacheHandler`, 모든 인스턴스에 같은 `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, `deploymentId` 설정이 필요하다. `after`는 `next start`에서 완전 지원. 권장 드레인 10~30초. https://nextjs.org/docs/app/guides/self-hosting
-- 종속 정도: Next.js 표준 API만 쓰면 낮음, 위 Vercel 전용 API·Workflow를 쓰면 중간~높음 (추론).
+- 종속 정도: Next.js 표준 API만 쓰면 낮음, 위 Vercel 전용 API·Workflow를 쓰면 중간~높음 (추론). ⚠️근거없음
 
 #### 함정
 - 2025-04-23 전 프로젝트는 최대 60초. "Vercel은 300초"로 판정하면 틀린다.
@@ -177,7 +177,7 @@
 | CP.networking | 고정 출구 IP: 프로젝트당 월 $100 + Private Data Transfer, 아웃바운드 전용, 공유 VPC. VPC 피어링(Secure Compute)은 Enterprise만 | 고정 IP는 1800초 확장·대형 함수·컨테이너 이미지와 병용 불가 | https://vercel.com/docs/networking/static-ips · "$100.00/month per project, plus Private Data Transfer" · 2026-10-01 |
 | CP.regions | `icn1` 있음, 기본 `iad1` | | https://vercel.com/docs/regions · 2026-10-01 |
 | CP.plan_limits | 상업 이용 가능. 크론 1분 단위·분 정밀도, 프로젝트당 100개. 런타임 로그 1일 | | https://vercel.com/docs/cron-jobs/usage-and-pricing · Pro "Once per minute" · https://vercel.com/docs/limits · 2026-10-01 |
-| CP.ops_burden | 서버 관리 없음. 지출 관리·리전·롤링 릴리스 설정 (추론) | | 추론 |
+| CP.ops_burden | 서버 관리 없음. 지출 관리·리전·롤링 릴리스 설정 (추론) | | 추론 ⚠️근거없음 |
 | CP.cost_floor | 월 $20 플랫폼 요금(배포 좌석 1개 포함, $20 사용량 크레딧). 추가 배포 좌석 월 $20. 활성 CPU 시간당 $0.128부터, 프로비저닝 메모리 GB-시간당 $0.0106부터, 호출 100만 건당 $0.60. CDN 요청 100만·전송 1TB 포함 | 지출 알림 기본 $200. 한도 설정만으로는 사용이 멈추지 않음 | https://vercel.com/docs/plans/pro-plan · "$20/month Pro platform fee — 1 deploying team seat included — $20/month in usage credit" · https://vercel.com/docs/limits/fair-use-guidelines · "Starting at $0.128 per hour" · 2026-10-01 |
 
 #### 비용 구조
@@ -213,7 +213,7 @@
 | CP.networking | Secure Compute(IP 허용 목록, VPC 피어링, 완전 격리), 고정 IP | Secure Compute는 컨테이너 이미지·1800초와 병용 불가 | https://vercel.com/docs/networking/static-ips · "IP allowlisting, VPC Peering, full isolation" · 2026-10-01 |
 | CP.regions | `icn1` 있음 | | https://vercel.com/docs/regions · 2026-10-01 |
 | CP.plan_limits | 크론 1분. Edge 코드 크기 4MB | | https://vercel.com/docs/cron-jobs/usage-and-pricing · https://vercel.com/docs/functions/runtimes/edge · 2026-10-01 |
-| CP.ops_burden | 서버 관리 없음 (추론) | | 추론 |
+| CP.ops_burden | 서버 관리 없음 (추론) | | 추론 ⚠️근거없음 |
 | CP.cost_floor | 별도 계약(공개 가격 `미확인`) | | https://vercel.com/docs/networking/static-ips · Secure Compute "custom pricing" · 2026-10-01 |
 
 #### 비용 구조
@@ -244,17 +244,17 @@
 | CP.shutdown | `미확인` | | — |
 | CP.deploy | 플랜별 롤백 규칙(§1.1~1.3) | | https://vercel.com/docs/instant-rollback · 2026-10-01 |
 | CP.availability | 모든 플랜에서 다른 리전으로 재라우팅 | | https://vercel.com/docs/functions/runtimes/edge · "on all plans" · 2026-10-01 |
-| CP.networking | 고정 IP·Secure Compute 대상 아님 (`미확인`) | | — |
+| CP.networking | 고정 IP·Secure Compute 대상 아님 (`미확인`) | | — ⚠️근거없음 |
 | CP.regions | 요청에 가장 가까운 리전 | | https://vercel.com/docs/functions/runtimes/edge · "execute in the region closest to the incoming request" · 2026-10-01 |
 | CP.plan_limits | **Node.js로 이전 권고. Next.js 16.3부터 `runtime = 'edge'` 미지원** | `require`·`eval` 불가 | https://vercel.com/docs/functions/runtimes/edge · "We recommend migrating from edge to Node.js" / "Starting in Next.js 16.3, setting `runtime = 'edge'` is no longer supported." · 2026-10-01 |
-| CP.ops_burden | 서버 관리 없음 (추론) | | 추론 |
+| CP.ops_burden | 서버 관리 없음 (추론) | | 추론 ⚠️근거없음 |
 | CP.cost_floor | 플랜 요금에 포함 | | https://vercel.com/docs/plans/pro-plan · 2026-10-01 |
 
 #### 비용 구조
 플랜 요금을 따른다.
 
 #### 교체 계열 정보
-Edge 코드는 Web API만 쓰므로 Node.js 런타임으로 바꾸면 대부분 그대로 돌아간다(추론). 다만 `export const runtime = 'edge'` 선언 제거가 필수다.
+Edge 코드는 Web API만 쓰므로 Node.js 런타임으로 바꾸면 대부분 그대로 돌아간다(추론). 다만 `export const runtime = 'edge'` 선언 제거가 필수다. ⚠️근거없음
 
 #### 함정
 Edge를 쓰는 저장소는 이전 판단과 별개로 런타임 교체(Edge → Node.js) 처방이 먼저 나온다.
@@ -271,7 +271,7 @@ Functions 언어는 TypeScript·JavaScript·Go다. **Python 함수 런타임이 
 |---|---|---|---|
 | CP.process_types | 웹(동기 함수), 백그라운드 함수(15분, 202 반환), 정기 함수. 상시 워커 없음 | 정기·백그라운드 함수는 모든 플랜에서 사용 가능 | https://docs.netlify.com/build/functions/overview/ · "ephemeral runtime environments" · https://docs.netlify.com/build/functions/scheduled-functions/ · "all pricing plans… including free tiers" · 2026-10-01 |
 | CP.request_timeout | 동기 60초, 스트리밍 60초, 정기 30초, 백그라운드 15분 | | https://docs.netlify.com/build/functions/configuration/ · "Synchronous execution limit: 60 seconds" / "Background execution limit: 15 minutes" · https://docs.netlify.com/build/functions/api/ · 2026-10-01 |
-| CP.long_connection | 공식 문서 `미확인`. 포럼 직원 답변(2020)은 웹소켓 프록시 미지원 | 스트리밍 응답은 60초 | https://answers.netlify.com/t/does-netlify-support-websocket-proxying/11230 · "We do not support proxying websockets at this time." · 2026-10-01 |
+| CP.long_connection | 공식 문서 `미확인`. 포럼 직원 답변(2020)은 웹소켓 프록시 미지원 | 스트리밍 응답은 60초 | https://answers.netlify.com/t/does-netlify-support-websocket-proxying/11230 · "We do not support proxying websockets at this time." · 2026-10-01 ⚠️출처부적격 |
 | CP.cpu_outside_request | `context.waitUntil()`로 함수 실행 시간 한도 안에서만, 그 시간도 과금 | | https://docs.netlify.com/build/functions/api/ · "Function can run until its execution time limit, including all async work" · 2026-10-01 |
 | CP.cold_start | 요청 기반 임시 실행 환경(scale-to-zero). 최소 인스턴스 `미확인` | | https://docs.netlify.com/build/functions/overview/ · 2026-10-01 |
 | CP.instance_size | 메모리 1024MB 고정. 1~4GB·0.5~2vCPU 조정은 크레딧 기반 Pro·Enterprise만 | | https://docs.netlify.com/build/functions/configuration/ · "Available on: Credit-based Pro and Enterprise plans only" · 2026-10-01 |
@@ -285,7 +285,7 @@ Functions 언어는 TypeScript·JavaScript·Go다. **Python 함수 런타임이 
 | CP.networking | 고정 출구 IP 불가(Enterprise Private Connectivity 애드온 전용) | | https://docs.netlify.com/manage/security/private-connectivity/ · 2026-10-01 |
 | CP.regions | 서울 없음, 오하이오 고정 | | https://docs.netlify.com/build/functions/configuration/ · "Default: cmh (US East, Ohio)" · 2026-10-01 |
 | CP.plan_limits | Free 월 300크레딧, Personal 월 1,000크레딧. Free는 크레딧 하드 한도이며 추가 구매 불가, 동시 빌드 1개. 정기 함수 최소 1분·UTC·게시된 배포에서만 실행. 상업 이용 제한 `미확인` | | https://www.netlify.com/pricing/ · https://docs.netlify.com/manage/accounts-and-billing/billing/billing-for-credit-based-plans/credit-based-pricing-plans/ · "credit hard limit" · 2026-10-01 |
-| CP.ops_burden | 서버 관리 없음 (추론) | | 추론 |
+| CP.ops_burden | 서버 관리 없음 (추론) | | 추론 ⚠️근거없음 |
 | CP.cost_floor | Free $0, Personal 월 $9. 프로덕션 배포 15크레딧, 컴퓨트 GB-시간당 10크레딧, 대역폭 GB당 20크레딧, 요청 1만 건당 2크레딧. Personal 자동 충전 500크레딧 $5 | | https://www.netlify.com/pricing/ · 2026-10-01 |
 
 #### 비용 구조
@@ -297,7 +297,7 @@ Functions 언어는 TypeScript·JavaScript·Go다. **Python 함수 런타임이 
 - `netlify.toml`(리다이렉트·헤더·함수 설정), `-background` 접미사 함수 → 큐 + 워커.
 - 플랫폼 전용 API: `context.*`, Netlify Blobs `getStore()`, Netlify Database `getDatabase()`.
 - Next.js는 OpenNext 어댑터(opennextjs-netlify)로 실행된다. 렌더링·API는 함수, 미들웨어는 Edge Function, 캐시는 Netlify 캐시, 이미지는 Netlify Image CDN이다. https://docs.netlify.com/build/frameworks/framework-setup-guides/nextjs/overview/
-- 종속 정도: 함수 형식은 Web 표준 `Request`/`Response` 기반이라 낮음~중간, Blobs·DB를 쓰면 중간 (추론).
+- 종속 정도: 함수 형식은 Web 표준 `Request`/`Response` 기반이라 낮음~중간, Blobs·DB를 쓰면 중간 (추론). ⚠️근거없음
 
 #### 함정
 - 크레딧 소진은 사이트 하나가 아니라 팀 전체 정지다.
@@ -312,9 +312,9 @@ Functions 언어는 TypeScript·JavaScript·Go다. **Python 함수 런타임이 
 |---|---|---|---|
 | CP.process_types | 동기 함수, 백그라운드 함수, 정기 함수. 상시 워커 없음 | | https://docs.netlify.com/build/functions/background-functions/ · 2026-10-01 |
 | CP.request_timeout | 동기 60초, 정기 30초, 백그라운드 15분 | 플랜이 올라가도 같음 | https://docs.netlify.com/build/functions/configuration/ · 2026-10-01 |
-| CP.long_connection | 공식 `미확인` | | https://answers.netlify.com/t/does-netlify-support-websocket-proxying/11230 · 2026-10-01 |
+| CP.long_connection | 공식 `미확인` | | https://answers.netlify.com/t/does-netlify-support-websocket-proxying/11230 · 2026-10-01 ⚠️출처부적격 |
 | CP.cpu_outside_request | `waitUntil`, 함수 시간 한도 안에서만 | | https://docs.netlify.com/build/functions/api/ · 2026-10-01 |
-| CP.cold_start | scale-to-zero. 최소 인스턴스 `미확인` | | — |
+| CP.cold_start | scale-to-zero. 최소 인스턴스 `미확인` | | — ⚠️근거없음 |
 | CP.instance_size | 메모리 1~4GB, 0.5~2vCPU | | https://docs.netlify.com/build/functions/configuration/ · "Credit-based Pro and Enterprise plans only" · 2026-10-01 |
 | CP.request_size | 6MB(바이너리 약 4.5MB), 스트리밍 20MB, 백그라운드 256KB | | https://docs.netlify.com/build/functions/configuration/ · 2026-10-01 |
 | CP.local_disk | 임시, 볼륨 없음 | | https://docs.netlify.com/build/functions/overview/ · 2026-10-01 |
@@ -326,7 +326,7 @@ Functions 언어는 TypeScript·JavaScript·Go다. **Python 함수 런타임이 
 | CP.networking | 고정 출구 IP: Enterprise Private Connectivity 애드온, 리전 `cmh`·`fra`·`lhr`만. Edge Functions에는 적용 안 됨 | | https://docs.netlify.com/manage/security/private-connectivity/ · 2026-10-01 |
 | CP.regions | 서울 없음, 도쿄 `nrt` 선택 가능 | | https://docs.netlify.com/build/functions/configuration/ · 2026-10-01 |
 | CP.plan_limits | Pro 월 3,000크레딧, 정기 함수 최소 1분 | | https://www.netlify.com/pricing/ · 2026-10-01 |
-| CP.ops_burden | 서버 관리 없음 (추론) | | 추론 |
+| CP.ops_burden | 서버 관리 없음 (추론) | | 추론 ⚠️근거없음 |
 | CP.cost_floor | Pro 월 $20(3,000크레딧), 자동 충전 1,500크레딧 $10. Enterprise 별도 계약 | | https://www.netlify.com/pricing/ · 2026-10-01 |
 
 #### 비용 구조
@@ -352,7 +352,7 @@ Pro로 올려도 동기 60초는 그대로다. A2가 "수 분"이면 백그라�
 | CP.cold_start | `미확인` | | — |
 | CP.instance_size | 메모리 512MB | Deno 런타임. 네이티브 바이너리 패키지(Prisma 등)는 동작하지 않을 수 있음 | https://docs.netlify.com/build/edge-functions/limits/ · 2026-10-01 |
 | CP.request_size | `미확인` | | — |
-| CP.local_disk | 없음 (`미확인`, 파일 시스템 언급 없음) | | — |
+| CP.local_disk | 없음 (`미확인`, 파일 시스템 언급 없음) | | — ⚠️근거없음 |
 | CP.scaling | `미확인` | | — |
 | CP.concurrency | `미확인` | | — |
 | CP.shutdown | `미확인` | | — |
@@ -360,15 +360,15 @@ Pro로 올려도 동기 60초는 그대로다. A2가 "수 분"이면 백그라�
 | CP.availability | `미확인` | | — |
 | CP.networking | 고정 출구 IP 불가 | | https://docs.netlify.com/manage/security/private-connectivity/ · 2026-10-01 |
 | CP.regions | `미확인` | | — |
-| CP.plan_limits | 플랜별 차이 `미확인` | | — |
-| CP.ops_burden | 서버 관리 없음 (추론) | | 추론 |
+| CP.plan_limits | 플랜별 차이 `미확인` | | — ⚠️근거없음 |
+| CP.ops_burden | 서버 관리 없음 (추론) | | 추론 ⚠️근거없음 |
 | CP.cost_floor | 크레딧 요금에 포함 | | https://www.netlify.com/pricing/ · 2026-10-01 |
 
 #### 비용 구조
 플랜 크레딧을 따른다.
 
 #### 교체 계열 정보
-Deno 기반이다. Next.js 미들웨어가 여기에 매핑되므로, 컨테이너에서는 Next.js 서버가 미들웨어를 직접 실행한다(추론).
+Deno 기반이다. Next.js 미들웨어가 여기에 매핑되므로, 컨테이너에서는 Next.js 서버가 미들웨어를 직접 실행한다(추론). ⚠️근거없음
 
 #### 함정
 CPU 50ms는 인증 토큰 검증 정도만 감당한다. 무거운 로직이 미들웨어에 있으면 실패한다.
@@ -395,11 +395,11 @@ Pages Functions는 Workers와 똑같이 과금되고 Free 하루 10만 요청을
 | CP.concurrency | isolate 하나가 여러 요청을 동시에 처리. 두 요청이 같은 인스턴스로 간다는 보장 없음 → 전역 상태 신뢰 불가 | | https://developers.cloudflare.com/workers/reference/how-workers-works/ · 2026-10-01 |
 | CP.shutdown | `미확인` (배포 중 진행 요청 처리 방식 미확인) | | — |
 | CP.deploy | 트래픽 비율 기반 점진 배포, 사용자 버전 고정. 최근 100개 버전으로 롤백(DO 클래스 변경·바인딩 리소스 삭제가 사이에 있으면 불가) | | https://developers.cloudflare.com/workers/configuration/versions-and-deployments/gradual-deployments/ · https://developers.cloudflare.com/workers/configuration/versions-and-deployments/rollbacks/ · 2026-10-01 |
-| CP.availability | 전 세계 데이터센터 분산 실행 (추론, how-workers-works) | | https://developers.cloudflare.com/workers/reference/how-workers-works/ · 2026-10-01 |
+| CP.availability | 전 세계 데이터센터 분산 실행 (추론, how-workers-works) | | https://developers.cloudflare.com/workers/reference/how-workers-works/ · 2026-10-01 ⚠️근거없음 |
 | CP.networking | DB: Hyperdrive(연결 풀링·쿼리 캐시, Free 포함), 사설 DB는 Workers VPC + Cloudflare Tunnel. 서브요청 50개, 동시 외부 연결 6개 | 고정 출구 IP: `fetch()`만 Dedicated CDN Egress IP 대상, `connect()`(TCP) 제외. 필요 플랜 `미확인` | https://developers.cloudflare.com/hyperdrive/ · https://developers.cloudflare.com/smart-shield/configuration/dedicated-egress-ips/other-products/ · 2026-10-01 |
 | CP.regions | 요청에 가장 가까운 데이터센터. Smart Placement·배치 힌트로 백엔드 근처로 이동 가능(`aws:ap-northeast-2` 허용 여부 `미확인`) | | https://developers.cloudflare.com/workers/configuration/placement/ · 2026-10-01 |
 | CP.plan_limits | 하루 10만 요청, CPU 10ms, 서브요청 50, 크론 5개(최소 1분, UTC, 변경 반영 최대 15분) | | https://developers.cloudflare.com/workers/platform/limits/ · https://developers.cloudflare.com/workers/configuration/cron-triggers/ · 2026-10-01 |
-| CP.ops_burden | 서버 관리 없음. 대신 Workers 런타임 제약(Node 호환 플래그)에 맞춰 코드를 써야 함 (추론) | | 추론 |
+| CP.ops_burden | 서버 관리 없음. 대신 Workers 런타임 제약(Node 호환 플래그)에 맞춰 코드를 써야 함 (추론) | | 추론 ⚠️근거없음 |
 | CP.cost_floor | $0 | | https://developers.cloudflare.com/workers/platform/pricing/ · 2026-10-01 |
 
 #### 비용 구조
@@ -410,7 +410,7 @@ $0. 한도를 넘으면 과금되지 않고 오류가 난다.
 - 바인딩: KV, D1, R2, Durable Objects, Queues, Hyperdrive → 각각 Redis/Postgres/S3 호환 스토리지/별도 실시간 서버/큐/직접 연결로 교체.
 - `wrangler.toml`/`wrangler.jsonc`의 `triggers.crons` → 외부 스케줄러.
 - Next.js: vinext(Next 16) 권장, OpenNext 어댑터도 문서에 있음. https://developers.cloudflare.com/workers/framework-guides/web-apps/nextjs/
-- 종속 정도: 바인딩을 쓰면 높음, 순수 `fetch` 핸들러면 중간 (추론).
+- 종속 정도: 바인딩을 쓰면 높음, 순수 `fetch` 핸들러면 중간 (추론). ⚠️근거없음
 
 #### 함정
 비밀번호 해시(bcrypt), 이미지 처리, 큰 JSON 파싱은 Free의 CPU 10ms를 넘는다.
@@ -433,11 +433,11 @@ $0. 한도를 넘으면 과금되지 않고 오류가 난다.
 | CP.concurrency | isolate 공유, 인스턴스 고정 보장 없음 | | https://developers.cloudflare.com/workers/reference/how-workers-works/ · 2026-10-01 |
 | CP.shutdown | `미확인` | | — |
 | CP.deploy | 점진 배포, 100개 버전 롤백 | | https://developers.cloudflare.com/workers/configuration/versions-and-deployments/gradual-deployments/ · 2026-10-01 |
-| CP.availability | 전 세계 분산 (추론) | | https://developers.cloudflare.com/workers/reference/how-workers-works/ · 2026-10-01 |
+| CP.availability | 전 세계 분산 (추론) | | https://developers.cloudflare.com/workers/reference/how-workers-works/ · 2026-10-01 ⚠️근거없음 |
 | CP.networking | Hyperdrive, Workers VPC + Tunnel. 서브요청 10,000. 고정 IP는 `fetch()`만 | | https://developers.cloudflare.com/hyperdrive/configuration/connect-to-private-database-vpc/ · 2026-10-01 |
 | CP.regions | 가장 가까운 데이터센터, Smart Placement | | https://developers.cloudflare.com/workers/configuration/placement/ · 2026-10-01 |
 | CP.plan_limits | 크론 최소 1분. 크론 CPU: 1시간 미만 주기는 30초, 1시간 이상 주기는 15분(재료 W-062 값, 이번에 limits 페이지에서 15분 벽시계만 재확인) | Queues 메시지 128KB, 보존 최대 14일, 재시도 100회 | https://developers.cloudflare.com/workers/configuration/cron-triggers/ · https://developers.cloudflare.com/queues/platform/limits/ · 2026-10-01 |
-| CP.ops_burden | 서버 관리 없음 (추론) | | 추론 |
+| CP.ops_burden | 서버 관리 없음 (추론) | | 추론 ⚠️근거없음 |
 | CP.cost_floor | 월 $5. 요청 1,000만 포함 후 100만당 $0.30, CPU 3,000만 ms 포함 후 100만 ms당 $0.02. Queues 100만 작업당 $0.40 | | https://developers.cloudflare.com/workers/platform/pricing/ · "$5 USD per month" · 2026-10-01 |
 
 #### 비용 구조
@@ -445,7 +445,7 @@ $0. 한도를 넘으면 과금되지 않고 오류가 난다.
 지출 한도 동작: **상한이 없다.** 예산 알림은 정보 제공용이고 사용을 멈추지 않는다. https://developers.cloudflare.com/billing/manage/budget-alerts/ · "Budget alerts are informational only. They do not pause or cap usage."
 
 #### 교체 계열 정보
-§3.1과 같다. Workflows(`step.do`, `step.sleep`)는 컨테이너 환경에서 Temporal류 워크플로 엔진이나 DB 기반 작업 큐로 바꿔야 한다(추론).
+§3.1과 같다. Workflows(`step.do`, `step.sleep`)는 컨테이너 환경에서 Temporal류 워크플로 엔진이나 DB 기반 작업 큐로 바꿔야 한다(추론). ⚠️근거없음
 
 #### 함정
 CPU 시간 한도는 벽시계가 아니다. 외부 API 응답을 오래 기다리는 작업은 유리하고, CPU를 쓰는 작업은 5분에서 끊긴다.
@@ -460,11 +460,11 @@ CPU 시간 한도는 벽시계가 아니다. 외부 API 응답을 오래 기다�
 | CP.request_timeout | CPU 기본 30초, 최대 5분. 알람 벽시계 15분 | | https://developers.cloudflare.com/durable-objects/platform/limits/ · 2026-10-01 |
 | CP.long_connection | 웹소켓 + 하이버네이션: 객체가 메모리에서 빠져도 연결 유지, 그동안 Duration 과금 없음. **코드 업데이트 시 모든 웹소켓 끊김.** 연결별 첨부 데이터 최대 16,384바이트 | 객체당 최대 웹소켓 수 `미확인` | https://developers.cloudflare.com/durable-objects/best-practices/websockets/ · "Code updates disconnect all WebSockets." / "Billable Duration (GB-s) charges do not accrue" · 2026-10-01 |
 | CP.cpu_outside_request | 알람으로 요청 밖 실행 | | https://developers.cloudflare.com/workers/platform/limits/ · 2026-10-01 |
-| CP.cold_start | 하이버네이션 후 재활성 지연 `미확인` | | — |
-| CP.instance_size | 객체당 초당 약 1,000 요청(소프트). 메모리 128MB(Workers와 같음, 추론) | | https://developers.cloudflare.com/durable-objects/platform/limits/ · 2026-10-01 |
+| CP.cold_start | 하이버네이션 후 재활성 지연 `미확인` | | — ⚠️근거없음 |
+| CP.instance_size | 객체당 초당 약 1,000 요청(소프트). 메모리 128MB(Workers와 같음, 추론) | | https://developers.cloudflare.com/durable-objects/platform/limits/ · 2026-10-01 ⚠️근거없음 |
 | CP.request_size | 수신 메시지 최대 32MiB | | https://developers.cloudflare.com/durable-objects/platform/limits/ · 2026-10-01 |
 | CP.local_disk | 객체당 SQLite 저장소 10GB(Free 1GB), 영속 | | https://developers.cloudflare.com/durable-objects/platform/limits/ · 2026-10-01 |
-| CP.scaling | 객체 수로 수평 확장, 한 객체는 단일 스레드 (추론, 초당 1,000 요청 소프트 한도) | | https://developers.cloudflare.com/durable-objects/platform/limits/ · 2026-10-01 |
+| CP.scaling | 객체 수로 수평 확장, 한 객체는 단일 스레드 (추론, 초당 1,000 요청 소프트 한도) | | https://developers.cloudflare.com/durable-objects/platform/limits/ · 2026-10-01 ⚠️근거없음 |
 | CP.concurrency | 객체 하나는 한 곳에서 한 번에 하나의 버전만 실행 | | https://developers.cloudflare.com/workers/configuration/versions-and-deployments/gradual-deployments/ · 2026-10-01 |
 | CP.shutdown | `미확인` (배포 시 웹소켓 끊김은 확인) | | https://developers.cloudflare.com/durable-objects/best-practices/websockets/ · 2026-10-01 |
 | CP.deploy | 점진 배포 중에도 객체당 버전 하나. DO 클래스 변경 전으로는 롤백 불가 | | https://developers.cloudflare.com/workers/configuration/versions-and-deployments/rollbacks/ · 2026-10-01 |
@@ -472,14 +472,14 @@ CPU 시간 한도는 벽시계가 아니다. 외부 API 응답을 오래 기다�
 | CP.networking | Workers와 같음 | | https://developers.cloudflare.com/hyperdrive/ · 2026-10-01 |
 | CP.regions | 위치 힌트(`apac-ne` 등), 관할(eu, us, fedramp). 서울 지정 없음 | | https://developers.cloudflare.com/durable-objects/reference/data-location/ · 2026-10-01 |
 | CP.plan_limits | Free: SQLite 기반만, 1GB | | https://developers.cloudflare.com/durable-objects/platform/limits/ · 2026-10-01 |
-| CP.ops_burden | 서버 없음. 객체 분할 설계 필요 (추론) | | 추론 |
+| CP.ops_burden | 서버 없음. 객체 분할 설계 필요 (추론) | | 추론 ⚠️근거없음 |
 | CP.cost_floor | Workers Paid $5에 포함. 100만 요청당 $0.15, 100만 GB-초당 $12.50, SQLite GB-월 $0.20 | | https://developers.cloudflare.com/workers/platform/pricing/ · 2026-10-01 |
 
 #### 비용 구조
 요청·Duration·저장 과금. 하이버네이션을 쓰지 않으면 유휴 연결에도 Duration이 쌓인다.
 
 #### 교체 계열 정보
-DO는 다른 플랫폼에 같은 개념이 없다. 컨테이너로 옮기면 웹소켓 서버 + Redis pub/sub + 외부 DB로 다시 설계한다(추론). 종속 정도 높음.
+DO는 다른 플랫폼에 같은 개념이 없다. 컨테이너로 옮기면 웹소켓 서버 + Redis pub/sub + 외부 DB로 다시 설계한다(추론). 종속 정도 높음. ⚠️근거없음
 
 #### 함정
 배포할 때마다 모든 웹소켓이 끊긴다. 배포가 잦은 실시간 앱은 재연결 폭풍(재료 W-003) 처리가 필수다.
@@ -491,12 +491,12 @@ DO는 다른 플랫폼에 같은 개념이 없다. 컨테이너로 옮기면 웹
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
 | CP.process_types | 컨테이너(웹·작업). Durable Object를 통해 Worker 코드가 시작·제어. 2026-04-13 GA | Workers Paid 전용 | https://developers.cloudflare.com/changelog/post/2026-04-13-containers-sandbox-ga/ · "Containers and Sandboxes are now generally available." · 2026-10-01 |
-| CP.request_timeout | 앞단 Worker·DO 한도를 따름 (추론). 컨테이너 자체 요청 한도 `미확인` | | — |
-| CP.long_connection | DO를 통해 웹소켓 전달 가능 (추론, 공식 인용 `미확인`) | | — |
+| CP.request_timeout | 앞단 Worker·DO 한도를 따름 (추론). 컨테이너 자체 요청 한도 `미확인` | | — ⚠️근거없음 |
+| CP.long_connection | DO를 통해 웹소켓 전달 가능 (추론, 공식 인용 `미확인`) | | — ⚠️근거없음 |
 | CP.cpu_outside_request | 컨테이너가 실행 중이면 가능, 실행 중인 시간 과금 | | https://developers.cloudflare.com/containers/pricing/ · 2026-10-01 |
 | CP.cold_start | 보통 1~3초 | | https://developers.cloudflare.com/containers/platform-details/architecture/ · 2026-10-01 |
 | CP.instance_size | lite(1/16 vCPU, 256MiB, 디스크 2GB) ~ standard-4(4 vCPU, 12GiB, 20GB). 사용자 지정은 vCPU당 3GiB 이상. 계정 상한 메모리 6TiB, vCPU 1,500 | | https://developers.cloudflare.com/containers/platform-details/limits/ · 2026-10-01 |
-| CP.request_size | 앞단 Worker 한도 (추론) | | — |
+| CP.request_size | 앞단 Worker 한도 (추론) | | — ⚠️근거없음 |
 | CP.local_disk | 임시. 재시작하면 이미지에서 새 디스크 | | https://developers.cloudflare.com/containers/platform-details/architecture/ · "fresh disk from the container image" · 2026-10-01 |
 | CP.scaling | 컨테이너 클래스마다 최대 인스턴스 수 지정 | | https://developers.cloudflare.com/containers/ · 2026-10-01 |
 | CP.concurrency | `미확인` | | — |
@@ -506,21 +506,21 @@ DO는 다른 플랫폼에 같은 개념이 없다. 컨테이너로 옮기면 웹
 | CP.networking | `미확인` | | — |
 | CP.regions | "Region:Earth" | | https://developers.cloudflare.com/containers/ · 2026-10-01 |
 | CP.plan_limits | Workers Paid 전용 | | https://developers.cloudflare.com/changelog/post/2026-04-13-containers-sandbox-ga/ · 2026-10-01 |
-| CP.ops_burden | 이미지 관리 + DO 제어 코드 작성 (추론) | | 추론 |
+| CP.ops_burden | 이미지 관리 + DO 제어 코드 작성 (추론) | | 추론 ⚠️근거없음 |
 | CP.cost_floor | 10ms 단위 과금. 메모리 25GiB-시간/월 포함 후 GiB-초당 $0.0000025, CPU 375 vCPU-분 포함 후 vCPU-초당 $0.000020(활성 사용만), 디스크 200GB-시간 포함 후 GB-초당 $0.00000007. 이그레스 북미·유럽 $0.025/GB(1TB 포함), 그 외 $0.04~0.05/GB | Workers Paid 월 $5 필요 | https://developers.cloudflare.com/containers/pricing/ · 2026-10-01 |
 
 #### 비용 구조
 월 $5 + 실행 시간 비례. 지출 상한 없음(§3.2).
 
 #### 교체 계열 정보
-컨테이너 이미지 자체는 이식된다. 바뀌는 것은 앞단 Worker·DO 제어 코드와 바인딩뿐이다. 종속 정도 낮음~중간 (추론).
+컨테이너 이미지 자체는 이식된다. 바뀌는 것은 앞단 Worker·DO 제어 코드와 바인딩뿐이다. 종속 정도 낮음~중간 (추론). ⚠️근거없음
 
 #### 함정
 디스크가 재시작마다 초기화되므로 SQLite·업로드 저장 용도로 쓸 수 없다.
 
 ## 4. Railway
 
-서울·도쿄 리전이 없다. 리전은 `us-west2`(캘리포니아), `us-east4-eqdc4a`(버지니아), `europe-west4-drams3a`(암스테르담), `asia-southeast1-eqsg3a`(싱가포르) 4곳이다. https://docs.railway.com/reference/deployment-regions
+서울·도쿄 리전이 없다. 리전은 `us-west2`(캘리포니아), `us-east4-eqdc4a`(버지니아), `europe-west4-drams3a`(암스테르담), `asia-southeast1-eqsg3a`(싱가포르) 4곳이다. https://docs.railway.com/reference/deployment-regions ⚠️출처확인필요
 
 ### 4.1 Railway — Free · Trial
 - 계열: 컴퓨트-티어0
@@ -528,31 +528,31 @@ DO는 다른 플랫폼에 같은 개념이 없다. 컨테이너로 옮기면 웹
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| CP.process_types | 상시 컨테이너(웹·워커), 크론 서비스 | 크론은 최소 5분 간격, 이전 실행이 남아 있으면 건너뜀, 작업 후 종료해야 함 | https://docs.railway.com/reference/cron-jobs · "Scheduled runs must be at least 5 minutes apart in UTC." / "Railway will skip the new cron job." · 2026-10-01 |
-| CP.request_timeout | 데이터가 오가면 최대 15분, 5분간 전송 없으면 닫힘 | 요청 사이 유휴 HTTP/1.1 연결은 60초 | https://docs.railway.com/networking/public-networking/specs-and-limits · "HTTP requests can run for up to 15 minutes if data keeps transferring" / "closed after 5 minutes with no data transferred" · 2026-10-01 |
-| CP.long_connection | 웹소켓 무기한(유휴여도) | 도메인당 동시 연결 1만, 약 초당 11,000 요청 | https://docs.railway.com/networking/public-networking/specs-and-limits · "can stay open indefinitely, even while idle" · 2026-10-01 |
-| CP.cpu_outside_request | 가능(상시 컨테이너, 추론). 서버리스(앱 슬리핑)를 켜면 아웃바운드 트래픽이 없을 때 잠듦 | | https://docs.railway.com/reference/app-sleeping · 2026-10-01 |
-| CP.cold_start | 기본 상시 실행. 슬리핑을 켜면 마지막 아웃바운드 후 5~10분 뒤 잠들고 첫 요청 지연(502 가능) | | https://docs.railway.com/reference/app-sleeping · "a service sleeps somewhere between 5 and 10 minutes after its last outbound traffic" · 2026-10-01 |
-| CP.instance_size | Free 서비스당 0.5GB RAM·1 vCPU, Trial 1GB·2 vCPU. GPU `미확인` | | https://docs.railway.com/reference/pricing/plans · 2026-10-01 |
-| CP.request_size | 크기 한도 명시 없음. 본문은 5분 안에 업로드 완료, 헤더 합계 32KB | | https://docs.railway.com/networking/public-networking/specs-and-limits · "Request bodies must finish uploading within 5 minutes." · 2026-10-01 |
-| CP.local_disk | 임시 저장 1GB. 볼륨 0.5GB. 볼륨을 붙이면 레플리카 불가, 서비스당 볼륨 1개, 재배포 시 짧은 다운타임 | | https://docs.railway.com/reference/pricing/plans · https://docs.railway.com/reference/volumes · "Replicas cannot be used with volumes" · 2026-10-01 |
-| CP.scaling | 레플리카 Free 1, Trial 2. 수동 수평 확장만, 자동 수평 확장 문서 없음 | | https://docs.railway.com/reference/scaling · "Scale horizontally by manually increasing the number of replicas" · 2026-10-01 |
+| CP.process_types | 상시 컨테이너(웹·워커), 크론 서비스 | 크론은 최소 5분 간격, 이전 실행이 남아 있으면 건너뜀, 작업 후 종료해야 함 | https://docs.railway.com/reference/cron-jobs · "Scheduled runs must be at least 5 minutes apart in UTC." / "Railway will skip the new cron job." · 2026-10-01 ⚠️출처확인필요 |
+| CP.request_timeout | 데이터가 오가면 최대 15분, 5분간 전송 없으면 닫힘 | 요청 사이 유휴 HTTP/1.1 연결은 60초 | https://docs.railway.com/networking/public-networking/specs-and-limits · "HTTP requests can run for up to 15 minutes if data keeps transferring" / "closed after 5 minutes with no data transferred" · 2026-10-01 ⚠️출처확인필요 |
+| CP.long_connection | 웹소켓 무기한(유휴여도) | 도메인당 동시 연결 1만, 약 초당 11,000 요청 | https://docs.railway.com/networking/public-networking/specs-and-limits · "can stay open indefinitely, even while idle" · 2026-10-01 ⚠️출처확인필요 |
+| CP.cpu_outside_request | 가능(상시 컨테이너, 추론). 서버리스(앱 슬리핑)를 켜면 아웃바운드 트래픽이 없을 때 잠듦 | | https://docs.railway.com/reference/app-sleeping · 2026-10-01 ⚠️출처확인필요 ⚠️근거없음 |
+| CP.cold_start | 기본 상시 실행. 슬리핑을 켜면 마지막 아웃바운드 후 5~10분 뒤 잠들고 첫 요청 지연(502 가능) | | https://docs.railway.com/reference/app-sleeping · "a service sleeps somewhere between 5 and 10 minutes after its last outbound traffic" · 2026-10-01 ⚠️출처확인필요 |
+| CP.instance_size | Free 서비스당 0.5GB RAM·1 vCPU, Trial 1GB·2 vCPU. GPU `미확인` | | https://docs.railway.com/reference/pricing/plans · 2026-10-01 ⚠️출처확인필요 |
+| CP.request_size | 크기 한도 명시 없음. 본문은 5분 안에 업로드 완료, 헤더 합계 32KB | | https://docs.railway.com/networking/public-networking/specs-and-limits · "Request bodies must finish uploading within 5 minutes." · 2026-10-01 ⚠️출처확인필요 |
+| CP.local_disk | 임시 저장 1GB. 볼륨 0.5GB. 볼륨을 붙이면 레플리카 불가, 서비스당 볼륨 1개, 재배포 시 짧은 다운타임 | | https://docs.railway.com/reference/pricing/plans · https://docs.railway.com/reference/volumes · "Replicas cannot be used with volumes" · 2026-10-01 ⚠️출처확인필요 |
+| CP.scaling | 레플리카 Free 1, Trial 2. 수동 수평 확장만, 자동 수평 확장 문서 없음 | | https://docs.railway.com/reference/scaling · "Scale horizontally by manually increasing the number of replicas" · 2026-10-01 ⚠️출처확인필요 |
 | CP.concurrency | 해당 없음(앱 프로세스가 처리) | | — |
-| CP.shutdown | SIGTERM 후 기본 0초 만에 SIGKILL. `RAILWAY_DEPLOYMENT_DRAINING_SECONDS`로 조정(최대 `미확인`) | | https://docs.railway.com/reference/deployments · "By default, it is given 0 seconds to gracefully shutdown before being forcefully stopped with a SIGKILL." · 2026-10-01 |
-| CP.deploy | 헬스체크 통과 후 `Active`로 전환(무중단). 플랜 보존 기간 안의 배포로 롤백. 트래픽 분할 `미확인` | 볼륨이 있으면 재배포 시 다운타임 | https://docs.railway.com/reference/deployments · "Railway will mark the deployment as `Active` when the healthcheck succeeds" · 2026-10-01 |
-| CP.availability | 레플리카 1개라 존 분산 불가 (추론) | | https://docs.railway.com/reference/pricing/plans · 2026-10-01 |
-| CP.networking | 사설 네트워크 `*.railway.internal`(WireGuard). 고정 출구 IP 불가(Pro 전용) | | https://docs.railway.com/reference/private-networking · https://docs.railway.com/reference/static-outbound-ips · 2026-10-01 |
-| CP.regions | 서울 없음 | | https://docs.railway.com/reference/deployment-regions · 2026-10-01 |
-| CP.plan_limits | Trial 1회성 $5 크레딧. Free "$0 / month", "For running small apps". 상업 이용 조항 `미확인` | 크레딧 소진 시 워크로드 정지 | https://docs.railway.com/reference/pricing/plans · "we will stop all of your workloads" · 2026-10-01 |
-| CP.ops_burden | 낮음. Railpack이 설정 없이 소스에서 빌드 | | https://docs.railway.com/reference/railpack · 2026-10-01 |
-| CP.cost_floor | $0. 단가: RAM GB당 월 $10, vCPU당 월 $20, 이그레스 GB당 $0.05, 볼륨 GB당 월 $0.15 | | https://docs.railway.com/reference/pricing/plans · "$10 / GB / month" · 2026-10-01 |
+| CP.shutdown | SIGTERM 후 기본 0초 만에 SIGKILL. `RAILWAY_DEPLOYMENT_DRAINING_SECONDS`로 조정(최대 `미확인`) | | https://docs.railway.com/reference/deployments · "By default, it is given 0 seconds to gracefully shutdown before being forcefully stopped with a SIGKILL." · 2026-10-01 ⚠️출처확인필요 |
+| CP.deploy | 헬스체크 통과 후 `Active`로 전환(무중단). 플랜 보존 기간 안의 배포로 롤백. 트래픽 분할 `미확인` | 볼륨이 있으면 재배포 시 다운타임 | https://docs.railway.com/reference/deployments · "Railway will mark the deployment as `Active` when the healthcheck succeeds" · 2026-10-01 ⚠️출처확인필요 |
+| CP.availability | 레플리카 1개라 존 분산 불가 (추론) | | https://docs.railway.com/reference/pricing/plans · 2026-10-01 ⚠️출처확인필요 ⚠️근거없음 |
+| CP.networking | 사설 네트워크 `*.railway.internal`(WireGuard). 고정 출구 IP 불가(Pro 전용) | | https://docs.railway.com/reference/private-networking · https://docs.railway.com/reference/static-outbound-ips · 2026-10-01 ⚠️출처확인필요 |
+| CP.regions | 서울 없음 | | https://docs.railway.com/reference/deployment-regions · 2026-10-01 ⚠️출처확인필요 |
+| CP.plan_limits | Trial 1회성 $5 크레딧. Free "$0 / month", "For running small apps". 상업 이용 조항 `미확인` | 크레딧 소진 시 워크로드 정지 | https://docs.railway.com/reference/pricing/plans · "we will stop all of your workloads" · 2026-10-01 ⚠️출처확인필요 |
+| CP.ops_burden | 낮음. Railpack이 설정 없이 소스에서 빌드 | | https://docs.railway.com/reference/railpack · 2026-10-01 ⚠️출처확인필요 |
+| CP.cost_floor | $0. 단가: RAM GB당 월 $10, vCPU당 월 $20, 이그레스 GB당 $0.05, 볼륨 GB당 월 $0.15 | | https://docs.railway.com/reference/pricing/plans · "$10 / GB / month" · 2026-10-01 ⚠️출처확인필요 |
 
 #### 비용 구조
-$0, 크레딧 범위 안에서만 실행. 상시 컨테이너 0.5vCPU·512MB는 단가 계산상 약 월 $15(재료 W-070의 추정, 추론).
+$0, 크레딧 범위 안에서만 실행. 상시 컨테이너 0.5vCPU·512MB는 단가 계산상 약 월 $15(재료 W-070의 추정, 추론). ⚠️근거없음
 
 #### 교체 계열 정보
 - 이미 컨테이너라 코드 변경은 적다. 빌드는 Railpack → Dockerfile.
-- 플랫폼 환경변수: `RAILWAY_PUBLIC_DOMAIN`, `RAILWAY_PRIVATE_DOMAIN`, `RAILWAY_REPLICA_ID`, `RAILWAY_VOLUME_MOUNT_PATH`, `RAILWAY_TCP_PROXY_*`. https://docs.railway.com/reference/variables
+- 플랫폼 환경변수: `RAILWAY_PUBLIC_DOMAIN`, `RAILWAY_PRIVATE_DOMAIN`, `RAILWAY_REPLICA_ID`, `RAILWAY_VOLUME_MOUNT_PATH`, `RAILWAY_TCP_PROXY_*`. https://docs.railway.com/reference/variables ⚠️출처확인필요
 - 내부 DNS `*.railway.internal` → 대상 플랫폼의 서비스 디스커버리.
 - 볼륨 데이터 이전.
 - 종속 정도: 낮음.
@@ -567,27 +567,27 @@ $0, 크레딧 범위 안에서만 실행. 상시 컨테이너 0.5vCPU·512MB는 
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| CP.process_types | 웹·워커·크론(최소 5분) | | https://docs.railway.com/reference/cron-jobs · 2026-10-01 |
-| CP.request_timeout | 15분, 무전송 5분 | | https://docs.railway.com/networking/public-networking/specs-and-limits · 2026-10-01 |
-| CP.long_connection | 웹소켓 무기한 | | https://docs.railway.com/networking/public-networking/specs-and-limits · 2026-10-01 |
-| CP.cpu_outside_request | 가능(상시 컨테이너, 추론) | | — |
-| CP.cold_start | 기본 상시. 슬리핑 선택 시 5~10분 후 잠듦 | | https://docs.railway.com/reference/app-sleeping · 2026-10-01 |
-| CP.instance_size | 서비스당 최대 48GB RAM·48 vCPU | | https://docs.railway.com/reference/pricing/plans · 2026-10-01 |
-| CP.request_size | 5분 안 업로드, 헤더 32KB | | https://docs.railway.com/networking/public-networking/specs-and-limits · 2026-10-01 |
-| CP.local_disk | 임시 100GB. 볼륨 5GB. 볼륨 부착 시 레플리카 불가·재배포 다운타임. 증설은 무중단, 축소 불가 | 볼륨 백업 수동·자동 | https://docs.railway.com/reference/volumes · "there will be a small amount of downtime when re-deploying a service that has a volume attached, even if there is a healthcheck endpoint configured" · 2026-10-01 |
-| CP.scaling | 레플리카 6. 수동 수평 확장, 멀티 리전 레플리카 가능 | | https://docs.railway.com/reference/pricing/plans · https://docs.railway.com/reference/scaling · 2026-10-01 |
+| CP.process_types | 웹·워커·크론(최소 5분) | | https://docs.railway.com/reference/cron-jobs · 2026-10-01 ⚠️출처확인필요 |
+| CP.request_timeout | 15분, 무전송 5분 | | https://docs.railway.com/networking/public-networking/specs-and-limits · 2026-10-01 ⚠️출처확인필요 |
+| CP.long_connection | 웹소켓 무기한 | | https://docs.railway.com/networking/public-networking/specs-and-limits · 2026-10-01 ⚠️출처확인필요 |
+| CP.cpu_outside_request | 가능(상시 컨테이너, 추론) | | — ⚠️근거없음 |
+| CP.cold_start | 기본 상시. 슬리핑 선택 시 5~10분 후 잠듦 | | https://docs.railway.com/reference/app-sleeping · 2026-10-01 ⚠️출처확인필요 |
+| CP.instance_size | 서비스당 최대 48GB RAM·48 vCPU | | https://docs.railway.com/reference/pricing/plans · 2026-10-01 ⚠️출처확인필요 |
+| CP.request_size | 5분 안 업로드, 헤더 32KB | | https://docs.railway.com/networking/public-networking/specs-and-limits · 2026-10-01 ⚠️출처확인필요 |
+| CP.local_disk | 임시 100GB. 볼륨 5GB. 볼륨 부착 시 레플리카 불가·재배포 다운타임. 증설은 무중단, 축소 불가 | 볼륨 백업 수동·자동 | https://docs.railway.com/reference/volumes · "there will be a small amount of downtime when re-deploying a service that has a volume attached, even if there is a healthcheck endpoint configured" · 2026-10-01 ⚠️출처확인필요 |
+| CP.scaling | 레플리카 6. 수동 수평 확장, 멀티 리전 레플리카 가능 | | https://docs.railway.com/reference/pricing/plans · https://docs.railway.com/reference/scaling · 2026-10-01 ⚠️출처확인필요 |
 | CP.concurrency | 해당 없음 | | — |
-| CP.shutdown | 기본 0초, `RAILWAY_DEPLOYMENT_DRAINING_SECONDS`로 조정 | | https://docs.railway.com/reference/deployments · 2026-10-01 |
-| CP.deploy | 헬스체크 기반 무중단, 롤백 | | https://docs.railway.com/reference/deployments · 2026-10-01 |
-| CP.availability | 레플리카 여러 개·멀티 리전 가능. 리전 안 멀티 존 `미확인` | | https://docs.railway.com/reference/scaling · 2026-10-01 |
-| CP.networking | 사설 네트워크. 고정 출구 IP 불가 | | https://docs.railway.com/reference/static-outbound-ips · 2026-10-01 |
-| CP.regions | 서울 없음 | | https://docs.railway.com/reference/deployment-regions · 2026-10-01 |
-| CP.plan_limits | 월 $5(사용량 $5 포함) | | https://docs.railway.com/reference/pricing/plans · 2026-10-01 |
-| CP.ops_burden | 낮음 | | https://docs.railway.com/reference/railpack · 2026-10-01 |
-| CP.cost_floor | 월 $5, 구독료는 항상 청구 | 하드 한도 최소 $10 | https://docs.railway.com/reference/pricing/plans · "always pay the $5 subscription fee" · https://docs.railway.com/reference/usage-limits · 2026-10-01 |
+| CP.shutdown | 기본 0초, `RAILWAY_DEPLOYMENT_DRAINING_SECONDS`로 조정 | | https://docs.railway.com/reference/deployments · 2026-10-01 ⚠️출처확인필요 |
+| CP.deploy | 헬스체크 기반 무중단, 롤백 | | https://docs.railway.com/reference/deployments · 2026-10-01 ⚠️출처확인필요 |
+| CP.availability | 레플리카 여러 개·멀티 리전 가능. 리전 안 멀티 존 `미확인` | | https://docs.railway.com/reference/scaling · 2026-10-01 ⚠️출처확인필요 |
+| CP.networking | 사설 네트워크. 고정 출구 IP 불가 | | https://docs.railway.com/reference/static-outbound-ips · 2026-10-01 ⚠️출처확인필요 |
+| CP.regions | 서울 없음 | | https://docs.railway.com/reference/deployment-regions · 2026-10-01 ⚠️출처확인필요 |
+| CP.plan_limits | 월 $5(사용량 $5 포함) | | https://docs.railway.com/reference/pricing/plans · 2026-10-01 ⚠️출처확인필요 |
+| CP.ops_burden | 낮음 | | https://docs.railway.com/reference/railpack · 2026-10-01 ⚠️출처확인필요 |
+| CP.cost_floor | 월 $5, 구독료는 항상 청구 | 하드 한도 최소 $10 | https://docs.railway.com/reference/pricing/plans · "always pay the $5 subscription fee" · https://docs.railway.com/reference/usage-limits · 2026-10-01 ⚠️출처확인필요 |
 
 #### 비용 구조
-월 $5 + 사용량($5 포함 후). 지출 한도 동작: 하드 한도에 닿으면 **모든 워크로드가 오프라인**이 된다. 소프트 알림(75/90/100%)은 리소스에 영향이 없다. https://docs.railway.com/reference/usage-limits · "all your workloads will be taken offline"
+월 $5 + 사용량($5 포함 후). 지출 한도 동작: 하드 한도에 닿으면 **모든 워크로드가 오프라인**이 된다. 소프트 알림(75/90/100%)은 리소스에 영향이 없다. https://docs.railway.com/reference/usage-limits · "all your workloads will be taken offline" ⚠️출처확인필요
 
 #### 교체 계열 정보
 §4.1과 같다.
@@ -601,24 +601,24 @@ $0, 크레딧 범위 안에서만 실행. 상시 컨테이너 0.5vCPU·512MB는 
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| CP.process_types | 웹·워커·크론(최소 5분) | | https://docs.railway.com/reference/cron-jobs · 2026-10-01 |
-| CP.request_timeout | 15분, 무전송 5분 | | https://docs.railway.com/networking/public-networking/specs-and-limits · 2026-10-01 |
-| CP.long_connection | 웹소켓 무기한 | | https://docs.railway.com/networking/public-networking/specs-and-limits · 2026-10-01 |
-| CP.cpu_outside_request | 가능(추론) | | — |
-| CP.cold_start | 기본 상시 | | https://docs.railway.com/reference/app-sleeping · 2026-10-01 |
-| CP.instance_size | 서비스 합계 1TB RAM·1,000 vCPU, 레플리카당 24 vCPU·24GB | | https://docs.railway.com/reference/scaling · "each of your replicas can utilize up to 24 vCPU and 24GB of memory" · 2026-10-01 |
-| CP.request_size | 5분 안 업로드 | | https://docs.railway.com/networking/public-networking/specs-and-limits · 2026-10-01 |
-| CP.local_disk | 임시 100GB. 볼륨 `[충돌]` 요금 페이지 1TB, 볼륨 페이지 50GB. 부착 시 레플리카 불가·재배포 다운타임 | | https://docs.railway.com/reference/pricing/plans · https://docs.railway.com/reference/volumes · 2026-10-01 |
-| CP.scaling | 레플리카 42, 수동 | | https://docs.railway.com/reference/pricing/plans · 2026-10-01 |
+| CP.process_types | 웹·워커·크론(최소 5분) | | https://docs.railway.com/reference/cron-jobs · 2026-10-01 ⚠️출처확인필요 |
+| CP.request_timeout | 15분, 무전송 5분 | | https://docs.railway.com/networking/public-networking/specs-and-limits · 2026-10-01 ⚠️출처확인필요 |
+| CP.long_connection | 웹소켓 무기한 | | https://docs.railway.com/networking/public-networking/specs-and-limits · 2026-10-01 ⚠️출처확인필요 |
+| CP.cpu_outside_request | 가능(추론) | | — ⚠️근거없음 |
+| CP.cold_start | 기본 상시 | | https://docs.railway.com/reference/app-sleeping · 2026-10-01 ⚠️출처확인필요 |
+| CP.instance_size | 서비스 합계 1TB RAM·1,000 vCPU, 레플리카당 24 vCPU·24GB | | https://docs.railway.com/reference/scaling · "each of your replicas can utilize up to 24 vCPU and 24GB of memory" · 2026-10-01 ⚠️출처확인필요 |
+| CP.request_size | 5분 안 업로드 | | https://docs.railway.com/networking/public-networking/specs-and-limits · 2026-10-01 ⚠️출처확인필요 |
+| CP.local_disk | 임시 100GB. 볼륨 `[충돌]` 요금 페이지 1TB, 볼륨 페이지 50GB. 부착 시 레플리카 불가·재배포 다운타임 | | https://docs.railway.com/reference/pricing/plans · https://docs.railway.com/reference/volumes · 2026-10-01 ⚠️출처확인필요 |
+| CP.scaling | 레플리카 42, 수동 | | https://docs.railway.com/reference/pricing/plans · 2026-10-01 ⚠️출처확인필요 |
 | CP.concurrency | 해당 없음 | | — |
-| CP.shutdown | 기본 0초, 조정 가능 | | https://docs.railway.com/reference/deployments · 2026-10-01 |
-| CP.deploy | 헬스체크 기반 무중단, 롤백 | | https://docs.railway.com/reference/deployments · 2026-10-01 |
-| CP.availability | 멀티 리전 레플리카(가장 가까운 리전으로 보낸 뒤 레플리카에 무작위 분배) | | https://docs.railway.com/reference/scaling · 2026-10-01 |
-| CP.networking | 고정 출구 IPv4(다른 고객과 공유될 수 있고 리전을 옮기면 바뀜) | | https://docs.railway.com/reference/static-outbound-ips · "Static Outbound IPs let customers on the Pro plan assign permanent outbound IPv4 addresses" · 2026-10-01 |
-| CP.regions | 서울 없음 | | https://docs.railway.com/reference/deployment-regions · 2026-10-01 |
-| CP.plan_limits | 월 $20(사용량 $20 포함) | | https://docs.railway.com/reference/pricing/plans · 2026-10-01 |
-| CP.ops_burden | 낮음 | | — |
-| CP.cost_floor | 월 $20 | | https://docs.railway.com/reference/pricing/plans · 2026-10-01 |
+| CP.shutdown | 기본 0초, 조정 가능 | | https://docs.railway.com/reference/deployments · 2026-10-01 ⚠️출처확인필요 |
+| CP.deploy | 헬스체크 기반 무중단, 롤백 | | https://docs.railway.com/reference/deployments · 2026-10-01 ⚠️출처확인필요 |
+| CP.availability | 멀티 리전 레플리카(가장 가까운 리전으로 보낸 뒤 레플리카에 무작위 분배) | | https://docs.railway.com/reference/scaling · 2026-10-01 ⚠️출처확인필요 |
+| CP.networking | 고정 출구 IPv4(다른 고객과 공유될 수 있고 리전을 옮기면 바뀜) | | https://docs.railway.com/reference/static-outbound-ips · "Static Outbound IPs let customers on the Pro plan assign permanent outbound IPv4 addresses" · 2026-10-01 ⚠️출처확인필요 |
+| CP.regions | 서울 없음 | | https://docs.railway.com/reference/deployment-regions · 2026-10-01 ⚠️출처확인필요 |
+| CP.plan_limits | 월 $20(사용량 $20 포함) | | https://docs.railway.com/reference/pricing/plans · 2026-10-01 ⚠️출처확인필요 |
+| CP.ops_burden | 낮음 | | — ⚠️근거없음 |
+| CP.cost_floor | 월 $20 | | https://docs.railway.com/reference/pricing/plans · 2026-10-01 ⚠️출처확인필요 |
 
 #### 비용 구조
 월 $20 + 사용량. 지출 한도 동작은 Hobby와 같다(하드 한도 시 전체 오프라인).
@@ -631,7 +631,7 @@ $0, 크레딧 범위 안에서만 실행. 상시 컨테이너 0.5vCPU·512MB는 
 
 ## 5. Render
 
-리전은 오리건, 오하이오, 버지니아, 프랑크푸르트, 싱가포르다. 서울·도쿄가 없고, 기존 서비스의 리전은 바꿀 수 없다. https://render.com/docs/regions · "Render doesn't currently support changing the region for an existing service or database."
+리전은 오리건, 오하이오, 버지니아, 프랑크푸르트, 싱가포르다. 서울·도쿄가 없고, 기존 서비스의 리전은 바꿀 수 없다. https://render.com/docs/regions · "Render doesn't currently support changing the region for an existing service or database." ⚠️출처확인필요
 가격 페이지(render.com/pricing)는 WebFetch로 숫자가 렌더링되지 않아, 금액은 Render가 직접 쓴 글 페이지에서 가져왔다.
 
 ### 5.1 Render — Free 인스턴스
@@ -640,24 +640,24 @@ $0, 크레딧 범위 안에서만 실행. 상시 컨테이너 0.5vCPU·512MB는 
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| CP.process_types | 웹 서비스만. 디스크·스케일링·일회성 작업·SSH 불가 | 백그라운드 워커·크론의 Free 제공 여부 `미확인` | https://render.com/docs/free · 2026-10-01 |
-| CP.request_timeout | HTTP 응답 최대 100분 | | https://render.com/docs/render-vs-vercel-comparison · "Render web services allow HTTP responses to take up to 100 minutes." · 2026-10-01 |
-| CP.long_connection | 웹소켓 지원, 고정 한도 없음, 인스턴스 교체 시 끊김 | | https://render.com/docs/render-vs-vercel-comparison · "Render's web services support WebSockets on long-lived service instances" · 2026-10-01 |
-| CP.cpu_outside_request | 실행 중엔 가능하나 15분 유휴 시 스핀다운 | | https://render.com/docs/free · 2026-10-01 |
-| CP.cold_start | 인바운드 트래픽 15분 없으면 스핀다운, 다시 올라오는 데 약 1분 | | https://render.com/docs/free · "15 minutes without receiving any inbound traffic" / "takes about one minute" · 2026-10-01 |
+| CP.process_types | 웹 서비스만. 디스크·스케일링·일회성 작업·SSH 불가 | 백그라운드 워커·크론의 Free 제공 여부 `미확인` | https://render.com/docs/free · 2026-10-01 ⚠️출처확인필요 |
+| CP.request_timeout | HTTP 응답 최대 100분 | | https://render.com/docs/render-vs-vercel-comparison · "Render web services allow HTTP responses to take up to 100 minutes." · 2026-10-01 ⚠️출처확인필요 |
+| CP.long_connection | 웹소켓 지원, 고정 한도 없음, 인스턴스 교체 시 끊김 | | https://render.com/docs/render-vs-vercel-comparison · "Render's web services support WebSockets on long-lived service instances" · 2026-10-01 ⚠️출처확인필요 |
+| CP.cpu_outside_request | 실행 중엔 가능하나 15분 유휴 시 스핀다운 | | https://render.com/docs/free · 2026-10-01 ⚠️출처확인필요 |
+| CP.cold_start | 인바운드 트래픽 15분 없으면 스핀다운, 다시 올라오는 데 약 1분 | | https://render.com/docs/free · "15 minutes without receiving any inbound traffic" / "takes about one minute" · 2026-10-01 ⚠️출처확인필요 |
 | CP.instance_size | `미확인` | | — |
 | CP.request_size | `미확인` | | — |
-| CP.local_disk | 임시. 영속 디스크 불가 | | https://render.com/docs/free · 2026-10-01 |
-| CP.scaling | 인스턴스 1개 | | https://render.com/docs/free · 2026-10-01 |
+| CP.local_disk | 임시. 영속 디스크 불가 | | https://render.com/docs/free · 2026-10-01 ⚠️출처확인필요 |
+| CP.scaling | 인스턴스 1개 | | https://render.com/docs/free · 2026-10-01 ⚠️출처확인필요 |
 | CP.concurrency | 해당 없음 | | — |
-| CP.shutdown | SIGTERM, 기본 30초 | | https://render.com/docs/deploys · 2026-10-01 |
-| CP.deploy | 무중단 배포(빌드 → 새 인스턴스 → 헬스체크 → 전환) | | https://render.com/docs/deploys · 2026-10-01 |
-| CP.availability | 단일 인스턴스 | | https://render.com/docs/free · 2026-10-01 |
-| CP.networking | 사설 네트워크로 보내기는 되지만 받기는 불가. SMTP 25·465·587 차단 | | https://render.com/docs/private-network · "Free web services can _send_ private network requests, but they can't _receive_ them." · 2026-10-01 |
-| CP.regions | 서울 없음 | | https://render.com/docs/regions · 2026-10-01 |
-| CP.plan_limits | 워크스페이스당 월 750 인스턴스 시간, 소진 시 다음 달까지 정지. **Free Postgres 생성 30일 후 만료, 14일 유예 후 삭제.** Free Key Value는 메모리 전용(재시작 시 소실). 워크스페이스당 Free DB 1개. 상업 이용 조항 `미확인` | | https://render.com/docs/free · "Render **suspends** all of your Free web services until the start of the next month" / "Render **deletes** the database" · 2026-10-01 |
-| CP.ops_burden | 낮음(`render.yaml` Blueprint) | | https://render.com/docs/blueprint-spec · 2026-10-01 |
-| CP.cost_floor | $0. 워크스페이스 Hobby 플랜은 월 요금 없음(팀원 1명, 서비스 25개) | | https://render.com/docs/platform-features-by-plan · 2026-10-01 |
+| CP.shutdown | SIGTERM, 기본 30초 | | https://render.com/docs/deploys · 2026-10-01 ⚠️출처확인필요 |
+| CP.deploy | 무중단 배포(빌드 → 새 인스턴스 → 헬스체크 → 전환) | | https://render.com/docs/deploys · 2026-10-01 ⚠️출처확인필요 |
+| CP.availability | 단일 인스턴스 | | https://render.com/docs/free · 2026-10-01 ⚠️출처확인필요 |
+| CP.networking | 사설 네트워크로 보내기는 되지만 받기는 불가. SMTP 25·465·587 차단 | | https://render.com/docs/private-network · "Free web services can _send_ private network requests, but they can't _receive_ them." · 2026-10-01 ⚠️출처확인필요 |
+| CP.regions | 서울 없음 | | https://render.com/docs/regions · 2026-10-01 ⚠️출처확인필요 |
+| CP.plan_limits | 워크스페이스당 월 750 인스턴스 시간, 소진 시 다음 달까지 정지. **Free Postgres 생성 30일 후 만료, 14일 유예 후 삭제.** Free Key Value는 메모리 전용(재시작 시 소실). 워크스페이스당 Free DB 1개. 상업 이용 조항 `미확인` | | https://render.com/docs/free · "Render **suspends** all of your Free web services until the start of the next month" / "Render **deletes** the database" · 2026-10-01 ⚠️출처확인필요 |
+| CP.ops_burden | 낮음(`render.yaml` Blueprint) | | https://render.com/docs/blueprint-spec · 2026-10-01 ⚠️출처확인필요 |
+| CP.cost_floor | $0. 워크스페이스 Hobby 플랜은 월 요금 없음(팀원 1명, 서비스 25개) | | https://render.com/docs/platform-features-by-plan · 2026-10-01 ⚠️출처확인필요 |
 
 #### 비용 구조
 $0. 함정: Free Postgres는 30일 뒤 데이터가 사라지므로 C7이 "사용자 생성" 이상이면 판정상 사용 불가.
@@ -674,31 +674,31 @@ $0. 함정: Free Postgres는 30일 뒤 데이터가 사라지므로 C7이 "사�
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| CP.process_types | 웹, `pserv`(사설), `worker`, `cron`, `keyvalue`, `workflow` | 크론 실행 최대 12시간, 동시에 1회만 실행, UTC. 최소 주기 `미확인` | https://render.com/docs/blueprint-spec · https://render.com/docs/cronjobs · "Render stops an active run after 12 hours." · 2026-10-01 |
-| CP.request_timeout | 100분 | | https://render.com/docs/render-vs-vercel-comparison · 2026-10-01 |
-| CP.long_connection | 웹소켓 지원, 배포 시 끊김 | | https://render.com/docs/render-vs-vercel-comparison · 2026-10-01 |
-| CP.cpu_outside_request | 가능. 워커는 매우 긴 작업도 계속 실행 | | https://render.com/docs/background-workers · "Services that run continuously" · 2026-10-01 |
-| CP.cold_start | 스핀다운 없음(스핀다운은 Free만, 추론) | | https://render.com/docs/free · 2026-10-01 |
-| CP.instance_size | Starter 0.5 vCPU/512MB, Standard 1 vCPU/2GB, `8c-64g` 이상까지. 최대 크기·GPU `미확인` | | https://render.com/articles/best-railway-alternatives · "0.5 vCPU/512 MB" · https://render.com/docs/scaling · 2026-10-01 |
+| CP.process_types | 웹, `pserv`(사설), `worker`, `cron`, `keyvalue`, `workflow` | 크론 실행 최대 12시간, 동시에 1회만 실행, UTC. 최소 주기 `미확인` | https://render.com/docs/blueprint-spec · https://render.com/docs/cronjobs · "Render stops an active run after 12 hours." · 2026-10-01 ⚠️출처확인필요 |
+| CP.request_timeout | 100분 | | https://render.com/docs/render-vs-vercel-comparison · 2026-10-01 ⚠️출처확인필요 |
+| CP.long_connection | 웹소켓 지원, 배포 시 끊김 | | https://render.com/docs/render-vs-vercel-comparison · 2026-10-01 ⚠️출처확인필요 |
+| CP.cpu_outside_request | 가능. 워커는 매우 긴 작업도 계속 실행 | | https://render.com/docs/background-workers · "Services that run continuously" · 2026-10-01 ⚠️출처확인필요 |
+| CP.cold_start | 스핀다운 없음(스핀다운은 Free만, 추론) | | https://render.com/docs/free · 2026-10-01 ⚠️출처확인필요 ⚠️근거없음 |
+| CP.instance_size | Starter 0.5 vCPU/512MB, Standard 1 vCPU/2GB, `8c-64g` 이상까지. 최대 크기·GPU `미확인` | | https://render.com/articles/best-railway-alternatives · "0.5 vCPU/512 MB" · https://render.com/docs/scaling · 2026-10-01 ⚠️출처확인필요 |
 | CP.request_size | `미확인` | | — |
-| CP.local_disk | 기본 임시. 영속 디스크: **인스턴스 1개에만, 런타임에만**(빌드·사전 배포·일회성 작업·크론에서 접근 불가). 재배포 시 기존 인스턴스를 먼저 멈춤 → 다운타임. 24시간마다 스냅샷, 최소 7일 보관. 증설만 가능 | 디스크 GB당 월 $0.25 | https://render.com/docs/disks · "When you redeploy your service, Render stops the existing instance before bringing up the new instance" · https://render.com/articles/how-much-does-cloud-application-hosting-cost-for-small-businesses · 2026-10-01 |
-| CP.scaling | 수동 최대 100개(`8c-32g`까지), `8c-64g` 이상은 5개. 오토스케일(CPU·메모리 목표)은 Pro 워크스페이스 이상. **디스크가 있으면 여러 인스턴스 불가** | | https://render.com/docs/scaling · "Services with an attached persistent disk _cannot_ scale to multiple instances" · 2026-10-01 |
-| CP.concurrency | 해당 없음(인스턴스 간 균등 분배) | | https://render.com/docs/scaling · 2026-10-01 |
-| CP.shutdown | 트래픽 전환 60초 뒤 SIGTERM. 유예 기본 30초, `maxShutdownDelaySeconds` 최대 300초 | | https://render.com/docs/deploys · "After 60 seconds, Render sends a `SIGTERM`" · https://render.com/docs/blueprint-spec · 2026-10-01 |
-| CP.deploy | 기본 무중단. 다중 인스턴스 배포에서 새 인스턴스가 헬스체크에 실패하면 전체 취소 후 이전 버전으로 복귀. 트래픽 분할 `미확인`. 디스크가 있으면 다운타임 | | https://render.com/docs/deploys · "Render cancels the entire deploy and reverts to instances running the previous version" · 2026-10-01 |
-| CP.availability | 리전 안 여러 인스턴스 가능. 멀티 존·리전 페일오버 `미확인` | | https://render.com/docs/scaling · 2026-10-01 |
-| CP.networking | 같은 리전·워크스페이스 사설 네트워크. 기본 출구 IP는 리전 전체 서비스가 공유. 전용 IP는 Pro 워크스페이스 이상(금액 `미확인`) | | https://render.com/docs/outbound-ip-addresses · https://render.com/docs/dedicated-ips · "Dedicated IPs require a **Pro** workspace plan or higher" · 2026-10-01 |
-| CP.regions | 서울 없음, 리전 변경 불가 | | https://render.com/docs/regions · 2026-10-01 |
-| CP.plan_limits | 워크스페이스: Hobby 무료(팀원 1명, 서비스 25개), Pro 월 $25, Scale 월 $499 | | https://render.com/docs/platform-features-by-plan · https://render.com/articles/how-much-does-cloud-application-hosting-cost-for-small-businesses · 2026-10-01 |
-| CP.ops_burden | 낮음 | | https://render.com/docs/blueprint-spec · 2026-10-01 |
-| CP.cost_floor | Starter 월 $7. Starter 웹 + Basic-256mb Postgres 약 월 $13(2026-07 기준). 크론 서비스 최소 월 $1. 초과 아웃바운드 GB당 $0.15, 빌드 1,000분당 $5 | | https://render.com/articles/best-railway-alternatives · https://render.com/articles/how-much-does-cloud-application-hosting-cost-for-small-businesses · "typically ran about **$13/month**" · https://render.com/docs/cronjobs · 2026-10-01 |
+| CP.local_disk | 기본 임시. 영속 디스크: **인스턴스 1개에만, 런타임에만**(빌드·사전 배포·일회성 작업·크론에서 접근 불가). 재배포 시 기존 인스턴스를 먼저 멈춤 → 다운타임. 24시간마다 스냅샷, 최소 7일 보관. 증설만 가능 | 디스크 GB당 월 $0.25 | https://render.com/docs/disks · "When you redeploy your service, Render stops the existing instance before bringing up the new instance" · https://render.com/articles/how-much-does-cloud-application-hosting-cost-for-small-businesses · 2026-10-01 ⚠️출처확인필요 |
+| CP.scaling | 수동 최대 100개(`8c-32g`까지), `8c-64g` 이상은 5개. 오토스케일(CPU·메모리 목표)은 Pro 워크스페이스 이상. **디스크가 있으면 여러 인스턴스 불가** | | https://render.com/docs/scaling · "Services with an attached persistent disk _cannot_ scale to multiple instances" · 2026-10-01 ⚠️출처확인필요 |
+| CP.concurrency | 해당 없음(인스턴스 간 균등 분배) | | https://render.com/docs/scaling · 2026-10-01 ⚠️출처확인필요 |
+| CP.shutdown | 트래픽 전환 60초 뒤 SIGTERM. 유예 기본 30초, `maxShutdownDelaySeconds` 최대 300초 | | https://render.com/docs/deploys · "After 60 seconds, Render sends a `SIGTERM`" · https://render.com/docs/blueprint-spec · 2026-10-01 ⚠️출처확인필요 |
+| CP.deploy | 기본 무중단. 다중 인스턴스 배포에서 새 인스턴스가 헬스체크에 실패하면 전체 취소 후 이전 버전으로 복귀. 트래픽 분할 `미확인`. 디스크가 있으면 다운타임 | | https://render.com/docs/deploys · "Render cancels the entire deploy and reverts to instances running the previous version" · 2026-10-01 ⚠️출처확인필요 |
+| CP.availability | 리전 안 여러 인스턴스 가능. 멀티 존·리전 페일오버 `미확인` | | https://render.com/docs/scaling · 2026-10-01 ⚠️출처확인필요 |
+| CP.networking | 같은 리전·워크스페이스 사설 네트워크. 기본 출구 IP는 리전 전체 서비스가 공유. 전용 IP는 Pro 워크스페이스 이상(금액 `미확인`) | | https://render.com/docs/outbound-ip-addresses · https://render.com/docs/dedicated-ips · "Dedicated IPs require a **Pro** workspace plan or higher" · 2026-10-01 ⚠️출처확인필요 |
+| CP.regions | 서울 없음, 리전 변경 불가 | | https://render.com/docs/regions · 2026-10-01 ⚠️출처확인필요 |
+| CP.plan_limits | 워크스페이스: Hobby 무료(팀원 1명, 서비스 25개), Pro 월 $25, Scale 월 $499 | | https://render.com/docs/platform-features-by-plan · https://render.com/articles/how-much-does-cloud-application-hosting-cost-for-small-businesses · 2026-10-01 ⚠️출처확인필요 |
+| CP.ops_burden | 낮음 | | https://render.com/docs/blueprint-spec · 2026-10-01 ⚠️출처확인필요 |
+| CP.cost_floor | Starter 월 $7. Starter 웹 + Basic-256mb Postgres 약 월 $13(2026-07 기준). 크론 서비스 최소 월 $1. 초과 아웃바운드 GB당 $0.15, 빌드 1,000분당 $5 | | https://render.com/articles/best-railway-alternatives · https://render.com/articles/how-much-does-cloud-application-hosting-cost-for-small-businesses · "typically ran about **$13/month**" · https://render.com/docs/cronjobs · 2026-10-01 ⚠️출처확인필요 |
 
 #### 비용 구조
-최소 월 $7(상시 웹 1개). 지출 한도 동작: 빌드 파이프라인 분에만 한도가 있고, 닿으면 빌드가 멈추지만 실행 중 서비스는 영향 없다. 컴퓨트 지출 상한은 `미확인`. https://render.com/docs/build-pipeline · "Render stops running pipeline tasks (including service builds!)"
+최소 월 $7(상시 웹 1개). 지출 한도 동작: 빌드 파이프라인 분에만 한도가 있고, 닿으면 빌드가 멈추지만 실행 중 서비스는 영향 없다. 컴퓨트 지출 상한은 `미확인`. https://render.com/docs/build-pipeline · "Render stops running pipeline tasks (including service builds!)" ⚠️출처확인필요
 
 #### 교체 계열 정보
 - `runtime: docker`(Dockerfile)를 이미 지원하므로 이미지는 이식된다. 네이티브 런타임(node, python, ruby, go, elixir, rust)은 Dockerfile로 바꾼다.
-- `PORT` 기본 `10000`, `0.0.0.0` 바인딩. https://render.com/docs/web-services
+- `PORT` 기본 `10000`, `0.0.0.0` 바인딩. https://render.com/docs/web-services ⚠️출처확인필요
 - `render.yaml`: type, plan, region, `numInstances`, `scaling`, `disk`, `maxShutdownDelaySeconds` → 대상 플랫폼 설정.
 - 종속 정도: 낮음.
 
@@ -707,31 +707,31 @@ $0. 함정: Free Postgres는 30일 뒤 데이터가 사라지므로 C7이 "사�
 
 ## 6. Fly.io — Machines (종량제, Volumes 포함)
 - 계열: 컴퓨트-티어0
-- 서울 리전: 없음. 리전 17개 중 아시아는 `nrt`(도쿄)·`sin`(싱가포르)·`syd`. https://docs.fly.io/reference/regions/
+- 서울 리전: 없음. 리전 17개 중 아시아는 `nrt`(도쿄)·`sin`(싱가포르)·`syd`. https://docs.fly.io/reference/regions/ ⚠️출처확인필요
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| CP.process_types | `[processes]`로 웹·워커를 별도 머신 그룹으로. 예약 머신은 hourly·daily·weekly·monthly만, 대략적("fuzzy") 주기 | 분 단위 크론 없음 | https://docs.fly.io/reference/configuration/ · "define process groups to be run on separate Machines within a single app" · https://docs.fly.io/machines/flyctl/fly-machine-run/ · 2026-10-01 |
-| CP.request_timeout | 프록시 유휴 타임아웃을 설정 가능(예 `idle_timeout = 600`). 기본값·최대값 `미확인` | | https://docs.fly.io/reference/configuration/ · "Configure an idle-timeout for connections to your app" · 2026-10-01 |
-| CP.long_connection | 공식 문서 인용 `미확인` | 유휴 타임아웃 적용 | — |
-| CP.cpu_outside_request | 자동 정지를 끄면 가능. 자동 정지가 켜져 있으면 프록시 트래픽만 부하로 보므로 백그라운드 작업이 멈출 수 있음 | 자기 자신에게 60초마다 요청해도 자동 정지를 막지 못함 | https://docs.fly.io/blueprints/long-running-tasks/ · "does not prevent autostop" · 2026-10-01 |
-| CP.cold_start | `auto_stop_machines` off/stop/suspend(suspend가 더 빠름). `min_machines_running`은 주 리전에서만, stop/suspend일 때만 효과 | 정지 루프는 몇 분마다 리전당 머신 1대씩 | https://docs.fly.io/launch/autostop-autostart/ · "only maintains the specified minimum number of running Machines in your app's primary region" · 2026-10-01 |
-| CP.instance_size | 메모리 상한: shared CPU 수 × 2GB, performance CPU 수 × 8GB. 최대 CPU 수 `미확인`. GPU는 신규 투자 중단(블로그) | | https://docs.fly.io/machines/guides-examples/machine-sizing/ · "`2gb * shared CPU size` or `8gb * performance CPU size`" · https://fly.io/blog/wrong-about-gpu/ · 2026-10-01 |
+| CP.process_types | `[processes]`로 웹·워커를 별도 머신 그룹으로. 예약 머신은 hourly·daily·weekly·monthly만, 대략적("fuzzy") 주기 | 분 단위 크론 없음 | https://docs.fly.io/reference/configuration/ · "define process groups to be run on separate Machines within a single app" · https://docs.fly.io/machines/flyctl/fly-machine-run/ · 2026-10-01 ⚠️출처확인필요 |
+| CP.request_timeout | 프록시 유휴 타임아웃을 설정 가능(예 `idle_timeout = 600`). 기본값·최대값 `미확인` | | https://docs.fly.io/reference/configuration/ · "Configure an idle-timeout for connections to your app" · 2026-10-01 ⚠️출처확인필요 |
+| CP.long_connection | 공식 문서 인용 `미확인` | 유휴 타임아웃 적용 | — ⚠️근거없음 |
+| CP.cpu_outside_request | 자동 정지를 끄면 가능. 자동 정지가 켜져 있으면 프록시 트래픽만 부하로 보므로 백그라운드 작업이 멈출 수 있음 | 자기 자신에게 60초마다 요청해도 자동 정지를 막지 못함 | https://docs.fly.io/blueprints/long-running-tasks/ · "does not prevent autostop" · 2026-10-01 ⚠️출처확인필요 |
+| CP.cold_start | `auto_stop_machines` off/stop/suspend(suspend가 더 빠름). `min_machines_running`은 주 리전에서만, stop/suspend일 때만 효과 | 정지 루프는 몇 분마다 리전당 머신 1대씩 | https://docs.fly.io/launch/autostop-autostart/ · "only maintains the specified minimum number of running Machines in your app's primary region" · 2026-10-01 ⚠️출처확인필요 |
+| CP.instance_size | 메모리 상한: shared CPU 수 × 2GB, performance CPU 수 × 8GB. 최대 CPU 수 `미확인`. GPU는 신규 투자 중단(블로그) | | https://docs.fly.io/machines/guides-examples/machine-sizing/ · "`2gb * shared CPU size` or `8gb * performance CPU size`" · https://fly.io/blog/wrong-about-gpu/ · 2026-10-01 ⚠️출처확인필요 |
 | CP.request_size | `미확인` | | — |
-| CP.local_disk | 루트 FS는 기동마다 빈 상태(임시). 볼륨: 같은 물리 서버 NVMe 일부, 머신 1대에만, 자동 복제 없음, 머신당 볼륨 1개, 최대 500GB, 호스트 이동 불가. 스냅샷 기본 5일(1~60일). 앱당 볼륨 2개 이상 권장 | 머신·볼륨 1개면 호스트·네트워크 장애와 배포 때마다 다운타임. `release_command`는 볼륨 없는 임시 머신에서 실행 | https://docs.fly.io/volumes/overview/ · "Fly.io does not automatically replicate data" / "you'll have downtime if there's a host or network failure, and whenever you deploy your app" · https://docs.fly.io/machines/overview/ · 2026-10-01 |
-| CP.scaling | 머신 수와 리전으로 확장, 정지 머신 자동 시작이 확장 수단. 최대 머신 수 `미확인` | | https://docs.fly.io/launch/autostop-autostart/ · 2026-10-01 |
-| CP.concurrency | `type` = connections(기본) 또는 requests, `soft_limit` 기본 20, `hard_limit` 기본 없음 | | https://docs.fly.io/reference/configuration/ · "soft_limit defaults to 20" · 2026-10-01 |
-| CP.shutdown | `kill_signal` 기본 **SIGINT**, `kill_timeout` 기본 5초, 최대 300초 | | https://docs.fly.io/reference/configuration/ · "The default is 5 seconds. You can set it up to a maximum of 300 seconds (5 minutes)." · 2026-10-01 |
-| CP.deploy | 전략 rolling(기본)·immediate·canary·bluegreen. 시작 후 약 10초 스모크 체크, 실패 시 배포 중단. 자동 롤백 `미확인` | | https://docs.fly.io/launch/deploy/ · "migrate traffic to the new Machines only once all the new Machines pass health checks" · 2026-10-01 |
-| CP.availability | 멀티 리전 머신 가능. 특정 리전 용량 부족으로 배치 실패 가능. 단일 호스트 볼륨은 호스트 장애 = 다운타임 | | https://docs.fly.io/machines/overview/ · "Placement can fail!" · 2026-10-01 |
-| CP.networking | 6PN(조직 범위 WireGuard IPv6 메시), `.internal`·Flycast. 앱 고정 출구 IPv4 리전당 월 $3.60. 전용 인바운드 IPv4 월 $2 | | https://docs.fly.io/networking/private-networking/ · https://docs.fly.io/networking/egress-ips/ · "costs $3.60/mo" · https://docs.fly.io/about/pricing/ · 2026-10-01 |
-| CP.regions | 서울 없음, 도쿄 `nrt` 있음 | | https://docs.fly.io/reference/regions/ · 2026-10-01 |
-| CP.plan_limits | 무료 등급 없음. 체험: 머신 실행 2시간 또는 7일 중 먼저, 체험 머신은 5분 뒤 자동 정지, 머신 10대·저장 20GB·머신당 2 vCPU/4GB. 카드 없으면 7일 뒤 앱 정지. 기존 Hobby/Launch/Scale 플랜 종료 | | https://docs.fly.io/about/free-trial/ · "Trial Machines are set to automatically stop after running for 5 minutes" · https://docs.fly.io/about/pricing/ · 2026-10-01 |
-| CP.ops_burden | 중간. 머신·볼륨·복제·백업(직접 운영 DB)을 사용자가 관리 | 공식 문서가 자체 백업 권장 | https://docs.fly.io/volumes/overview/ · 2026-10-01 |
-| CP.cost_floor | 초 단위: shared-cpu-1x 256MB $0.00000075/초(약 월 $1.94, 추론), 512MB $0.00000119/초, 1GB $0.00000263/초(iad 기준). 정지 머신 rootfs GB당 30일 $0.15. 볼륨 GB당 월 $0.15, 스냅샷 GB당 월 $0.08(월 10GB 무료). 아시아·태평양 이그레스 GB당 $0.04 | | https://docs.fly.io/about/pricing/ · 2026-10-01 |
+| CP.local_disk | 루트 FS는 기동마다 빈 상태(임시). 볼륨: 같은 물리 서버 NVMe 일부, 머신 1대에만, 자동 복제 없음, 머신당 볼륨 1개, 최대 500GB, 호스트 이동 불가. 스냅샷 기본 5일(1~60일). 앱당 볼륨 2개 이상 권장 | 머신·볼륨 1개면 호스트·네트워크 장애와 배포 때마다 다운타임. `release_command`는 볼륨 없는 임시 머신에서 실행 | https://docs.fly.io/volumes/overview/ · "Fly.io does not automatically replicate data" / "you'll have downtime if there's a host or network failure, and whenever you deploy your app" · https://docs.fly.io/machines/overview/ · 2026-10-01 ⚠️출처확인필요 |
+| CP.scaling | 머신 수와 리전으로 확장, 정지 머신 자동 시작이 확장 수단. 최대 머신 수 `미확인` | | https://docs.fly.io/launch/autostop-autostart/ · 2026-10-01 ⚠️출처확인필요 |
+| CP.concurrency | `type` = connections(기본) 또는 requests, `soft_limit` 기본 20, `hard_limit` 기본 없음 | | https://docs.fly.io/reference/configuration/ · "soft_limit defaults to 20" · 2026-10-01 ⚠️출처확인필요 |
+| CP.shutdown | `kill_signal` 기본 **SIGINT**, `kill_timeout` 기본 5초, 최대 300초 | | https://docs.fly.io/reference/configuration/ · "The default is 5 seconds. You can set it up to a maximum of 300 seconds (5 minutes)." · 2026-10-01 ⚠️출처확인필요 |
+| CP.deploy | 전략 rolling(기본)·immediate·canary·bluegreen. 시작 후 약 10초 스모크 체크, 실패 시 배포 중단. 자동 롤백 `미확인` | | https://docs.fly.io/launch/deploy/ · "migrate traffic to the new Machines only once all the new Machines pass health checks" · 2026-10-01 ⚠️출처확인필요 |
+| CP.availability | 멀티 리전 머신 가능. 특정 리전 용량 부족으로 배치 실패 가능. 단일 호스트 볼륨은 호스트 장애 = 다운타임 | | https://docs.fly.io/machines/overview/ · "Placement can fail!" · 2026-10-01 ⚠️출처확인필요 |
+| CP.networking | 6PN(조직 범위 WireGuard IPv6 메시), `.internal`·Flycast. 앱 고정 출구 IPv4 리전당 월 $3.60. 전용 인바운드 IPv4 월 $2 | | https://docs.fly.io/networking/private-networking/ · https://docs.fly.io/networking/egress-ips/ · "costs $3.60/mo" · https://docs.fly.io/about/pricing/ · 2026-10-01 ⚠️출처확인필요 |
+| CP.regions | 서울 없음, 도쿄 `nrt` 있음 | | https://docs.fly.io/reference/regions/ · 2026-10-01 ⚠️출처확인필요 |
+| CP.plan_limits | 무료 등급 없음. 체험: 머신 실행 2시간 또는 7일 중 먼저, 체험 머신은 5분 뒤 자동 정지, 머신 10대·저장 20GB·머신당 2 vCPU/4GB. 카드 없으면 7일 뒤 앱 정지. 기존 Hobby/Launch/Scale 플랜 종료 | | https://docs.fly.io/about/free-trial/ · "Trial Machines are set to automatically stop after running for 5 minutes" · https://docs.fly.io/about/pricing/ · 2026-10-01 ⚠️출처확인필요 |
+| CP.ops_burden | 중간. 머신·볼륨·복제·백업(직접 운영 DB)을 사용자가 관리 | 공식 문서가 자체 백업 권장 | https://docs.fly.io/volumes/overview/ · 2026-10-01 ⚠️출처확인필요 |
+| CP.cost_floor | 초 단위: shared-cpu-1x 256MB $0.00000075/초(약 월 $1.94, 추론), 512MB $0.00000119/초, 1GB $0.00000263/초(iad 기준). 정지 머신 rootfs GB당 30일 $0.15. 볼륨 GB당 월 $0.15, 스냅샷 GB당 월 $0.08(월 10GB 무료). 아시아·태평양 이그레스 GB당 $0.04 | | https://docs.fly.io/about/pricing/ · 2026-10-01 ⚠️출처확인필요 ⚠️근거없음 |
 
 #### 비용 구조
-종량제 월 청구 또는 선불 크레딧. 최소 상시 머신 1대 약 월 $2(추론). 지출 상한 기능 `미확인`. https://docs.fly.io/about/billing/
+종량제 월 청구 또는 선불 크레딧. 최소 상시 머신 1대 약 월 $2(추론). 지출 상한 기능 `미확인`. https://docs.fly.io/about/billing/ ⚠️출처확인필요 ⚠️근거없음
 
 #### 교체 계열 정보
 - Dockerfile·OCI 이미지를 그대로 쓰므로 이미지는 이식된다.
@@ -778,9 +778,9 @@ Firebase의 컴퓨트는 모두 종량제 Blaze 플랜이 필요하다. 예산 �
 고정비 $0(최소 인스턴스 0일 때), 사용량 비례. 지출 한도 동작은 §7 머리말 참고.
 
 #### 교체 계열 정보
-- 결과물이 Cloud Run 위 Node 앱이므로 Cloud Run(티어 1)으로 가는 이전 비용이 가장 낮다(추론).
+- 결과물이 Cloud Run 위 Node 앱이므로 Cloud Run(티어 1)으로 가는 이전 비용이 가장 낮다(추론). ⚠️근거없음
 - `apphosting.yaml`/`apphosting.<env>.yaml`의 `runConfig`·환경변수 → 대상 플랫폼 설정. 비밀은 Cloud Secret Manager.
-- 종속 정도: 낮음 (추론).
+- 종속 정도: 낮음 (추론). ⚠️근거없음
 
 #### 함정
 서울이 없다. 한국 사용자·서울 DB면 대만(asia-east1)이 가장 가깝다.
@@ -807,16 +807,16 @@ Firebase의 컴퓨트는 모두 종량제 Blaze 플랜이 필요하다. 예산 �
 | CP.networking | 전역 클라이언트 재사용 권장. VPC·고정 IP `미확인` | | https://firebase.google.com/docs/functions/networking · 2026-10-01 |
 | CP.regions | 서울 `asia-northeast3` 있음(Tier 2 가격) | | https://firebase.google.com/docs/functions/locations · "You are encouraged to set specific regions instead of relying on Firebase defaults" · 2026-10-01 |
 | CP.plan_limits | Blaze 필수. 정기 함수는 이전 실행이 끝나기 전에 다음이 실행될 수 있음. 최소 주기 `미확인` | | https://firebase.google.com/docs/functions/quotas · "your project be on the Blaze pricing plan" · https://firebase.google.com/docs/functions/schedule-functions · "a function may be triggered multiple times" · 2026-10-01 |
-| CP.ops_burden | 낮음 | | — |
+| CP.ops_burden | 낮음 | | — ⚠️근거없음 |
 | CP.cost_floor | 고정비 $0. 월 무료: 호출 200만(이후 100만당 $0.40), GB-초 40만, CPU-초 20만, 이그레스 5GB(이후 GB당 $0.12). Scheduler 작업당 월 $0.10, 계정당 3개 무료 | | https://firebase.google.com/pricing · https://firebase.google.com/docs/functions/schedule-functions · "$0.10 (USD) per month" · 2026-10-01 |
 
 #### 비용 구조
 고정비 $0, 종량제. 무료(Spark)로 시작한 프로젝트도 함수를 추가하면 결제 수단 등록이 필요하다.
 
 #### 교체 계열 정보
-- `firebase-functions` 트리거(`onRequest`, `onDocumentWritten`, `onSchedule`, `firebase-functions/v2`) → 일반 HTTP 서버와 Eventarc/PubSub 푸시 엔드포인트로 바꾼다(추론).
+- `firebase-functions` 트리거(`onRequest`, `onDocumentWritten`, `onSchedule`, `firebase-functions/v2`) → 일반 HTTP 서버와 Eventarc/PubSub 푸시 엔드포인트로 바꾼다(추론). ⚠️근거없음
 - `RuntimeOptions`, `onInit()` 훅 → 서버 기동 코드.
-- 종속 정도: HTTP만 쓰면 낮음, Firestore·Auth 이벤트 트리거가 많으면 높음 (추론).
+- 종속 정도: HTTP만 쓰면 낮음, Firestore·Auth 이벤트 트리거가 많으면 높음 (추론). ⚠️근거없음
 
 #### 함정
 - Hosting rewrite 뒤의 함수는 60분이 아니라 60초다.
@@ -836,7 +836,7 @@ Deno 기반 V8 isolate이며 호출마다 새 isolate가 뜬다. https://supabas
 | CP.request_timeout | 벽시계 150초, CPU 2초(비동기 I/O 제외), 요청 유휴 150초(응답을 시작하지 않으면 504) | | https://supabase.com/docs/guides/functions/limits · "Free plan: 150s" / "Maximum CPU Time: 2s" / "Request idle timeout: 150s" · 2026-10-01 |
 | CP.long_connection | 웹소켓 서버 가능. 지속 시간은 벽시계·CPU·메모리 한도에 묶임(150초). 브라우저는 인증 헤더를 못 보내 JWT를 쿼리·프로토콜로 전달 | | https://supabase.com/docs/guides/functions/websockets · "Edge Functions supports hosting WebSocket servers" · 2026-10-01 |
 | CP.cpu_outside_request | `EdgeRuntime.waitUntil(promise)`, 한도 안에서 | | https://supabase.com/docs/guides/functions/background-tasks · "The Function instance continues to run until the promise provided to waitUntil completes" · 2026-10-01 |
-| CP.cold_start | 호출마다 새 isolate, 밀리초 단위. 최소 인스턴스 없음(추론) | | https://supabase.com/docs/guides/functions/architecture · "A new V8 isolate is spun up for each invocation" · 2026-10-01 |
+| CP.cold_start | 호출마다 새 isolate, 밀리초 단위. 최소 인스턴스 없음(추론) | | https://supabase.com/docs/guides/functions/architecture · "A new V8 isolate is spun up for each invocation" · 2026-10-01 ⚠️근거없음 |
 | CP.instance_size | 메모리 256MB. Web Worker·Node vm 불가. 멀티스레드 라이브러리(libvips, sharp) 불가 | | https://supabase.com/docs/guides/functions/limits · "Maximum Memory: 256MB" · 2026-10-01 |
 | CP.request_size | `미확인` | | — |
 | CP.local_disk | `/tmp` 최대 256MB, 호출마다 초기화. 볼륨 없음(S3·Storage 버킷 마운트 가능) | | https://supabase.com/docs/guides/functions/ephemeral-storage · "Ephemeral storage will reset on each function invocation" · 2026-10-01 |
@@ -848,7 +848,7 @@ Deno 기반 V8 isolate이며 호출마다 새 isolate가 뜬다. https://supabas
 | CP.networking | 아웃바운드 25·587 포트 차단. `SUPABASE_URL`, `SUPABASE_DB_URL` 등 자동 주입. 고정 IP `미확인` | | https://supabase.com/docs/guides/functions/limits · "Outgoing connections to ports 25 and 587 are not allowed" · https://supabase.com/docs/guides/functions/secrets · 2026-10-01 |
 | CP.regions | 16개 리전, 서울 포함 | | https://supabase.com/docs/guides/functions/regional-invocation · 2026-10-01 |
 | CP.plan_limits | **1주 무활동 시 프로젝트 정지**, 활성 프로젝트 2개. 커스텀 도메인 없이 `text/html` GET 응답은 `text/plain`으로 바뀜(웹 페이지 호스팅 불가) | | https://supabase.com/pricing · "Free projects are paused after 1 week of inactivity" · https://supabase.com/docs/guides/functions/limits · "GET requests that return text/html will be rewritten to text/plain" · 2026-10-01 |
-| CP.ops_burden | 낮음 | | — |
+| CP.ops_burden | 낮음 | | — ⚠️근거없음 |
 | CP.cost_floor | $0, 호출 50만 포함 | | https://supabase.com/pricing · https://supabase.com/docs/guides/functions/pricing · 2026-10-01 |
 
 #### 비용 구조
@@ -859,7 +859,7 @@ $0. 할당 초과 시 동작은 `미확인`(Free에는 지출 상한 개념 대�
 - `EdgeRuntime.waitUntil` → 일반 백그라운드 작업 또는 큐.
 - 자동 주입 `SUPABASE_*` 환경변수 → 직접 설정.
 - `pg_cron` + `pg_net` 호출은 URL만 바꿔 유지 가능.
-- 종속 정도: 낮음~중간 (추론).
+- 종속 정도: 낮음~중간 (추론). ⚠️근거없음
 
 #### 함정
 - CPU 2초: 이미지 처리·비밀번호 해시가 들어가면 실패한다.
@@ -887,7 +887,7 @@ $0. 할당 초과 시 동작은 `미확인`(Free에는 지출 상한 개념 대�
 | CP.networking | 25·587 차단, 고정 IP `미확인` | | https://supabase.com/docs/guides/functions/limits · 2026-10-01 |
 | CP.regions | 서울 포함 16개 | | https://supabase.com/docs/guides/functions/regional-invocation · 2026-10-01 |
 | CP.plan_limits | 무활동 정지 없음. **지출 상한이 Pro에서 기본으로 켜져 있고, 할당을 넘으면 다음 결제 주기까지 해당 항목 사용 차단**(Edge Function 호출 포함) | | https://supabase.com/pricing · "Spend caps are on by default on the Pro Plan" · https://supabase.com/docs/guides/platform/cost-control · "further usage of that item is disallowed until the next billing cycle" · 2026-10-01 |
-| CP.ops_burden | 낮음 | | — |
+| CP.ops_burden | 낮음 | | — ⚠️근거없음 |
 | CP.cost_floor | 월 $25, 호출 200만 포함 후 100만당 $2 | | https://supabase.com/pricing · https://supabase.com/docs/guides/functions/pricing · "then $2 per 1 Million" · 2026-10-01 |
 
 #### 비용 구조
@@ -901,10 +901,10 @@ Pro 기본 설정에서 호출 200만을 넘으면 함수가 그달 내내 차�
 
 ## 9. Replit Deployments
 
-공통: 게시된 앱의 파일 시스템은 영속이 아니고 게시할 때마다 초기화된다. 리전 정보는 공식 문서끼리 충돌한다. https://docs.replit.com/build/troubleshooting.md · "The file system in published apps is not persistent and resets every time you publish"
-- `[충돌]` "All published apps are hosted in the United States" (https://docs.replit.com/cloud-services/deployments/about-deployments) vs "Project geography selection is available to Core, Pro, and Enterprise customers. Free customers publish to North America by default" (https://docs.replit.com/features/publishing/project-geography). 지역 목록에 서울은 명시되지 않았다. 리전은 게시 후 바꿀 수 없다.
-- 지출 한도: 도달하면 사용량 기반 서비스가 다음 결제 주기까지 막히고 서비스가 일시 중지된다. https://docs.replit.com/billing/managing-spend.md · "services will be suspended until the budget is increased"
-- 가격은 2026-08-01 개정 기준. https://docs.replit.com/billing/deployment-pricing · https://docs.replit.com/billing/aug-cloud-billing-updates.md
+공통: 게시된 앱의 파일 시스템은 영속이 아니고 게시할 때마다 초기화된다. 리전 정보는 공식 문서끼리 충돌한다. https://docs.replit.com/build/troubleshooting.md · "The file system in published apps is not persistent and resets every time you publish" ⚠️출처확인필요
+- `[충돌]` "All published apps are hosted in the United States" (https://docs.replit.com/cloud-services/deployments/about-deployments) vs "Project geography selection is available to Core, Pro, and Enterprise customers. Free customers publish to North America by default" (https://docs.replit.com/features/publishing/project-geography). 지역 목록에 서울은 명시되지 않았다. 리전은 게시 후 바꿀 수 없다. ⚠️출처확인필요
+- 지출 한도: 도달하면 사용량 기반 서비스가 다음 결제 주기까지 막히고 서비스가 일시 중지된다. https://docs.replit.com/billing/managing-spend.md · "services will be suspended until the budget is increased" ⚠️출처확인필요
+- 가격은 2026-08-01 개정 기준. https://docs.replit.com/billing/deployment-pricing · https://docs.replit.com/billing/aug-cloud-billing-updates.md ⚠️출처확인필요
 
 ### 9.1 Replit — Autoscale
 - 계열: 컴퓨트-티어0
@@ -912,24 +912,24 @@ Pro 기본 설정에서 호출 200만을 넘으면 함수가 그달 내내 차�
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| CP.process_types | 웹만. 상시 연결·백그라운드 작업은 Reserved VM 용도 | | https://docs.replit.com/cloud-services/deployments/autoscale-deployments · 2026-10-01 |
-| CP.request_timeout | `미확인`. 헬스체크: 홈페이지가 5초 넘게 걸리면 게시 실패 가능 | | https://docs.replit.com/build/troubleshooting.md · "If your homepage takes more than five seconds to respond, the health check can time out" · 2026-10-01 |
-| CP.long_connection | `미확인` (상시 연결이 필요하면 Reserved VM이라고 안내) | | https://docs.replit.com/cloud-services/deployments/autoscale-deployments · "Chat bots that must stay connected" (Reserved VM 용례) · 2026-10-01 |
-| CP.cpu_outside_request | `미확인` (요청 처리 중에만 과금) | | https://docs.replit.com/billing/deployment-pricing · 2026-10-01 |
-| CP.cold_start | scale-to-zero, 첫 요청 수 초. 주기적 재시작. 유휴 기간 `미확인` | | https://docs.replit.com/help/deployment-and-publishing · "the first request after scaling to zero can take a few seconds" / "Autoscale deployments restart regularly by design." · 2026-10-01 |
-| CP.instance_size | 머신 설정으로 선택, 앱 최대 8GB. GPU 없음 | | https://docs.replit.com/build/troubleshooting.md · "Reserved VM and Autoscale Deployments support apps up to 8 GB" · 2026-10-01 |
+| CP.process_types | 웹만. 상시 연결·백그라운드 작업은 Reserved VM 용도 | | https://docs.replit.com/cloud-services/deployments/autoscale-deployments · 2026-10-01 ⚠️출처확인필요 |
+| CP.request_timeout | `미확인`. 헬스체크: 홈페이지가 5초 넘게 걸리면 게시 실패 가능 | | https://docs.replit.com/build/troubleshooting.md · "If your homepage takes more than five seconds to respond, the health check can time out" · 2026-10-01 ⚠️출처확인필요 |
+| CP.long_connection | `미확인` (상시 연결이 필요하면 Reserved VM이라고 안내) | | https://docs.replit.com/cloud-services/deployments/autoscale-deployments · "Chat bots that must stay connected" (Reserved VM 용례) · 2026-10-01 ⚠️출처확인필요 |
+| CP.cpu_outside_request | `미확인` (요청 처리 중에만 과금) | | https://docs.replit.com/billing/deployment-pricing · 2026-10-01 ⚠️출처확인필요 |
+| CP.cold_start | scale-to-zero, 첫 요청 수 초. 주기적 재시작. 유휴 기간 `미확인` | | https://docs.replit.com/help/deployment-and-publishing · "the first request after scaling to zero can take a few seconds" / "Autoscale deployments restart regularly by design." · 2026-10-01 ⚠️출처확인필요 |
+| CP.instance_size | 머신 설정으로 선택, 앱 최대 8GB. GPU 없음 | | https://docs.replit.com/build/troubleshooting.md · "Reserved VM and Autoscale Deployments support apps up to 8 GB" · 2026-10-01 ⚠️출처확인필요 |
 | CP.request_size | `미확인` | | — |
-| CP.local_disk | 임시, 게시마다 초기화, 볼륨 없음 | | https://docs.replit.com/cloud-services/deployments/about-deployments · "Avoid saving and relying on data written to a published app's filesystem" · 2026-10-01 |
-| CP.scaling | "Max machines" 상한까지 자동 확장 | | https://docs.replit.com/features/publishing/machine-configuration · 2026-10-01 |
+| CP.local_disk | 임시, 게시마다 초기화, 볼륨 없음 | | https://docs.replit.com/cloud-services/deployments/about-deployments · "Avoid saving and relying on data written to a published app's filesystem" · 2026-10-01 ⚠️출처확인필요 |
+| CP.scaling | "Max machines" 상한까지 자동 확장 | | https://docs.replit.com/features/publishing/machine-configuration · 2026-10-01 ⚠️출처확인필요 |
 | CP.concurrency | `미확인` | | — |
 | CP.shutdown | `미확인` | | — |
-| CP.deploy | 롤백 `미확인` | | — |
+| CP.deploy | 롤백 `미확인` | | — ⚠️근거없음 |
 | CP.availability | `미확인` | | — |
-| CP.networking | 고정 출구 IP `미확인` | | — |
-| CP.regions | `[충돌]`, 무료는 북미, 게시 후 변경 불가 | | https://docs.replit.com/features/publishing/project-geography · 2026-10-01 |
-| CP.plan_limits | Starter는 무료 게시 앱 1개. Core·Pro 크레딧은 이월 안 됨 | | https://docs.replit.com/billing/deployment-pricing · "don't roll over" · 2026-10-01 |
-| CP.ops_burden | 낮음 | | — |
-| CP.cost_floor | 기본료 `[충돌]` 월 $2 vs "Remains $1/month", 컴퓨트 단위 100만당 $0.60, 요청 100만당 $0.40 | | https://docs.replit.com/billing/deployment-pricing · https://docs.replit.com/billing/aug-cloud-billing-updates.md · 2026-10-01 |
+| CP.networking | 고정 출구 IP `미확인` | | — ⚠️근거없음 |
+| CP.regions | `[충돌]`, 무료는 북미, 게시 후 변경 불가 | | https://docs.replit.com/features/publishing/project-geography · 2026-10-01 ⚠️출처확인필요 |
+| CP.plan_limits | Starter는 무료 게시 앱 1개. Core·Pro 크레딧은 이월 안 됨 | | https://docs.replit.com/billing/deployment-pricing · "don't roll over" · 2026-10-01 ⚠️출처확인필요 |
+| CP.ops_burden | 낮음 | | — ⚠️근거없음 |
+| CP.cost_floor | 기본료 `[충돌]` 월 $2 vs "Remains $1/month", 컴퓨트 단위 100만당 $0.60, 요청 100만당 $0.40 | | https://docs.replit.com/billing/deployment-pricing · https://docs.replit.com/billing/aug-cloud-billing-updates.md · 2026-10-01 ⚠️출처확인필요 |
 
 #### 비용 구조
 월 $1~2 + 사용량. 지출 한도 도달 시 서비스 중지(§9 머리말).
@@ -938,7 +938,7 @@ Pro 기본 설정에서 호출 200만을 넘으면 함수가 그달 내내 차�
 - `.replit`의 `[deployment]`(`deploymentTarget`, 실행 명령) → Dockerfile·대상 플랫폼 설정.
 - `0.0.0.0` 리슨 유지, Replit의 `externalPort` 80 매핑은 대상 플랫폼 포트 설정으로.
 - 파일 저장·Replit DB → 외부 DB·오브젝트 스토리지.
-- 종속 정도: 코드는 낮음, 파일 시스템에 데이터가 있으면 이전 필수 (추론).
+- 종속 정도: 코드는 낮음, 파일 시스템에 데이터가 있으면 이전 필수 (추론). ⚠️근거없음
 
 #### 함정
 게시마다 파일이 사라진다. SQLite 파일·`uploads/`를 쓰는 바이브코딩 앱이 가장 흔히 걸리는 곳이다.
@@ -949,24 +949,24 @@ Pro 기본 설정에서 호출 200만을 넘으면 함수가 그달 내내 차�
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| CP.process_types | 상시 웹 서버, 봇, 백그라운드 작업 | | https://docs.replit.com/cloud-services/deployments/autoscale-deployments · "Always-on API servers" / "Memory-intensive background tasks" · 2026-10-01 |
+| CP.process_types | 상시 웹 서버, 봇, 백그라운드 작업 | | https://docs.replit.com/cloud-services/deployments/autoscale-deployments · "Always-on API servers" / "Memory-intensive background tasks" · 2026-10-01 ⚠️출처확인필요 |
 | CP.request_timeout | `미확인` | | — |
-| CP.long_connection | 상시 연결 용도로 안내(지속 한도 `미확인`) | | https://docs.replit.com/cloud-services/deployments/autoscale-deployments · "Chat bots that must stay connected" · 2026-10-01 |
-| CP.cpu_outside_request | 가능(잠들지 않음) | | https://docs.replit.com/features/publishing/deployment-types · "never sleeps" · 2026-10-01 |
-| CP.cold_start | 없음(상시) | | https://docs.replit.com/features/publishing/deployment-types · 2026-10-01 |
-| CP.instance_size | 0.5 vCPU/2GB ~ 4 vCPU/16GB, 신규 8/32GB·16/64GB. 앱 최대 8GB. GPU 없음 | | https://docs.replit.com/billing/aug-cloud-billing-updates.md · 2026-10-01 |
+| CP.long_connection | 상시 연결 용도로 안내(지속 한도 `미확인`) | | https://docs.replit.com/cloud-services/deployments/autoscale-deployments · "Chat bots that must stay connected" · 2026-10-01 ⚠️출처확인필요 |
+| CP.cpu_outside_request | 가능(잠들지 않음) | | https://docs.replit.com/features/publishing/deployment-types · "never sleeps" · 2026-10-01 ⚠️출처확인필요 |
+| CP.cold_start | 없음(상시) | | https://docs.replit.com/features/publishing/deployment-types · 2026-10-01 ⚠️출처확인필요 |
+| CP.instance_size | 0.5 vCPU/2GB ~ 4 vCPU/16GB, 신규 8/32GB·16/64GB. 앱 최대 8GB. GPU 없음 | | https://docs.replit.com/billing/aug-cloud-billing-updates.md · 2026-10-01 ⚠️출처확인필요 |
 | CP.request_size | `미확인` | | — |
-| CP.local_disk | 임시, 게시마다 초기화 | | https://docs.replit.com/build/troubleshooting.md · 2026-10-01 |
-| CP.scaling | 자동 확장 없음(단일 VM) | | https://docs.replit.com/features/publishing/machine-configuration · 2026-10-01 |
+| CP.local_disk | 임시, 게시마다 초기화 | | https://docs.replit.com/build/troubleshooting.md · 2026-10-01 ⚠️출처확인필요 |
+| CP.scaling | 자동 확장 없음(단일 VM) | | https://docs.replit.com/features/publishing/machine-configuration · 2026-10-01 ⚠️출처확인필요 |
 | CP.concurrency | 해당 없음(앱 프로세스) | | — |
 | CP.shutdown | `미확인` | | — |
 | CP.deploy | `미확인` | | — |
-| CP.availability | 단일 VM (추론) | | — |
+| CP.availability | 단일 VM (추론) | | — ⚠️근거없음 |
 | CP.networking | `미확인` | | — |
-| CP.regions | `[충돌]` | | https://docs.replit.com/features/publishing/project-geography · 2026-10-01 |
-| CP.plan_limits | 크레딧 이월 없음 | | https://docs.replit.com/billing/deployment-pricing · 2026-10-01 |
-| CP.ops_burden | 낮음 | | — |
-| CP.cost_floor | 월 $15(공유 0.5 vCPU/2GB), $35, $50, $130 | | https://docs.replit.com/billing/deployment-pricing · 2026-10-01 |
+| CP.regions | `[충돌]` | | https://docs.replit.com/features/publishing/project-geography · 2026-10-01 ⚠️출처확인필요 |
+| CP.plan_limits | 크레딧 이월 없음 | | https://docs.replit.com/billing/deployment-pricing · 2026-10-01 ⚠️출처확인필요 |
+| CP.ops_burden | 낮음 | | — ⚠️근거없음 |
+| CP.cost_floor | 월 $15(공유 0.5 vCPU/2GB), $35, $50, $130 | | https://docs.replit.com/billing/deployment-pricing · 2026-10-01 ⚠️출처확인필요 |
 
 #### 비용 구조
 최소 월 $15 상시.
@@ -983,24 +983,24 @@ Pro 기본 설정에서 호출 200만을 넘으면 함수가 그달 내내 차�
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| CP.process_types | 정기 작업만(cron 식 + 작업 타임아웃) | | https://docs.replit.com/billing/deployment-pricing · "a job timeout" · 2026-10-01 |
-| CP.request_timeout | 작업 타임아웃 설정, 최대값 `미확인` | | https://docs.replit.com/billing/deployment-pricing · 2026-10-01 |
+| CP.process_types | 정기 작업만(cron 식 + 작업 타임아웃) | | https://docs.replit.com/billing/deployment-pricing · "a job timeout" · 2026-10-01 ⚠️출처확인필요 |
+| CP.request_timeout | 작업 타임아웃 설정, 최대값 `미확인` | | https://docs.replit.com/billing/deployment-pricing · 2026-10-01 ⚠️출처확인필요 |
 | CP.long_connection | 해당 없음 | | — |
 | CP.cpu_outside_request | 해당 없음(작업 자체가 요청 밖 실행) | | — |
-| CP.cold_start | 실행마다 기동 (추론) | | — |
+| CP.cold_start | 실행마다 기동 (추론) | | — ⚠️근거없음 |
 | CP.instance_size | `미확인` | | — |
 | CP.request_size | 해당 없음 | | — |
-| CP.local_disk | 임시 | | https://docs.replit.com/build/troubleshooting.md · 2026-10-01 |
+| CP.local_disk | 임시 | | https://docs.replit.com/build/troubleshooting.md · 2026-10-01 ⚠️출처확인필요 |
 | CP.scaling | 해당 없음 | | — |
 | CP.concurrency | 해당 없음 | | — |
 | CP.shutdown | `미확인` | | — |
 | CP.deploy | `미확인` | | — |
 | CP.availability | `미확인` | | — |
 | CP.networking | `미확인` | | — |
-| CP.regions | `[충돌]` | | — |
-| CP.plan_limits | 최소 주기 `미확인`, 중복·누락 보장 `미확인` | | — |
-| CP.ops_burden | 낮음 | | — |
-| CP.cost_floor | 월 $2 + 컴퓨트 | | https://docs.replit.com/billing/deployment-pricing · 2026-10-01 |
+| CP.regions | `[충돌]` | | — ⚠️근거없음 |
+| CP.plan_limits | 최소 주기 `미확인`, 중복·누락 보장 `미확인` | | — ⚠️근거없음 |
+| CP.ops_burden | 낮음 | | — ⚠️근거없음 |
+| CP.cost_floor | 월 $2 + 컴퓨트 | | https://docs.replit.com/billing/deployment-pricing · 2026-10-01 ⚠️출처확인필요 |
 
 #### 비용 구조
 월 $2 + 실행 시간.
@@ -1027,19 +1027,19 @@ cron 식은 대상 플랫폼 스케줄러로 옮긴다.
 | CP.request_timeout | **첫 바이트 30초**, 이후 바이트마다 55초 롤링 창. keep-alive 유휴 90초. 변경 불가 | | https://devcenter.heroku.com/articles/request-timeout · "terminate the request if it takes longer than 30 seconds" / "each byte … resets a rolling 55 second window" · 2026-10-01 |
 | CP.long_connection | 웹소켓 지원, 55초 유휴 규칙 적용 | | https://devcenter.heroku.com/articles/http-routing · "WebSocket functionality is fully supported" · 2026-10-01 |
 | CP.cpu_outside_request | 가능. Eco 웹 dyno는 30분 웹 트래픽 없으면 잠듦 | | https://devcenter.heroku.com/articles/eco-dyno-hours · "receives no web traffic in a 30-minute period, it sleeps" · 2026-10-01 |
-| CP.cold_start | Eco 30분 유휴 시 잠듦, 월 1,000시간 소진 시 그달 남은 기간 잠듦. Basic은 잠들지 않음(추론) | | https://devcenter.heroku.com/articles/eco-dyno-hours · "forced to sleep for the rest of the month" · 2026-10-01 |
+| CP.cold_start | Eco 30분 유휴 시 잠듦, 월 1,000시간 소진 시 그달 남은 기간 잠듦. Basic은 잠들지 않음(추론) | | https://devcenter.heroku.com/articles/eco-dyno-hours · "forced to sleep for the rest of the month" · 2026-10-01 ⚠️근거없음 |
 | CP.instance_size | 0.5GB | | https://devcenter.heroku.com/articles/dyno-types · 2026-10-01 |
 | CP.request_size | 본문 한도 명시 없음. 헤더 8,192바이트, 응답 버퍼 1MB | | https://devcenter.heroku.com/articles/http-routing · 2026-10-01 |
 | CP.local_disk | 임시. 재시작하면 사라지고, dyno는 하루 1회 이상 재시작(24시간 + 최대 216분) | | https://devcenter.heroku.com/articles/dynos · "Any files written get discarded the moment the dyno stops or restarts" · https://devcenter.heroku.com/articles/dyno-restarts · 2026-10-01 |
 | CP.scaling | 프로세스 종류당 dyno 1개, 수평 확장 불가 | | https://devcenter.heroku.com/articles/dynos · "Horizontal scaling is unavailable for Eco and Basic dynos" · 2026-10-01 |
 | CP.concurrency | 해당 없음(앱 프로세스) | | — |
 | CP.shutdown | SIGTERM 후 30초, 그다음 SIGKILL | | https://devcenter.heroku.com/articles/dyno-shutdown-behavior · "Process failed to exit within 30 seconds of SIGTERM" · 2026-10-01 |
-| CP.deploy | Preboot(무중단) 불가 → 배포 시 짧은 중단 (추론). 롤백 `미확인` | | https://devcenter.heroku.com/articles/preboot · "only available on the Common Runtime to apps that are using standard and performance dynos" · 2026-10-01 |
+| CP.deploy | Preboot(무중단) 불가 → 배포 시 짧은 중단 (추론). 롤백 `미확인` | | https://devcenter.heroku.com/articles/preboot · "only available on the Common Runtime to apps that are using standard and performance dynos" · 2026-10-01 ⚠️근거없음 |
 | CP.availability | dyno 1개 | | https://devcenter.heroku.com/articles/dynos · 2026-10-01 |
-| CP.networking | 고정 출구 IP 문서 404, `미확인` | | — |
+| CP.networking | 고정 출구 IP 문서 404, `미확인` | | — ⚠️근거없음 |
 | CP.regions | us·eu | | https://devcenter.heroku.com/articles/regions · 2026-10-01 |
 | CP.plan_limits | Eco는 개인 앱만, 실행 dyno 최대 2개 | | https://devcenter.heroku.com/articles/eco-dyno-hours · "Only personal apps can use Eco dynos" · 2026-10-01 |
-| CP.ops_burden | 낮음(buildpack, Procfile) | | — |
+| CP.ops_burden | 낮음(buildpack, Procfile) | | — ⚠️근거없음 |
 | CP.cost_floor | Eco 월 $5(공유 1,000시간), Basic 월 $7. Postgres Essential-0 월 $5 | | https://devcenter.heroku.com/articles/dyno-types · https://www.heroku.com/pricing/ · 2026-10-01 |
 
 #### 비용 구조
@@ -1054,7 +1054,7 @@ cron 식은 대상 플랫폼 스케줄러로 옮긴다.
 #### 함정
 - 30초 첫 바이트 한도는 티어 0 중 가장 엄격하다. A2가 "수십 초" 이상이면 바로 불일치.
 - 매일 재시작 + 임시 디스크라 로컬 파일 상태(B2)는 하루를 못 넘긴다.
-- 상품이 기능 동결 상태라 신규 구성 후보로는 낮은 순위 (추론).
+- 상품이 기능 동결 상태라 신규 구성 후보로는 낮은 순위 (추론). ⚠️근거없음
 
 ### 10.2 Heroku — Standard · Performance dyno
 - 계열: 컴퓨트-티어0
@@ -1065,8 +1065,8 @@ cron 식은 대상 플랫폼 스케줄러로 옮긴다.
 | CP.process_types | web, worker, one-off, Scheduler(최소 10분) | | https://devcenter.heroku.com/articles/scheduler · 2026-10-01 |
 | CP.request_timeout | 첫 바이트 30초, 55초 롤링 | | https://devcenter.heroku.com/articles/request-timeout · 2026-10-01 |
 | CP.long_connection | 웹소켓 지원, 55초 유휴 | | https://devcenter.heroku.com/articles/http-routing · 2026-10-01 |
-| CP.cpu_outside_request | 가능 | | — |
-| CP.cold_start | 잠들지 않음 (추론, 잠듦은 Eco 규칙) | | https://devcenter.heroku.com/articles/eco-dyno-hours · 2026-10-01 |
+| CP.cpu_outside_request | 가능 | | — ⚠️근거없음 |
+| CP.cold_start | 잠들지 않음 (추론, 잠듦은 Eco 규칙) | | https://devcenter.heroku.com/articles/eco-dyno-hours · 2026-10-01 ⚠️근거없음 |
 | CP.instance_size | Standard-2X 1GB ~ Performance-2XL 126GB. GPU 없음(`미확인`) | | https://devcenter.heroku.com/articles/dyno-types · 2026-10-01 |
 | CP.request_size | 헤더 8,192바이트, 응답 버퍼 1MB | | https://devcenter.heroku.com/articles/http-routing · 2026-10-01 |
 | CP.local_disk | 임시, 매일 재시작 | | https://devcenter.heroku.com/articles/dyno-restarts · 2026-10-01 |
@@ -1078,7 +1078,7 @@ cron 식은 대상 플랫폼 스케줄러로 옮긴다.
 | CP.networking | Private Spaces 존재, 고정 IP `미확인` | | https://devcenter.heroku.com/articles/regions · 2026-10-01 |
 | CP.regions | Common Runtime us·eu, Private Spaces 도쿄·싱가포르 등 | | https://devcenter.heroku.com/articles/regions · 2026-10-01 |
 | CP.plan_limits | 기능 동결(sustaining engineering), 신규 Enterprise 계약 불가 | | https://www.heroku.com/blog/an-update-on-heroku/ · 2026-10-01 |
-| CP.ops_burden | 낮음 | | — |
+| CP.ops_burden | 낮음 | | — ⚠️근거없음 |
 | CP.cost_floor | Standard-1X 월 $25, Performance-M 월 $250 | | https://devcenter.heroku.com/articles/dyno-types · 2026-10-01 |
 
 #### 비용 구조
@@ -1097,10 +1097,10 @@ cron 식은 대상 플랫폼 스케줄러로 옮긴다.
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
 | CP.process_types | services, workers, jobs(`PRE_DEPLOY`/`POST_DEPLOY`/`SCHEDULED`) | 정기 작업 최소 15분 간격, 실행 중에만 과금 | https://docs.digitalocean.com/products/app-platform/reference/app-spec/ · https://docs.digitalocean.com/products/app-platform/how-to/manage-jobs/ · "(minimum every 15 minutes)" · 2026-10-01 |
-| CP.request_timeout | 기본 30초, 최대 100초(PHP 지원 문서 근거, 플랫폼 전체 한도의 공식 근거는 약함). 파일 업로드 600초 타임아웃 | | https://docs.digitalocean.com/support/my-php-app-is-timing-out-and-throwing-5xx-errors/ · "You can set the execution time to a maximum of `100` seconds" · https://docs.digitalocean.com/products/app-platform/details/limits/ · "File uploads to apps timeout after 600 seconds." · 2026-10-01 |
+| CP.request_timeout | 기본 30초, 최대 100초(PHP 지원 문서 근거, 플랫폼 전체 한도의 공식 근거는 약함). 파일 업로드 600초 타임아웃 | | https://docs.digitalocean.com/support/my-php-app-is-timing-out-and-throwing-5xx-errors/ · "You can set the execution time to a maximum of `100` seconds" · https://docs.digitalocean.com/products/app-platform/details/limits/ · "File uploads to apps timeout after 600 seconds." · 2026-10-01 ⚠️근거없음 |
 | CP.long_connection | 웹소켓 지원(DO 공식 샘플 저장소, 보관됨). 지속 한도 `미확인` | | https://github.com/digitalocean/sample-websocket · 2026-10-01 |
-| CP.cpu_outside_request | 가능(상시 컨테이너, 추론) | | — |
-| CP.cold_start | scale-to-zero 문서 없음 (`미확인`) | | — |
+| CP.cpu_outside_request | 가능(상시 컨테이너, 추론) | | — ⚠️근거없음 |
+| CP.cold_start | scale-to-zero 문서 없음 (`미확인`) | | — ⚠️근거없음 |
 | CP.instance_size | 월 $5 공유 1 CPU/512MiB ~ 전용 8 CPU/32GiB(월 $392) | | https://docs.digitalocean.com/products/app-platform/details/pricing/ · 2026-10-01 |
 | CP.request_size | `미확인` | | — |
 | CP.local_disk | 임시 4GiB, 가득 차면 비정상으로 판정돼 교체. 볼륨 없음 | | https://docs.digitalocean.com/products/app-platform/details/limits/ · "limited to 4 GiB, and if it is filled to capacity, the container is detected as unhealthy and replaced" · 2026-10-01 |
@@ -1112,7 +1112,7 @@ cron 식은 대상 플랫폼 스케줄러로 옮긴다.
 | CP.networking | 전용 출구 IP 가능, VPC 가능, **둘을 동시에 켤 수 없음** | | https://docs.digitalocean.com/products/app-platform/how-to/enable-vpc/ · "VPC network access and dedicated egress IPs cannot be enabled at the same time" · 2026-10-01 |
 | CP.regions | 서울·도쿄 없음, 싱가포르 SGP | | https://docs.digitalocean.com/products/app-platform/details/availability/ · 2026-10-01 |
 | CP.plan_limits | 정적 앱 3개 무료, 크론 최소 15분 | | https://docs.digitalocean.com/products/app-platform/details/pricing/ · 2026-10-01 |
-| CP.ops_burden | 낮음 | | — |
+| CP.ops_burden | 낮음 | | — ⚠️근거없음 |
 | CP.cost_floor | 컨테이너 월 $5. 개발용 DB 월 $7(512MB) | | https://docs.digitalocean.com/products/app-platform/details/pricing/ · 2026-10-01 |
 
 #### 비용 구조
@@ -1129,7 +1129,7 @@ cron 식은 대상 플랫폼 스케줄러로 옮긴다.
 
 ## 12. Koyeb
 
-리전: FRA, WAS, SIN, TYO, PAR, aws-us-east-1, SFO(프리뷰). 서울 없음. Free는 FRA·WAS만, Eco는 WAS·FRA·SIN만. https://www.koyeb.com/docs/reference/regions
+리전: FRA, WAS, SIN, TYO, PAR, aws-us-east-1, SFO(프리뷰). 서울 없음. Free는 FRA·WAS만, Eco는 WAS·FRA·SIN만. https://www.koyeb.com/docs/reference/regions ⚠️출처부적격
 
 ### 12.1 Koyeb — Free 인스턴스
 - 계열: 컴퓨트-티어0
@@ -1137,24 +1137,24 @@ cron 식은 대상 플랫폼 스케줄러로 옮긴다.
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| CP.process_types | 웹 서비스만(Worker 불가). 기본 크론 `미확인` | | https://www.koyeb.com/docs/reference/instances · 2026-10-01 |
-| CP.request_timeout | HTTP 100초 | | https://www.koyeb.com/docs/reference/edge-network · "The connection timeout for HTTP requests is set to 100 seconds." · 2026-10-01 |
-| CP.long_connection | 웹소켓·gRPC 최대 12시간(클라이언트 keep-alive 필요) | | https://www.koyeb.com/docs/reference/edge-network · "maximum duration of 12 hours when keep-alives are configured on the client" · 2026-10-01 |
-| CP.cpu_outside_request | 실행 중엔 가능, 1시간 유휴 시 잠듦 | | https://www.koyeb.com/docs/run-and-scale/scale-to-zero · 2026-10-01 |
-| CP.cold_start | 1시간 유휴 후 잠듦, 깨어나는 데 1~5초 | | https://www.koyeb.com/docs/run-and-scale/scale-to-zero · 2026-10-01 |
-| CP.instance_size | 512MB RAM, 0.1 vCPU, SSD 2GB | | https://www.koyeb.com/docs/reference/instances · "512MB of RAM, 0.1 vCPU, and 2GB of SSD" · 2026-10-01 |
+| CP.process_types | 웹 서비스만(Worker 불가). 기본 크론 `미확인` | | https://www.koyeb.com/docs/reference/instances · 2026-10-01 ⚠️출처부적격 |
+| CP.request_timeout | HTTP 100초 | | https://www.koyeb.com/docs/reference/edge-network · "The connection timeout for HTTP requests is set to 100 seconds." · 2026-10-01 ⚠️출처부적격 |
+| CP.long_connection | 웹소켓·gRPC 최대 12시간(클라이언트 keep-alive 필요) | | https://www.koyeb.com/docs/reference/edge-network · "maximum duration of 12 hours when keep-alives are configured on the client" · 2026-10-01 ⚠️출처부적격 |
+| CP.cpu_outside_request | 실행 중엔 가능, 1시간 유휴 시 잠듦 | | https://www.koyeb.com/docs/run-and-scale/scale-to-zero · 2026-10-01 ⚠️출처부적격 |
+| CP.cold_start | 1시간 유휴 후 잠듦, 깨어나는 데 1~5초 | | https://www.koyeb.com/docs/run-and-scale/scale-to-zero · 2026-10-01 ⚠️출처부적격 |
+| CP.instance_size | 512MB RAM, 0.1 vCPU, SSD 2GB | | https://www.koyeb.com/docs/reference/instances · "512MB of RAM, 0.1 vCPU, and 2GB of SSD" · 2026-10-01 ⚠️출처부적격 |
 | CP.request_size | `미확인` | | — |
-| CP.local_disk | 영속 여부 `미확인`, 볼륨 불가 | | https://www.koyeb.com/docs/reference/instances · 2026-10-01 |
-| CP.scaling | 사용자 지정 스케일링 불가 | | https://www.koyeb.com/docs/reference/instances · 2026-10-01 |
+| CP.local_disk | 영속 여부 `미확인`, 볼륨 불가 | | https://www.koyeb.com/docs/reference/instances · 2026-10-01 ⚠️출처부적격 |
+| CP.scaling | 사용자 지정 스케일링 불가 | | https://www.koyeb.com/docs/reference/instances · 2026-10-01 ⚠️출처부적격 |
 | CP.concurrency | 해당 없음 | | — |
-| CP.shutdown | SIGTERM 후 30초, SIGKILL | | https://www.koyeb.com/docs/reference/instances · "waits for a default configured grace period of 30 seconds" · 2026-10-01 |
-| CP.deploy | 새 배포가 정상이면 이전 배포 중지, 헬스체크 실패 시 이전 배포 유지 | | https://www.koyeb.com/docs/reference/deployments · https://www.koyeb.com/docs/run-and-scale/health-checks · 2026-10-01 |
-| CP.availability | 인스턴스 1개 | | https://www.koyeb.com/docs/reference/instances · 2026-10-01 |
-| CP.networking | 사설 네트워크 있음, 고정 IP `미확인` | | — |
-| CP.regions | FRA·WAS만 | | https://www.koyeb.com/docs/reference/regions · 2026-10-01 |
-| CP.plan_limits | 조직당 Free 인스턴스 1개, Worker·볼륨·사용자 지정 스케일링 불가 | | https://www.koyeb.com/docs/reference/instances · 2026-10-01 |
-| CP.ops_burden | 낮음 | | — |
-| CP.cost_floor | $0 | | https://www.koyeb.com/pricing · 2026-10-01 |
+| CP.shutdown | SIGTERM 후 30초, SIGKILL | | https://www.koyeb.com/docs/reference/instances · "waits for a default configured grace period of 30 seconds" · 2026-10-01 ⚠️출처부적격 |
+| CP.deploy | 새 배포가 정상이면 이전 배포 중지, 헬스체크 실패 시 이전 배포 유지 | | https://www.koyeb.com/docs/reference/deployments · https://www.koyeb.com/docs/run-and-scale/health-checks · 2026-10-01 ⚠️출처부적격 |
+| CP.availability | 인스턴스 1개 | | https://www.koyeb.com/docs/reference/instances · 2026-10-01 ⚠️출처부적격 |
+| CP.networking | 사설 네트워크 있음, 고정 IP `미확인` | | — ⚠️근거없음 |
+| CP.regions | FRA·WAS만 | | https://www.koyeb.com/docs/reference/regions · 2026-10-01 ⚠️출처부적격 |
+| CP.plan_limits | 조직당 Free 인스턴스 1개, Worker·볼륨·사용자 지정 스케일링 불가 | | https://www.koyeb.com/docs/reference/instances · 2026-10-01 ⚠️출처부적격 |
+| CP.ops_burden | 낮음 | | — ⚠️근거없음 |
+| CP.cost_floor | $0 | | https://www.koyeb.com/pricing · 2026-10-01 ⚠️출처부적격 |
 
 #### 비용 구조
 $0. 지출 한도 `미확인`.
@@ -1171,24 +1171,24 @@ $0. 지출 한도 `미확인`.
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| CP.process_types | Web Service, Worker. 기본 크론 `미확인` | | https://www.koyeb.com/docs/reference/services · "to run any HTTP, HTTP/2, WebSocket, or gRPC applications" · 2026-10-01 |
-| CP.request_timeout | 100초 | | https://www.koyeb.com/docs/reference/edge-network · 2026-10-01 |
-| CP.long_connection | 최대 12시간 | | https://www.koyeb.com/docs/reference/edge-network · 2026-10-01 |
-| CP.cpu_outside_request | 가능(scale-to-zero 끄면) | | https://www.koyeb.com/docs/run-and-scale/scale-to-zero · 2026-10-01 |
-| CP.cold_start | scale-to-zero 프리뷰: 기본 5분 유휴(유료는 6~12시간까지), 깨어나는 데 1~5초, Light Sleep 약 200ms | | https://www.koyeb.com/docs/run-and-scale/scale-to-zero · 2026-10-01 |
-| CP.instance_size | nano(0.25 vCPU/256MB) ~ 5xlarge(40 vCPU/128GB). GPU 있음(도쿄 GPU `미확인`) | | https://www.koyeb.com/docs/reference/instances · 2026-10-01 |
+| CP.process_types | Web Service, Worker. 기본 크론 `미확인` | | https://www.koyeb.com/docs/reference/services · "to run any HTTP, HTTP/2, WebSocket, or gRPC applications" · 2026-10-01 ⚠️출처부적격 |
+| CP.request_timeout | 100초 | | https://www.koyeb.com/docs/reference/edge-network · 2026-10-01 ⚠️출처부적격 |
+| CP.long_connection | 최대 12시간 | | https://www.koyeb.com/docs/reference/edge-network · 2026-10-01 ⚠️출처부적격 |
+| CP.cpu_outside_request | 가능(scale-to-zero 끄면) | | https://www.koyeb.com/docs/run-and-scale/scale-to-zero · 2026-10-01 ⚠️출처부적격 |
+| CP.cold_start | scale-to-zero 프리뷰: 기본 5분 유휴(유료는 6~12시간까지), 깨어나는 데 1~5초, Light Sleep 약 200ms | | https://www.koyeb.com/docs/run-and-scale/scale-to-zero · 2026-10-01 ⚠️출처부적격 |
+| CP.instance_size | nano(0.25 vCPU/256MB) ~ 5xlarge(40 vCPU/128GB). GPU 있음(도쿄 GPU `미확인`) | | https://www.koyeb.com/docs/reference/instances · 2026-10-01 ⚠️출처부적격 |
 | CP.request_size | `미확인` | | — |
-| CP.local_disk | 볼륨 프리뷰: 서비스 스케일 1에서만, 1~10GB, 워싱턴·프랑크푸르트만, 재배포 시 다운타임, 이중화 없음, "테스트용" | | https://www.koyeb.com/docs/reference/volumes · "only suitable for testing" / "only work with Services with a scale of one" · 2026-10-01 |
-| CP.scaling | CPU·메모리·초당 요청·동시 연결·P95 지연 기반 오토스케일. 늘릴 땐 한 번에, 줄일 땐 분당 약 1개 | | https://www.koyeb.com/docs/run-and-scale/autoscaling · 2026-10-01 |
+| CP.local_disk | 볼륨 프리뷰: 서비스 스케일 1에서만, 1~10GB, 워싱턴·프랑크푸르트만, 재배포 시 다운타임, 이중화 없음, "테스트용" | | https://www.koyeb.com/docs/reference/volumes · "only suitable for testing" / "only work with Services with a scale of one" · 2026-10-01 ⚠️출처부적격 |
+| CP.scaling | CPU·메모리·초당 요청·동시 연결·P95 지연 기반 오토스케일. 늘릴 땐 한 번에, 줄일 땐 분당 약 1개 | | https://www.koyeb.com/docs/run-and-scale/autoscaling · 2026-10-01 ⚠️출처부적격 |
 | CP.concurrency | 해당 없음 | | — |
-| CP.shutdown | SIGTERM 후 30초 | | https://www.koyeb.com/docs/reference/instances · 2026-10-01 |
-| CP.deploy | 헬스체크 통과 후 전환, 실패 시 이전 유지 | | https://www.koyeb.com/docs/reference/deployments · 2026-10-01 |
-| CP.availability | 멀티 리전 배치 가능 여부 `미확인` | | — |
-| CP.networking | 사설 네트워크, 고정 IP `미확인` | | — |
-| CP.regions | 도쿄·싱가포르 있음, 서울 없음 | | https://www.koyeb.com/docs/reference/regions · 2026-10-01 |
-| CP.plan_limits | Pro 월 $29(컴퓨트 $10 포함), Scale 월 $299 | | https://www.koyeb.com/pricing · 2026-10-01 |
-| CP.ops_burden | 낮음 | | — |
-| CP.cost_floor | Eco nano 월 $1.61, Standard micro 월 $5.36 | | https://www.koyeb.com/docs/reference/instances · 2026-10-01 |
+| CP.shutdown | SIGTERM 후 30초 | | https://www.koyeb.com/docs/reference/instances · 2026-10-01 ⚠️출처부적격 |
+| CP.deploy | 헬스체크 통과 후 전환, 실패 시 이전 유지 | | https://www.koyeb.com/docs/reference/deployments · 2026-10-01 ⚠️출처부적격 |
+| CP.availability | 멀티 리전 배치 가능 여부 `미확인` | | — ⚠️근거없음 |
+| CP.networking | 사설 네트워크, 고정 IP `미확인` | | — ⚠️근거없음 |
+| CP.regions | 도쿄·싱가포르 있음, 서울 없음 | | https://www.koyeb.com/docs/reference/regions · 2026-10-01 ⚠️출처부적격 |
+| CP.plan_limits | Pro 월 $29(컴퓨트 $10 포함), Scale 월 $299 | | https://www.koyeb.com/pricing · 2026-10-01 ⚠️출처부적격 |
+| CP.ops_burden | 낮음 | | — ⚠️근거없음 |
+| CP.cost_floor | Eco nano 월 $1.61, Standard micro 월 $5.36 | | https://www.koyeb.com/docs/reference/instances · 2026-10-01 ⚠️출처부적격 |
 
 #### 비용 구조
 최소 월 $1.61(Eco nano). 지출 한도 `미확인`.

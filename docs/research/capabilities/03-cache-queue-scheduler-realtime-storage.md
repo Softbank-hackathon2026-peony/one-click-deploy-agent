@@ -94,7 +94,7 @@
 |---|---|---|---|---|---|---|---|
 | 앱 프로세스 안 스케줄러 | 제한 없음 | **예(인스턴스 수만큼)** | 예(scale-to-zero, 크래시) | 없음 | 같은 프로세스 | — | $0 |
 | Kubernetes CronJob | 1분 | 예(드물게 2회, 기본 `Allow`로 겹침) | 예(드물게 0회, 100회 누락 시 중단) | Job backoffLimit | 컨테이너, 제한 없음 | 클러스터 | 클러스터 비용 |
-| Cloud Scheduler | 1분(문구 미확인) | 예(드묾) | 미확인 | 설정 가능 | HTTP·Pub/Sub, HTTP 30분 | 있음 | 3잡 무료, $0.10/잡/월 |
+| Cloud Scheduler | 1분(문구 미확인) | 예(드묾) | 미확인 | 설정 가능 | HTTP·Pub/Sub, HTTP 30분 | 있음 | 3잡 무료, $0.10/잡/월 ⚠️근거없음 |
 | EventBridge Scheduler | 1분(60초 정밀도) | 예(최소 1회) | DST 봄 전환 건너뜀 | 설정 가능 + DLQ | 270개 AWS 서비스, 페이로드 256 KB | 있음 | 월 1,400만 무료 |
 | Vercel Cron | **Hobby 하루 1회(±59분)** / Pro 1분 | 예 | **예(최선 노력)** | **없음** | 함수 maxDuration | 함수 리전 | 포함 |
 | Supabase Cron(pg_cron) | 1초 | 아니오(작업당 1개, 다음은 대기) | 미확인 | 없음(미확인) | SQL·함수·HTTP(pg_net), 10분 이하 권장 | 있음 | 포함 |
@@ -141,22 +141,22 @@
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| CA.persistence | 없음. 프로세스가 재시작하거나 재배포되면 사라짐 | 세션, 캐시, 카운터 모두 해당 | https://express-rate-limit.mintlify.app/reference/stores · "will be inconsistent across reboots or in deployments with multiple process or servers" · 2026-10-01 |
-| CA.eviction | express-session MemoryStore: 정리 없음(메모리 누수). lru-cache: `max`/`maxSize`/`ttl` 중 하나가 필수. 전역 Map: 상한 없음 | 상한을 두지 않으면 OOM으로 이어짐 | https://github.com/expressjs/session · "It will leak memory under most conditions" · 2026-10-01 / https://github.com/isaacs/node-lru-cache · "At least one of 'max', 'ttl', or 'maxSize' is required, to prevent unsafe unbounded storage." · 2026-10-01 |
+| CA.persistence | 없음. 프로세스가 재시작하거나 재배포되면 사라짐 | 세션, 캐시, 카운터 모두 해당 | https://express-rate-limit.mintlify.app/reference/stores · "will be inconsistent across reboots or in deployments with multiple process or servers" · 2026-10-01 ⚠️출처확인필요 |
+| CA.eviction | express-session MemoryStore: 정리 없음(메모리 누수). lru-cache: `max`/`maxSize`/`ttl` 중 하나가 필수. 전역 Map: 상한 없음 | 상한을 두지 않으면 OOM으로 이어짐 | https://github.com/expressjs/session · "It will leak memory under most conditions" · 2026-10-01 / https://github.com/isaacs/node-lru-cache · "At least one of 'max', 'ttl', or 'maxSize' is required, to prevent unsafe unbounded storage." · 2026-10-01 ⚠️출처확인필요 |
 | CA.consistency | 복제 없음. 인스턴스마다 값이 따로 놀아서 일관성이 없음 | — | https://docs.djangoproject.com/en/stable/topics/cache/ · "each process will have its own private cache instance, which means no cross-process caching is possible" · 2026-10-01 |
-| CA.shared_state | **불가.** 인스턴스 2개 이상에서 세션·락·레이트 리밋 저장소로 쓸 수 없음 (B1 불일치의 근거) | gunicorn `-w N`처럼 같은 호스트의 다중 워커에서도 공유되지 않음 | https://github.com/expressjs/session · "does not scale past a single process, and is meant for debugging and developing" · 2026-10-01 / https://express-rate-limit.mintlify.app/reference/stores · "This one does not synchronize it's state across instances." · 2026-10-01 |
+| CA.shared_state | **불가.** 인스턴스 2개 이상에서 세션·락·레이트 리밋 저장소로 쓸 수 없음 (B1 불일치의 근거) | gunicorn `-w N`처럼 같은 호스트의 다중 워커에서도 공유되지 않음 | https://github.com/expressjs/session · "does not scale past a single process, and is meant for debugging and developing" · 2026-10-01 / https://express-rate-limit.mintlify.app/reference/stores · "This one does not synchronize it's state across instances." · 2026-10-01 ⚠️출처확인필요 |
 | CA.pubsub | 없음 (프로세스 안 EventEmitter뿐, 인스턴스 간 전파 불가) | — | https://docs.djangoproject.com/en/stable/topics/cache/ · "no cross-process caching is possible" · 2026-10-01 |
-| CA.availability | 프로세스와 생명을 같이함. HA 없음 | — | https://github.com/expressjs/session · "purposely not designed for a production environment" · 2026-10-01 |
+| CA.availability | 프로세스와 생명을 같이함. HA 없음 | — | https://github.com/expressjs/session · "purposely not designed for a production environment" · 2026-10-01 ⚠️출처확인필요 |
 | CA.connections | 해당 없음 (네트워크 연결 없음) | — | 해당 없음 |
-| CA.limits | 프로세스 힙 크기가 상한. Flask-Caching SimpleCache는 로컬 dict라 스레드 안전하지만 프로세스 사이 공유는 안 됨 | — | https://flask-caching.readthedocs.io/en/latest/backends/ · "Uses a local python dictionary for caching. All operations are protected by a lock, making it thread-safe." · 2026-10-01 |
+| CA.limits | 프로세스 힙 크기가 상한. Flask-Caching SimpleCache는 로컬 dict라 스레드 안전하지만 프로세스 사이 공유는 안 됨 | — | https://flask-caching.readthedocs.io/en/latest/backends/ · "Uses a local python dictionary for caching. All operations are protected by a lock, making it thread-safe." · 2026-10-01 ⚠️출처확인필요 |
 | CA.regions / CA.cost_floor | 컴퓨트를 따름 / 추가 비용 0 | 인스턴스 메모리를 소비함 | 해당 없음 |
 
 ### 비용 구조
 추가 고정비는 0이다. 대신 인스턴스 메모리를 쓰므로 캐시가 커지면 인스턴스 크기가 커진다. Django는 따로 지정하지 않으면 LocMemCache를 기본 캐시로 쓴다. 출처: https://docs.djangoproject.com/en/stable/topics/cache/ · "This is the default cache if another is not specified in your settings file." · 2026-10-01
 
 ### 교체 계열 정보
-- Node 세션: `express-session` MemoryStore를 `connect-redis`로 바꾼다. 클라이언트는 `redis`(node-redis)이고, 바꿀 지점은 `session({ store: new RedisStore({ client, prefix }) })` 한 곳이다. 기본 TTL은 86400초이고, 쿠키에 만료가 있으면 그 값을 따른다. 출처: https://github.com/tj/connect-redis · "sessions expire after 86400 seconds (one day)" · 2026-10-01
-- Node 레이트 리밋: `express-rate-limit` 기본 MemoryStore를 `rate-limit-redis`로 바꾼다. 출처: https://express-rate-limit.mintlify.app/reference/stores · "A Redis-backed store, more suitable for large or demanding deployments." · 2026-10-01
+- Node 세션: `express-session` MemoryStore를 `connect-redis`로 바꾼다. 클라이언트는 `redis`(node-redis)이고, 바꿀 지점은 `session({ store: new RedisStore({ client, prefix }) })` 한 곳이다. 기본 TTL은 86400초이고, 쿠키에 만료가 있으면 그 값을 따른다. 출처: https://github.com/tj/connect-redis · "sessions expire after 86400 seconds (one day)" · 2026-10-01 ⚠️출처확인필요
+- Node 레이트 리밋: `express-rate-limit` 기본 MemoryStore를 `rate-limit-redis`로 바꾼다. 출처: https://express-rate-limit.mintlify.app/reference/stores · "A Redis-backed store, more suitable for large or demanding deployments." · 2026-10-01 ⚠️출처확인필요
 - Django: `CACHES.BACKEND`를 `django.core.cache.backends.redis.RedisCache`로, `LOCATION`을 Redis URL로 바꾸고 redis-py(+hiredis)를 설치한다. 출처: https://docs.djangoproject.com/en/stable/topics/cache/ · "redis-py is the binding supported natively by Django" · 2026-10-01
 - Flask: `CACHE_TYPE`을 SimpleCache에서 RedisCache로 바꾸고 `CACHE_REDIS_URL`을 넣는다. 세션은 Flask-Session의 Redis 백엔드를 쓴다(Flask-Session 문서는 미확인).
 - 전역 Map·lru-cache: 공유가 필요한 키만 Redis로 옮긴다. 인스턴스별 L1 캐시로 남길 경우 무효화를 pub/sub로 전파해야 한다(B4).
@@ -175,10 +175,10 @@
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
 | QU.delivery | 보장 없음. 응답 뒤 같은 프로세스에서 실행되므로 프로세스가 죽으면 작업이 사라짐 | "재시작 시 유실"이라고 명시한 문구는 미확인. 같은 프로세스에서 실행된다는 문서 내용에서 유도한 값임 | https://fastapi.tiangolo.com/tutorial/background-tasks/ · "you don't necessarily need it to be run by the same process" (Celery 권고 문맥) · 2026-10-01 |
-| QU.ordering | 보장 없음 | — | 미확인 |
-| QU.dedup | 없음 | — | 미확인 |
-| QU.retention | 없음 (프로세스 메모리에만 있음). 메시지 크기 한도는 프로세스 메모리 | — | 미확인 (명시 문구 없음) |
-| QU.retry_dlq | 없음 (직접 구현해야 함) | — | 미확인 |
+| QU.ordering | 보장 없음 | — | 미확인 ⚠️근거없음 |
+| QU.dedup | 없음 | — | 미확인 ⚠️근거없음 |
+| QU.retention | 없음 (프로세스 메모리에만 있음). 메시지 크기 한도는 프로세스 메모리 | — | 미확인 (명시 문구 없음) ⚠️근거없음 |
+| QU.retry_dlq | 없음 (직접 구현해야 함) | — | 미확인 ⚠️근거없음 |
 | QU.throughput | 웹 요청과 같은 CPU·이벤트 루프를 나눠 씀 | 무거운 계산은 별도 도구 권고 | https://fastapi.tiangolo.com/tutorial/background-tasks/ · "If you need to perform heavy background computation … you might benefit from using other bigger tools like Celery." · 2026-10-01 |
 | QU.consumer_scaling | 불가. 작업자와 웹이 한 몸이라 큐 길이로 확장할 수 없음. 다중 서버 분산이 안 됨 | — | https://fastapi.tiangolo.com/tutorial/background-tasks/ · "they allow you to run background tasks in multiple processes, and especially, in multiple servers" (외부 큐 쪽 설명) · 2026-10-01 |
 | QU.availability / QU.regions / QU.cost_floor | 프로세스와 같음 / 컴퓨트를 따름 / 0 | — | 해당 없음 |
@@ -207,8 +207,8 @@
 | FS.consistency | 같은 인스턴스 안에서는 POSIX 파일 시스템 | 다른 인스턴스는 볼 수 없음 | (아래 FS.shared_access 근거와 같음) |
 | FS.shared_access | **불가.** 인스턴스·태스크·Pod마다 따로. Fargate는 같은 태스크 안 컨테이너끼리만 공유 | B2 불일치의 근거 | Fargate 문서 · "This can be mounted and shared among containers that use the volumes, mountPoints, and volumesFrom parameters in the task definition" (태스크 안 공유만 기술) |
 | FS.object_limits | Cloud Run: 쓰기가 인스턴스 메모리를 소비하고, 다 쓰면 인스턴스가 죽음. Fargate: 기본 20 GiB, 최대 200 GiB(이미지 크기 포함) | 업로드 크기는 플랫폼 요청 본문 한도(CP.request_size)가 먼저 걸림 | Cloud Run 문서 · "It is an in-memory file system, so writing to it uses the instance's memory." · "you can potentially use up all the memory allocated to your instance" / Fargate 문서 · "receive a minimum of 20 GiB of ephemeral storage … up to a maximum of 200 GiB" |
-| FS.versioning_lifecycle | 없음 | — | 해당 없음 |
-| FS.delivery | 앱이 직접 서빙(`express.static('uploads')` 등). CDN 연동 없음 | — | 해당 없음 |
+| FS.versioning_lifecycle | 없음 | — | 해당 없음 ⚠️근거없음 |
+| FS.delivery | 앱이 직접 서빙(`express.static('uploads')` 등). CDN 연동 없음 | — | 해당 없음 ⚠️근거없음 |
 | FS.regions / FS.cost_floor | 컴퓨트를 따름 / 추가비 $0 (Cloud Run은 메모리로 과금됨) | — | 해당 없음 |
 
 ### 비용 구조
@@ -232,10 +232,10 @@
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| SC.frequency | 라이브러리 제한 없음(초 단위 가능) | 프로세스가 살아 있을 때만 | 해당 없음 |
-| SC.semantics | **인스턴스·워커 수만큼 중복 실행.** APScheduler는 잡 스토어를 여러 프로세스가 공유하면 중복 실행이나 누락이 생김. celery beat는 반드시 하나만. node-cron 4는 `distributed: true`(기본은 환경 변수 플래그, HA는 Redis 코디네이터)와 `noOverlap`을 제공하지만 상태를 영속하지 않아 크래시 후 정확히 1회는 보장하지 않음. scale-to-zero면 프로세스가 없어 **누락** | 재시도 없음 | https://apscheduler.readthedocs.io/en/3.x/faq.html · "Sharing a persistent job store among two or more processes will lead to incorrect scheduler behavior like duplicate execution or the scheduler missing jobs" / https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html · "You have to ensure only a single scheduler is running for a schedule at a time, otherwise you'd end up with duplicate tasks." / https://github.com/node-cron/node-cron · "`distributed: true` ensures only one instance executes each scheduled fire. Out of the box it uses an env-var flag; for high availability, plug in a Redis coordinator" · "node-cron coordinates but does not persist state to a database" |
-| SC.target | 같은 프로세스의 함수. 실행 시간 제한 없음(대신 웹 요청과 CPU를 나눠 씀) | — | 해당 없음 |
-| SC.cost_floor | $0 | — | 해당 없음 |
+| SC.frequency | 라이브러리 제한 없음(초 단위 가능) | 프로세스가 살아 있을 때만 | 해당 없음 ⚠️근거없음 |
+| SC.semantics | **인스턴스·워커 수만큼 중복 실행.** APScheduler는 잡 스토어를 여러 프로세스가 공유하면 중복 실행이나 누락이 생김. celery beat는 반드시 하나만. node-cron 4는 `distributed: true`(기본은 환경 변수 플래그, HA는 Redis 코디네이터)와 `noOverlap`을 제공하지만 상태를 영속하지 않아 크래시 후 정확히 1회는 보장하지 않음. scale-to-zero면 프로세스가 없어 **누락** | 재시도 없음 | https://apscheduler.readthedocs.io/en/3.x/faq.html · "Sharing a persistent job store among two or more processes will lead to incorrect scheduler behavior like duplicate execution or the scheduler missing jobs" / https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html · "You have to ensure only a single scheduler is running for a schedule at a time, otherwise you'd end up with duplicate tasks." / https://github.com/node-cron/node-cron · "`distributed: true` ensures only one instance executes each scheduled fire. Out of the box it uses an env-var flag; for high availability, plug in a Redis coordinator" · "node-cron coordinates but does not persist state to a database" ⚠️출처확인필요 |
+| SC.target | 같은 프로세스의 함수. 실행 시간 제한 없음(대신 웹 요청과 CPU를 나눠 씀) | — | 해당 없음 ⚠️근거없음 |
+| SC.cost_floor | $0 | — | 해당 없음 ⚠️근거없음 |
 
 ### 비용 구조
 추가 비용은 없습니다. 다만 크론 때문에 최소 인스턴스를 1 이상으로 유지하면 그만큼 고정비가 생깁니다.
@@ -260,7 +260,7 @@
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| CA.persistence | 기본은 RDB 스냅샷만 켜짐(3600초/1변경, 300초/100변경, 60초/10000변경). AOF는 꺼져 있음(`appendonly no`). RDB만 쓰면 최근 몇 분을 잃을 수 있음. AOF를 켜면 기본 `everysec`로 최대 1초 손실 | 컨테이너 임시 디스크에 dump.rdb를 쓰면 재시작 시 사라짐 | https://raw.githubusercontent.com/redis/redis/unstable/redis.conf · "Unless specified otherwise, by default Redis will save the DB: After 3600 seconds … After 300 seconds … After 60 seconds" / "appendonly no" · 2026-10-01 / https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/ · "you should be prepared to lose the latest minutes of data" · "you may lose 1 second of data" · 2026-10-01 / https://valkey.io/topics/persistence/ · "By default Valkey saves snapshots of the dataset on disk" · 2026-10-01 |
+| CA.persistence | 기본은 RDB 스냅샷만 켜짐(3600초/1변경, 300초/100변경, 60초/10000변경). AOF는 꺼져 있음(`appendonly no`). RDB만 쓰면 최근 몇 분을 잃을 수 있음. AOF를 켜면 기본 `everysec`로 최대 1초 손실 | 컨테이너 임시 디스크에 dump.rdb를 쓰면 재시작 시 사라짐 | https://raw.githubusercontent.com/redis/redis/unstable/redis.conf · "Unless specified otherwise, by default Redis will save the DB: After 3600 seconds … After 300 seconds … After 60 seconds" / "appendonly no" · 2026-10-01 / https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/ · "you should be prepared to lose the latest minutes of data" · "you may lose 1 second of data" · 2026-10-01 / https://valkey.io/topics/persistence/ · "By default Valkey saves snapshots of the dataset on disk" · 2026-10-01 ⚠️출처확인필요 |
 | CA.eviction | 기본 `maxmemory` 0(64비트에서 무제한), 기본 정책 `noeviction`. 메모리가 차면 쓰기 명령이 오류를 냄 | `volatile-*`는 TTL 키가 없으면 noeviction처럼 동작 | https://redis.io/docs/latest/develop/reference/eviction/ · "Set maxmemory to zero … This is the default behavior for 64-bit systems" · "noeviction: Keys are not evicted but the server will return an error" · 2026-10-01 / https://raw.githubusercontent.com/redis/redis/unstable/redis.conf · "The default is: # maxmemory-policy noeviction" · 2026-10-01 |
 | CA.consistency | 비동기 복제. WAIT를 써도 CP 시스템이 아니며 페일오버 때 승인된 쓰기를 잃을 수 있음 | `min-replicas-to-write`로 손실 창을 줄일 수 있음 | https://redis.io/docs/latest/operate/oss_and_stack/management/replication/ · "Redis uses by default asynchronous replication" · "acknowledged writes can still be lost during a failover" · 2026-10-01 |
 | CA.shared_state | 가능 (세션, 락, 레이트 리밋). 원자적 INCR 지원 | 락은 페일오버 손실에 유의 | https://redis.io/docs/latest/develop/data-types/strings/ · "multiple clients issuing INCR against the same key will never enter into a race condition" · 2026-10-01 |
@@ -493,15 +493,15 @@ Redis OSS와 호환된다(지원 버전 7.2, 8.0, 9.0, 9.1). ioredis, node-redis
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| CA.persistence | 항상 켜짐. 모든 쓰기를 메모리와 블록 스토리지(EBS 등)에 함께 저장 | 메모리에서 퇴출돼도 디스크에 남아 있음 | https://upstash.com/docs/redis/features/durability "In Upstash, persistence is always enabled… Every write operation is consistently stored in both memory and the block storage provided by cloud providers, such as AWS's EBS." |
-| CA.eviction | 기본은 퇴출 꺼짐. 최대 데이터 크기에 닿으면 쓰기 거부. 켜면 optimistic-volatile 방식 | — | https://upstash.com/docs/redis/features/eviction "By default eviction is disabled, and Upstash Redis will reject write operations once the maximum data size limit has been reached." |
-| CA.consistency | 리더 기반 비동기 전파, 최종 일관성. 같은 연결 안에서만 인과 일관성. 분할 시 LWW. Strong Consistency는 폐기됨 | 리더 선출 중 쓰기가 잠시 막힘 | https://upstash.com/docs/redis/features/consistency "asynchronously propagated to the backup replicas", "can provide only **Eventual Consistency**", "we decided to deprecate this feature" |
-| CA.shared_state | 가능(세션, 레이트 리밋). @upstash/ratelimit 제공. REST로도 접근 가능해 서버리스·엣지에 적합 | 강한 락 보장은 없음(최종 일관성) | https://upstash.com/docs/redis/features/restapi "Access your Upstash Redis database over HTTP, from serverless and edge runtimes where TCP connections are restricted." |
-| CA.pubsub | 있음. TCP SUBSCRIBE, REST `/subscribe`(SSE). **블로킹 명령(BLPOP, BRPOP, BZPOPMAX 등)은 REST 미지원** | 블로킹 명령을 쓰는 큐 라이브러리는 TCP 필요 | https://upstash.com/docs/redis/features/restapi "The `SUBSCRIBE` endpoint works using Server Send Events", "Blocking commands (BLPOP - BRPOP - BRPOPLPUSH) are not supported." |
-| CA.availability | 유료 플랜은 복제. 멀티 존 HA와 가동률 SLA는 Prod Pack(+$200/월/DB)에서만 | Free는 복제·SLA 없음 | https://upstash.com/docs/redis/features/durability "except for the free tier, all paid tier databases provide extra redundancy by replicating data to multiple instances" · https://upstash.com/docs/redis/features/replication "When Prod Pack is enabled, replicas … are deployed across multiple availability zones" · https://upstash.com/docs/redis/overall/pricing (Prod Pack "+$200/month per database", Uptime SLA·Multi-Zone HA) |
-| CA.connections | TCP 동시 연결 한도 숫자는 미확인. REST 클라이언트(@upstash/redis)를 쓰면 연결 문제 없음 | 초과하면 "ERR max concurrent connections exceeded" | https://upstash.com/docs/redis/troubleshooting/max_concurrent_connections "use @upstash/redis client which is REST based so it does not have any connection related problems" |
-| CA.limits | Free·PAYG: 초당 명령 10,000, 요청 10 MB, 레코드 100 MB. 최대 데이터: Free 256 MB, PAYG 100 GB. Fixed 250MB 플랜은 250 MB, 초당 10,000 | Fixed 상위 티어는 한도가 더 큼 | https://upstash.com/docs/redis/overall/pricing "Max request size 10 MB", "Max record size 100 MB", "Max commands per second 10,000", "Max data size 256 MB 100 GB 250 MB" |
-| CA.regions / CA.cost_floor | 서울 없음(도쿄). Free $0(256 MB, 월 50만 명령, 10 GB 대역폭). PAYG는 10만 명령당 $0.2, 저장 GB당 $0.25(첫 1 GB 무료). Fixed 250MB $10/월 | 운영 SLA를 원하면 +$200/월 | https://upstash.com/docs/redis/overall/pricing "$0.2 per 100K commands", "$0.25 per GB", "Fixed 250MB $10/month" · https://upstash.com/docs/redis/features/globaldatabase (지역 표, 서울 없음) |
+| CA.persistence | 항상 켜짐. 모든 쓰기를 메모리와 블록 스토리지(EBS 등)에 함께 저장 | 메모리에서 퇴출돼도 디스크에 남아 있음 | https://upstash.com/docs/redis/features/durability "In Upstash, persistence is always enabled… Every write operation is consistently stored in both memory and the block storage provided by cloud providers, such as AWS's EBS." ⚠️출처확인필요 |
+| CA.eviction | 기본은 퇴출 꺼짐. 최대 데이터 크기에 닿으면 쓰기 거부. 켜면 optimistic-volatile 방식 | — | https://upstash.com/docs/redis/features/eviction "By default eviction is disabled, and Upstash Redis will reject write operations once the maximum data size limit has been reached." ⚠️출처확인필요 |
+| CA.consistency | 리더 기반 비동기 전파, 최종 일관성. 같은 연결 안에서만 인과 일관성. 분할 시 LWW. Strong Consistency는 폐기됨 | 리더 선출 중 쓰기가 잠시 막힘 | https://upstash.com/docs/redis/features/consistency "asynchronously propagated to the backup replicas", "can provide only **Eventual Consistency**", "we decided to deprecate this feature" ⚠️출처확인필요 |
+| CA.shared_state | 가능(세션, 레이트 리밋). @upstash/ratelimit 제공. REST로도 접근 가능해 서버리스·엣지에 적합 | 강한 락 보장은 없음(최종 일관성) | https://upstash.com/docs/redis/features/restapi "Access your Upstash Redis database over HTTP, from serverless and edge runtimes where TCP connections are restricted." ⚠️출처확인필요 |
+| CA.pubsub | 있음. TCP SUBSCRIBE, REST `/subscribe`(SSE). **블로킹 명령(BLPOP, BRPOP, BZPOPMAX 등)은 REST 미지원** | 블로킹 명령을 쓰는 큐 라이브러리는 TCP 필요 | https://upstash.com/docs/redis/features/restapi "The `SUBSCRIBE` endpoint works using Server Send Events", "Blocking commands (BLPOP - BRPOP - BRPOPLPUSH) are not supported." ⚠️출처확인필요 |
+| CA.availability | 유료 플랜은 복제. 멀티 존 HA와 가동률 SLA는 Prod Pack(+$200/월/DB)에서만 | Free는 복제·SLA 없음 | https://upstash.com/docs/redis/features/durability "except for the free tier, all paid tier databases provide extra redundancy by replicating data to multiple instances" · https://upstash.com/docs/redis/features/replication "When Prod Pack is enabled, replicas … are deployed across multiple availability zones" · https://upstash.com/docs/redis/overall/pricing (Prod Pack "+$200/month per database", Uptime SLA·Multi-Zone HA) ⚠️출처확인필요 |
+| CA.connections | TCP 동시 연결 한도 숫자는 미확인. REST 클라이언트(@upstash/redis)를 쓰면 연결 문제 없음 | 초과하면 "ERR max concurrent connections exceeded" | https://upstash.com/docs/redis/troubleshooting/max_concurrent_connections "use @upstash/redis client which is REST based so it does not have any connection related problems" ⚠️출처확인필요 |
+| CA.limits | Free·PAYG: 초당 명령 10,000, 요청 10 MB, 레코드 100 MB. 최대 데이터: Free 256 MB, PAYG 100 GB. Fixed 250MB 플랜은 250 MB, 초당 10,000 | Fixed 상위 티어는 한도가 더 큼 | https://upstash.com/docs/redis/overall/pricing "Max request size 10 MB", "Max record size 100 MB", "Max commands per second 10,000", "Max data size 256 MB 100 GB 250 MB" ⚠️출처확인필요 |
+| CA.regions / CA.cost_floor | 서울 없음(도쿄). Free $0(256 MB, 월 50만 명령, 10 GB 대역폭). PAYG는 10만 명령당 $0.2, 저장 GB당 $0.25(첫 1 GB 무료). Fixed 250MB $10/월 | 운영 SLA를 원하면 +$200/월 | https://upstash.com/docs/redis/overall/pricing "$0.2 per 100K commands", "$0.25 per GB", "Fixed 250MB $10/month" · https://upstash.com/docs/redis/features/globaldatabase (지역 표, 서울 없음) ⚠️출처확인필요 |
 
 ### 비용 구조
 scale-to-zero에 가깝다(PAYG는 사용량만 과금). 최소 고정비: 무료 $0, 고정 플랜 $10/월, 운영 SLA까지 넣으면 +$200/월. 함정: PAYG는 명령 수 과금이라, BullMQ처럼 계속 폴링하는 워커를 붙이면 유휴 상태에서도 명령 수가 쌓인다(일반 원리, Upstash 문서의 BullMQ 비용 문구는 미확인).
@@ -574,7 +574,7 @@ Pro에서 읽기·쓰기 횟수로 과금한다(단가 단위 미확인). 고정
 | CA.consistency | 최종 일관성. 다른 지역에 보이기까지 60초 이상 걸릴 수 있음. 원자 연산·트랜잭션 없음 | 같은 위치에서는 즉시 보임 | https://developers.cloudflare.com/kv/concepts/how-kv-works/ "Changes may take up to 60 seconds or more to be visible in other global network locations", "not ideal for applications where you need support for atomic operations" |
 | CA.shared_state | 읽기 위주 공유 상태(설정, 캐시, 세션 조회)에만 적합. **레이트 리밋 카운터나 락에는 부적합**(같은 키 쓰기 초당 1회, 최종 일관성). 강한 일관성이 필요하면 Durable Objects 권장 | — | https://developers.cloudflare.com/kv/concepts/how-kv-works/ (Durable Objects 권장) · https://developers.cloudflare.com/kv/api/write-key-value-pairs/ "Writes made to the same key within 1 second will cause rate limiting (`429`) errors." |
 | CA.pubsub | 없음 | — | https://developers.cloudflare.com/kv/concepts/how-kv-works/ (KV 기능에 pub/sub 없음) |
-| CA.availability | Cloudflare 전역 네트워크. SLA 수치는 미확인 | — | 미확인 |
+| CA.availability | Cloudflare 전역 네트워크. SLA 수치는 미확인 | — | 미확인 ⚠️근거없음 |
 | CA.connections | Workers 바인딩(`env.NS.get/put`) 또는 REST API. 호출 한 번당 작업 1,000회 | — | https://developers.cloudflare.com/kv/platform/limits/ "Operations per Worker invocation 1000" |
 | CA.limits | 값 25 MiB, 키 512 바이트, 메타데이터 1,024 바이트. 같은 키 쓰기 초당 1회. Free는 하루 읽기 10만·쓰기 1,000 | 네임스페이스 1,000개 | https://developers.cloudflare.com/kv/platform/limits/ "25 MiB", "512 bytes", "1 per second", "100,000 reads per day", "1,000 writes per day" |
 | CA.regions / CA.cost_floor | Free $0. Paid는 Workers Paid 최소 $5/월. 포함량: 읽기 월 1천만(+$0.50/백만), 쓰기 월 1백만(+$5.00/백만), 저장 1 GB(+$0.50/GB-월) | 데이터 전송 무료. null 결과도 과금 | https://developers.cloudflare.com/kv/platform/pricing/ "10 million/month, + $0.50/million", "1 million/month, + $5.00/million", "1 GB, + $0.50/ GB-month" · https://developers.cloudflare.com/workers/platform/pricing/ "a minimum charge of $5 USD per month for an account" |
@@ -606,7 +606,7 @@ Workers 바인딩 API(`get`, `put`, `delete`, `list`), Workers 밖에서는 REST
 | QU.retention | 보존 기본 4일, 60초~14일. 메시지 최대 1 MiB(그 이상은 S3 확장 클라이언트로 2 GB). 지연 최대 15분 | — | https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/quotas-messages.html · "By default, a message is retained for 4 days. The minimum is 60 seconds (1 minute). The maximum is 1,209,600 seconds (14 days)." · "The maximum is 1,048,576 bytes (1 MiB)." |
 | QU.retry_dlq | 가시성 타임아웃 기본 30초, 최대 12시간(처음 수신 시점부터, 연장해도 초기화 안 됨). DLQ는 `maxReceiveCount`. 표준 큐 DLQ는 원래 큐 넣은 시각 기준으로 만료 | in-flight 약 12만 개 | https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-visibility-timeout.html · "The default visibility timeout for a queue is 30 seconds" · "maximum limit of 12 hours from when the message is first received. Extending the timeout doesn't reset this 12-hour limit." · "approximately 120,000 in-flight messages" / https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html · "the expiration of a message is always based on its original enqueue timestamp" |
 | QU.throughput | 사실상 무제한 | — | quotas-messages · "nearly unlimited number of API calls per second, per action" |
-| QU.consumer_scaling | Lambda 이벤트 소스(기본 동시 5에서 분당 +300, 최대 1,250). KEDA `aws-sqs-queue`(기본 큐 길이 목표 5, in-flight 포함) | — | https://docs.aws.amazon.com/lambda/latest/dg/services-sqs-scaling.html · "increases the number of processes … by up to 300 more concurrent invokes per minute. The maximum … is 1,250." / https://keda.sh/docs/2.21/scalers/aws-sqs/ (queueLength 기본 5, scaleOnInFlight 기본 true) |
+| QU.consumer_scaling | Lambda 이벤트 소스(기본 동시 5에서 분당 +300, 최대 1,250). KEDA `aws-sqs-queue`(기본 큐 길이 목표 5, in-flight 포함) | — | https://docs.aws.amazon.com/lambda/latest/dg/services-sqs-scaling.html · "increases the number of processes … by up to 300 more concurrent invokes per minute. The maximum … is 1,250." / https://keda.sh/docs/2.21/scalers/aws-sqs/ (queueLength 기본 5, scaleOnInFlight 기본 true) ⚠️출처확인필요 |
 | QU.availability / QU.regions / QU.cost_floor | 다중 AZ / 서울 있음 / **$0 고정비.** 월 100만 요청 무료, 이후 서울 $0.40/백만. 64KB 단위로 1요청 | 같은 리전 전송 무료 | https://aws.amazon.com/sqs/pricing/ · "All customers can make 1 million Amazon SQS requests for free each month." · "Each 64 KB chunk of a payload is billed as 1 request" / Price List https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSQueueService/current/ap-northeast-2/index.json · "$0.40 per million Amazon SQS standard requests in Tier1 in Asia Pacific (Seoul)" |
 
 ### 비용 구조
@@ -658,7 +658,7 @@ Workers 바인딩 API(`get`, `put`, `delete`, `list`), Workers 밖에서는 REST
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
 | QU.delivery | 표준: 재시도 후 실패 시 버림(DLQ 붙이면 보존). FIFO + SQS FIFO 구독: 조건부 정확히 1회. 필터를 쓰면 최대 1회 | 재시도 가능 오류는 5xx, 429 | https://docs.aws.amazon.com/sns/latest/dg/sns-message-delivery-retries.html · "When the delivery policy is exhausted, Amazon SNS stops retrying the delivery and discards the message—unless a dead-letter queue is attached" / https://docs.aws.amazon.com/sns/latest/dg/fifo-message-dedup.html · "When you configure message filtering, Amazon SNS FIFO topics support at-most-once delivery" |
-| QU.ordering | 표준: 보장 없음(문서 문구 미확인). FIFO: 메시지 그룹 안 순서 | — | https://docs.aws.amazon.com/sns/latest/dg/sns-fifo-topics.html · "ensure strict message ordering and deduplication" |
+| QU.ordering | 표준: 보장 없음(문서 문구 미확인). FIFO: 메시지 그룹 안 순서 | — | https://docs.aws.amazon.com/sns/latest/dg/sns-fifo-topics.html · "ensure strict message ordering and deduplication" ⚠️근거없음 |
 | QU.dedup | FIFO만: 5분 창 | — | fifo-message-dedup · "within the five minute deduplication interval, is accepted but not delivered" |
 | QU.retention | **보존 없음**(즉시 전달). 표준 토픽 아카이브는 N/A, FIFO만 아카이브·재생. 메시지 최대 256 KiB(확장 라이브러리로 2 GB). FIFO 과금 설명에는 최대 1 MiB 언급 | — | https://docs.aws.amazon.com/general/latest/gr/sns.html · "The maximum message size is 262,144 bytes (256 KiB)." · "ArchivePolicy … Standard topics: N/A / FIFO topics: Yes" / https://aws.amazon.com/sns/pricing/ · "up to 1 MiB" (FIFO 과금 문구) |
 | QU.retry_dlq | SQS·Lambda 대상: 23일에 걸쳐 100,015회. HTTP/S 기본: 3회(정책으로 최대 100회, 총 3,600초 이내). 구독별 DLQ | — | sns-message-delivery-retries · "Total attempts: 100,015 times, over 23 days" · "numRetries … 0 to 100 Default: 3" · "cannot be greater than 3,600 seconds" |
@@ -715,7 +715,7 @@ SNS 단독으로는 큐가 아닙니다. 구독자가 내려가 있으면 재시
 | QU.retention | 구독 미확인 메시지 기본 7일(10분~31일). 토픽 보존 최대 31일. 메시지 최대 10 MB | 확인한 메시지 보존은 추가 비용 | https://docs.cloud.google.com/pubsub/docs/subscription-properties (기본 7일, 10분~31일) / https://docs.cloud.google.com/pubsub/quotas · "10MB (the data field)" · "up to 31 days from the time of publication" |
 | QU.retry_dlq | ack 기한 기본 10초, 최대 600초. 재시도: 즉시 또는 지수 백오프(최대 600초). DLQ 최대 전달 시도 5~100(기본 5). 구독은 31일 비활성 시 만료(기본) | — | subscription-properties · ack 기한 "10–600 seconds" · "the longest backoff duration that you can specify is 600 seconds" · 만료 "Default value = 31 days" / https://docs.cloud.google.com/pubsub/docs/handling-failures (기본 5, 최대 100) |
 | QU.throughput | 리전 크기별 게시 200 MB/s~4 GB/s | — | quotas 페이지 |
-| QU.consumer_scaling | KEDA `gcp-pubsub` 스케일러가 있다는 것은 일반 지식(이번에 미확인). Cloud Run push 구독은 요청 기반 확장 | — | 미확인 |
+| QU.consumer_scaling | KEDA `gcp-pubsub` 스케일러가 있다는 것은 일반 지식(이번에 미확인). Cloud Run push 구독은 요청 기반 확장 | — | 미확인 ⚠️근거없음 |
 | QU.availability / QU.regions / QU.cost_floor | 서울 저장 가능 / **$0 고정비.** 월 10 GiB 무료, 이후 $40/TiB(모든 리전). 요청당 최소 1,000바이트 과금. 보존 저장 $0.27/GiB-월 | — | https://cloud.google.com/pubsub/pricing · "the first 10 GiB of throughput … is free. After that, the price is $40 per TiB in all Google Cloud regions." · "Storage costs of $0.27 per GiB-month" |
 
 ### 비용 구조
@@ -762,13 +762,13 @@ Node `@google-cloud/tasks`, Python `google-cloud-tasks`. OIDC 토큰으로 Cloud
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| QU.delivery | 기본 최소 1회. 멱등 프로듀서 + 트랜잭션 + read_committed로 Kafka 안에서 정확히 1회. 외부 시스템까지는 협조 필요 | — | https://kafka.apache.org/42/design/design/ · "Kafka guarantees at-least-once delivery by default" · "exactly-once delivery for other destination systems generally requires cooperation with such systems" |
-| QU.ordering | 파티션 안 순서 | 일반 Kafka 설계(같은 문서) | 같은 문서 |
-| QU.dedup | 멱등 프로듀서(프로듀서 재전송 중복만) | — | 같은 문서 |
+| QU.delivery | 기본 최소 1회. 멱등 프로듀서 + 트랜잭션 + read_committed로 Kafka 안에서 정확히 1회. 외부 시스템까지는 협조 필요 | — | https://kafka.apache.org/42/design/design/ · "Kafka guarantees at-least-once delivery by default" · "exactly-once delivery for other destination systems generally requires cooperation with such systems" ⚠️출처확인필요 |
+| QU.ordering | 파티션 안 순서 | 일반 Kafka 설계(같은 문서) | 같은 문서 ⚠️출처확인필요 |
+| QU.dedup | 멱등 프로듀서(프로듀서 재전송 중복만) | — | 같은 문서 ⚠️출처확인필요 |
 | QU.retention | 설정 가능(Serverless 최대 무제한). 메시지 최대: Serverless 8 MiB, Provisioned는 브로커 설정(기본값 미확인) | — | https://docs.aws.amazon.com/msk/latest/developerguide/limits.html · "Maximum retention duration | Unlimited" · "Maximum message size | 8 MiB" |
-| QU.retry_dlq | 브로커 기능 없음. 컨슈머가 오프셋 커밋·재시도 토픽·DLQ 토픽을 직접 구현 | — | 일반 원칙(출처 미확인) |
+| QU.retry_dlq | 브로커 기능 없음. 컨슈머가 오프셋 커밋·재시도 토픽·DLQ 토픽을 직접 구현 | — | 일반 원칙(출처 미확인) ⚠️근거없음 |
 | QU.throughput | Serverless 클러스터당 입력 200 MBps, 출력 400 MBps, 파티션당 5/10 MBps, 연결 3,000. Provisioned IAM 연결 브로커당 3,000(t3는 연결 생성 4/초) | — | limits.html · "Maximum ingress throughput | 200 MBps" · "Maximum number of client connections | 3000" · "4 per second (t3 instance size)" |
-| QU.consumer_scaling | 파티션 수가 컨슈머 병렬도의 상한. KEDA kafka 스케일러(랙 기반)는 이번에 미확인 | — | 미확인 |
+| QU.consumer_scaling | 파티션 수가 컨슈머 병렬도의 상한. KEDA kafka 스케일러(랙 기반)는 이번에 미확인 | — | 미확인 ⚠️근거없음 |
 | QU.availability / QU.regions / QU.cost_floor | 서울 있음 / Provisioned kafka.t3.small $0.0569/브로커-시간(3브로커 ≈ $125/월 + 스토리지 $0.114/GB-월). Serverless $0.92/클러스터-시간(≈ $672/월) + $0.0018/파티션-시간 | t3는 개발·저처리량용 | Price List https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonMSK/current/ap-northeast-2/index.json · "$0.0569 per broker hour for Kafka.t3.small in Asia Pacific (Seoul)" · "$0.92 per cluster-hour for serverless cluster in Asia Pacific (Seoul)" / https://docs.aws.amazon.com/msk/latest/developerguide/broker-instance-sizes.html · "Use T3 brokers for low-cost development" |
 
 ### 비용 구조
@@ -788,14 +788,14 @@ Node `kafkajs`(유지보수 상태 미확인) 또는 `@confluentinc/kafka-javasc
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| QU.delivery | Kafka 의미론(MSK와 같음) | — | https://kafka.apache.org/42/design/design/ |
-| QU.ordering | 파티션 안 순서 | — | 같은 문서 |
-| QU.dedup | 멱등 프로듀서 | — | 같은 문서 |
-| QU.retention | Basic 저장 한도 5 TB, Standard 이상 무한 저장 | — | https://www.confluent.io/confluent-cloud/pricing/ · "5 TB storage limit" · "Infinite storage" |
-| QU.retry_dlq | 컨슈머 구현 | — | 일반 원칙(출처 미확인) |
-| QU.throughput | eCKU 단위 자동 확장 | 수치 미확인 | 같은 가격 페이지 · "All tiers offer autoscaling" |
+| QU.delivery | Kafka 의미론(MSK와 같음) | — | https://kafka.apache.org/42/design/design/ ⚠️출처확인필요 |
+| QU.ordering | 파티션 안 순서 | — | 같은 문서 ⚠️출처확인필요 |
+| QU.dedup | 멱등 프로듀서 | — | 같은 문서 ⚠️출처확인필요 |
+| QU.retention | Basic 저장 한도 5 TB, Standard 이상 무한 저장 | — | https://www.confluent.io/confluent-cloud/pricing/ · "5 TB storage limit" · "Infinite storage" ⚠️출처확인필요 |
+| QU.retry_dlq | 컨슈머 구현 | — | 일반 원칙(출처 미확인) ⚠️근거없음 |
+| QU.throughput | eCKU 단위 자동 확장 | 수치 미확인 | 같은 가격 페이지 · "All tiers offer autoscaling" ⚠️출처확인필요 |
 | QU.consumer_scaling | 미확인 | — | 미확인 |
-| QU.availability / QU.regions / QU.cost_floor | SLA Basic 99.5% / 리전 미확인 / Basic $0부터(첫 eCKU 무료, 이후 $0.14/eCKU-시간, 전송 $0.05/GB), Standard 약 $385/월부터 | — | 같은 가격 페이지 · "Starting at $0/Month" · "Starting at ~$385/Month" |
+| QU.availability / QU.regions / QU.cost_floor | SLA Basic 99.5% / 리전 미확인 / Basic $0부터(첫 eCKU 무료, 이후 $0.14/eCKU-시간, 전송 $0.05/GB), Standard 약 $385/월부터 | — | 같은 가격 페이지 · "Starting at $0/Month" · "Starting at ~$385/Month" ⚠️출처확인필요 |
 
 ### 비용 구조
 소량이면 Basic이 MSK보다 쌉니다.
@@ -819,8 +819,8 @@ Kafka 프로토콜이라 클라이언트는 MSK와 같고 인증 방식(API 키,
 | QU.dedup | 없음 | — | streams 문서(기능 없음) |
 | QU.retention | `MAXLEN`/`XTRIM`으로 직접 자름. 메모리가 한도 | 값 512 MB 한도는 Redis 공통 | streams 문서 (`XADD … MAXLEN ~ 1000`) |
 | QU.retry_dlq | `XAUTOCLAIM`/`XCLAIM`으로 죽은 컨슈머 메시지 회수, 전달 횟수 카운터로 독 메시지 식별. DLQ는 직접 구현 | — | streams 문서 (XAUTOCLAIM, delivery counter) |
-| QU.throughput | 단일 스레드 Redis 한도 | 수치 미확인 | 미확인 |
-| QU.consumer_scaling | KEDA `redis-streams` 스케일러(대기 항목 수 기반) | — | https://keda.sh/docs/2.21/scalers/redis-streams/ (considerations 02에서 인용, 이번에 재확인 안 함 → 미확인) |
+| QU.throughput | 단일 스레드 Redis 한도 | 수치 미확인 | 미확인 ⚠️근거없음 |
+| QU.consumer_scaling | KEDA `redis-streams` 스케일러(대기 항목 수 기반) | — | https://keda.sh/docs/2.21/scalers/redis-streams/ (considerations 02에서 인용, 이번에 재확인 안 함 → 미확인) ⚠️출처확인필요 |
 | QU.availability / QU.regions / QU.cost_floor | Redis를 따름 / 같음 / Redis 비용(캐시 계열 표) | — | 캐시 계열 표 참조 |
 
 ### 비용 구조
@@ -840,13 +840,13 @@ ioredis/redis-py의 `xadd`, `xreadgroup`, `xack`, `xautoclaim`. 보통 직접 �
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| QU.delivery | 최소 1회. 락 갱신 실패 시 stalled로 판정해 다른 워커가 재처리 | CPU를 오래 잡는 작업은 stalled가 됨 | https://docs.bullmq.io/guide/workers/stalled-jobs · "A stalled job is moved back to the waiting status and will be processed again by another worker" |
-| QU.ordering | 기본 FIFO(우선순위·지연 지원). 엄격한 보장 문구는 미확인 | — | 미확인 |
-| QU.dedup | 사용자 지정 jobId: 큐에 같은 ID가 있으면 무시. **제거된(removeOnComplete) 작업은 중복으로 보지 않음** | — | https://docs.bullmq.io/guide/jobs/job-ids · "if you add a job with an existing id then that job will just be ignored" · "Jobs that are removed from the queue … will not be considered as duplicates" |
-| QU.retention | Redis 메모리가 한도. 완료·실패 작업 자동 제거 권장 | — | https://docs.bullmq.io/guide/going-to-production (auto-removal 권장) |
-| QU.retry_dlq | attempts + backoff 설정. 최대 stall 초과 시 failed 집합(DLQ 역할) | 기본값 미확인 | stalled-jobs 문서 · "if it has reached its maximum number of stalls, it will be moved to the failed set" |
-| QU.throughput | Redis 한도 | 미확인 | 미확인 |
-| QU.consumer_scaling | 워커 프로세스를 늘림. 큐 길이 기반 오토스케일은 외부(KEDA 등)로 | — | 미확인 |
+| QU.delivery | 최소 1회. 락 갱신 실패 시 stalled로 판정해 다른 워커가 재처리 | CPU를 오래 잡는 작업은 stalled가 됨 | https://docs.bullmq.io/guide/workers/stalled-jobs · "A stalled job is moved back to the waiting status and will be processed again by another worker" ⚠️출처확인필요 |
+| QU.ordering | 기본 FIFO(우선순위·지연 지원). 엄격한 보장 문구는 미확인 | — | 미확인 ⚠️근거없음 |
+| QU.dedup | 사용자 지정 jobId: 큐에 같은 ID가 있으면 무시. **제거된(removeOnComplete) 작업은 중복으로 보지 않음** | — | https://docs.bullmq.io/guide/jobs/job-ids · "if you add a job with an existing id then that job will just be ignored" · "Jobs that are removed from the queue … will not be considered as duplicates" ⚠️출처확인필요 |
+| QU.retention | Redis 메모리가 한도. 완료·실패 작업 자동 제거 권장 | — | https://docs.bullmq.io/guide/going-to-production (auto-removal 권장) ⚠️출처확인필요 |
+| QU.retry_dlq | attempts + backoff 설정. 최대 stall 초과 시 failed 집합(DLQ 역할) | 기본값 미확인 | stalled-jobs 문서 · "if it has reached its maximum number of stalls, it will be moved to the failed set" ⚠️출처확인필요 |
+| QU.throughput | Redis 한도 | 미확인 | 미확인 ⚠️근거없음 |
+| QU.consumer_scaling | 워커 프로세스를 늘림. 큐 길이 기반 오토스케일은 외부(KEDA 등)로 | — | 미확인 ⚠️근거없음 |
 | QU.availability / QU.regions / QU.cost_floor | Redis를 따름 / 같음 / 라이브러리 무료(Pro 유료판 가격 미확인) + Redis 비용 | — | — |
 
 ### 비용 구조
@@ -862,7 +862,7 @@ Redis 비용만. 큐 전용 Redis는 `noeviction`이어야 하므로 캐시와 �
 - 영속성은 AOF(약 1초)를 권장합니다. 영속 없는 Redis면 재시작 시 큐가 비워집니다.
 - `upsertJobScheduler`는 "마지막 작업이 처리되기 시작할 때만 다음 작업을 생성"하므로 작업이 밀리면 실행이 건너뛰어집니다.
 
-출처: https://docs.bullmq.io/guide/going-to-production · "maxmemory-policy setting to noeviction" / https://docs.bullmq.io/guide/job-schedulers · "The scheduler will only generate new jobs when the last job begins processing" · 2026-10-01
+출처: https://docs.bullmq.io/guide/going-to-production · "maxmemory-policy setting to noeviction" / https://docs.bullmq.io/guide/job-schedulers · "The scheduler will only generate new jobs when the last job begins processing" · 2026-10-01 ⚠️출처확인필요
 
 ---
 
@@ -872,20 +872,20 @@ Redis 비용만. 큐 전용 Redis는 `noeviction`이어야 하므로 캐시와 �
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| QU.delivery | **기본은 실행 직전 ack → 최대 1회**(워커가 죽으면 그 작업은 다시 실행되지 않음). `acks_late=True`면 실행 후 ack → 최소 1회(멱등 필요). 워커 비정상 종료 재전달은 `task_reject_on_worker_lost` | — | https://docs.celeryq.dev/en/stable/userguide/tasks.html · "a task invocation that already started is never executed again" · "messages for this task will be acknowledged after the task has been executed" |
-| QU.ordering | 보장 안 함(브로커·동시성에 따름, 문구 미확인) | — | 미확인 |
-| QU.dedup | 없음. SQS FIFO 브로커면 `MessageDeduplicationId` 전달 | — | https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/sqs.html (FIFO 속성 요구) |
+| QU.delivery | **기본은 실행 직전 ack → 최대 1회**(워커가 죽으면 그 작업은 다시 실행되지 않음). `acks_late=True`면 실행 후 ack → 최소 1회(멱등 필요). 워커 비정상 종료 재전달은 `task_reject_on_worker_lost` | — | https://docs.celeryq.dev/en/stable/userguide/tasks.html · "a task invocation that already started is never executed again" · "messages for this task will be acknowledged after the task has been executed" ⚠️출처확인필요 |
+| QU.ordering | 보장 안 함(브로커·동시성에 따름, 문구 미확인) | — | 미확인 ⚠️근거없음 |
+| QU.dedup | 없음. SQS FIFO 브로커면 `MessageDeduplicationId` 전달 | — | https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/sqs.html (FIFO 속성 요구) ⚠️출처확인필요 |
 | QU.retention | 브로커를 따름(SQS 최대 14일 등) | — | — |
-| QU.retry_dlq | `max_retries` 기본 3, `default_retry_delay` 180초. Redis 브로커 가시성 타임아웃 기본 1시간: ETA/countdown이 이보다 길면 **반복 재실행**. SQS 브로커 가시성 기본 30분(최대 12시간) | — | tasks.html (max_retries 3, 180초) / https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/redis.html · "The default visibility timeout for Redis is 1 hour." · "it will be executed again, and again in a loop" |
+| QU.retry_dlq | `max_retries` 기본 3, `default_retry_delay` 180초. Redis 브로커 가시성 타임아웃 기본 1시간: ETA/countdown이 이보다 길면 **반복 재실행**. SQS 브로커 가시성 기본 30분(최대 12시간) | — | tasks.html (max_retries 3, 180초) / https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/redis.html · "The default visibility timeout for Redis is 1 hour." · "it will be executed again, and again in a loop" ⚠️출처확인필요 |
 | QU.throughput | 브로커를 따름 | — | — |
-| QU.consumer_scaling | 워커 수 확장(KEDA는 브로커 큐 길이 기준) | — | 미확인 |
-| QU.availability / QU.regions / QU.cost_floor | 브로커를 따름 / 같음 / 라이브러리 무료 + 브로커 비용 | 브로커 상태: RabbitMQ·Redis·SQS 모두 Stable, SQS는 모니터링·원격 제어 없음 | https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/index.html · "Amazon SQS | Stable | No | No" |
+| QU.consumer_scaling | 워커 수 확장(KEDA는 브로커 큐 길이 기준) | — | 미확인 ⚠️근거없음 |
+| QU.availability / QU.regions / QU.cost_floor | 브로커를 따름 / 같음 / 라이브러리 무료 + 브로커 비용 | 브로커 상태: RabbitMQ·Redis·SQS 모두 Stable, SQS는 모니터링·원격 제어 없음 | https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/index.html · "Amazon SQS | Stable | No | No" ⚠️출처확인필요 |
 
 ### 비용 구조
 브로커 비용. SQS 브로커면 고정비 0(빈 큐 폴링 요청 과금 주의).
 
 ### 교체 계열 정보
-- FastAPI `BackgroundTasks` → `@celery.task` + `task.delay()` + 워커 프로세스 분리. 가벼운 대안: RQ, arq(asyncio), Dramatiq(출처 미확인).
+- FastAPI `BackgroundTasks` → `@celery.task` + `task.delay()` + 워커 프로세스 분리. 가벼운 대안: RQ, arq(asyncio), Dramatiq(출처 미확인). ⚠️근거없음
 - Redis 브로커: 퇴출 정책 `noeviction` 또는 `allkeys-lru`가 아니면 키 소실로 `InconsistencyError` 가능(문서 권고).
 - 결과 백엔드가 필요하면 별도(SQS에는 결과 백엔드 없음).
 - celery beat는 프로세스 1개만(스케줄러 계열 참고).
@@ -902,13 +902,13 @@ Redis 비용만. 큐 전용 Redis는 `noeviction`이어야 하므로 캐시와 �
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| QU.delivery | **OSS: BRPOP으로 꺼내므로 처리 중 크래시하면 작업 영구 유실.** Pro `super_fetch`는 완료 전까지 Redis에 보관해 회수(회수 시점 5분~3시간) | — | https://github.com/sidekiq/sidekiq/wiki/Reliability · "If Sidekiq crashes while processing that job, it is lost forever." |
+| QU.delivery | **OSS: BRPOP으로 꺼내므로 처리 중 크래시하면 작업 영구 유실.** Pro `super_fetch`는 완료 전까지 Redis에 보관해 회수(회수 시점 5분~3시간) | — | https://github.com/sidekiq/sidekiq/wiki/Reliability · "If Sidekiq crashes while processing that job, it is lost forever." ⚠️출처확인필요 |
 | QU.ordering | 미확인 | — | 미확인 |
-| QU.dedup | OSS 없음(Enterprise unique jobs는 미확인) | — | 미확인 |
-| QU.retention | Redis 메모리. Dead set 기본 10,000개 또는 6개월 | — | https://github.com/sidekiq/sidekiq/wiki/Error-Handling · "The Dead set is limited by default to 10,000 jobs or 6 months" |
-| QU.retry_dlq | 기본 25회, 약 20일에 걸쳐 재시도 후 Dead set | — | Error-Handling · "Sidekiq will perform 25 retries over approximately 20 days." |
-| QU.throughput | 단일 Redis로 2만+ 작업/초 사례 | — | https://github.com/sidekiq/sidekiq/wiki/Using-Redis · "20,000+ jobs/sec with a single Redis instance" |
-| QU.consumer_scaling | 프로세스·스레드 확장 | — | 미확인 |
+| QU.dedup | OSS 없음(Enterprise unique jobs는 미확인) | — | 미확인 ⚠️근거없음 |
+| QU.retention | Redis 메모리. Dead set 기본 10,000개 또는 6개월 | — | https://github.com/sidekiq/sidekiq/wiki/Error-Handling · "The Dead set is limited by default to 10,000 jobs or 6 months" ⚠️출처확인필요 |
+| QU.retry_dlq | 기본 25회, 약 20일에 걸쳐 재시도 후 Dead set | — | Error-Handling · "Sidekiq will perform 25 retries over approximately 20 days." ⚠️출처확인필요 |
+| QU.throughput | 단일 Redis로 2만+ 작업/초 사례 | — | https://github.com/sidekiq/sidekiq/wiki/Using-Redis · "20,000+ jobs/sec with a single Redis instance" ⚠️출처확인필요 |
+| QU.consumer_scaling | 프로세스·스레드 확장 | — | 미확인 ⚠️근거없음 |
 | QU.availability / QU.regions / QU.cost_floor | Redis를 따름 / 같음 / OSS 무료, Pro·Enterprise 가격 미확인 | — | 미확인 |
 
 ### 비용 구조
@@ -920,7 +920,7 @@ Redis는 캐시가 아닌 영속 저장소로 따로 둬야 합니다(`noevictio
 ### 함정
 OSS Sidekiq을 그대로 여러 인스턴스로 늘리면 배포·축소 때마다 처리 중 작업이 사라질 수 있습니다(F4).
 
-출처: https://github.com/sidekiq/sidekiq/wiki/Using-Redis · "it's important that Sidekiq be run against a Redis instance that is not configured as a cache but as a persistent store" · 2026-10-01
+출처: https://github.com/sidekiq/sidekiq/wiki/Using-Redis · "it's important that Sidekiq be run against a Redis instance that is not configured as a cache but as a persistent store" · 2026-10-01 ⚠️출처확인필요
 
 ---
 
@@ -930,20 +930,20 @@ OSS Sidekiq을 그대로 여러 인스턴스로 늘리면 배포·축소 때마�
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| QU.delivery | 작업 행을 잠그고 처리 후 커밋. 업무 쓰기와 **같은 트랜잭션으로 넣을 수 있음**(아웃박스 불필요). 처리 결과의 외부 부수효과는 최소 1회로 설계 | pg-boss "exactly-once" 문구는 README에서 확인 못 함 → 미확인 | https://www.postgresql.org/docs/current/sql-select.html · "can be used to avoid lock contention with multiple consumers accessing a queue-like table" / https://github.com/timgit/pg-boss · "job processing gets the safety of guaranteed atomic commits" |
+| QU.delivery | 작업 행을 잠그고 처리 후 커밋. 업무 쓰기와 **같은 트랜잭션으로 넣을 수 있음**(아웃박스 불필요). 처리 결과의 외부 부수효과는 최소 1회로 설계 | pg-boss "exactly-once" 문구는 README에서 확인 못 함 → 미확인 | https://www.postgresql.org/docs/current/sql-select.html · "can be used to avoid lock contention with multiple consumers accessing a queue-like table" / https://github.com/timgit/pg-boss · "job processing gets the safety of guaranteed atomic commits" ⚠️출처확인필요 |
 | QU.ordering | `ORDER BY` + 우선순위. SKIP LOCKED는 일관되지 않은 뷰(엄격한 순서 아님) | — | sql-select · "Skipping locked rows provides an inconsistent view of the data" |
-| QU.dedup | 유니크 제약(직접) / pg-boss singleton·debounce 정책 | — | https://github.com/timgit/pg-boss (README 기능 목록) |
-| QU.retention | DB 저장 용량 한도. 정리(archival) 필요 | — | — |
-| QU.retry_dlq | pg-boss: 지수 백오프 재시도, DLQ + redrive | — | pg-boss README · "dead letter queues with redrive, automatic retries with exponential backoff" |
-| QU.throughput | DB 쓰기 처리량 한도. 폴링이 DB 부하·연결을 씀 | 수치 미확인 | 미확인 |
-| QU.consumer_scaling | 워커 수 확장(연결 수 C8 한도 주의) | — | — |
-| QU.availability / QU.regions / QU.cost_floor | DB를 따름 / 같음 / **추가 고정비 $0**(기존 DB 사용) | pg-boss: Node 22.12+, PostgreSQL 13+ | pg-boss README · "Node 22.12 or higher, or Bun" |
+| QU.dedup | 유니크 제약(직접) / pg-boss singleton·debounce 정책 | — | https://github.com/timgit/pg-boss (README 기능 목록) ⚠️출처확인필요 |
+| QU.retention | DB 저장 용량 한도. 정리(archival) 필요 | — | — ⚠️근거없음 |
+| QU.retry_dlq | pg-boss: 지수 백오프 재시도, DLQ + redrive | — | pg-boss README · "dead letter queues with redrive, automatic retries with exponential backoff" ⚠️출처확인필요 |
+| QU.throughput | DB 쓰기 처리량 한도. 폴링이 DB 부하·연결을 씀 | 수치 미확인 | 미확인 ⚠️근거없음 |
+| QU.consumer_scaling | 워커 수 확장(연결 수 C8 한도 주의) | — | — ⚠️근거없음 |
+| QU.availability / QU.regions / QU.cost_floor | DB를 따름 / 같음 / **추가 고정비 $0**(기존 DB 사용) | pg-boss: Node 22.12+, PostgreSQL 13+ | pg-boss README · "Node 22.12 or higher, or Bun" ⚠️출처확인필요 |
 
 ### 비용 구조
 이미 Postgres가 있으면 새 구성 요소가 필요 없어 가장 싸고 운영이 단순합니다.
 
 ### 교체 계열 정보
-Node pg-boss(cron 스케줄도 클러스터당 1회), Python은 Procrastinate·Django-Q 등(출처 미확인), Ruby Solid Queue·GoodJob, Elixir Oban, Go River(모두 출처 미확인). 직접 구현: `SELECT … FOR UPDATE SKIP LOCKED LIMIT n`.
+Node pg-boss(cron 스케줄도 클러스터당 1회), Python은 Procrastinate·Django-Q 등(출처 미확인), Ruby Solid Queue·GoodJob, Elixir Oban, Go River(모두 출처 미확인). 직접 구현: `SELECT … FOR UPDATE SKIP LOCKED LIMIT n`. ⚠️근거없음
 
 ### 함정
 - Supabase 트랜잭션 풀러(PgBouncer transaction mode)에서는 LISTEN/NOTIFY·advisory lock 기반 기능이 제한될 수 있습니다(01 파일 DS.connections 참고, 이 파일에서는 미확인).
@@ -957,14 +957,14 @@ Node pg-boss(cron 스케줄도 클러스터당 1회), Python은 Procrastinate·D
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| QU.delivery | 단계(step) 단위 재시도로 내구 실행. 함수 기본 재시도 4회(최대 20) | 전달 보장 명칭 미확인 | https://www.inngest.com/docs/features/inngest-functions/error-retries/retries · "The default is four retries after the initial attempt." |
+| QU.delivery | 단계(step) 단위 재시도로 내구 실행. 함수 기본 재시도 4회(최대 20) | 전달 보장 명칭 미확인 | https://www.inngest.com/docs/features/inngest-functions/error-retries/retries · "The default is four retries after the initial attempt." ⚠️출처확인필요 |
 | QU.ordering | 미확인 | — | 미확인 |
-| QU.dedup | 이벤트 ID 24시간, 함수 idempotency 키 24시간 | — | https://www.inngest.com/docs/guides/handling-idempotency · "Event IDs will only be used to prevent duplicate execution for a 24 hour period." |
-| QU.retention | 이벤트 최대: Free 256 KiB, Pro 이상 3 MiB. 단계 출력 4 MiB. 함수 실행 최대 Free 30일, Pro 90일 | — | https://www.inngest.com/docs/usage-limits/inngest |
-| QU.retry_dlq | 단계 재시도. 단계 타임아웃 최대 2시간(호스트 타임아웃에 종속) | — | 같은 문서 |
-| QU.throughput | 동시 단계: Free 5, Pro 100, Business 500. 월 이벤트 Free 50만 | — | 같은 문서 / https://www.inngest.com/pricing · "5 included" |
-| QU.consumer_scaling | 플랫폼이 HTTP로 내 함수(서버리스)를 호출 → 플랫폼 확장을 따름 | — | (구조 설명, 문구 미확인) |
-| QU.availability / QU.regions / QU.cost_floor | 미확인 / 미확인 / Free 월 5만 실행, Pro $99/월부터 | — | https://www.inngest.com/pricing · "50k /mo included" · "$99 /mo" |
+| QU.dedup | 이벤트 ID 24시간, 함수 idempotency 키 24시간 | — | https://www.inngest.com/docs/guides/handling-idempotency · "Event IDs will only be used to prevent duplicate execution for a 24 hour period." ⚠️출처확인필요 |
+| QU.retention | 이벤트 최대: Free 256 KiB, Pro 이상 3 MiB. 단계 출력 4 MiB. 함수 실행 최대 Free 30일, Pro 90일 | — | https://www.inngest.com/docs/usage-limits/inngest ⚠️출처확인필요 |
+| QU.retry_dlq | 단계 재시도. 단계 타임아웃 최대 2시간(호스트 타임아웃에 종속) | — | 같은 문서 ⚠️출처확인필요 |
+| QU.throughput | 동시 단계: Free 5, Pro 100, Business 500. 월 이벤트 Free 50만 | — | 같은 문서 / https://www.inngest.com/pricing · "5 included" ⚠️출처확인필요 |
+| QU.consumer_scaling | 플랫폼이 HTTP로 내 함수(서버리스)를 호출 → 플랫폼 확장을 따름 | — | (구조 설명, 문구 미확인) ⚠️근거없음 |
+| QU.availability / QU.regions / QU.cost_floor | 미확인 / 미확인 / Free 월 5만 실행, Pro $99/월부터 | — | https://www.inngest.com/pricing · "50k /mo included" · "$99 /mo" ⚠️출처확인필요 |
 
 ### 비용 구조
 Free로 시작 가능. 동시 5단계 한도가 실제 병목입니다.
@@ -986,11 +986,11 @@ Free로 시작 가능. 동시 5단계 한도가 실제 병목입니다.
 | QU.delivery | 미확인 | — | 미확인 |
 | QU.ordering | 미확인 | — | 미확인 |
 | QU.dedup | 미확인(idempotency key 기능 문서 미확인) | — | 미확인 |
-| QU.retention | 페이로드 3 MB, 출력 10 MB(128 KB 넘으면 객체 저장소로 오프로드). 실행 TTL 최대 14일 | — | https://trigger.dev/docs/limits · "Must not exceed 3MB" · "Must not exceed 10MB" |
+| QU.retention | 페이로드 3 MB, 출력 10 MB(128 KB 넘으면 객체 저장소로 오프로드). 실행 TTL 최대 14일 | — | https://trigger.dev/docs/limits · "Must not exceed 3MB" · "Must not exceed 10MB" ⚠️출처확인필요 |
 | QU.retry_dlq | 미확인 | — | 미확인 |
-| QU.throughput | 동시 실행 Free 10, Hobby 25, Pro 100+. 스케줄 Free 10, Hobby 100, Pro 1,000+ | — | trigger.dev/docs/limits · "10 concurrent runs" |
-| QU.consumer_scaling | 플랫폼이 컨테이너를 띄워 실행(내 서버 불필요) | — | 미확인(문구) |
-| QU.availability / QU.regions / QU.cost_floor | 미확인 / 미확인 / Free $0(월 $5 크레딧), Hobby $10, Pro $50. 컴퓨트 초당 과금(Micro $0.0000169/초) + 실행당 $0.000025 | — | https://trigger.dev/pricing · "$5 / month free credits" · "$0.25 per 10,000 runs" |
+| QU.throughput | 동시 실행 Free 10, Hobby 25, Pro 100+. 스케줄 Free 10, Hobby 100, Pro 1,000+ | — | trigger.dev/docs/limits · "10 concurrent runs" ⚠️출처확인필요 |
+| QU.consumer_scaling | 플랫폼이 컨테이너를 띄워 실행(내 서버 불필요) | — | 미확인(문구) ⚠️근거없음 |
+| QU.availability / QU.regions / QU.cost_floor | 미확인 / 미확인 / Free $0(월 $5 크레딧), Hobby $10, Pro $50. 컴퓨트 초당 과금(Micro $0.0000169/초) + 실행당 $0.000025 | — | https://trigger.dev/pricing · "$5 / month free credits" · "$0.25 per 10,000 runs" ⚠️출처확인필요 |
 
 ### 비용 구조
 작업 컴퓨트를 Trigger.dev가 제공하므로 서버리스 실행 시간 한도를 피할 수 있습니다.
@@ -1009,14 +1009,14 @@ Free로 시작 가능. 동시 5단계 한도가 실제 병목입니다.
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| QU.delivery | 최소 1회(HTTP 푸시) | — | https://upstash.com/docs/qstash/features/retry (at-least-once) |
+| QU.delivery | 최소 1회(HTTP 푸시) | — | https://upstash.com/docs/qstash/features/retry (at-least-once) ⚠️출처확인필요 |
 | QU.ordering | 미확인 | — | 미확인 |
-| QU.dedup | `Upstash-Deduplication-Id` 또는 내용 기반. 창 10분 | — | https://upstash.com/docs/qstash/features/deduplication · "The deduplication window is 10 minutes." |
-| QU.retention | 메시지 최대 Free 1 MB, PAYG 10 MB, Fixed 50 MB. 지연 PAYG 최대 1년. DLQ 보존 Free 3일, PAYG 7일 | — | https://upstash.com/docs/qstash/overall/pricing |
-| QU.retry_dlq | 기본 3회, `min(86400, e^(2.5n))`초 백오프. 재시도도 메시지로 과금. DLQ 있음 | — | https://upstash.com/docs/qstash/features/retry · "By default, we retry a failed delivery 3 times." |
-| QU.throughput | Free 하루 1,000 메시지 | — | pricing 문서 · "1,000" |
-| QU.consumer_scaling | HTTP 푸시 → 대상 플랫폼 확장 | — | — |
-| QU.availability / QU.regions / QU.cost_floor | 미확인 / EU·US / Free $0, PAYG $1/10만 메시지, Fixed 1M $180/월 | — | https://upstash.com/docs/qstash/howto/multi-region · "EU region" "US region" / pricing 문서 · "$1 per 100K messages" |
+| QU.dedup | `Upstash-Deduplication-Id` 또는 내용 기반. 창 10분 | — | https://upstash.com/docs/qstash/features/deduplication · "The deduplication window is 10 minutes." ⚠️출처확인필요 |
+| QU.retention | 메시지 최대 Free 1 MB, PAYG 10 MB, Fixed 50 MB. 지연 PAYG 최대 1년. DLQ 보존 Free 3일, PAYG 7일 | — | https://upstash.com/docs/qstash/overall/pricing ⚠️출처확인필요 |
+| QU.retry_dlq | 기본 3회, `min(86400, e^(2.5n))`초 백오프. 재시도도 메시지로 과금. DLQ 있음 | — | https://upstash.com/docs/qstash/features/retry · "By default, we retry a failed delivery 3 times." ⚠️출처확인필요 |
+| QU.throughput | Free 하루 1,000 메시지 | — | pricing 문서 · "1,000" ⚠️출처확인필요 |
+| QU.consumer_scaling | HTTP 푸시 → 대상 플랫폼 확장 | — | — ⚠️근거없음 |
+| QU.availability / QU.regions / QU.cost_floor | 미확인 / EU·US / Free $0, PAYG $1/10만 메시지, Fixed 1M $180/월 | — | https://upstash.com/docs/qstash/howto/multi-region · "EU region" "US region" / pricing 문서 · "$1 per 100K messages" ⚠️출처확인필요 |
 
 ### 비용 구조
 고정비 0. 재시도마다 메시지 1건 과금.
@@ -1155,10 +1155,10 @@ node-cron → EventBridge Scheduler → (ECS RunTask 또는 Lambda 또는 SQS) �
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| SC.frequency | 매초 ~ 연 1회(pg_cron `[1-59] seconds` 간격) | Supabase 권고: 동시 실행 8개 이하, 작업당 10분 이하 | https://supabase.com/docs/guides/cron · "can run anywhere from every second to once a year" / https://github.com/citusdata/pg_cron · "[1-59] seconds" |
-| SC.semantics | 작업마다 한 번에 하나만 실행: 이전 실행이 안 끝나면 다음 실행은 **대기 후 실행**(중복 동시 실행 없음). DB 하나에서 돌므로 앱 인스턴스 수와 무관. 재시도 없음(미확인) | `cron.max_running_jobs` 기본 32, 시간대 GMT 기본 | pg_cron README · "only one instance of each specific job at a time" · "it's queued and starts as soon as the first one completes" |
+| SC.frequency | 매초 ~ 연 1회(pg_cron `[1-59] seconds` 간격) | Supabase 권고: 동시 실행 8개 이하, 작업당 10분 이하 | https://supabase.com/docs/guides/cron · "can run anywhere from every second to once a year" / https://github.com/citusdata/pg_cron · "[1-59] seconds" ⚠️출처확인필요 |
+| SC.semantics | 작업마다 한 번에 하나만 실행: 이전 실행이 안 끝나면 다음 실행은 **대기 후 실행**(중복 동시 실행 없음). DB 하나에서 돌므로 앱 인스턴스 수와 무관. 재시도 없음(미확인) | `cron.max_running_jobs` 기본 32, 시간대 GMT 기본 | pg_cron README · "only one instance of each specific job at a time" · "it's queued and starts as soon as the first one completes" ⚠️출처확인필요 |
 | SC.target | SQL, DB 함수, HTTP(pg_net, Edge Functions 호출) | 실행 이력 `cron.job_run_details` | https://supabase.com/docs/guides/cron |
-| SC.cost_floor | 추가 비용 없음(DB 자원 사용) | — | 해당 없음 |
+| SC.cost_floor | 추가 비용 없음(DB 자원 사용) | — | 해당 없음 ⚠️근거없음 |
 
 ### 비용 구조
 DB 플랜에 포함.
@@ -1201,7 +1201,7 @@ Free의 CPU 10ms로는 작업 자체를 돌리기 어렵고 HTTP 호출 트리�
 |---|---|---|---|
 | SC.frequency | 최소 5분 | IANA 시간대 지원 | https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows · "The shortest interval you can run scheduled workflows is once every 5 minutes." |
 | SC.semantics | **고부하 때 지연, 충분히 높으면 드롭(누락).** 매시 정각이 고부하. 공개 저장소는 60일 활동 없으면 자동 비활성화. 기본 브랜치 최신 커밋에서 실행 | 중복 실행 방지는 `concurrency` 설정 | 같은 문서 · "If the load is sufficiently high enough, some queued jobs may be dropped." · "scheduled workflows are automatically disabled when no repository activity has occurred in 60 days" |
-| SC.target | 러너에서 임의 스크립트(HTTP 호출 등) | 잡 최대 실행 시간 미확인 | — |
+| SC.target | 러너에서 임의 스크립트(HTTP 호출 등) | 잡 최대 실행 시간 미확인 | — ⚠️근거없음 |
 | SC.cost_floor | 공개 저장소 표준 러너 무료. 비공개는 Free 플랜 월 2,000분, Linux 2코어 $0.006/분 | — | https://docs.github.com/en/billing/concepts/product-billing/github-actions · "In public repositories" · "2,000" · "$0.006" |
 
 ### 비용 구조
@@ -1224,9 +1224,9 @@ Free의 CPU 10ms로는 작업 자체를 돌리기 어렵고 HTTP 호출 트리�
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
 | RT.connections | 서버 프로세스 자원 한도(라이브러리 한도 없음, 수치 미확인). 연결 지속은 플랫폼 CP.long_connection을 따름 | — | 미확인 |
-| RT.fanout | **같은 서버 프로세스에 붙은 클라이언트에게만 전파.** 2대 이상이면 방(room) 브로드캐스트가 일부에만 감 | B4 불일치의 근거 | https://socket.io/docs/v4/adapter/ · "when scaling to multiple Socket.IO servers, you will need to replace the default in-memory adapter by another implementation" |
-| RT.limits | HTTP long-polling을 쓰면 **스티키 세션 필수.** WebSocket 전용(`transports: ["websocket"]`)이면 스티키 불필요 | — | https://socket.io/docs/v4/using-multiple-nodes/ (long-polling은 여러 HTTP 요청, WebSocket은 단일 TCP 연결) |
-| RT.cost_floor | $0(앱 서버 비용) | — | 해당 없음 |
+| RT.fanout | **같은 서버 프로세스에 붙은 클라이언트에게만 전파.** 2대 이상이면 방(room) 브로드캐스트가 일부에만 감 | B4 불일치의 근거 | https://socket.io/docs/v4/adapter/ · "when scaling to multiple Socket.IO servers, you will need to replace the default in-memory adapter by another implementation" ⚠️출처확인필요 |
+| RT.limits | HTTP long-polling을 쓰면 **스티키 세션 필수.** WebSocket 전용(`transports: ["websocket"]`)이면 스티키 불필요 | — | https://socket.io/docs/v4/using-multiple-nodes/ (long-polling은 여러 HTTP 요청, WebSocket은 단일 TCP 연결) ⚠️출처확인필요 |
+| RT.cost_floor | $0(앱 서버 비용) | — | 해당 없음 ⚠️근거없음 |
 
 ### 비용 구조
 추가 비용 없음.
@@ -1245,10 +1245,10 @@ Free의 CPU 10ms로는 작업 자체를 돌리기 어렵고 HTTP 호출 트리�
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| RT.connections | 앱 서버 수 × 서버당 연결 | 수치 미확인 | 미확인 |
-| RT.fanout | Redis pub/sub로 다른 서버에 전달. Redis 7 샤드 pub/sub용 `createShardedAdapter`. **Redis 연결이 끊긴 동안 다른 서버로 가는 패킷은 유실.** Streams 어댑터는 재연결 후 이어받아 유실 없음, 연결 상태 복구 지원(maxLen 기본 10,000) | 공식 어댑터: Redis, Redis Streams, MongoDB, Postgres, Cluster, GCP Pub/Sub, AWS SQS, Azure Service Bus | https://socket.io/docs/v4/redis-adapter/ · "packets will only be sent to the clients that are connected to the current server" (Redis 끊김 시) / https://socket.io/docs/v4/redis-streams-adapter/ · "This adapter will properly handle any temporary disconnection to the Redis server and resume the stream without losing any packets" |
-| RT.limits | 어댑터를 써도 long-polling이면 스티키 세션 필수(아니면 HTTP 400) | — | redis-streams-adapter 문서(스티키 세션 필요) |
-| RT.cost_floor | Redis 비용(캐시 계열 표) | — | — |
+| RT.connections | 앱 서버 수 × 서버당 연결 | 수치 미확인 | 미확인 ⚠️근거없음 |
+| RT.fanout | Redis pub/sub로 다른 서버에 전달. Redis 7 샤드 pub/sub용 `createShardedAdapter`. **Redis 연결이 끊긴 동안 다른 서버로 가는 패킷은 유실.** Streams 어댑터는 재연결 후 이어받아 유실 없음, 연결 상태 복구 지원(maxLen 기본 10,000) | 공식 어댑터: Redis, Redis Streams, MongoDB, Postgres, Cluster, GCP Pub/Sub, AWS SQS, Azure Service Bus | https://socket.io/docs/v4/redis-adapter/ · "packets will only be sent to the clients that are connected to the current server" (Redis 끊김 시) / https://socket.io/docs/v4/redis-streams-adapter/ · "This adapter will properly handle any temporary disconnection to the Redis server and resume the stream without losing any packets" ⚠️출처확인필요 |
+| RT.limits | 어댑터를 써도 long-polling이면 스티키 세션 필수(아니면 HTTP 400) | — | redis-streams-adapter 문서(스티키 세션 필요) ⚠️출처확인필요 |
+| RT.cost_floor | Redis 비용(캐시 계열 표) | — | — ⚠️근거없음 |
 
 ### 비용 구조
 Redis 1대 추가. 캐시 Redis와 같이 써도 되지만 pub/sub 출력 버퍼 한도(32 MB 하드)를 고려합니다.
@@ -1316,10 +1316,10 @@ Firestore 스냅샷 리스너의 연결 한도는 이번에 확인하지 못했�
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| RT.connections | Sandbox(무료) 100, Startup 500, Pro 2,000, Business 5,000 … Growth Plus 30,000 | — | https://pusher.com/channels/pricing/ |
-| RT.fanout | 서버가 HTTP API로 trigger → 관리형 전파. 한 trigger에 채널 100개 | 배치 10개/호출 | https://pusher.com/docs/channels/library_auth_reference/rest-api/ |
-| RT.limits | 이벤트 데이터 10 KB(초과 413). 일 메시지 Sandbox 20만, Startup 100만 | — | rest-api 문서 · "The event data should not be larger than 10KB." / pricing |
-| RT.cost_floor | Sandbox $0, Startup $49/월, Pro $99/월 | — | https://pusher.com/channels/pricing/ |
+| RT.connections | Sandbox(무료) 100, Startup 500, Pro 2,000, Business 5,000 … Growth Plus 30,000 | — | https://pusher.com/channels/pricing/ ⚠️출처확인필요 |
+| RT.fanout | 서버가 HTTP API로 trigger → 관리형 전파. 한 trigger에 채널 100개 | 배치 10개/호출 | https://pusher.com/docs/channels/library_auth_reference/rest-api/ ⚠️출처확인필요 |
+| RT.limits | 이벤트 데이터 10 KB(초과 413). 일 메시지 Sandbox 20만, Startup 100만 | — | rest-api 문서 · "The event data should not be larger than 10KB." / pricing ⚠️출처확인필요 |
+| RT.cost_floor | Sandbox $0, Startup $49/월, Pro $99/월 | — | https://pusher.com/channels/pricing/ ⚠️출처확인필요 |
 
 ### 비용 구조
 연결 수 계단식 고정 요금.
@@ -1328,7 +1328,7 @@ Firestore 스냅샷 리스너의 연결 한도는 이번에 확인하지 못했�
 서버 `pusher`(Node)/`pusher`(Python) `trigger(channel, event, data)`, 클라이언트 `pusher-js`. 비공개 채널은 서버 인증 엔드포인트 필요.
 
 ### 함정
-10 KB 메시지 한도. 서울 리전 없음(https://pusher.com/docs/channels/miscellaneous/clusters/ · "ap3 in Tokyo").
+10 KB 메시지 한도. 서울 리전 없음(https://pusher.com/docs/channels/miscellaneous/clusters/ · "ap3 in Tokyo"). ⚠️출처확인필요
 
 ---
 
@@ -1338,10 +1338,10 @@ Firestore 스냅샷 리스너의 연결 한도는 이번에 확인하지 못했�
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| RT.connections | Free 200, Standard 10,000, Pro 50,000, Enterprise 무제한. 신규 연결/초 Free 42, Standard 250 | — | https://ably.com/docs/platform/pricing/limits |
-| RT.fanout | 관리형 채널. Realtime 클라이언트로 게시 시 채널 안 순서 보장. 멱등 게시로 정확히 1회 | REST 게시는 순서 문제 가능 | https://ably.com/docs/platform/architecture/message-ordering · "Ably delivers messages to persistently connected subscribers on a channel in the order they were published" |
-| RT.limits | 메시지 Free 64 KiB, Pro 256 KiB. 연결당 송수신 50 메시지/초. 연결 상태 TTL 2분 | — | ably limits 문서 |
-| RT.cost_floor | Free(월 600만 메시지). Standard $29/월 + 메시지 $2.50/백만 + 연결 $1.00/백만 분 | — | https://ably.com/pricing · "$29 / month" |
+| RT.connections | Free 200, Standard 10,000, Pro 50,000, Enterprise 무제한. 신규 연결/초 Free 42, Standard 250 | — | https://ably.com/docs/platform/pricing/limits ⚠️출처확인필요 |
+| RT.fanout | 관리형 채널. Realtime 클라이언트로 게시 시 채널 안 순서 보장. 멱등 게시로 정확히 1회 | REST 게시는 순서 문제 가능 | https://ably.com/docs/platform/architecture/message-ordering · "Ably delivers messages to persistently connected subscribers on a channel in the order they were published" ⚠️출처확인필요 |
+| RT.limits | 메시지 Free 64 KiB, Pro 256 KiB. 연결당 송수신 50 메시지/초. 연결 상태 TTL 2분 | — | ably limits 문서 ⚠️출처확인필요 |
+| RT.cost_floor | Free(월 600만 메시지). Standard $29/월 + 메시지 $2.50/백만 + 연결 $1.00/백만 분 | — | https://ably.com/pricing · "$29 / month" ⚠️출처확인필요 |
 
 ### 비용 구조
 기본료 + 사용량.
@@ -1433,7 +1433,7 @@ Socket.IO 서버 → Worker가 `idFromName(roomId)`로 객체에 라우팅, 객�
 | FS.durability | 99.999999999% 설계, 최소 3개 AZ에 저장(One Zone-IA·Express One Zone 제외) | — | https://docs.aws.amazon.com/AmazonS3/latest/userguide/DataDurability.html · "across a minimum of three Availability Zones" · "Designed to provide 99.999999999% durability" |
 | FS.consistency | PUT·DELETE 후 강한 읽기 일관성(LIST 포함). 같은 키 동시 쓰기는 마지막 쓰기 승리, 객체 잠금 없음(조건부 쓰기 `If-None-Match`로 덮어쓰기 방지 가능). 버킷 설정은 최종 일관성 | — | https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html · "strong read-after-write consistency for PUT and DELETE requests" · "Amazon S3 does not support object locking for concurrent writers." |
 | FS.shared_access | 가능(HTTP API, 모든 인스턴스·서버리스) | — | 같은 문서 |
-| FS.object_limits | **객체 최대 약 50 TB(48.8 TiB)**, 단일 PUT 5 GB, 멀티파트 5 MiB~5 GiB 파트 × 최대 10,000, 100 MB 이상이면 멀티파트 권장. 서명 URL 최대 7일(CLI/SDK), 콘솔 12시간 | 임시 자격 증명으로 서명하면 그 만료가 먼저 옴(문서 문구 미확인) | https://docs.aws.amazon.com/AmazonS3/latest/userguide/upload-objects.html · "you can upload a single object up to 5 GB" · "up to 50 TB in size" / https://docs.aws.amazon.com/AmazonS3/latest/userguide/qfacts.html · "Maximum object size | 48.8 TiB" / https://docs.aws.amazon.com/AmazonS3/latest/userguide/ShareObjectPreSignedURL.html · "the maximum expiration time for a presigned URL is 7 days" |
+| FS.object_limits | **객체 최대 약 50 TB(48.8 TiB)**, 단일 PUT 5 GB, 멀티파트 5 MiB~5 GiB 파트 × 최대 10,000, 100 MB 이상이면 멀티파트 권장. 서명 URL 최대 7일(CLI/SDK), 콘솔 12시간 | 임시 자격 증명으로 서명하면 그 만료가 먼저 옴(문서 문구 미확인) | https://docs.aws.amazon.com/AmazonS3/latest/userguide/upload-objects.html · "you can upload a single object up to 5 GB" · "up to 50 TB in size" / https://docs.aws.amazon.com/AmazonS3/latest/userguide/qfacts.html · "Maximum object size | 48.8 TiB" / https://docs.aws.amazon.com/AmazonS3/latest/userguide/ShareObjectPreSignedURL.html · "the maximum expiration time for a presigned URL is 7 days" ⚠️근거없음 |
 | FS.versioning_lifecycle | 버전 관리, 수명 주기(전환·만료), Object Lock(WORM), 복제 | 버전 관리 처음 켤 때 15분 대기 권장 | Welcome.html · "S3 Object Lock – Prevent Amazon S3 objects from being deleted or overwritten" · "wait for 15 minutes after enabling versioning" |
 | FS.delivery | CloudFront 연동. 서울 인터넷 송신 첫 10 TB $0.126/GB(전역 무료 등급 이후) | — | Price List AWSDataTransfer ap-northeast-2 · "$0.126 per GB - first 10 TB / month data transfer out beyond the global free tier" |
 | FS.regions / FS.cost_floor | 서울 있음 / 고정비 $0. 저장 $0.025/GB-월, PUT·COPY·POST·LIST $0.0045/1,000, GET $0.0035/10,000 | — | Price List https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/ap-northeast-2/index.json · "$0.0045 per 1,000 PUT, COPY, POST, or LIST requests" · "$0.0035 per 10,000 GET and all other requests" |
@@ -1460,7 +1460,7 @@ Socket.IO 서버 → Worker가 `idFromName(roomId)`로 객체에 라우팅, 객�
 |---|---|---|---|
 | FS.durability | 11 nines 설계. 리전 버킷은 최소 2개 존에 저장 후 성공 응답. 이중·멀티 리전 선택 가능 | — | https://docs.cloud.google.com/storage/docs/availability-durability · "designed for at least 99.999999999% (11 9's) annual durability" |
 | FS.consistency | 객체 쓰기·메타데이터·삭제 후 읽기, 목록 모두 강한 전역 일관성. 공개 캐시 객체와 IAM 변경(약 1분)은 예외 | — | https://docs.cloud.google.com/storage/docs/consistency · "Cloud Storage provides strong global consistency for the following operations" |
-| FS.shared_access | 가능(HTTP API) | — | — |
+| FS.shared_access | 가능(HTTP API) | — | — ⚠️근거없음 |
 | FS.object_limits | 객체 최대 5 TiB. 같은 객체 이름 쓰기 초당 1회. XML 멀티파트 10,000 파트. V4 서명 URL 최대 7일 | — | https://docs.cloud.google.com/storage/quotas · "Maximum object size: 5 TiB" · "One write per second" / https://docs.cloud.google.com/storage/docs/access-control/signed-urls · "The longest expiration value is 604800 seconds (7 days)." |
 | FS.versioning_lifecycle | 객체 버전 관리, 수명 주기. **소프트 삭제 기본 7일(7~90일), 삭제된 객체도 보존 기간 동안 저장 과금** | — | https://docs.cloud.google.com/storage/docs/soft-delete · "Soft delete is enabled by default for all buckets … with a default retention duration of 7 days." · "continue to accrue storage charges" |
 | FS.delivery | Cloud CDN 연동. 인터넷 송신(아시아 목적지) 0~10 TiB $0.12/GiB | — | https://cloud.google.com/storage/pricing · "Data transfer to Asia Destinations … 0 gibibyte to 10 tebibyte $0.12 / 1 gibibyte" |
@@ -1485,9 +1485,9 @@ Node `@google-cloud/storage`(`file.getSignedUrl({ version: 'v4', action: 'write'
 |---|---|---|---|
 | FS.durability | 11 nines 설계. 지역 내 여러 데이터센터에 복제·이레이저 코딩 | — | https://developers.cloudflare.com/r2/reference/durability/ · "R2 is designed to provide 99.999999999% (eleven 9s) of annual durability." |
 | FS.consistency | 쓰기 후 읽기·목록·삭제 강한 전역 일관성. 커스텀 도메인 캐시를 켜면 캐시 TTL 동안 예외 | — | https://developers.cloudflare.com/r2/reference/consistency/ |
-| FS.shared_access | 가능(S3 호환 API, Workers 바인딩) | — | — |
+| FS.shared_access | 가능(S3 호환 API, Workers 바인딩) | — | — ⚠️근거없음 |
 | FS.object_limits | 객체 5 TiB, 단일 업로드 5 GiB, 멀티파트 10,000 파트. 같은 키 동시 쓰기 초당 1회 | — | https://developers.cloudflare.com/r2/platform/limits/ |
-| FS.versioning_lifecycle | 수명 주기 규칙 있음(이번에 미확인). 버전 관리 미확인 | — | 미확인 |
+| FS.versioning_lifecycle | 수명 주기 규칙 있음(이번에 미확인). 버전 관리 미확인 | — | 미확인 ⚠️근거없음 |
 | FS.delivery | **송신(이그레스) 무료.** 커스텀 도메인으로 CDN 캐시 | — | https://developers.cloudflare.com/r2/pricing/ · "Egress (data transfer to Internet)" "Free" |
 | FS.regions / FS.cost_floor | 위치 힌트(apac 등, 보장 아님), 관할(eu, fedramp, us) / 고정비 $0. Standard $0.015/GB-월, Class A $4.50/백만, Class B $0.36/백만. 무료 10 GB-월, A 100만, B 1,000만 | — | https://developers.cloudflare.com/r2/reference/data-location/ · "Location Hints are a best effort and not a guarantee" / r2 pricing |
 
@@ -1563,7 +1563,7 @@ Hobby는 한도를 넘으면 30일 동안 Blob을 쓸 수 없습니다.
 | FS.shared_access | 가능. 클라이언트 SDK 직접 접근은 보안 규칙으로 통제 | — | https://firebase.google.com/docs/storage/security (considerations 05 출처, 재확인 안 함) |
 | FS.object_limits | GCS 5 TiB | — | GCS quotas |
 | FS.versioning_lifecycle | GCS를 따름 | — | — |
-| FS.delivery | GCS 송신 요금 | — | — |
+| FS.delivery | GCS 송신 요금 | — | — ⚠️근거없음 |
 | FS.regions / FS.cost_floor | 미확인 / **Blaze(종량제) 플랜 필수.** Spark 프로젝트는 Storage 접근이 402/403으로 막힘. 구 `*.appspot.com` 버킷은 Blaze에서도 5 GB 저장·일 1 GB 다운로드 무료, 2024-09 이후 새 버킷(`*.firebasestorage.app`)은 GCS 요금 | — | https://firebase.google.com/docs/storage/faqs-storage-changes-announced-sept-2024 · "No-cost usage is still available even on the Blaze pricing plan." |
 
 ### 비용 구조
@@ -1584,11 +1584,11 @@ Blaze 필수(카드 등록), 사용량 과금.
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
 | FS.durability | Regional: 여러 AZ. One Zone: 단일 AZ | — | https://docs.aws.amazon.com/efs/latest/ug/how-it-works.html (Regional·One Zone 설명) |
-| FS.consistency | NFSv4.1 파일 시스템 의미론(일관성 상세 문구 미확인) | — | 미확인 |
+| FS.consistency | NFSv4.1 파일 시스템 의미론(일관성 상세 문구 미확인) | — | 미확인 ⚠️근거없음 |
 | FS.shared_access | **가능.** 여러 AZ의 여러 인스턴스가 동시 마운트(EC2, ECS, Fargate, EKS, Lambda) | VPC 안 마운트 타깃 필요 | how-it-works · "You can access your EFS file system concurrently from multiple NFS clients" |
-| FS.object_limits | 파일 크기 한도 미확인. 업로드는 앱이 파일로 씀(서명 URL 없음) | — | 미확인 |
+| FS.object_limits | 파일 크기 한도 미확인. 업로드는 앱이 파일로 씀(서명 URL 없음) | — | 미확인 ⚠️근거없음 |
 | FS.versioning_lifecycle | 수명 주기로 IA 전환, AWS Backup | — | how-it-works (AWS Backup) |
-| FS.delivery | CDN 직접 연동 없음(앱이 서빙) | — | 해당 없음 |
+| FS.delivery | CDN 직접 연동 없음(앱이 서빙) | — | 해당 없음 ⚠️근거없음 |
 | FS.regions / FS.cost_floor | 서울 있음 / 고정비 $0. Standard $0.33/GB-월(S3의 13배), IA $0.0272, Elastic 처리량 읽기 $0.03/GB, 쓰기 $0.07/GB. One Zone $0.176 | — | Price List https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEFS/current/ap-northeast-2/index.json |
 
 ### 비용 구조
@@ -1609,7 +1609,7 @@ Blaze 필수(카드 등록), 사용량 과금.
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
 | FS.durability | Basic·Zonal: 단일 존. Regional·Enterprise: 리전(존 장애 대비) | — | https://docs.cloud.google.com/filestore/docs/service-tiers · "Designed for regional availability and resilience against zone outages" |
-| FS.consistency | NFS 의미론(상세 미확인) | — | 미확인 |
+| FS.consistency | NFS 의미론(상세 미확인) | — | 미확인 ⚠️근거없음 |
 | FS.shared_access | 가능(NFSv3, NFSv4.1) | — | service-tiers · "NFSv3, NFSv4.1" |
 | FS.object_limits | **최소 용량: Basic HDD 1 TiB, Basic SSD 2.5 TiB**, Zonal·Regional 1 TiB(일부 리전 100 GiB) | — | service-tiers (최소 용량) |
 | FS.versioning_lifecycle | 백업, 스냅샷 | — | service-tiers |
@@ -1637,7 +1637,7 @@ Cloud Run·GKE에 NFS 볼륨으로 마운트(Cloud Run 볼륨 마운트 상세 �
 | FS.consistency | 블록 장치. 여러 호스트가 일반 파일 시스템(ext4, XFS)으로 동시에 쓰면 **데이터 손상** | 클러스터 파일 시스템 필요 | ebs-volumes-multi · "Standard file systems, such as XFS and EXT4, are not designed to be accessed simultaneously by multiple servers" / https://docs.cloud.google.com/compute/docs/disks/sharing-disks-between-vms · "If you use single-instance file systems, such as EXT4, XFS, or NTFS, on a disk in multi-writer mode, you might experience data loss" |
 | FS.shared_access | **기본 1대.** EBS Multi-Attach는 io1/io2만, 같은 AZ의 Nitro 인스턴스 최대 16대. GCP 다중 쓰기는 Hyperdisk(Balanced, Balanced HA, Extreme)만 8~16대. 읽기 전용 공유는 PD 여러 대 가능. Kubernetes `ReadWriteOnce`는 **노드 하나**(같은 노드의 여러 Pod는 가능), 여러 노드 쓰기는 `ReadWriteMany`(EFS·Filestore 같은 NFS 계열) | — | ebs-volumes-multi · "can be attached to up to 16 instances built on the Nitro System that are in the same Availability Zone" · "Multi-Attach is supported exclusively on Provisioned IOPS SSD (io1 and io2) volumes" / https://kubernetes.io/docs/concepts/storage/persistent-volumes/ · "ReadWriteOnce - the volume can be mounted as read-write by a single node" |
 | FS.object_limits | 해당 없음(볼륨 크기) | — | — |
-| FS.versioning_lifecycle | 스냅샷 | — | — |
+| FS.versioning_lifecycle | 스냅샷 | — | — ⚠️근거없음 |
 | FS.delivery | 해당 없음 | — | — |
 | FS.regions / FS.cost_floor | 서울 있음 / 볼륨 GB 단가(이번에 미확인), Multi-Attach 추가 요금 없음 | — | ebs-volumes-multi · "There are no additional charges for using Amazon EBS Multi-Attach." |
 

@@ -30,7 +30,7 @@
 ### D-001 영속 데이터 인벤토리
 - **무엇/왜:** 백업 전략의 출발점은 "어디에 무엇이 저장되는가"의 목록이다. DB만 백업하고 오브젝트 스토리지, Redis 큐, 업로드 디렉터리, 외부 SaaS에 쌓인 데이터를 빼먹는 일이 흔하다. 재생성 가능한 데이터(캐시, 읽기 복제본)는 백업 대신 재생성 절차를 둔다.
 - **실패 양상:** DB는 복원했는데 첨부 파일·프로필 이미지가 사라지거나, 큐에 있던 미처리 쓰기가 사라진다. 복원된 DB가 존재하지 않는 파일 경로를 가리킨다.
-- **신호:** 🟢 DB 드라이버(`pg`, `asyncpg`, `prisma`, `@supabase/supabase-js`, `firebase-admin`), 스토리지 SDK(`@aws-sdk/client-s3`, `google-cloud-storage`, `supabase.storage`), `multer`/`UploadFile` 저장 경로, Redis Streams·리스트를 큐로 쓰는 코드(`XADD`, `LPUSH`), Terraform `aws_db_instance`, `aws_s3_bucket`, `google_sql_database_instance`, `aws_elasticache_*`. 🟡 데이터 등급(사용자 생성 vs 재생성 가능)은 추론.
+- **신호:** 🟢 DB 드라이버(`pg`, `asyncpg`, `prisma`, `@supabase/supabase-js`, `firebase-admin`), 스토리지 SDK(`@aws-sdk/client-s3`, `google-cloud-storage`, `supabase.storage`), `multer`/`UploadFile` 저장 경로, Redis Streams·리스트를 큐로 쓰는 코드(`XADD`, `LPUSH`), Terraform `aws_db_instance`, `aws_s3_bucket`, `google_sql_database_instance`, `aws_elasticache_*`. 🟡 데이터 등급(사용자 생성 vs 재생성 가능)은 추론. ⚠️근거없음
 - **시나리오·수준:** D L1 이상 (D L0 판정 자체의 근거)
 - **처방:** 모든 티어: 탐지 결과를 "저장소 × 데이터 종류 × 재생성 가능 여부 × 백업 수단" 표로 리포트에 출력.
 - **검증:** 정적 검사(탐지된 저장소마다 백업 통제가 하나 이상 매핑되는지). 복원 리허설 때 저장소별 체크리스트로 사용.
@@ -165,7 +165,7 @@
 - **처방:** 티어0: Supabase/Neon 등 매니지드 Postgres, 오브젝트 스토리지. 티어1·2: 매니지드 DB + S3/GCS.
 - **검증:** 인스턴스 강제 재시작 후 데이터 유지 확인.
 - **비용 영향:** 증가(매니지드 DB 비용).
-- **출처:** 일반 원칙(출처 미확인 — 설계 문서 S1 Twelve-Factor 참조)
+- **출처:** 일반 원칙(출처 미확인 — 설계 문서 S1 Twelve-Factor 참조) ⚠️근거없음
 
 ### D-015 Redis를 유일한 저장소로 쓰는 데이터의 내구성
 - **무엇/왜:** 세션·글쓰기 큐·레이트 리밋 카운터를 Redis에만 두면 Redis 장애가 데이터 손실이 된다. ElastiCache·Memorystore 모두 복제가 비동기라 페일오버 때 확인 응답을 받은 쓰기가 사라질 수 있다. Memorystore Basic 등급은 복제·자동 페일오버가 없다. 복제본이 없는 ElastiCache 기본 노드가 죽으면 새 노드는 빈 상태로 시작한다.
@@ -247,7 +247,7 @@
 - **처방:** 모든 티어: "PITR로 별도 인스턴스 → 대상 행 추출(`COPY`) → 운영에 upsert" 런북.
 - **검증:** 리허설에서 특정 사용자 데이터만 복구.
 - **비용 영향:** 중립(임시 인스턴스 시간만).
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### D-023 앱 수준 소프트 삭제·감사 이력
 - **무엇/왜:** 사용자의 실수 삭제는 인프라 복원보다 앱 수준 휴지통(`deleted_at`)으로 푸는 편이 RTO가 짧다. 인프라 백업은 최후 수단이 된다.
@@ -257,7 +257,7 @@
 - **처방:** 모든 티어: 사용자 생성 데이터에 소프트 삭제 + 보존 기간 뒤 영구 삭제 잡.
 - **검증:** 삭제→복구 API 테스트.
 - **비용 영향:** 중립(저장량 소폭 증가).
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### D-024 백업 무결성 검증 기준
 - **무엇/왜:** 복원에 "성공"해도 데이터가 비었거나 일부 테이블이 빠질 수 있다. Well-Architected는 데이터 종류별 검증 기준(형식, 체크섬, 크기, 커스텀 로직)을 정하고 복원 결과가 RPO 안의 최신 레코드를 담는지 확인하라고 한다.
@@ -299,7 +299,7 @@
 - **처방:** 티어1·2: 최소 2개(권장 3개) 존 서브넷, 노드 그룹을 존마다 두거나 다중 존 그룹.
 - **검증:** 정적 검사(Terraform plan의 AZ 집합 크기).
 - **비용 영향:** 증가(소폭). 존별 최소 노드.
-- **출처:** 일반 원칙(출처 미확인) — EKS 모범 사례의 "여러 AZ에서 실행" 권고와 같은 맥락(https://docs.aws.amazon.com/eks/latest/best-practices/application.html, 2026-10-01)
+- **출처:** 일반 원칙(출처 미확인) — EKS 모범 사례의 "여러 AZ에서 실행" 권고와 같은 맥락(https://docs.aws.amazon.com/eks/latest/best-practices/application.html, 2026-10-01) ⚠️근거없음
 
 ### D-028 GKE 존 클러스터 vs 리전 클러스터
 - **무엇/왜:** GKE 리전 클러스터는 컨트롤 플레인을 리전 전체에 복제해 존 하나가 죽어도 컨트롤 플레인이 영향받지 않고, 업그레이드 중에도 API를 쓸 수 있다. 기본적으로 노드를 3개 존에 분산한다. 문서는 운영 워크로드에 리전 클러스터를 권한다.
@@ -396,7 +396,7 @@
 - **실패 양상:** 한 존의 패킷 손실로 요청 1/3이 느려지는데 아무도 그 존을 빼지 못한다.
 - **신호:** 🟢 `aws_lb` + ARC 존 이동 옵트인 설정, 🔴 운영 런북에 존 이동 절차 없음.
 - **시나리오·수준:** D L3 (티어1·2 AWS)
-- **처방:** 티어1·2: ALB/NLB 존 이동 옵트인, 런북에 "사전 증설 → 존 이동" 순서. GCP는 출처 미확인.
+- **처방:** 티어1·2: ALB/NLB 존 이동 옵트인, 런북에 "사전 증설 → 존 이동" 순서. GCP는 출처 미확인. ⚠️근거없음
 - **검증:** 스테이징에서 존 이동 실행 후 트래픽 분포 확인.
 - **비용 영향:** 중립(사전 증설분만 증가).
 - **출처:** https://docs.aws.amazon.com/r53recovery/latest/dg/arc-zonal-shift.html (2026-10-01)
@@ -419,7 +419,7 @@
 - **처방:** 티어1·2: 존마다 NAT 또는 리전 NAT Gateway(설계 문서 S18).
 - **검증:** NAT 하나 삭제(스테이징) 후 다른 존의 외부 호출 확인.
 - **비용 영향:** 증가. NAT 시간당 요금 × 존 수(가격은 설계 문서 S18).
-- **출처:** 일반 원칙(출처 미확인 — 설계 문서 S18의 "복원력을 위해 AZ마다 NAT 권장" 참조, 이번 작업에서 재확인하지 않음)
+- **출처:** 일반 원칙(출처 미확인 — 설계 문서 S18의 "복원력을 위해 AZ마다 NAT 권장" 참조, 이번 작업에서 재확인하지 않음) ⚠️근거없음
 
 ## 4. 리전 장애와 DR 전략
 
@@ -561,7 +561,7 @@
 - **처방:** 모든 티어: 역방향 복제 → 쓰기 중지 → 전환 → 검증 순서의 런북.
 - **검증:** 리허설에 페일백까지 포함.
 - **비용 영향:** 중립.
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ## 5. 헬스 체크와 프로브
 
@@ -655,7 +655,7 @@
 - **처방:** 모든 티어: 역할별 `statement_timeout`, 풀 대기 타임아웃, 실패 시 503으로 빠르게 실패.
 - **검증:** `pg_sleep`·락 주입으로 타임아웃 동작 확인.
 - **비용 영향:** 중립.
-- **출처:** https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/rel_mitigate_interaction_failure_client_timeouts.html (2026-10-01) — 원칙 출처. DB 설정 키 이름은 일반 지식(출처 미확인)
+- **출처:** https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/rel_mitigate_interaction_failure_client_timeouts.html (2026-10-01) — 원칙 출처. DB 설정 키 이름은 일반 지식(출처 미확인) ⚠️근거없음
 
 ### D-063 재시도는 한 계층에서, 지수 백오프 + 지터 + 최대 횟수
 - **무엇/왜:** Well-Architected 안티패턴: 백오프·지터·최대 횟수 없는 재시도, 여러 계층에서의 중복 재시도(재시도 폭풍), 권한·설정 오류 같은 회복 불가 오류의 재시도, 비멱등 호출 재시도. SRE 책은 계층마다 재시도하면 사용자 요청 하나가 기하급수로 불어난다고 경고한다. AWS 아키텍처 블로그 실험은 Full Jitter가 지터 없는 지수 백오프보다 클라이언트 작업량을 절반 이상 줄였다.
@@ -695,7 +695,7 @@
 - **처방:** 티어1: 무거운 경로를 별도 서비스로 분리. 티어2: 별도 Deployment + HPA·PDB. 모든 티어: 의존성별 세마포어.
 - **검증:** 한 경로에 과부하를 걸고 다른 경로의 지연이 유지되는지 확인.
 - **비용 영향:** 증가(소폭). 분리된 서비스의 최소 인스턴스.
-- **출처:** https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/rel_fault_isolation_use_bulkhead.html (2026-10-01) — 셀 수준 벌크헤드 출처. 프로세스 내 세마포어는 일반 원칙(출처 미확인)
+- **출처:** https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/rel_fault_isolation_use_bulkhead.html (2026-10-01) — 셀 수준 벌크헤드 출처. 프로세스 내 세마포어는 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### D-067 데드라인 전파와 포기된 요청 처리 중단
 - **무엇/왜:** SRE 책은 데드라인을 명시하고, 하위 호출로 넘길 때 이미 쓴 시간만큼 줄여 전파하며, 단계마다 남은 시간을 확인하라고 한다. 클라이언트가 이미 포기한 요청을 계속 처리하면 장애 중 자원을 헛되이 쓴다.
@@ -891,7 +891,7 @@
 - **처방:** 티어1·2: 페일오버 레코드는 짧은 TTL(또는 별칭 레코드), 런타임 DNS 캐시 60초 이하, 고정 IP가 필요하면 Global Accelerator/글로벌 LB 애니캐스트.
 - **검증:** 전환 후 클라이언트 트래픽이 새 엔드포인트로 넘어가는 시간 측정.
 - **비용 영향:** 중립(짧은 TTL은 쿼리 요금 소폭 증가).
-- **출처:** https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZ.Failover.html · https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html (2026-10-01) — 레코드 TTL 권장값은 일반 원칙(출처 미확인)
+- **출처:** https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZ.Failover.html · https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html (2026-10-01) — 레코드 TTL 권장값은 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### D-086 Route 53 헬스 체크의 판정 방식과 한계
 - **무엇/왜:** Route 53 헬스 체커는 전 세계에서 10초 또는 30초 간격으로 검사하고, 18% 초과가 정상이라고 보면 정상으로 판정한다. HTTP(S) 검사는 4초 안에 TCP 연결, 연결 후 2초 안에 2xx/3xx가 와야 한다. 문자열 매칭은 응답 본문 첫 5,120바이트 안에서만 찾는다. **HTTPS 헬스 체크는 TLS 인증서를 검증하지 않아 인증서가 만료돼도 정상으로 판정한다.** 새 헬스 체크는 데이터가 쌓일 때까지 정상으로 간주된다.
@@ -908,7 +908,7 @@
 - **실패 양상:** DNS 이전 중 ACM 검증 CNAME을 지워 갱신이 실패하고 이벤트를 아무도 구독하지 않아 만료일에 전면 장애. 이메일 검증 인증서는 사람이 메일을 눌러야 한다.
 - **신호:** 🟢 `aws_acm_certificate.validation_method = "EMAIL"`, `aws_acm_certificate`의 `private_key`(가져온 인증서), 검증용 `aws_route53_record`가 Terraform에 없음, EventBridge `aws.acm` 규칙 부재.
 - **시나리오·수준:** 모든 수준 (HTTPS 서비스면 L0도 해당 — 데이터가 없어도 서비스가 멈춤)
-- **처방:** 티어1·2: DNS 검증 + 검증 레코드를 IaC로 고정 + 만료 이벤트 알림. GCP는 Google 관리 인증서(`ManagedCertificate`)의 DNS·LB 연결 상태 확인(출처 미확인).
+- **처방:** 티어1·2: DNS 검증 + 검증 레코드를 IaC로 고정 + 만료 이벤트 알림. GCP는 Google 관리 인증서(`ManagedCertificate`)의 DNS·LB 연결 상태 확인(출처 미확인). ⚠️근거없음
 - **검증:** ACM `RenewalSummary` 상태 확인, 외부에서 인증서 만료일 모니터링.
 - **비용 영향:** 중립.
 - **출처:** https://docs.aws.amazon.com/acm/latest/userguide/managed-renewal.html · https://docs.aws.amazon.com/acm/latest/userguide/dns-renewal-validation.html (2026-10-01)
@@ -918,10 +918,10 @@
 - **실패 양상:** ACME HTTP-01 챌린지가 Ingress 변경·방화벽 때문에 조용히 실패하고, 알림 메일도 없어 만료 당일 발견.
 - **신호:** 🟢 `cert-manager.io/cluster-issuer` 어노테이션, `Certificate` 리소스의 `renewBefore`, certbot cron. 🔴 외부 만료 모니터링 부재.
 - **시나리오·수준:** 모든 수준 (자체 인증서 관리 시)
-- **처방:** 티어2: cert-manager 메트릭(`certmanager_certificate_expiration_timestamp_seconds`, 이름은 일반 지식) 알림 또는 외부 인증서 모니터링. 가능하면 매니지드 인증서(ACM·Google 관리)로.
+- **처방:** 티어2: cert-manager 메트릭(`certmanager_certificate_expiration_timestamp_seconds`, 이름은 일반 지식) 알림 또는 외부 인증서 모니터링. 가능하면 매니지드 인증서(ACM·Google 관리)로. ⚠️근거없음
 - **검증:** 스테이징 이슈어로 짧은 수명 인증서를 발급해 갱신 주기 확인.
 - **비용 영향:** 중립.
-- **출처:** https://cert-manager.io/docs/usage/certificate/ · https://letsencrypt.org/2025/01/22/ending-expiration-emails/ (2026-10-01)
+- **출처:** https://cert-manager.io/docs/usage/certificate/ · https://letsencrypt.org/2025/01/22/ending-expiration-emails/ (2026-10-01) ⚠️출처확인필요
 
 ### D-089 도메인 등록 만료·DNS 호스팅 단일 공급자
 - **무엇/왜:** 도메인 등록 갱신 실패나 DNS 호스팅 공급자 장애는 인프라가 멀쩡해도 서비스를 지운다. 결제 카드 만료로 도메인 자동 갱신이 실패하는 일이 흔하다.
@@ -931,7 +931,7 @@
 - **처방:** 모든 티어: 자동 갱신 + 장기 등록 + 만료 모니터링. D L3은 DNS 공급자 이중화 검토.
 - **검증:** WHOIS 만료일 정기 조회.
 - **비용 영향:** 중립.
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### D-090 CDN 오리진 페일오버와 오리진 장애 시 캐시 서빙
 - **무엇/왜:** CloudFront 오리진 페일오버는 요청마다 기본 오리진이 실패하면 보조 오리진으로 보낸다(이후 요청도 계속 기본 오리진부터 시도). CDN의 `stale-if-error`(D-072)와 함께 쓰면 오리진 전체 장애에도 정적·캐시 가능한 콘텐츠를 계속 낼 수 있다.
@@ -963,7 +963,7 @@
 - **처방:** 모든 티어: 로컬 JWT 검증 + JWKS 캐시(실패 시 이전 키 유지), 공개 읽기 경로는 인증 없이 동작하게.
 - **검증:** 인증 공급자 도메인 차단 상태에서 기존 세션 요청 성공률 확인.
 - **비용 영향:** 감소(원격 검증 호출 감소).
-- **출처:** 일반 원칙(출처 미확인) — 원칙은 https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/rel_mitigate_interaction_failure_graceful_degradation.html (2026-10-01)
+- **출처:** 일반 원칙(출처 미확인) — 원칙은 https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/rel_mitigate_interaction_failure_graceful_degradation.html (2026-10-01) ⚠️근거없음
 
 ### D-093 결제 SaaS 장애
 - **무엇/왜:** Stripe·Toss 등 결제 API가 실패해도 장바구니·조회·기존 구독 이용은 계속돼야 한다. 결제 확정의 정합성은 C 카탈로그가, 여기서는 "결제가 안 될 때 나머지 기능이 같이 죽는가"만 본다.
@@ -973,7 +973,7 @@
 - **처방:** 모든 티어: 구독 상태는 웹훅으로 DB에 동기화해 로컬 조회, 결제 호출은 서킷 + "잠시 후 다시" 응답.
 - **검증:** 결제 API 차단 시 비결제 기능 성공률 확인.
 - **비용 영향:** 중립.
-- **출처:** 일반 원칙(출처 미확인) — 원칙은 https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/rel_mitigate_interaction_failure_graceful_degradation.html (2026-10-01)
+- **출처:** 일반 원칙(출처 미확인) — 원칙은 https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/rel_mitigate_interaction_failure_graceful_degradation.html (2026-10-01) ⚠️근거없음
 
 ### D-094 이메일·SMS 발송 장애와 기본 발송 한도
 - **무엇/왜:** 가입 확인·비밀번호 재설정·OTP·재난 알림이 이메일·SMS에 의존한다. Supabase 기본 SMTP는 이메일 엔드포인트가 시간당 2통으로 제한되어 있고, 프로덕션 체크리스트는 자체 SMTP를 권한다.
@@ -993,7 +993,7 @@
 - **처방:** 모든 티어: 명시적 타임아웃·재시도 상한(SDK 내장 재시도와 중첩 금지, D-063), 서킷, 대체 모델·공급자 또는 "AI 기능 일시 중단" 디그레이드, 비핵심이면 비동기화.
 - **검증:** LLM 엔드포인트에 지연·429·500 주입 후 비AI 경로 정상 여부 확인.
 - **비용 영향:** 감소(장애 시 낭비 호출 감소). 대체 공급자 유지는 증가.
-- **출처:** 일반 원칙(출처 미확인) — 원칙은 https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/rel_mitigate_interaction_failure_client_timeouts.html (2026-10-01)
+- **출처:** 일반 원칙(출처 미확인) — 원칙은 https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/rel_mitigate_interaction_failure_client_timeouts.html (2026-10-01) ⚠️근거없음
 
 ### D-096 의존성 가용성의 곱(합성 가용성)
 - **무엇/왜:** 직렬로 연결된 하드 의존성의 가용성은 대략 곱해진다. 각 99.9%인 의존성 5개에 직렬로 의존하면 전체 상한은 그보다 낮다. 바이브코더 앱은 BaaS·인증·결제·이메일·LLM·분석 SDK에 동시에 하드 의존하는 경우가 많다.
@@ -1003,7 +1003,7 @@
 - **처방:** 모든 티어: 핵심 경로의 하드 의존 수를 줄이고(소프트 의존으로 전환, D-071), 합성 가용성을 리포트에 표시.
 - **검증:** 의존성 그래프 정적 분석.
 - **비용 영향:** 중립.
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### D-097 BaaS 한 공급자 집중
 - **무엇/왜:** Supabase·Firebase 하나에 DB·인증·스토리지·함수·실시간을 모두 두면 공급자 프로젝트 하나의 장애·일시정지·결제 문제·계정 정지가 서비스 전체를 멈춘다. 반대로 분산은 복잡도와 비용을 늘리므로 D 수준에 맞춰 판단한다.
@@ -1013,7 +1013,7 @@
 - **처방:** 티어0: D L3이면 최소한 데이터 외부 백업(D-003·D-005)과 정적 비상 페이지(D-111)를 공급자 밖에 둠.
 - **검증:** 공급자 도메인 차단 시 남는 기능 목록 확인.
 - **비용 영향:** 증가(외부 사본).
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### D-098 서드파티 프론트엔드 스크립트가 렌더링을 막음
 - **무엇/왜:** 분석·채팅 위젯·A/B 테스트·폰트 CDN 스크립트를 동기로 로드하면 그 공급자 장애가 첫 화면 렌더링을 멈춘다. 재난 시에는 대역폭도 부족해 영향이 커진다(D-110).
@@ -1023,7 +1023,7 @@
 - **처방:** 티어0: 비핵심 스크립트는 `afterInteractive`/`lazyOnload`, 자체 호스팅 폰트.
 - **검증:** 브라우저에서 서드파티 도메인 차단 후 첫 화면 표시 확인(Playwright 라우트 차단).
 - **비용 영향:** 중립.
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ## 11. 컨트롤 플레인·글로벌 서비스·쿼터
 
@@ -1107,7 +1107,7 @@
 - **처방:** 티어0: Supabase 브랜칭·별도 프로젝트. 티어1·2: 환경별 인스턴스(dev는 작은 사양).
 - **검증:** 정적 검사(환경별 연결 문자열 비교).
 - **비용 영향:** 증가(dev 인스턴스).
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### D-107 DR 리전·백업을 별도 계정으로 격리
 - **무엇/왜:** AWS DR 백서는 파일럿 라이트에서 리전마다 다른 계정을 쓰면 자원·보안 격리가 가장 높아 자격 증명 탈취가 DR 시나리오에 포함될 때 유리하다고 한다. 백업 계정 분리(D-009)와 같은 원리를 DR 환경 전체로 넓힌 것이다.
@@ -1149,7 +1149,7 @@
 - **처방:** 티어0: 핵심 페이지 정적 생성·경량화, PWA 오프라인 캐시. 모든 티어: 텍스트 우선 경량 모드.
 - **검증:** Playwright·Lighthouse 네트워크 스로틀링(느린 3G)·오프라인 모드에서 핵심 정보 표시 확인.
 - **비용 영향:** 감소(전송량 감소).
-- **출처:** https://web.dev/articles/offline-cookbook (2026-10-01)
+- **출처:** https://web.dev/articles/offline-cookbook (2026-10-01) ⚠️출처확인필요
 
 ### D-111 정적 비상 페이지
 - **무엇/왜:** 앱·DB·BaaS가 전부 죽어도 오브젝트 스토리지·CDN에서 서빙되는 정적 비상 페이지(공지, 대체 연락처, 마지막 업데이트 시각)가 있으면 사용자가 "서비스 없음"과 "서비스 장애 중"을 구분할 수 있다. CDN 오리진 그룹의 보조 오리진으로 연결한다(D-090).
@@ -1159,7 +1159,7 @@
 - **처방:** 티어0: 별도 정적 호스팅(다른 공급자)에 비상 페이지. 티어1·2: S3/GCS 정적 사이트 + CDN 보조 오리진.
 - **검증:** 오리진 차단 시 비상 페이지 표시 확인.
 - **비용 영향:** 증가(미미).
-- **출처:** https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html (2026-10-01) — 오리진 페일오버 근거. 비상 페이지 운영은 일반 원칙(출처 미확인)
+- **출처:** https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html (2026-10-01) — 오리진 페일오버 근거. 비상 페이지 운영은 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### D-112 장애 공지 채널을 같은 인프라에 두지 않음
 - **무엇/왜:** 상태 페이지·공지가 서비스와 같은 클라우드·같은 도메인·같은 BaaS에 있으면 장애 때 함께 사라진다.
@@ -1169,7 +1169,7 @@
 - **처방:** 모든 티어: 외부 상태 페이지 서비스 또는 다른 공급자의 정적 호스팅.
 - **검증:** 운영 인프라 차단 상태에서 상태 페이지 갱신 리허설.
 - **비용 영향:** 증가(소폭).
-- **출처:** 일반 원칙(출처 미확인)
+- **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
 ### D-113 평시 저트래픽 서비스의 휴면 위험
 - **무엇/왜:** 재난 서비스는 평시엔 거의 안 쓰이다가 재난 순간 폭증한다. 스케일 투 제로(Cloud Run 기본 최소 0), 서버리스 콜드 스타트, Supabase Free의 7일 비활성 일시정지는 평시 비용을 줄이지만 "첫 순간"에 응답이 늦거나 아예 없다. Cloud Run은 최소 인스턴스로 0에서의 확장 지연을 줄이라고 한다.

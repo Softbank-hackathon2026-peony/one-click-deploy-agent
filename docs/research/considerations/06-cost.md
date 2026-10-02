@@ -159,7 +159,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 티어 2: (Pod requests 합 + DaemonSet × 노드 수)로 노드 크기별 총비용을 계산해 최소값 선택, Karpenter로 혼합 크기 허용 / 티어 1: 해당 없음.
 - **검증:** P4에서 노드 할당률(`kube_node_status_allocatable` 대비 requests 합).
 - **비용 영향:** 서울 t3.small $0.026/시간, t3.medium $0.052, m7g.large $0.1003. 노드 수 × 오버헤드 비율로 산정.
-- **출처:** 일반 원칙(출처 미확인). 단가는 [PL] AmazonEC2.
+- **출처:** 일반 원칙(출처 미확인). 단가는 [PL] AmazonEC2. ⚠️근거없음
 
 ### COST-014 클러스터 오토스케일러 축소 프로필·통합(consolidation)
 - **무엇/왜:** 기본 프로필은 여유 노드를 오래 남긴다. GKE `optimize-utilization`이나 Karpenter `WhenEmptyOrUnderutilized`는 덜 찬 노드를 적극 제거·교체한다.
@@ -169,7 +169,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 티어 2: T≤2면 `OPTIMIZE_UTILIZATION`/`WhenEmptyOrUnderutilized` + PDB로 안전 확보 / T=3이면 balanced + 자리표시 Pod.
 - **검증:** 일 평균 노드 수 vs 일 평균 requests 합.
 - **비용 영향:** 유휴 노드 시간 × 노드 단가. 예: m7g.large 2대가 하루 12시간 놀면 월 약 $73.
-- **출처:** https://docs.cloud.google.com/kubernetes-engine/docs/concepts/cluster-autoscaler ; https://karpenter.sh/docs/concepts/disruption/
+- **출처:** https://docs.cloud.google.com/kubernetes-engine/docs/concepts/cluster-autoscaler ; https://karpenter.sh/docs/concepts/disruption/ ⚠️출처확인필요
 
 ### COST-015 고정 크기 노드 그룹 (오토스케일 없음)
 - **무엇/왜:** `min = max = desired`인 노드 그룹은 피크 기준으로 상시 운영된다.
@@ -179,7 +179,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 티어 2: 클러스터 오토스케일러 또는 Karpenter / 티어 1로 내리는 견적도 함께.
 - **검증:** Infracost 노드 그룹 비용 vs P4 피크·평시 측정.
 - **비용 영향:** (max − 평시 필요 노드) × 노드 단가 × 730.
-- **출처:** 일반 원칙(출처 미확인). 설계 S6(HPA), S14 참고.
+- **출처:** 일반 원칙(출처 미확인). 설계 S6(HPA), S14 참고. ⚠️근거없음
 
 ### COST-016 HPA 상한 미설정 또는 과대 (비용 상한 없음)
 - **무엇/왜:** 오토스케일 상한이 없거나 터무니없이 크면, 봇 트래픽·무한 재시도·DDoS가 그대로 청구서가 된다. 상한은 비용 가드레일이다.
@@ -189,7 +189,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 티어 0: 플랫폼 지출 한도(COST-088) / 티어 1·2: 피크 가정 기반 상한 + 레이트 리밋.
 - **검증:** 상한 × 인스턴스 단가 × 시간 = "최악의 시간당 비용"을 리포트에 표시.
 - **비용 영향:** 예: Fargate 1 vCPU·2GB 태스크 서울 $0.0568/시간 × 상한 200 = 시간당 $11.4.
-- **출처:** 일반 원칙(출처 미확인). 단가는 [PL] AmazonECS.
+- **출처:** 일반 원칙(출처 미확인). 단가는 [PL] AmazonECS. ⚠️근거없음
 
 ### COST-017 버스터블 인스턴스(t계열) CPU 크레딧 함정
 - **무엇/왜:** t3/t4g는 싸지만 기준 성능 이상을 계속 쓰면 크레딧이 바닥난다. `unlimited` 모드면 초과 vCPU 시간이 추가 과금된다.
@@ -199,7 +199,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 티어 2: 상시 부하는 m/c계열, 간헐 부하만 t계열 / 티어 1: Fargate는 해당 없음.
 - **검증:** CloudWatch `CPUCreditBalance`, `CPUSurplusCreditsCharged`.
 - **비용 영향:** 서울 t4g.medium $0.0416/시간 vs m7g.large $0.1003. 초과 크레딧 단가는 이번에 확인 못 함.
-- **출처:** 일반 원칙(출처 미확인). 인스턴스 단가는 [PL] AmazonEC2.
+- **출처:** 일반 원칙(출처 미확인). 인스턴스 단가는 [PL] AmazonEC2. ⚠️근거없음
 
 ### COST-018 ARM(Graviton·Ampere) 미사용
 - **무엇/왜:** 같은 크기에서 ARM 인스턴스가 싸다. 멀티 아키텍처 이미지만 있으면 대부분의 웹 앱은 그대로 돈다.
@@ -219,7 +219,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 같은 계열 최신 세대(가급적 g계열)로 교체 견적.
 - **검증:** Price List로 두 인스턴스 시간 단가 직접 비교.
 - **비용 영향:** 서울 m6i.large $0.118 → m6g.large $0.094 → m7g.large $0.1003 처럼 세대·아키텍처별 차이를 가격 API로 계산.
-- **출처:** [PL] AmazonEC2. 세대 교체 권고 자체는 일반 원칙(출처 미확인).
+- **출처:** [PL] AmazonEC2. 세대 교체 권고 자체는 일반 원칙(출처 미확인). ⚠️근거없음
 
 ### COST-020 Fargate·Cloud Run 태스크 크기 조합 과대
 - **무엇/왜:** Fargate는 vCPU와 메모리를 따로 과금하고, 허용 조합이 정해져 있어 메모리만 필요해도 vCPU가 따라온다. Cloud Run도 CPU·메모리 각각 과금.
@@ -387,7 +387,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 멀티 스테이지·slim/distroless, 같은 리전 ECR/Artifact Registry로 미러, `IfNotPresent`.
 - **검증:** 이미지 크기 × pull 횟수.
 - **비용 영향:** NAT 처리 서울 $0.059/GB; 같은 리전 ECR→EC2 전송은 무료로 알려짐(이번 작업에서 미확인).
-- **출처:** [PL] AmazonEC2 NAT 단가. 나머지는 일반 원칙(출처 미확인).
+- **출처:** [PL] AmazonEC2 NAT 단가. 나머지는 일반 원칙(출처 미확인). ⚠️근거없음
 
 ### COST-036 GCP 네트워크 등급 (Premium 기본)
 - **무엇/왜:** GCP 인터넷 이그레스는 기본이 Premium Tier이고, Standard Tier는 공용 인터넷을 써서 더 싸다. 사용자 대부분이 같은 국가면 Standard로 충분할 수 있다.
@@ -417,7 +417,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 모든 티어: presigned PUT/POST로 클라이언트 → 스토리지 직접 업로드.
 - **검증:** 업로드 경로 실행 시간·바이트.
 - **비용 영향:** 데이터 인바운드 자체는 무료($0.000/GB), 절감은 컴퓨트·NAT 쪽.
-- **출처:** [PL] AWSDataTransfer `APN2-DataTransfer-In-Bytes` $0; 설계 S27(Vercel 4.5MB). 패턴 자체는 일반 원칙(출처 미확인).
+- **출처:** [PL] AWSDataTransfer `APN2-DataTransfer-In-Bytes` $0; 설계 S27(Vercel 4.5MB). 패턴 자체는 일반 원칙(출처 미확인). ⚠️근거없음
 
 ---
 
@@ -451,7 +451,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 볼륨 용도별 StorageClass 분리, 정기 고아 볼륨 점검(`describe-volumes --filters Name=status,Values=available`).
 - **검증:** 계정 조회 또는 AWS Compute Optimizer·Trusted Advisor(이번 작업에서 미확인).
 - **비용 영향:** 서울 gp3 $0.0912/GB-월. 100GB 볼륨 20개 = 월 약 $182.
-- **출처:** [PL] AmazonEC2. 점검 방법은 일반 원칙(출처 미확인).
+- **출처:** [PL] AmazonEC2. 점검 방법은 일반 원칙(출처 미확인). ⚠️근거없음
 
 ### COST-042 스냅샷·백업 누적 (보존 정책 없음)
 - **무엇/왜:** 수동 스냅샷과 AMI 스냅샷은 자동 삭제되지 않는다. 자동 백업 보존 기간을 넘는 수동 스냅샷이 해마다 쌓인다.
@@ -595,7 +595,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** `max_allocated_storage` 상한, 로그성 데이터는 파티션·TTL·오브젝트 스토리지로.
 - **검증:** `FreeStorageSpace` 추이.
 - **비용 영향:** 서울 RDS gp3 $0.131/GB-월(Multi-AZ $0.262). 줄일 때는 새 인스턴스로 이전 필요.
-- **출처:** Aurora 사용량 기반 축소는 https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Overview.StorageReliability.html . RDS 비축소 특성은 일반 원칙(출처 미확인, 이번 작업에서 미열람).
+- **출처:** Aurora 사용량 기반 축소는 https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Overview.StorageReliability.html . RDS 비축소 특성은 일반 원칙(출처 미확인, 이번 작업에서 미열람). ⚠️근거없음
 
 ### COST-056 캐시 과잉 (T≤1인데 매니지드 Redis)
 - **무엇/왜:** 캐시는 T≥2(읽기 많은 경로)의 통제다. 트래픽이 작은 앱에 클러스터 모드·복제본 있는 Redis는 DB보다 비싸질 수 있다.
@@ -699,7 +699,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 티어 1: 플랫폼 기본 관측 / 티어 2: 매니지드 Prometheus·GKE 기본 지표, 자체 스택은 축소.
 - **검증:** namespace별 requests 합.
 - **비용 영향:** 추가 노드 수 × 노드 단가(서울 m7g.large 월 약 $73).
-- **출처:** 일반 원칙(출처 미확인). 설계 §17.4.
+- **출처:** 일반 원칙(출처 미확인). 설계 §17.4. ⚠️근거없음
 
 ### COST-066 알람·대시보드·합성 모니터링 개수
 - **무엇/왜:** CloudWatch 알람·복합 알람·캐너리는 개당 과금이다. 지표마다 알람을 기계적으로 만들면 쌓인다. 비용보다 "알람 피로"가 더 큰 문제.
@@ -733,7 +733,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** ⑥ 티어 단계에서 두 견적을 함께 계산하고 역전 RPS를 리포트에 표시.
 - **검증:** P4 소크 실측 RPS·요청당 실행 시간.
 - **비용 영향:** 서울 예시(계산값): Lambda 1GB·100ms = 요청당 약 $0.00000187(컴퓨트 $0.00000167 + 요청 $0.0000002). Fargate 1 vCPU·2GB 1개 = 월 약 $41.4 → 월 약 2,200만 요청(평균 약 8.5 RPS)에서 같아진다. 컨테이너 1개가 그 이상을 동시에 처리할 수 있으면 그 RPS 위로는 컨테이너가 싸다.
-- **출처:** [PL] AWSLambda, AmazonECS. 역전점 계산은 이 문서의 계산(일반 원칙).
+- **출처:** [PL] AWSLambda, AmazonECS. 역전점 계산은 이 문서의 계산(일반 원칙). ⚠️근거없음
 
 ### COST-069 Vercel 플랜 한도와 초과 과금
 - **무엇/왜:** Hobby는 비상업 전용이고 추가 사용량을 살 수 없다(한도 도달 시 제한). Pro는 월 $20 + $20 사용 크레딧 후 종량 과금이다.
@@ -753,7 +753,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 티어 0: 이미지 TTL·크기 고정·형식 제한, revalidate 늘리기, 미들웨어 matcher로 범위 제한.
 - **검증:** Vercel Usage의 Image Optimization·Middleware 항목.
 - **비용 영향:** 단가는 이번 작업에서 미확인(가격 페이지에 항목 존재). Vercel 문서 "How to reduce Vercel Image Optimization costs" 존재 확인.
-- **출처:** https://vercel.com/docs/spend-management (관련 문서 링크로 이미지 최적화 비용 절감 가이드 확인). 단가는 출처 미확인.
+- **출처:** https://vercel.com/docs/spend-management (관련 문서 링크로 이미지 최적화 비용 절감 가이드 확인). 단가는 출처 미확인. ⚠️근거없음
 
 ### COST-071 Supabase 무료 플랜 함정 (1주 비활성 정지, 500MB)
 - **무엇/왜:** Supabase Free는 1주 비활성 시 프로젝트가 정지되고, DB 500MB·이그레스 5GB 한도다. 데모가 실사용으로 넘어가는 순간 한도에 부딪힌다.
@@ -793,7 +793,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 입력·출력 버킷 분리 또는 접두사 필터, DLQ, 재시도 상한, 동시성 상한(COST-016).
 - **검증:** 호출 수 급증 알람.
 - **비용 영향:** 서울 Lambda 요청 $0.20/100만 + GB초 요금. 루프는 상한 없이 증가.
-- **출처:** 일반 원칙(출처 미확인). 단가 [PL] AWSLambda.
+- **출처:** 일반 원칙(출처 미확인). 단가 [PL] AWSLambda. ⚠️근거없음
 
 ### COST-075 장기 실행 작업을 함수 실행 시간으로 과금
 - **무엇/왜:** 함수는 I/O 대기 시간까지 메모리 × 시간으로 과금된다. 외부 API(LLM 등) 응답을 수십 초 기다리는 함수는 "기다리는 데" 돈을 낸다. Vercel Fluid의 Active CPU처럼 대기 시간을 덜 과금하는 모델도 있다.
@@ -803,7 +803,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 티어 0: 대기 시간 과금이 적은 런타임 모드 확인 / 티어 1: 동시성 높은 컨테이너로 이전 / 작업 큐 + 웹훅 콜백.
 - **검증:** 함수 Duration 분포.
 - **비용 영향:** 서울 Lambda 1GB × 30초 = 요청당 $0.0005 → 100만 건 $500.
-- **출처:** [PL] AWSLambda; https://vercel.com/pricing (Active CPU·Provisioned Memory 분리 과금). 대기 과금 해석은 이 문서의 추론.
+- **출처:** [PL] AWSLambda; https://vercel.com/pricing (Active CPU·Provisioned Memory 분리 과금). 대기 과금 해석은 이 문서의 추론. ⚠️근거없음
 
 ### COST-076 프리뷰·브랜치 환경 누적
 - **무엇/왜:** PR마다 프리뷰 환경(Vercel 프리뷰, Supabase 브랜치, 임시 namespace·DB)을 만들면 닫힌 PR의 자원이 남는다. Supabase 브랜치 컴퓨트는 스펜드 캡 밖이다.
@@ -813,7 +813,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** PR 닫힘 시 자동 삭제 잡, TTL 라벨.
 - **검증:** 환경 수 추이.
 - **비용 영향:** 환경당 고정비(예: 서울 db.t4g.micro 월 $18.3, Supabase Branching Compute) × 남은 수.
-- **출처:** https://supabase.com/docs/guides/platform/cost-control (Branching Compute가 스펜드 캡 제외 항목). 패턴 자체는 일반 원칙.
+- **출처:** https://supabase.com/docs/guides/platform/cost-control (Branching Compute가 스펜드 캡 제외 항목). 패턴 자체는 일반 원칙. ⚠️근거없음
 
 ### COST-077 플랫폼 내 매니지드 애드온 마크업 (마켓플레이스 DB·Redis)
 - **무엇/왜:** PaaS 마켓플레이스로 붙인 DB·Redis는 편하지만 별도 청구이고, 지출 한도에서 빠지는 경우가 있다(Vercel Spend Management는 Marketplace 통합을 포함하지 않음).
@@ -837,7 +837,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 모델 계층화(간단한 작업은 작은 모델), `max_tokens` 상한, 대화 요약·컨텍스트 자르기, 프롬프트 캐싱(COST-080), 비실시간 작업은 Batch API(50% 할인).
 - **검증:** P4에서 요청당 토큰 사용량 측정 × 가정 트래픽.
 - **비용 영향:** Anthropic API(2026-10-01) 100만 토큰당 입력/출력: Haiku 4.5 $1/$5, Sonnet 5 $2/$10, Sonnet 4.6 $3/$15, Opus 5.5 $4/$20. Batch 50% 할인. 4.7 이후 모델은 같은 텍스트에 토큰이 약 30% 더 나온다는 공식 언급.
-- **출처:** https://platform.claude.com/docs/en/about-claude/pricing
+- **출처:** https://platform.claude.com/docs/en/about-claude/pricing ⚠️출처확인필요
 
 ### COST-079 사용자별·키별 사용량 한도 부재
 - **무엇/왜:** 유료 외부 API를 쓰는 기능에 사용자별 한도가 없으면, 악성 사용자 한 명이나 스크립트가 월 예산을 하루에 쓴다. 레이트 리밋(T-CTL-007)은 초 단위, 비용 한도는 일·월 단위다.
@@ -847,7 +847,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 사용자별 일일 토큰·호출 쿼터(DB·Redis 카운터), 무료 플랜 별도 한도, 공급자 측 지출 한도·조직 한도 설정.
 - **검증:** P4에서 한도 초과 시 429/402 반환 확인.
 - **비용 영향:** 상한 = (사용자 수 × 사용자 한도 × 단가)로 계산 가능해진다. 한도 없으면 상한 없음.
-- **출처:** 원칙 5(설계 §2). 공급자 한도 기능은 출처 미확인.
+- **출처:** 원칙 5(설계 §2). 공급자 한도 기능은 출처 미확인. ⚠️근거없음
 
 ### COST-080 프롬프트 캐싱 미사용 (반복되는 긴 시스템 프롬프트)
 - **무엇/왜:** 같은 시스템 프롬프트·문서를 매 요청 보내면 매번 입력 단가를 낸다. 캐시 적중 시 입력 단가의 10%(모델에 따라 5%, 2.5%)다.
@@ -857,7 +857,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 고정 접두사를 앞에 두고 캐시 지정(5분 캐시 쓰기 1.25배, 1시간 2배이므로 재사용 빈도 확인).
 - **검증:** 응답 `usage.cache_read_input_tokens` 비율.
 - **비용 영향:** 캐시 읽기 0.1× 입력 단가(Opus 5.5 0.05×, Fable·Mythos 5.1 0.025×). 5분 캐시는 1회 재사용부터 이득.
-- **출처:** https://platform.claude.com/docs/en/about-claude/pricing
+- **출처:** https://platform.claude.com/docs/en/about-claude/pricing ⚠️출처확인필요
 
 ### COST-081 SMS·전화 인증 비용과 SMS 펌핑
 - **무엇/왜:** SMS는 건당 과금이고 국가별 단가 차이가 크다. 공격자가 가입·OTP 엔드포인트로 고가 국가 번호에 대량 발송시키는 "SMS 펌핑"이 알려진 수법이다. Supabase MFA Phone은 스펜드 캡 밖이다.
@@ -867,7 +867,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 국가 허용 목록, 번호·IP별 레이트 리밋, CAPTCHA, 월 지출 한도, 가능하면 이메일·패스키 우선.
 - **검증:** 발송 국가 분포 모니터링.
 - **비용 영향:** AWS SMS 단가는 국가·통신사별로 다르며 공식 페이지는 "change frequently"라고만 명시(단가는 이번에 확인 못 함).
-- **출처:** https://aws.amazon.com/sns/sms-pricing/ (국가별 변동 문구 확인); https://supabase.com/docs/guides/platform/cost-control (MFA Phone 제외 항목); SMS 펌핑 개념은 출처 미확인.
+- **출처:** https://aws.amazon.com/sns/sms-pricing/ (국가별 변동 문구 확인); https://supabase.com/docs/guides/platform/cost-control (MFA Phone 제외 항목); SMS 펌핑 개념은 출처 미확인. ⚠️근거없음
 
 ### COST-082 지도·외부 유료 API 무료 한도 초과
 - **무엇/왜:** 지도 API는 SKU별 월 무료 호출이 있고 그 뒤 종량 과금이다. 지도를 매 페이지 로드마다 그리거나 지오코딩을 캐시하지 않으면 무료 한도를 쉽게 넘는다. 클라이언트 키는 노출되므로 리퍼러 제한이 필수.
@@ -897,7 +897,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 키 회전, 서버 측 프록시로만 호출, GitHub push protection(공개 저장소 사용자 수준 기본 활성), 예산 알림 + 자동 차단(COST-086~089), IAM 최소 권한·미사용 리전 비활성(SCP).
 - **검증:** 시크릿 스캐너 결과, 저장소 히스토리 스캔.
 - **비용 영향:** 상한 없음(계정 전체 한도까지).
-- **출처:** https://docs.github.com/en/code-security/secret-scanning/introduction/about-push-protection ; 키 유출과 청구 사례 자체는 출처 미확인(AWS re:Post 문서는 403으로 열지 못함).
+- **출처:** https://docs.github.com/en/code-security/secret-scanning/introduction/about-push-protection ; 키 유출과 청구 사례 자체는 출처 미확인(AWS re:Post 문서는 403으로 열지 못함). ⚠️근거없음
 
 ### COST-085 Firebase·Supabase 공개 키 + 느슨한 규칙 = 남이 쓰는 DB
 - **무엇/왜:** Firebase 웹 API 키와 Supabase anon 키는 공개가 전제다. 대신 보안 규칙·RLS가 막아야 하는데, 규칙이 열려 있으면 누구나 대량 읽기·쓰기로 과금을 일으킨다.
@@ -907,7 +907,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 규칙·RLS 강화, Firebase App Check, 키의 API 제한, 예산 알림.
 - **검증:** 규칙 에뮬레이터 테스트.
 - **비용 영향:** Firestore 무료 읽기 5만/일 초과분부터 과금, 상한 없음.
-- **출처:** https://firebase.google.com/docs/projects/billing/avoid-surprise-bills ; https://firebase.google.com/pricing . 규칙 패턴 자체는 일반 원칙(출처 미확인).
+- **출처:** https://firebase.google.com/docs/projects/billing/avoid-surprise-bills ; https://firebase.google.com/pricing . 규칙 패턴 자체는 일반 원칙(출처 미확인). ⚠️근거없음
 
 ---
 
@@ -951,14 +951,14 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** SCP로 허용 리전 제한(전역 서비스 예외), GCP 조직 정책 `gcp.resourceLocations`.
 - **검증:** 정책 존재.
 - **비용 영향:** 피해 상한 축소(정량화 불가).
-- **출처:** 일반 원칙(출처 미확인).
+- **출처:** 일반 원칙(출처 미확인). ⚠️근거없음
 
 ### COST-090 비용 할당 태그·라벨 부재
 - **무엇/왜:** 태그가 없으면 어떤 환경·서비스가 돈을 쓰는지 나눌 수 없어 right-sizing 대상도 못 찾는다. AWS 비용 할당 태그는 리소스에 붙이는 것만으로는 부족하고 결제 콘솔에서 **활성화**해야 보고서에 나온다(최대 24시간).
 - **실패 양상:** 청구서가 서비스별 합계만 보여 dev와 prod 비용을 구분 못 함.
 - **신호:** 🟢 Terraform provider `default_tags` 없음 / 🟢 리소스에 `Environment`·`Service`·`Owner` 태그 없음 / 🟢 k8s·GKE `resource_labels` 없음 / 🟢 `aws_ce_cost_allocation_tag` 활성화 리소스 없음
 - **관련 수준:** 모든 수준(환경이 2개 이상이면 필수).
-- **처방:** provider `default_tags`로 일괄, 태그 활성화, k8s는 namespace·라벨 기반 비용 할당(OpenCost 등은 출처 미확인).
+- **처방:** provider `default_tags`로 일괄, 태그 활성화, k8s는 namespace·라벨 기반 비용 할당(OpenCost 등은 출처 미확인). ⚠️근거없음
 - **검증:** Cost Explorer 태그별 그룹핑.
 - **비용 영향:** 직접 비용 없음. 낭비 탐지의 전제.
 - **출처:** https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/cost-alloc-tags.html ("You must activate both types of tags separately before they can appear in Cost Explorer")
@@ -971,7 +971,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 리포트에 고정비/변동비 분리, 사용자 1,000명당·요청 100만 건당 비용, 변동비 중 외부 API 비중 표시.
 - **검증:** P4 실측으로 갱신.
 - **비용 영향:** 판단 지표.
-- **출처:** https://www.finops.org/framework/capabilities/unit-economics/ ; 설계 §9.3
+- **출처:** https://www.finops.org/framework/capabilities/unit-economics/ ; 설계 §9.3 ⚠️출처확인필요
 
 ### COST-092 무료 등급·크레딧 함정
 - **무엇/왜:** AWS 신규 무료 플랜은 크레딧($100 + 최대 $100) 기반이고, 무료 플랜 계정은 6개월 또는 크레딧 소진 시 닫힌다. 유료 플랜으로 바꾸면 크레딧 이후 종량 과금. GKE 무료 크레딧은 존 클러스터 1개 상당뿐이고, Cloud Run 무료 등급은 요청 기반·결제 계정 합산이다. 견적이 무료 등급에 의존하면 성장 즉시 비용이 튄다.
@@ -990,7 +990,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **관련 수준:** 모든 수준. 리포트 표시 규칙.
 - **처방:** 리포트에 "세전 USD" 명시 + KRW 환산(환산 기준일 표시) + 부가세 별도 표기.
 - **검증:** 청구서 대조.
-- **비용 영향:** 한국 부가세율 10%는 일반 원칙(AWS 페이지에 세율 미기재, 출처 미확인).
+- **비용 영향:** 한국 부가세율 10%는 일반 원칙(AWS 페이지에 세율 미기재, 출처 미확인). ⚠️근거없음
 - **출처:** https://aws.amazon.com/tax-help/south-korea1/ ; GCP 가격 페이지 "If you pay in a currency other than USD, the prices listed in your currency on Cloud Platform SKUs apply"(https://cloud.google.com/run/pricing)
 
 ### COST-094 지원 플랜 비용 (사용량 비례 최소 요금)
@@ -1067,7 +1067,7 @@ infrafit의 비용 축(모든 판정을 거르는 필터, 설계 문서 §2 원�
 - **처방:** 감사 로그는 별도 그룹·버킷, 저렴한 클래스(S3 + 수명 주기)로 길게 보관.
 - **검증:** 보존 정책 분리 여부.
 - **비용 영향:** S3 Glacier IR 서울 $0.005/GB-월 수준으로 장기 보관 가능.
-- **출처:** [PL] AmazonS3. 감사 로그 필요성은 일반 원칙(출처 미확인).
+- **출처:** [PL] AmazonS3. 감사 로그 필요성은 일반 원칙(출처 미확인). ⚠️근거없음
 
 ### COST-101 지출 한도의 "자동 정지"가 가용성 목표와 충돌
 - **무엇/왜:** Vercel "Pause Production Deployments"는 한도 도달 시 모든 프로젝트의 프로덕션을 503으로 내린다(수동 재개 필요). Supabase 스펜드 캡은 초과 사용을 차단한다. D≥2·T≥2 서비스에서 이 동작은 스스로 만든 장애다.

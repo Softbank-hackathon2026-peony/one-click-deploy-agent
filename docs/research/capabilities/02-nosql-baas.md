@@ -125,13 +125,13 @@
 | DS.query_models | 고급 질의 엔진(180개 넘는 스테이지·연산자). 인덱스 없이도 질의 가능. 파이프라인으로 **서버 측 조인**(상관 서브쿼리). 전문 검색(Preview). MongoDB 드라이버 호환 | 인덱스 없는 질의는 스캔 비용이 그대로 과금 | https://docs.cloud.google.com/firestore/native/docs/editions-overview · "More than 180 stages and operators" "performed with or without an index" / https://firebase.google.com/docs/firestore/enterprise/pipelines-overview · "Relational Joins: Perform server-side joins across collections and subcollections using correlated subqueries." |
 | DS.size_limits | 문서 16 MiB(MongoDB 호환), Native 모드는 1 MiB | | https://docs.cloud.google.com/firestore/native/docs/editions-overview · "16 MiB with MongoDB compatibility" "1 MiB with Firestore in Native mode" |
 | DS.backup | 예약 백업 최대 14주, PITR 7일(기본 꺼짐) | 백업 문서가 두 에디션 모두에 적용된다고 확인 | https://firebase.google.com/docs/firestore/backups · "Set this to a value up to 14 weeks" / https://firebase.google.com/docs/firestore/pitr · "disabled by default" |
-| DS.connections | Native 모드는 SDK. MongoDB 호환 모드의 연결 한도는 미확인 | | 미확인 |
+| DS.connections | Native 모드는 SDK. MongoDB 호환 모드의 연결 한도는 미확인 | | 미확인 ⚠️근거없음 |
 | DS.schema_change | 스키마 없음. 인덱스는 선택 | | https://docs.cloud.google.com/firestore/native/docs/editions-overview · "performed with or without an index" |
-| DS.availability | Firestore 공통 SLA로 추정되지만 Enterprise 별도 수치는 미확인 | | 미확인 |
+| DS.availability | Firestore 공통 SLA로 추정되지만 Enterprise 별도 수치는 미확인 | | 미확인 ⚠️근거없음 |
 | DS.multi_host_access | 가능(서버·웹·모바일 SDK) | | https://docs.cloud.google.com/firestore/native/docs/editions-overview · "Supports Firestore in Native mode: server-side, web, and mobile SDKs with real-time and offline support" |
 | DS.security | Security Rules(Native SDK) + IAM. Firestore 공통 | MongoDB 호환 접근의 인증 방식은 미확인 | https://firebase.google.com/docs/firestore/security/get-started · "The server client libraries bypass all Cloud Firestore Security Rules" |
 | DS.regions | 서울 가격 표 있음 | | https://cloud.google.com/firestore/enterprise/pricing (요약) |
-| DS.scaling | 자동(관리형) | 램프 규칙이 Enterprise에도 적용되는지 미확인 | 미확인 |
+| DS.scaling | 자동(관리형) | 램프 규칙이 Enterprise에도 적용되는지 미확인 | 미확인 ⚠️근거없음 |
 | DS.cost_floor | $0. 읽기는 4 KiB 단위, 쓰기는 1 KiB 단위로 과금. 무료: 일 읽기 단위 5만, 쓰기 단위 4만, 1 GiB | 서울: 읽기 단위 $0.0642/100만, 쓰기 단위 $0.3339/100만, 저장 $0.3072/GiB·월, 실시간 업데이트 $0.3853/100만. 같은 페이지의 다른 표($0.0545/$0.2834)와 차이를 해소하지 못함 | https://firebase.google.com/docs/firestore/enterprise/pricing · "calculated in 4 KiB tranches" "Writes are measured in 1 KiB units" / https://firebase.google.com/docs/firestore/enterprise/quotas · "Read units: 50,000 per day" "Write units: 40,000 per day" |
 
 ### 비용 구조
@@ -155,7 +155,7 @@
 |---|---|---|---|
 | DS.concurrent_writers | 다수. 잠금 단위는 경로(서브트리) | 개별 데이터 쓰기율에 로컬 한도 없음, DB 전체로 약 1,000 writes/s | https://firebase.google.com/docs/database/rtdb-vs-firestore · "No local limits on write rates to individual pieces of data." |
 | DS.row_contention | 원자적 증가 연산 있음. 트랜잭션은 서브트리 단위 | 트랜잭션 초기값이 로컬 캐시에 없으면 null로 시작할 수 있음 | https://firebase.google.com/docs/database/web/read-and-write · "we can use an atomic increment operation instead of a transaction." |
-| DS.transactions | 단일 서브트리만 원자적. 여러 경로에 걸친 트랜잭션 없음 | 다중 경로 갱신(update)은 원자적 쓰기지만 조건부가 아님(문구 미확인). 시간 한도 미확인 | https://firebase.google.com/docs/database/rtdb-vs-firestore · "Transactions are atomic on a specific data subtree." |
+| DS.transactions | 단일 서브트리만 원자적. 여러 경로에 걸친 트랜잭션 없음 | 다중 경로 갱신(update)은 원자적 쓰기지만 조건부가 아님(문구 미확인). 시간 한도 미확인 | https://firebase.google.com/docs/database/rtdb-vs-firestore · "Transactions are atomic on a specific data subtree." ⚠️근거없음 |
 | DS.replication | 리전 단일, 존 단위 가용성 | 읽기 복제본 없음 | https://firebase.google.com/docs/database/rtdb-vs-firestore · "Realtime Database is a regional solution." "Databases are limited to zonal availability within a region." |
 | DS.query_models | 속성 하나로 정렬 **또는** 필터(둘 다는 불가). 깊은 조회(서브트리 전체 반환). 조인·집계·전문·벡터 없음 | | https://firebase.google.com/docs/database/rtdb-vs-firestore · "Queries can sort or filter on a property, but not both." "Queries are deep by default: they always return the entire subtree." |
 | DS.size_limits | 트리 깊이 32, 키 768바이트, 문자열 값 10 MB, 단일 응답 256 MB, SDK 쓰기 16 MB, REST 쓰기 256 MB, 쓰기 처리량 64 MB/분, 질의 타임아웃 15분 | | https://firebase.google.com/docs/database/usage/limits · 표 (요약) |
@@ -228,7 +228,7 @@
   - 클라이언트 직접 접근: publishable/anon 키 + RLS. 서버 접근: secret/service_role 키 또는 표준 `postgresql://` 연결.
   - 레거시 anon/service_role JWT 키는 2026년 말까지 단계적으로 폐지된다(요약, https://supabase.com/docs/guides/getting-started/api-keys).
 - 이식성: "a full Postgres database, not a Postgres abstraction"(https://supabase.com/docs/guides/database/overview). 스키마·데이터·SQL은 다른 Postgres로 그대로 옮겨진다.
-- Supabase를 떠날 때 바뀌는 것(추론, 근거는 각 행):
+- Supabase를 떠날 때 바뀌는 것(추론, 근거는 각 행): ⚠️근거없음
   1. Data API + RLS로 된 클라이언트 직접 접근을 서버 API의 권한 검사로 바꿔야 한다. RLS를 유지해도 `auth.uid()`는 Supabase Auth JWT에 의존한다.
   2. Realtime(Postgres Changes, Broadcast)을 대체해야 한다.
   3. Storage API를 S3 등으로 바꿔야 한다.
@@ -258,11 +258,11 @@
 | DS.row_contention | 원자 카운터(`UpdateItem` ADD), 조건부 쓰기(버전 속성으로 낙관적 잠금). 파티션당 1,000 WCU/3,000 RCU. 진행 중인 트랜잭션과 충돌하면 `TransactionConflictException` | 원자 카운터는 멱등이 아님. 조건 실패도 WCU를 소비 | DG WorkingWithItems.html · "an atomic counter—a numeric attribute that is incremented, unconditionally, without interfering with other write requests." "With an atomic counter, the updates are not idempotent." / DG bp-partition-key-design.html · "maximum capacity of 3,000 read units per second and 1,000 write units per second." |
 | DS.transactions | `TransactWriteItems`: 쓰기 액션 최대 100개, 합계 4 MB, 같은 계정·리전. 단일 항목 연산과는 직렬화 격리, 다중 읽기(BatchGet/Query/Scan)와는 read-committed. 클라이언트 토큰 멱등 10분 | 항목마다 준비·커밋 두 번씩 처리(2배 비용). 취소돼도 용량 소비. 취소(`TransactionCanceledException`)는 SDK가 재시도하지 않음 | DG transaction-apis.html · "groups up to 100 write actions in a single all-or-nothing operation" "The aggregate size of the items in the transaction cannot exceed 4 MB." "A client token is valid for 10 minutes" "AWS SDKs do not retry the request." |
 | DS.replication | 리전 내 3개 AZ 자동 복제. 읽기는 결과적 일관성이 기본이고 강한 일관성은 선택(2배 비용). **GSI·스트림 읽기는 결과적 일관성만** | | DG HowItWorks.ReadConsistency.html · "eventually consistent (default) and strongly consistent reads. All reads from GSIs and streams are eventually consistent." / DG Introduction.html · "automatically replicates your data across three Availability Zones" |
-| DS.query_models | 키 질의(Query), 전체 Scan, GSI(기본 20개)·LSI(5개, 생성 시만), PartiQL 부분 집합, 벡터 인덱스(테이블당 5개). **조인 없음**, 서버 측 집계 없음(문구 미확인) | Scan은 필터와 무관하게 읽은 양만큼 과금, 페이지당 1 MB | DG Introduction.html · "DynamoDB doesn't support a JOIN operator." / DG Scan.html · "a Scan consumes the same amount of read capacity, regardless of whether a filter expression is present." / DG ServiceQuotas.html · "default quota of 20 global secondary indexes per table." |
+| DS.query_models | 키 질의(Query), 전체 Scan, GSI(기본 20개)·LSI(5개, 생성 시만), PartiQL 부분 집합, 벡터 인덱스(테이블당 5개). **조인 없음**, 서버 측 집계 없음(문구 미확인) | Scan은 필터와 무관하게 읽은 양만큼 과금, 페이지당 1 MB | DG Introduction.html · "DynamoDB doesn't support a JOIN operator." / DG Scan.html · "a Scan consumes the same amount of read capacity, regardless of whether a filter expression is present." / DG ServiceQuotas.html · "default quota of 20 global secondary indexes per table." ⚠️근거없음 |
 | DS.size_limits | 항목 400 KB, 중첩 32단계, 테이블 크기 실질 무제한. LSI가 있으면 파티션 키 값당 10 GB | | DG WorkingWithItems.html · "The maximum size of an individual item is 400 KB." / DG LSI.html · "10 GB size limit per partition key value." |
 | DS.backup | **PITR 기본 꺼짐**. 켜면 1~35일, 초 단위. 복원은 항상 새 테이블로. 온디맨드 전체 백업, AWS Backup 연동 | S3 내보내기에는 PITR 필요. PITR 비용은 보존 기간과 무관(테이블 크기 기준) | DG PointInTimeRecovery_Howitworks.html · "DISABLED by default until you enable PITR" "between 1 and 35 days" "always restores to a new table." |
 | DS.connections | 연결 개념 없음(HTTPS API + IAM 서명). 서버리스에서 연결 고갈 문제 없음 | 명시적 "연결 한도 없음" 문구는 미확인 | DG Introduction.html · "there are no user names or passwords for accessing DynamoDB" |
-| DS.schema_change | 기본 키 외 스키마 없음. GSI는 나중에 추가 가능(백필 중 새 GSI에는 오토스케일링 미적용). LSI와 키 스키마는 생성 후 변경 불가(키 스키마 문구 미확인) | 접근 패턴이 바뀌면 GSI 추가나 데이터 재적재 필요 | DG HowItWorks.CoreComponents.html · "neither the attributes nor their data types need to be defined beforehand." |
+| DS.schema_change | 기본 키 외 스키마 없음. GSI는 나중에 추가 가능(백필 중 새 GSI에는 오토스케일링 미적용). LSI와 키 스키마는 생성 후 변경 불가(키 스키마 문구 미확인) | 접근 패턴이 바뀌면 GSI 추가나 데이터 재적재 필요 | DG HowItWorks.CoreComponents.html · "neither the attributes nor their data types need to be defined beforehand." ⚠️근거없음 |
 | DS.availability | 리전 내 다중 AZ, 유지보수 창 없음. SLA 99.99%(글로벌 테이블은 99.999%) | | https://aws.amazon.com/dynamodb/sla/ · "at least 99.99% if the Standard SLA applies" (요약) / DG Introduction.html · "there are no maintenance windows." |
 | DS.multi_host_access | 가능(리전 HTTPS 엔드포인트) | | DG Introduction.html (요약) |
 | DS.security | IAM. **저장 암호화 기본**(AWS 소유 키). `dynamodb:LeadingKeys`로 파티션 키 = 사용자 ID 수준의 항목 접근 제어. VPC 게이트웨이·인터페이스 엔드포인트. CloudTrail | | DG EncryptionAtRest.html · "All user data stored in Amazon DynamoDB is fully encrypted at rest." / DG specifying-conditions.html · "allows users to access only the items where the partition key value matches their user ID" |
@@ -315,7 +315,7 @@
 | DS.replication | MREC(기본): 비동기, 보통 1초 이내. MRSC: 쓰기를 반환하기 전에 최소 한 다른 리전에 동기 복제, 정확히 3개 리전(복제본 2 + 증인 1 가능) | MRSC는 TTL·LSI 미지원. 기존 테이블은 비어 있어야 전환 가능. 일관성 모드는 생성 후 변경 불가 | DG V2globaltables_HowItWorks.html · "asynchronously replicated to all other replicas, typically within a second or less" "synchronously replicated to at least one other Region before the write operation returns" "A MRSC global table must be deployed in exactly three Regions." |
 | DS.query_models | 단일 리전과 같음 | | 5절 |
 | DS.size_limits | 단일 리전과 같음 | | 5절 |
-| DS.backup | 리전별 PITR 설정(단일 리전과 같은 규칙) | 글로벌 테이블 전용 문구는 미확인 | 미확인 |
+| DS.backup | 리전별 PITR 설정(단일 리전과 같은 규칙) | 글로벌 테이블 전용 문구는 미확인 | 미확인 ⚠️근거없음 |
 | DS.connections | 연결 없음(HTTPS) | | 5절 |
 | DS.schema_change | 단일 리전과 같음. MRSC는 LSI 불가 | | DG V2globaltables_HowItWorks.html (요약) |
 | DS.availability | SLA 99.999% | | https://aws.amazon.com/dynamodb/sla/ · "at least 99.999% if the Global Tables SLA applies" (요약) |
@@ -348,14 +348,14 @@
 | DS.concurrent_writers | 다수, 문서 단위 원자성 | **Free 100 ops/s, Flex 500 ops/s 하드 한도** | https://www.mongodb.com/docs/manual/core/transactions/ · "In MongoDB, an operation on a single document is atomic." / https://www.mongodb.com/docs/atlas/reference/free-shared-limitations/ · "Free clusters: 100 operations per second" / https://www.mongodb.com/docs/atlas/reference/flex-limitations/ · "limit the number of read and write operations to 500 operations per second." |
 | DS.row_contention | 문서 단위 원자 갱신. 트랜잭션 중 외부 쓰기와 충돌하면 WriteConflict, 일시 오류는 TransientTransactionError(재시도 로직 필요). 잠금 획득 대기 기본 5 ms | `$inc` 원문은 미확인 | https://www.mongodb.com/docs/manual/core/transactions-production-consideration/ (요약) |
 | DS.transactions | 다문서·다컬렉션 트랜잭션, 기본 60초(`transactionLifetimeLimitSeconds`). 단독 배포에서는 미지원(Atlas는 레플리카셋) | Free·Flex 한도 페이지에 트랜잭션 제한은 없음(나열되지 않음) | https://www.mongodb.com/docs/manual/core/transactions-production-consideration/ · "Standalone deployments do not support transactions." |
-| DS.replication | 3노드 레플리카셋, 기본 write concern `w: "majority"` | 보조 노드 읽기의 지연 허용은 `maxStalenessSeconds`(원문 미확인) | https://www.mongodb.com/docs/manual/core/replica-set-write-concern/ (요약) |
+| DS.replication | 3노드 레플리카셋, 기본 write concern `w: "majority"` | 보조 노드 읽기의 지연 허용은 `maxStalenessSeconds`(원문 미확인) | https://www.mongodb.com/docs/manual/core/replica-set-write-concern/ (요약) ⚠️근거없음 |
 | DS.query_models | 문서 질의, 집계 파이프라인. Atlas Search/Vector Search 인덱스는 Free 3개, Flex 10개. Free는 서버 측 JS(`$where`, map-reduce) 불가 | `$lookup`·지리 질의 원문은 미확인 | https://www.mongodb.com/docs/atlas/atlas-search/limitations/ · "3 indexes (regardless of type, search or vector)" / https://www.mongodb.com/docs/atlas/reference/free-shared-limitations/ · "Free clusters don't support server-side JavaScript." |
 | DS.size_limits | 문서 16 MiB. Free 저장 0.5 GB, DB 100·컬렉션 500, 전송 7일 기준 10 GB 입·출. Flex 저장 5 GB(비압축 BSON + 인덱스) | 저장 자동 확장 없음 | https://www.mongodb.com/docs/manual/reference/limits/ · "The maximum BSON document size is 16 mebibytes (MiB)." / free-shared-limitations · "Free clusters: 0.5 GB" / flex-limitations · "Flex clusters limit the maximum total data storage space to 5 GB." |
 | DS.backup | **Free 백업 불가**(mongodump 권장). Flex는 일일 스냅샷, 최근 8개 보존. 연속 백업·PITR·온디맨드 스냅샷 없음 | | free-shared-limitations · "You can't enable backups on Free clusters." / https://www.mongodb.com/docs/atlas/backup/cloud-backup/flex-cluster-backup/ · "Atlas retains the last 8 daily snapshots." / flex-limitations · "Flex clusters don't support Continuous Backup and Point-in-Time Restore." |
 | DS.connections | 최대 500 연결(Free·Flex) | | free-shared-limitations · "Free clusters can only have a maximum of 500 connections." / flex-limitations · "Flex clusters have a maximum of 500 connections." |
-| DS.schema_change | 스키마 없음(선택적 스키마 검증) | Prisma Migrate는 MongoDB 미지원(`db push` 사용) | https://www.prisma.io/docs/orm/overview/databases/mongodb (요약) |
+| DS.schema_change | 스키마 없음(선택적 스키마 검증) | Prisma Migrate는 MongoDB 미지원(`db push` 사용) | https://www.prisma.io/docs/orm/overview/databases/mongodb (요약) ⚠️출처확인필요 |
 | DS.availability | 3노드 레플리카셋. SLA 적용 티어는 미확인(SLA 법률 페이지 404). **Free는 30일 비활동 시 자동 일시정지** | | free-shared-limitations · "Atlas automatically pauses Free clusters after 30 days of inactivity" |
-| DS.multi_host_access | IP 접근 목록에 있는 호스트면 가능(드라이버 연결) | 서버리스·동적 IP 플랫폼은 0.0.0.0/0을 열어야 하는 경우가 생김(추론) | https://www.mongodb.com/docs/atlas/security/ip-access-list/ · "Atlas only allows client connections to the cluster from entries in the project's IP access list." |
+| DS.multi_host_access | IP 접근 목록에 있는 호스트면 가능(드라이버 연결) | 서버리스·동적 IP 플랫폼은 0.0.0.0/0을 열어야 하는 경우가 생김(추론) | https://www.mongodb.com/docs/atlas/security/ip-access-list/ · "Atlas only allows client connections to the cluster from entries in the project's IP access list." ⚠️근거없음 |
 | DS.security | IP 목록 기본 거부, TLS 필수. Free는 네트워크 피어링·프라이빗 엔드포인트·감사 불가. Flex는 프라이빗 엔드포인트·감사·고객 키 암호화 불가 | 행 수준 권한 없음(앱에서 처리) | https://www.mongodb.com/docs/atlas/setup-cluster-security.md · "Atlas requires TLS" / free-shared-limitations · "Free clusters don't support private endpoints." "You can't configure database auditing on Free clusters." |
 | DS.regions | 서울은 GCP에서만 Free·Flex 가능 | | 위 서울 리전 근거 |
 | DS.scaling | 저장 자동 확장 없음. Flex → Dedicated 업그레이드로 확장 | | free-shared-limitations · "Free clusters don't provide automatically scaling storage." |
@@ -372,7 +372,7 @@
 ### 함정
 - AWS 서울에서는 Free·Flex를 만들 수 없다. Vercel이나 AWS 기반 앱이 "서울 + 무료"를 원하면 GCP 서울을 써야 한다.
 - Free 100 ops/s, Flex 500 ops/s는 하드 한도다. D3 폭증 시 거부된다.
-- Free는 백업이 없고 30일 비활동 시 일시정지된다. Flex는 PITR이 없다(최악 RPO 약 1일, 일일 스냅샷 기준 추론).
+- Free는 백업이 없고 30일 비활동 시 일시정지된다. Flex는 PITR이 없다(최악 RPO 약 1일, 일일 스냅샷 기준 추론). ⚠️근거없음
 
 ---
 
@@ -391,8 +391,8 @@
 | DS.size_limits | 문서 16 MiB, 저장은 티어별(구체 수치 미확인) | | https://www.mongodb.com/docs/manual/reference/limits/ |
 | DS.backup | 연속 클라우드 백업(PITR)이 신규 클러스터에서 기본 켜짐. Core에서 켜면 월 비용 증가 | PITR 보존 기본값은 미확인 | https://www.mongodb.com/docs/atlas/backup/cloud-backup/dedicated-cluster-backup/ · "Enabling continuous cloud backups increases the monthly cost" (요약 포함) |
 | DS.connections | 노드당 M10 1,500, M20/M30 3,000, M40 6,000(노드당 10개 예약). M10/M20은 새 연결 15/s 제한 | 매뉴얼의 "200 concurrent" 문구와 충돌하며, atlas-limits를 우선함 | https://www.mongodb.com/docs/atlas/reference/atlas-limits.md · "three nodes with a 1500 connection limit per node." |
-| DS.schema_change | 스키마 없음(선택적 검증) | | 해당 없음 |
-| DS.availability | 3노드 자동 페일오버. SLA 99.995%(적용 티어 원문 미확인) | | https://www.mongodb.com/cloud/atlas/reliability · "99.995% Uptime SLA: Atlas guarantees high availability for production workloads" |
+| DS.schema_change | 스키마 없음(선택적 검증) | | 해당 없음 ⚠️근거없음 |
+| DS.availability | 3노드 자동 페일오버. SLA 99.995%(적용 티어 원문 미확인) | | https://www.mongodb.com/cloud/atlas/reliability · "99.995% Uptime SLA: Atlas guarantees high availability for production workloads" ⚠️근거없음 |
 | DS.multi_host_access | 가능(IP 목록, 피어링, 프라이빗 엔드포인트) | | https://www.mongodb.com/docs/atlas/security/ip-access-list/ |
 | DS.security | IP 목록 기본 거부, TLS 필수, 감사(M10+), 고객 키 암호화, 프라이빗 엔드포인트 | 행 수준 권한 없음 | https://www.mongodb.com/docs/atlas/setup-cluster-security.md · "Atlas requires TLS" |
 | DS.regions | 서울 AWS·GCP | | 위와 같음 |
@@ -471,7 +471,7 @@
 | DS.schema_change | 무중단 스키마 변경(장기 실행 작업, 검증이 큰 변경은 수 시간) | | https://docs.cloud.google.com/spanner/docs/schema-updates · "Spanner lets you make schema updates with no downtime." |
 | DS.availability | SLA 리전 99.99%, 듀얼·멀티 리전 99.999%. 무료 체험 인스턴스는 SLA 없음 | | https://cloud.google.com/spanner/sla · "Regional Instance >= 99.99%" "Multi-Regional Instance >= 99.999%" / https://docs.cloud.google.com/spanner/docs/free-trial-instance · "SLAs don't apply to free trial instances" |
 | DS.multi_host_access | 가능(클라이언트 라이브러리, PGAdapter) | | https://docs.cloud.google.com/spanner/docs/pgadapter |
-| DS.security | IAM(원문 미확인), CMEK(모든 에디션, 무료 체험 제외) | 행 수준 권한 미확인 | https://docs.cloud.google.com/spanner/docs/editions-overview · "CMEK" (요약) / free-trial-instance · "Free trial instances don't support customer-managed encryption keys (CMEK)" |
+| DS.security | IAM(원문 미확인), CMEK(모든 에디션, 무료 체험 제외) | 행 수준 권한 미확인 | https://docs.cloud.google.com/spanner/docs/editions-overview · "CMEK" (요약) / free-trial-instance · "Free trial instances don't support customer-managed encryption keys (CMEK)" ⚠️근거없음 |
 | DS.regions | 서울 리전 구성 있음. asia1 멀티 리전의 증인 리전이기도 함 | | https://docs.cloud.google.com/spanner/docs/instance-configurations |
 | DS.scaling | 처리 단위(PU) 100 단위로 온라인 증감(수 분). 1,000 PU = 1노드. 관리형 오토스케일러는 Enterprise. **일시정지 기능 없음** | | https://docs.cloud.google.com/spanner/docs/compute-capacity · "1000 PUs being equal to 1 node" "Spanner lacks a suspend function." (요약 포함) |
 | DS.cost_floor | 아이오와 노드·시간: Standard $0.90, Enterprise $1.23, Enterprise Plus $1.71. 최소 100 PU Standard는 약 $0.09/시간(약 $66/월, 계산값). 저장 SSD 약 $0.30/GiB·월. 서울 단가는 미확인 | 프로비저닝은 최소 1시간 과금. 90일 무료 체험(10 GiB) | https://cloud.google.com/spanner/pricing · "Standard $0.90 / 1 hour" "billed for a minimum of one hour" / free-trial-instance · "at no cost for 90 days" |
@@ -506,10 +506,10 @@
 | DS.query_models | 행 키 하나만 인덱싱, 키 범위 스캔. GoogleSQL은 읽기 전용(INSERT/UPDATE/DELETE, 서브쿼리, JOIN, UNION, CTE 미지원). 연속 구체화 뷰 | 보조 인덱스 없음 | https://docs.cloud.google.com/bigtable/docs/overview · "A single value in each row is indexed. This value is known as the row key." / https://docs.cloud.google.com/bigtable/docs/googlesql-overview · "doesn't support ... INSERT, UPDATE, or DELETE ... subqueries, JOIN, UNION, and CTEs" |
 | DS.size_limits | 하드 한도: 행 키 4 KB, 셀 100 MB, 행 256 MB. 권장: 셀 10 MB, 행 100 MB. 인스턴스당 테이블 1,000. 노드당 SSD 5 TB, HDD 16 TB | | https://docs.cloud.google.com/bigtable/quotas (요약) |
 | DS.backup | 표준·핫 백업. 보존 최대 90일(Enterprise)·365일(Enterprise Plus), 자동 백업 최대 90일. PITR 없음. 기존 테이블로 복원 불가 | | https://docs.cloud.google.com/bigtable/docs/backups · "You can't restore from a backup to an existing table." |
-| DS.connections | gRPC 클라이언트, 연결 한도는 미확인 | | 미확인 |
+| DS.connections | gRPC 클라이언트, 연결 한도는 미확인 | | 미확인 ⚠️근거없음 |
 | DS.schema_change | 컬럼 패밀리만 정의(테이블당 100), 나머지는 스키마 없음 | | https://docs.cloud.google.com/bigtable/quotas (요약) |
 | DS.availability | SLA: 3개 이상 리전 다중 클러스터 라우팅 99.999%, 3개 미만 99.99%, 단일 클러스터 라우팅·존 인스턴스 99.9% | | https://cloud.google.com/bigtable/sla · "Zonal instance (single cluster) >= 99.9%" |
-| DS.multi_host_access | 가능(클라이언트 라이브러리) | | 해당 없음 |
+| DS.multi_host_access | 가능(클라이언트 라이브러리) | | 해당 없음 ⚠️근거없음 |
 | DS.security | IAM(프로젝트, 인스턴스, 테이블, 백업, 승인된 뷰 수준). `allUsers` 부여 불가. CMEK | | https://docs.cloud.google.com/bigtable/docs/access-control (요약) |
 | DS.regions | 서울 3개 존 | | https://docs.cloud.google.com/bigtable/docs/locations |
 | DS.scaling | 노드 수 오토스케일링(최대는 최소의 10배 이내), 확장 중에도 요청 계속 처리 | | https://docs.cloud.google.com/bigtable/docs/autoscaling · "All requests continue to reach the cluster while scaling and rebalancing are in progress." |
@@ -519,7 +519,7 @@
 - 노드 1개가 상시 과금된다(약 $475/월, 아이오와). 대용량 시계열·이벤트 데이터용이다. 작은 앱에는 과잉이다.
 
 ### 교체 계열 정보
-- 서버 전용 클라이언트 라이브러리를 쓰며 HBase API와 호환된다(원문 미확인). 행 키 설계가 질의 전부를 좌우하므로 관계형과의 상호 이식은 사실상 데이터 모델을 다시 짜야 한다.
+- 서버 전용 클라이언트 라이브러리를 쓰며 HBase API와 호환된다(원문 미확인). 행 키 설계가 질의 전부를 좌우하므로 관계형과의 상호 이식은 사실상 데이터 모델을 다시 짜야 한다. ⚠️근거없음
 - 내보내기: Dataflow 템플릿으로 Avro, Parquet, SequenceFile로 내보내고 가져온다.
 
 ### 함정
@@ -531,36 +531,36 @@
 ## 12. Appwrite Cloud(Free / Pro)
 
 - 계열: 저장소-문서(BaaS). Dedicated DB(관리형 Postgres) 옵션이 있다.
-- 서울 리전: **없음** (https://appwrite.io/docs/products/network/regions · FRA, NYC, SYD, SFO, SGP, TOR (요약) · 2026-10-01)
+- 서울 리전: **없음** (https://appwrite.io/docs/products/network/regions · FRA, NYC, SYD, SFO, SGP, TOR (요약) · 2026-10-01) ⚠️출처확인필요
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| DS.concurrent_writers | 서버리스 DB는 미확인. Dedicated DB는 쓰기 프라이머리 1개 + 읽기 복제본, 커넥션 풀러 | | https://appwrite.io/products/databases · "Dedicated databases run behind a connection pooler with a primary for writes and read replicas" |
-| DS.row_contention | 원자적 숫자 증감 지원. 트랜잭션 커밋 전에 외부 수정이 있으면 충돌로 실패(자동 재시도 없음, 다시 읽고 재구성) | | https://appwrite.io/docs/products/databases/tablesdb/atomic-numeric-operations · "Safely increment and decrement numeric fields without race conditions." / https://appwrite.io/docs/products/databases/documentsdb/transactions (요약) |
-| DS.transactions | 여러 작업을 모아 원자적으로 커밋. 트랜잭션당 작업 수 Free 100, Pro 1,000. 스키마 작업(인덱스 생성 등)은 포함 불가 | 격리 수준 미확인 | https://appwrite.io/docs/products/databases/documentsdb/transactions · "Stage multiple database operations and commit them atomically." "Schema operations (for example, creating or deleting indexes) are not included in transactions." |
-| DS.replication | 서버리스 미확인. Dedicated는 비동기·동기·쿼럼 선택, HA 복제본은 기본가의 50%씩 추가 | | https://appwrite.io/products/databases (요약) / https://appwrite.io/pricing (요약) |
-| DS.query_models | TablesDB(관계형 스타일, 관계), DocumentsDB(JSON, 필터, 전문 검색), VectorsDB(임베딩), 관리형 Postgres(SQL, pgvector) | 조인 대신 관계("without custom joins") | https://appwrite.io/products/databases · "Relational-style tables, columns, and indexes" "Flexible JSON documents with filters and full-text search" "link related tables without custom joins" |
-| DS.size_limits | Free: 저장 2 GB, 대역폭 5 GB, DB 1개, 프로젝트 2개. Pro 수치는 미확인(가격 표가 클라이언트 렌더링) | 문서·행 크기는 미확인 | https://appwrite.io/blog/post/best-free-hosting-platforms-you-probably-havent-tried-in-2026 · "2 GB storage" "1 Database" |
-| DS.backup | Free 없음. 유료 플랜은 일일 백업 7일 보존. Dedicated DB는 PITR 7일(기본가 +20%) | | https://appwrite.io/blog/post/introducing-database-backups · "available on Appwrite Cloud for all paid plans" "a daily backup that is stored for 7 days" |
-| DS.connections | 서버리스는 REST/SDK(연결 개념 없음, 추론). Dedicated는 네이티브 연결 문자열 | | https://appwrite.io/products/databases (요약) |
-| DS.schema_change | 컬렉션·속성 정의(스키마 있음). 스키마 작업은 트랜잭션 밖 | 속성 변경 시 잠금 동작 미확인 | https://appwrite.io/docs/products/databases/documentsdb/transactions |
-| DS.availability | SLA: Free 없음, Pro 99.5%, Scale 99.9%, Enterprise 99.95% | | https://appwrite.io/docs/advanced/billing/uptime-sla (요약) |
-| DS.multi_host_access | 가능(관리형 API) | | 해당 없음 |
-| DS.security | 권한 모델: 서버 SDK나 콘솔로 권한 없이 만들면 아무도 접근 불가. 클라이언트 SDK로 만들면 생성자에게 읽기·수정·삭제 권한. 서버 API 키는 권한 무시 | 감사·암호화 미확인 | https://appwrite.io/docs/advanced/security/permissions · "If you create a resource using a Server SDK or the Appwrite Console without explicit permissions, no one can access it by default" |
-| DS.regions | 서울·도쿄 없음, 가장 가까운 곳은 싱가포르. 데이터는 리전 안에 머묾 | | https://appwrite.io/docs/products/network/regions · "All data remains within the region" |
-| DS.scaling | 서버리스 관리형(세부 미확인). Dedicated는 Micro $10 ~ 4XL $960/월 | | https://appwrite.io/pricing (요약) |
-| DS.cost_floor | Free $0. Pro $25/월(프로젝트 단위, 2025-09-01부터). Dedicated DB $10/월부터 | 대역폭 초과 100 GB당 $15 | https://appwrite.io/blog/post/appwrite-pricing-update (요약) / https://appwrite.io/pricing · "From $10/mo per database" |
+| DS.concurrent_writers | 서버리스 DB는 미확인. Dedicated DB는 쓰기 프라이머리 1개 + 읽기 복제본, 커넥션 풀러 | | https://appwrite.io/products/databases · "Dedicated databases run behind a connection pooler with a primary for writes and read replicas" ⚠️출처확인필요 |
+| DS.row_contention | 원자적 숫자 증감 지원. 트랜잭션 커밋 전에 외부 수정이 있으면 충돌로 실패(자동 재시도 없음, 다시 읽고 재구성) | | https://appwrite.io/docs/products/databases/tablesdb/atomic-numeric-operations · "Safely increment and decrement numeric fields without race conditions." / https://appwrite.io/docs/products/databases/documentsdb/transactions (요약) ⚠️출처확인필요 |
+| DS.transactions | 여러 작업을 모아 원자적으로 커밋. 트랜잭션당 작업 수 Free 100, Pro 1,000. 스키마 작업(인덱스 생성 등)은 포함 불가 | 격리 수준 미확인 | https://appwrite.io/docs/products/databases/documentsdb/transactions · "Stage multiple database operations and commit them atomically." "Schema operations (for example, creating or deleting indexes) are not included in transactions." ⚠️출처확인필요 |
+| DS.replication | 서버리스 미확인. Dedicated는 비동기·동기·쿼럼 선택, HA 복제본은 기본가의 50%씩 추가 | | https://appwrite.io/products/databases (요약) / https://appwrite.io/pricing (요약) ⚠️출처확인필요 |
+| DS.query_models | TablesDB(관계형 스타일, 관계), DocumentsDB(JSON, 필터, 전문 검색), VectorsDB(임베딩), 관리형 Postgres(SQL, pgvector) | 조인 대신 관계("without custom joins") | https://appwrite.io/products/databases · "Relational-style tables, columns, and indexes" "Flexible JSON documents with filters and full-text search" "link related tables without custom joins" ⚠️출처확인필요 |
+| DS.size_limits | Free: 저장 2 GB, 대역폭 5 GB, DB 1개, 프로젝트 2개. Pro 수치는 미확인(가격 표가 클라이언트 렌더링) | 문서·행 크기는 미확인 | https://appwrite.io/blog/post/best-free-hosting-platforms-you-probably-havent-tried-in-2026 · "2 GB storage" "1 Database" ⚠️출처확인필요 |
+| DS.backup | Free 없음. 유료 플랜은 일일 백업 7일 보존. Dedicated DB는 PITR 7일(기본가 +20%) | | https://appwrite.io/blog/post/introducing-database-backups · "available on Appwrite Cloud for all paid plans" "a daily backup that is stored for 7 days" ⚠️출처확인필요 |
+| DS.connections | 서버리스는 REST/SDK(연결 개념 없음, 추론). Dedicated는 네이티브 연결 문자열 | | https://appwrite.io/products/databases (요약) ⚠️출처확인필요 ⚠️근거없음 |
+| DS.schema_change | 컬렉션·속성 정의(스키마 있음). 스키마 작업은 트랜잭션 밖 | 속성 변경 시 잠금 동작 미확인 | https://appwrite.io/docs/products/databases/documentsdb/transactions ⚠️출처확인필요 |
+| DS.availability | SLA: Free 없음, Pro 99.5%, Scale 99.9%, Enterprise 99.95% | | https://appwrite.io/docs/advanced/billing/uptime-sla (요약) ⚠️출처확인필요 |
+| DS.multi_host_access | 가능(관리형 API) | | 해당 없음 ⚠️근거없음 |
+| DS.security | 권한 모델: 서버 SDK나 콘솔로 권한 없이 만들면 아무도 접근 불가. 클라이언트 SDK로 만들면 생성자에게 읽기·수정·삭제 권한. 서버 API 키는 권한 무시 | 감사·암호화 미확인 | https://appwrite.io/docs/advanced/security/permissions · "If you create a resource using a Server SDK or the Appwrite Console without explicit permissions, no one can access it by default" ⚠️출처확인필요 |
+| DS.regions | 서울·도쿄 없음, 가장 가까운 곳은 싱가포르. 데이터는 리전 안에 머묾 | | https://appwrite.io/docs/products/network/regions · "All data remains within the region" ⚠️출처확인필요 |
+| DS.scaling | 서버리스 관리형(세부 미확인). Dedicated는 Micro $10 ~ 4XL $960/월 | | https://appwrite.io/pricing (요약) ⚠️출처확인필요 |
+| DS.cost_floor | Free $0. Pro $25/월(프로젝트 단위, 2025-09-01부터). Dedicated DB $10/월부터 | 대역폭 초과 100 GB당 $15 | https://appwrite.io/blog/post/appwrite-pricing-update (요약) / https://appwrite.io/pricing · "From $10/mo per database" ⚠️출처확인필요 |
 
 ### 비용 구조
 - Free $0, Pro $25/월/프로젝트. Dedicated DB는 HA 복제본마다 +50%, PITR +20%다.
 
 ### 교체 계열 정보
 - 클라이언트 SDK는 권한 모델 아래에서 직접 접근하고, 서버 SDK는 API 키로 접근하며 권한을 우회한다. SDK 언어 목록은 미확인이다.
-- 마이그레이션 도구: Firebase, Supabase, Nhost에서 가져오기와 Cloud와 자체 호스팅 간 이동을 지원한다. `$createdAt`·`$updatedAt` 같은 필드는 옮겨지지 않을 수 있다("Certain fields, such as `$createdAt` and `$updatedAt`, may not be transferred.", https://appwrite.io/docs/advanced/migrations).
+- 마이그레이션 도구: Firebase, Supabase, Nhost에서 가져오기와 Cloud와 자체 호스팅 간 이동을 지원한다. `$createdAt`·`$updatedAt` 같은 필드는 옮겨지지 않을 수 있다("Certain fields, such as `$createdAt` and `$updatedAt`, may not be transferred.", https://appwrite.io/docs/advanced/migrations). ⚠️출처확인필요
 - 관계형으로 옮길 때: SDK 호출을 SQL이나 ORM으로 바꾸고, 문서 권한을 서버 권한 검사나 RLS로 바꾼다.
 
 ### 함정
-- Free 프로젝트는 개발 활동 없이 7일이 지나면 일시정지된다(백업, 크론, 예약 함수도 중단). 90일 동안 정지 상태면 삭제된다(https://appwrite.io/changelog/entry/2026-02-20-1 · "Projects on the Free plan with no development activity for 7 consecutive days will be automatically paused." / https://appwrite.io/changelog/entry/2026-06-29 · "Free projects that stay paused for 90 days will be deleted").
+- Free 프로젝트는 개발 활동 없이 7일이 지나면 일시정지된다(백업, 크론, 예약 함수도 중단). 90일 동안 정지 상태면 삭제된다(https://appwrite.io/changelog/entry/2026-02-20-1 · "Projects on the Free plan with no development activity for 7 consecutive days will be automatically paused." / https://appwrite.io/changelog/entry/2026-06-29 · "Free projects that stay paused for 90 days will be deleted"). ⚠️출처확인필요
 - 서울 리전이 없다.
 
 ---
@@ -572,58 +572,58 @@
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| DS.concurrent_writers | **동시 쓰기 1개**(SQLite WAL, 단일 writer/트랜잭션) | 트랜잭션 안에서 다른 DB 핸들을 쓰면 교착 가능 | https://pocketbase.io/faq/ · "PocketBase uses embedded SQLite (in WAL mode)" / https://pocketbase.io/docs/js-database/ · "we allow only a single writer/transaction at a time and it could result in a deadlock" |
-| DS.row_contention | 쓰기가 직렬화되므로 경합은 대기로 나타남 | 원자적 증감 연산자 지원은 미확인 | https://pocketbase.io/docs/js-database/ (위와 같음) |
-| DS.transactions | `$app.runInTransaction`(서버 확장 코드). Batch API는 단일 읽기·쓰기 트랜잭션(대시보드에서 명시적으로 켜야 함, 다른 질의가 대기열에 쌓임) | | https://pocketbase.io/docs/js-database/ · "The DB operations are persisted only if the transaction completes without throwing an error." / https://pocketbase.io/docs/api-records/ · "other queries may queue up and it could degrade the performance" |
-| DS.replication | 내장 복제 없음(미확인). 5 GB 넘는 DB는 SQLite 백업 + rsync 고려(요약) | | https://pocketbase.io/docs/going-to-production/ (요약) |
-| DS.query_models | 필터 규칙, 관계 확장(6단계), 실시간 구독. 전문·벡터는 미확인 | | https://pocketbase.io/docs/api-records/ (요약) |
+| DS.concurrent_writers | **동시 쓰기 1개**(SQLite WAL, 단일 writer/트랜잭션) | 트랜잭션 안에서 다른 DB 핸들을 쓰면 교착 가능 | https://pocketbase.io/faq/ · "PocketBase uses embedded SQLite (in WAL mode)" / https://pocketbase.io/docs/js-database/ · "we allow only a single writer/transaction at a time and it could result in a deadlock" ⚠️출처확인필요 |
+| DS.row_contention | 쓰기가 직렬화되므로 경합은 대기로 나타남 | 원자적 증감 연산자 지원은 미확인 | https://pocketbase.io/docs/js-database/ (위와 같음) ⚠️출처확인필요 |
+| DS.transactions | `$app.runInTransaction`(서버 확장 코드). Batch API는 단일 읽기·쓰기 트랜잭션(대시보드에서 명시적으로 켜야 함, 다른 질의가 대기열에 쌓임) | | https://pocketbase.io/docs/js-database/ · "The DB operations are persisted only if the transaction completes without throwing an error." / https://pocketbase.io/docs/api-records/ · "other queries may queue up and it could degrade the performance" ⚠️출처확인필요 |
+| DS.replication | 내장 복제 없음(미확인). 5 GB 넘는 DB는 SQLite 백업 + rsync 고려(요약) | | https://pocketbase.io/docs/going-to-production/ (요약) ⚠️출처확인필요 |
+| DS.query_models | 필터 규칙, 관계 확장(6단계), 실시간 구독. 전문·벡터는 미확인 | | https://pocketbase.io/docs/api-records/ (요약) ⚠️출처확인필요 |
 | DS.size_limits | 디스크와 SQLite 한도에 따름(미확인) | | 미확인 |
-| DS.backup | 내장 백업(`pb_data` 전체 ZIP 스냅샷, 로컬 또는 S3). 자동 일정은 직접 설정. PITR 없음 | | https://pocketbase.io/docs/going-to-production/ · "The generated backup represents a full snapshot as ZIP archive of your pb_data directory." |
-| DS.connections | 내장 DB라 외부 연결 없음. 실시간 연결 1만 개 이상 처리 가능(소형 VPS 예시) | | https://pocketbase.io/faq/ · "PocketBase can easily serve 10 000+ persistent realtime connections on a cheap $4 Hetzner CAX11 VPS" |
-| DS.schema_change | 대시보드에서 컬렉션을 바꾸면 마이그레이션 파일이 자동 생성되고(`pb_migrations`), `serve` 때 적용 | | https://pocketbase.io/docs/js-migrations/ · "every collection configuration change from the Dashboard (or Web API) will generate the related migration file automatically" |
-| DS.availability | 단일 서버, SLA 없음. 자원봉사로 유지되는 개인 오픈소스(요약) | 서버 재시작·배포 = 중단 | https://pocketbase.io/faq/ (요약) |
-| DS.multi_host_access | **불가(단일 서버)**. 확장은 수직만 | 여러 인스턴스가 같은 파일을 공유하는 구성은 문서상 근거 없음(설계상 불가로 추론) | https://pocketbase.io/faq/ · "Only on a single server, aka. vertical." |
-| DS.security | API 규칙: 잠금(null)이 **기본**이며 superuser만 접근 가능. 빈 문자열이면 누구나 접근. 내장 레이트 리미터, superuser IP 허용 목록, MFA, 설정 암호화 | | https://pocketbase.io/docs/api-rules-and-filters/ · "only by an authorized superuser (this is the default)" "anyone will be able to perform the action" |
+| DS.backup | 내장 백업(`pb_data` 전체 ZIP 스냅샷, 로컬 또는 S3). 자동 일정은 직접 설정. PITR 없음 | | https://pocketbase.io/docs/going-to-production/ · "The generated backup represents a full snapshot as ZIP archive of your pb_data directory." ⚠️출처확인필요 |
+| DS.connections | 내장 DB라 외부 연결 없음. 실시간 연결 1만 개 이상 처리 가능(소형 VPS 예시) | | https://pocketbase.io/faq/ · "PocketBase can easily serve 10 000+ persistent realtime connections on a cheap $4 Hetzner CAX11 VPS" ⚠️출처확인필요 |
+| DS.schema_change | 대시보드에서 컬렉션을 바꾸면 마이그레이션 파일이 자동 생성되고(`pb_migrations`), `serve` 때 적용 | | https://pocketbase.io/docs/js-migrations/ · "every collection configuration change from the Dashboard (or Web API) will generate the related migration file automatically" ⚠️출처확인필요 |
+| DS.availability | 단일 서버, SLA 없음. 자원봉사로 유지되는 개인 오픈소스(요약) | 서버 재시작·배포 = 중단 | https://pocketbase.io/faq/ (요약) ⚠️출처확인필요 |
+| DS.multi_host_access | **불가(단일 서버)**. 확장은 수직만 | 여러 인스턴스가 같은 파일을 공유하는 구성은 문서상 근거 없음(설계상 불가로 추론) | https://pocketbase.io/faq/ · "Only on a single server, aka. vertical." ⚠️출처확인필요 ⚠️근거없음 |
+| DS.security | API 규칙: 잠금(null)이 **기본**이며 superuser만 접근 가능. 빈 문자열이면 누구나 접근. 내장 레이트 리미터, superuser IP 허용 목록, MFA, 설정 암호화 | | https://pocketbase.io/docs/api-rules-and-filters/ · "only by an authorized superuser (this is the default)" "anyone will be able to perform the action" ⚠️출처확인필요 |
 | DS.regions | 호스팅 위치 따름 | | 해당 없음 |
-| DS.scaling | 수직만 | | https://pocketbase.io/faq/ · "Only on a single server, aka. vertical." |
-| DS.cost_floor | 소프트웨어 무료(MIT), 서버 비용만(FAQ 예시 $4 VPS) | | https://github.com/pocketbase/pocketbase (요약) / https://pocketbase.io/faq/ |
+| DS.scaling | 수직만 | | https://pocketbase.io/faq/ · "Only on a single server, aka. vertical." ⚠️출처확인필요 |
+| DS.cost_floor | 소프트웨어 무료(MIT), 서버 비용만(FAQ 예시 $4 VPS) | | https://github.com/pocketbase/pocketbase (요약) / https://pocketbase.io/faq/ ⚠️출처확인필요 |
 
 ### 비용 구조
 - VPS와 영속 디스크 비용만 든다. 티어 0 플랫폼(영속 디스크 없음)에는 올릴 수 없다. 영속 볼륨을 붙일 수 있는 단일 인스턴스 호스트가 필요하다(CP.local_disk와 대조).
 
 ### 교체 계열 정보
-- REST 비슷한 API와 실시간 구독을 제공한다. JS·Dart SDK로 클라이언트가 직접 접근한다(SDK 사실은 추론, 근거 미확인). Go나 JS 훅으로 확장할 수 있다.
-- Postgres(Supabase 등)로 옮길 때: SDK 호출을 Data API나 SQL로 바꾸고, API 규칙을 RLS나 서버 권한 검사로 바꾸고, 인증을 이전하고, 실시간 구독을 대체한다. SQLite 데이터는 표준 도구로 옮긴다(추론).
+- REST 비슷한 API와 실시간 구독을 제공한다. JS·Dart SDK로 클라이언트가 직접 접근한다(SDK 사실은 추론, 근거 미확인). Go나 JS 훅으로 확장할 수 있다. ⚠️근거없음
+- Postgres(Supabase 등)로 옮길 때: SDK 호출을 Data API나 SQL로 바꾸고, API 규칙을 RLS나 서버 권한 검사로 바꾸고, 인증을 이전하고, 실시간 구독을 대체한다. SQLite 데이터는 표준 도구로 옮긴다(추론). ⚠️근거없음
 - 내보내기: `pb_data` ZIP 백업(SQLite 파일 포함).
 
 ### 함정
 - 단일 쓰기와 단일 서버 구조다. C1 "중간" 이상이나 B2(인스턴스 2개 이상)가 필요하면 즉시 교체 대상이다. SQLite 판정 규칙과 같다.
-- v1.0 전이라 하위 호환이 보장되지 않는다(https://github.com/pocketbase/pocketbase · "full backward compatibility is not guaranteed before reaching v1.0.0").
+- v1.0 전이라 하위 호환이 보장되지 않는다(https://github.com/pocketbase/pocketbase · "full backward compatibility is not guaranteed before reaching v1.0.0"). ⚠️출처확인필요
 
 ---
 
 ## 14. Convex(Free·Starter / Professional)
 
 - 계열: 저장소-문서(반응형 BaaS, 서버 함수 내장)
-- 서울 리전: **없음** (https://docs.convex.dev/production/regions · aws-us-east-1, aws-eu-west-1, aws-ap-southeast-2, aws-ca-central-1 (요약) · 2026-10-01)
+- 서울 리전: **없음** (https://docs.convex.dev/production/regions · aws-us-east-1, aws-eu-west-1, aws-ap-southeast-2, aws-ca-central-1 (요약) · 2026-10-01) ⚠️출처확인필요
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| DS.concurrent_writers | 동시 뮤테이션 Free/Starter 16, Professional 256(배포 클래스 S16/S256, 최대 D2048) | | https://docs.convex.dev/production/state/limits (요약) |
-| DS.row_contention | OCC(낙관적 동시성 제어). 충돌하면 트랜잭션을 자동으로 다시 실행. 진정한 직렬화 | 같은 문서에 몰리는 쓰기는 재실행이 반복됨(추론) | https://docs.convex.dev/database/advanced/occ · "true serializability" / on conflict "we can simply re-run the transaction" (요약 포함) |
-| DS.transactions | 뮤테이션 1개 = 트랜잭션 1개(항상 원자적). 트랜잭션당 읽기 16 MiB, 스캔 32,000 문서, 인덱스 범위 4,096, 쓰기 16 MiB·16,000 문서. 질의·뮤테이션 1초 | 액션(외부 호출)은 트랜잭션이 아님(10분/30분) | https://docs.convex.dev/database/advanced/occ · "always be guaranteed to be atomic" / https://docs.convex.dev/production/state/limits · "1 second" "16,000" (요약) |
+| DS.concurrent_writers | 동시 뮤테이션 Free/Starter 16, Professional 256(배포 클래스 S16/S256, 최대 D2048) | | https://docs.convex.dev/production/state/limits (요약) ⚠️출처확인필요 |
+| DS.row_contention | OCC(낙관적 동시성 제어). 충돌하면 트랜잭션을 자동으로 다시 실행. 진정한 직렬화 | 같은 문서에 몰리는 쓰기는 재실행이 반복됨(추론) | https://docs.convex.dev/database/advanced/occ · "true serializability" / on conflict "we can simply re-run the transaction" (요약 포함) ⚠️출처확인필요 ⚠️근거없음 |
+| DS.transactions | 뮤테이션 1개 = 트랜잭션 1개(항상 원자적). 트랜잭션당 읽기 16 MiB, 스캔 32,000 문서, 인덱스 범위 4,096, 쓰기 16 MiB·16,000 문서. 질의·뮤테이션 1초 | 액션(외부 호출)은 트랜잭션이 아님(10분/30분) | https://docs.convex.dev/database/advanced/occ · "always be guaranteed to be atomic" / https://docs.convex.dev/production/state/limits · "1 second" "16,000" (요약) ⚠️출처확인필요 |
 | DS.replication | 미확인 | | 미확인 |
-| DS.query_models | 인덱스 기반 문서 질의, 조인은 함수 코드로. 전문 검색(질의당 16단어, 결과 1,024). 벡터 검색(2~4096차원, 결과 최대 256, 액션에서만, 필터는 등호·OR) | 벡터 검색은 일관적이고 최신 | https://docs.convex.dev/search/vector-search · "vector searches can only be performed in a Convex action" "Vector search is consistent and fully up-to-date" |
-| DS.size_limits | 문서 1 MiB, 필드 1,024, 중첩 16. Free/Starter: DB 0.5 GB, 파일 1 GB, 함수 호출 100만. Professional: 50 GB, 100 GB, 2,500만 | | https://docs.convex.dev/production/state/limits · document "1 MiB" (요약) / https://www.convex.dev/pricing (요약) |
-| DS.backup | 수동 백업 7일 보존. 주기 백업은 유료 플랜(일일 7일, 주간 14일). Free/Starter는 배포당 최대 2개. 복원은 파괴적 | | https://docs.convex.dev/database/backup-restore · "Daily backups are stored for 7 days. Weekly backups are stored for 14 days." |
-| DS.connections | DB 직접 연결 없음. 클라이언트는 함수 호출(웹소켓·HTTP). 동시 질의 16/256 | | https://docs.convex.dev/production/state/limits (요약) |
-| DS.schema_change | 스키마는 선택. 스키마를 추가·변경한 첫 푸시에서 기존 문서 전체를 검증하고, 불일치가 있으면 푸시 실패 | | https://docs.convex.dev/database/schemas · "If there are documents that fail validation, the push will fail." |
-| DS.availability | SLA는 Business·Enterprise만 | | https://www.convex.dev/pricing (요약) |
-| DS.multi_host_access | 관리형 API(해당 없음). 자체 호스팅 가능(SQLite·Postgres 백엔드) | | https://github.com/get-convex/convex-backend · "Self-hosted Convex works well with ... Sqlite, Postgres" |
-| DS.security | RLS 없음. 공개 함수 시작 부분에서 인증·권한을 코드로 검사. 클라이언트는 DB에 직접 접근하지 않음 | | https://docs.convex.dev/auth · "simply write code that checks if the user is logged in and if they are allowed to do the requested action at the beginning of each public function." |
-| DS.regions | 미 동부, EU 서부, 시드니, 캐나다. 한국·일본 없음. 배포 리전은 변경 불가 | | https://docs.convex.dev/production/regions · "An existing deployment's region cannot be changed." |
-| DS.scaling | 배포 클래스(S16 ~ D2048) | | https://docs.convex.dev/production/state/limits (요약) |
-| DS.cost_floor | Free/Starter $0(종량 과금). Professional $25/개발자·월. Business 월 최소 $2,500 | 함수 호출 초과 100만당 $2.20(Starter), $2.00(Pro) | https://www.convex.dev/pricing · "$25 per developer/month" "$2,500 monthly minimum" |
+| DS.query_models | 인덱스 기반 문서 질의, 조인은 함수 코드로. 전문 검색(질의당 16단어, 결과 1,024). 벡터 검색(2~4096차원, 결과 최대 256, 액션에서만, 필터는 등호·OR) | 벡터 검색은 일관적이고 최신 | https://docs.convex.dev/search/vector-search · "vector searches can only be performed in a Convex action" "Vector search is consistent and fully up-to-date" ⚠️출처확인필요 |
+| DS.size_limits | 문서 1 MiB, 필드 1,024, 중첩 16. Free/Starter: DB 0.5 GB, 파일 1 GB, 함수 호출 100만. Professional: 50 GB, 100 GB, 2,500만 | | https://docs.convex.dev/production/state/limits · document "1 MiB" (요약) / https://www.convex.dev/pricing (요약) ⚠️출처확인필요 |
+| DS.backup | 수동 백업 7일 보존. 주기 백업은 유료 플랜(일일 7일, 주간 14일). Free/Starter는 배포당 최대 2개. 복원은 파괴적 | | https://docs.convex.dev/database/backup-restore · "Daily backups are stored for 7 days. Weekly backups are stored for 14 days." ⚠️출처확인필요 |
+| DS.connections | DB 직접 연결 없음. 클라이언트는 함수 호출(웹소켓·HTTP). 동시 질의 16/256 | | https://docs.convex.dev/production/state/limits (요약) ⚠️출처확인필요 |
+| DS.schema_change | 스키마는 선택. 스키마를 추가·변경한 첫 푸시에서 기존 문서 전체를 검증하고, 불일치가 있으면 푸시 실패 | | https://docs.convex.dev/database/schemas · "If there are documents that fail validation, the push will fail." ⚠️출처확인필요 |
+| DS.availability | SLA는 Business·Enterprise만 | | https://www.convex.dev/pricing (요약) ⚠️출처확인필요 |
+| DS.multi_host_access | 관리형 API(해당 없음). 자체 호스팅 가능(SQLite·Postgres 백엔드) | | https://github.com/get-convex/convex-backend · "Self-hosted Convex works well with ... Sqlite, Postgres" ⚠️출처확인필요 |
+| DS.security | RLS 없음. 공개 함수 시작 부분에서 인증·권한을 코드로 검사. 클라이언트는 DB에 직접 접근하지 않음 | | https://docs.convex.dev/auth · "simply write code that checks if the user is logged in and if they are allowed to do the requested action at the beginning of each public function." ⚠️출처확인필요 |
+| DS.regions | 미 동부, EU 서부, 시드니, 캐나다. 한국·일본 없음. 배포 리전은 변경 불가 | | https://docs.convex.dev/production/regions · "An existing deployment's region cannot be changed." ⚠️출처확인필요 |
+| DS.scaling | 배포 클래스(S16 ~ D2048) | | https://docs.convex.dev/production/state/limits (요약) ⚠️출처확인필요 |
+| DS.cost_floor | Free/Starter $0(종량 과금). Professional $25/개발자·월. Business 월 최소 $2,500 | 함수 호출 초과 100만당 $2.20(Starter), $2.00(Pro) | https://www.convex.dev/pricing · "$25 per developer/month" "$2,500 monthly minimum" ⚠️출처확인필요 |
 
 ### 비용 구조
 - 개발자 수에 비례하는 좌석 과금이다. 함수 호출, 저장, 대역폭은 종량 과금된다. 벡터 검색은 질의마다 인덱스 크기 기준으로 과금된다(요약).
@@ -635,7 +635,7 @@
 
 ### 함정
 - 뮤테이션은 1초 안에 끝나야 하고 문서 쓰기 16,000개가 상한이다. 대량 배치는 액션이나 분할이 필요하다.
-- Free 한도를 넘으면 새 쓰기가 실패할 수 있다("After these limits are hit on the Free plan, new mutations that attempt to commit more insertions or updates may fail.", https://docs.convex.dev/production/state/limits).
+- Free 한도를 넘으면 새 쓰기가 실패할 수 있다("After these limits are hit on the Free plan, new mutations that attempt to commit more insertions or updates may fail.", https://docs.convex.dev/production/state/limits). ⚠️출처확인필요
 - 서울 리전이 없고, 배포를 만든 뒤에는 리전을 바꿀 수 없다.
 
 ---
@@ -644,7 +644,7 @@
 
 - 계열: 저장소-관계형의 확장(벡터 질의 능력만 더함)
 - 서울 리전: 호스트 Postgres를 따름(Supabase, RDS, Cloud SQL 서울 제공 여부는 01 파일)
-- 출처: https://github.com/pgvector/pgvector (README, 0.8.x)
+- 출처: https://github.com/pgvector/pgvector (README, 0.8.x) ⚠️출처확인필요
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
@@ -652,17 +652,17 @@
 | DS.row_contention | 호스트 Postgres 따름 | | 해당 없음 |
 | DS.transactions | 호스트 Postgres 따름(벡터와 원본 데이터가 한 트랜잭션에 들어감) | | 해당 없음 |
 | DS.replication | 호스트 Postgres 따름 | | 해당 없음 |
-| DS.query_models | 기본은 정확한 최근접 검색(재현율 완전). 근사 인덱스는 HNSW(빠른 질의, 느린 빌드, 메모리 많음), IVFFlat(빠른 빌드, 메모리 적음, 질의 성능 낮음, 데이터로 학습 필요). **근사 인덱스는 필터를 스캔 뒤에 적용** | 0.8.0부터 반복 인덱스 스캔으로 보완. 테넌트 간 인덱스를 공유하면 재현율에 영향 | https://github.com/pgvector/pgvector · "By default, pgvector performs exact nearest neighbor search, which provides perfect recall." "With approximate indexes, filtering is applied *after* the index is scanned." |
-| DS.size_limits | 인덱스 가능 차원: vector 2,000, halfvec 4,000, bit 64,000, sparsevec 비영 원소 1,000. 저장은 vector 16,000차원까지 | | https://github.com/pgvector/pgvector · "`vector` - up to 2,000 dimensions" "`halfvec` - up to 4,000 dimensions" |
+| DS.query_models | 기본은 정확한 최근접 검색(재현율 완전). 근사 인덱스는 HNSW(빠른 질의, 느린 빌드, 메모리 많음), IVFFlat(빠른 빌드, 메모리 적음, 질의 성능 낮음, 데이터로 학습 필요). **근사 인덱스는 필터를 스캔 뒤에 적용** | 0.8.0부터 반복 인덱스 스캔으로 보완. 테넌트 간 인덱스를 공유하면 재현율에 영향 | https://github.com/pgvector/pgvector · "By default, pgvector performs exact nearest neighbor search, which provides perfect recall." "With approximate indexes, filtering is applied *after* the index is scanned." ⚠️출처확인필요 |
+| DS.size_limits | 인덱스 가능 차원: vector 2,000, halfvec 4,000, bit 64,000, sparsevec 비영 원소 1,000. 저장은 vector 16,000차원까지 | | https://github.com/pgvector/pgvector · "`vector` - up to 2,000 dimensions" "`halfvec` - up to 4,000 dimensions" ⚠️출처확인필요 |
 | DS.backup | 호스트 Postgres 따름 | | 해당 없음 |
 | DS.connections | 호스트 Postgres 따름 | | 해당 없음 |
-| DS.schema_change | 인덱스 생성은 Postgres DDL. 근사 인덱스를 추가하면 질의 결과가 달라짐 | | https://github.com/pgvector/pgvector · "you will see different results for queries after adding an approximate index." |
+| DS.schema_change | 인덱스 생성은 Postgres DDL. 근사 인덱스를 추가하면 질의 결과가 달라짐 | | https://github.com/pgvector/pgvector · "you will see different results for queries after adding an approximate index." ⚠️출처확인필요 |
 | DS.availability | 호스트 Postgres 따름 | | 해당 없음 |
 | DS.multi_host_access | 호스트 Postgres 따름 | | 해당 없음 |
 | DS.security | 호스트 Postgres 따름(RLS 적용 가능) | | 해당 없음 |
 | DS.regions | 호스트 따름 | | 해당 없음 |
-| DS.scaling | 호스트 Postgres 따름. HNSW 인덱스 메모리가 인스턴스 크기를 정함 | | https://github.com/pgvector/pgvector · "uses more memory" |
-| DS.cost_floor | 추가 비용 없음(확장). Postgres 13+ | | https://github.com/pgvector/pgvector · "supports Postgres 13+" |
+| DS.scaling | 호스트 Postgres 따름. HNSW 인덱스 메모리가 인스턴스 크기를 정함 | | https://github.com/pgvector/pgvector · "uses more memory" ⚠️출처확인필요 |
+| DS.cost_floor | 추가 비용 없음(확장). Postgres 13+ | | https://github.com/pgvector/pgvector · "supports Postgres 13+" ⚠️출처확인필요 |
 
 ### 비용 구조
 - 별도 과금이 없다. 인덱스 메모리 때문에 컴퓨트를 키워야 할 수 있다.
@@ -671,7 +671,7 @@
 - SQL(`<->`, `<=>`, `<#>` 연산자)로 쓴다. 메타데이터 필터는 `WHERE` 절이다. Pinecone 등에서 옮겨오면 벡터와 메타데이터를 다시 적재하고 필터를 SQL로 바꿔야 한다.
 
 ### 함정
-- 1536차원 이상 임베딩은 vector 인덱스 한도(2,000)에 가깝다. 3072차원 같은 큰 임베딩은 halfvec이나 차원 축소가 필요하다(4,000 한도 기준 추론).
+- 1536차원 이상 임베딩은 vector 인덱스 한도(2,000)에 가깝다. 3072차원 같은 큰 임베딩은 halfvec이나 차원 축소가 필요하다(4,000 한도 기준 추론). ⚠️근거없음
 - 선택적 필터와 근사 인덱스를 함께 쓰면 결과가 k개보다 적게 나온다(기본 ef_search 40에서 조건이 10%만 맞으면 평균 4행).
 
 ---
@@ -679,31 +679,31 @@
 ## 16. Pinecone — Serverless
 
 - 계열: 저장소-문서(벡터 전용)
-- 서울 리전: **없음** (https://docs.pinecone.io/troubleshooting/available-cloud-regions · AWS us-east-1·us-west-2·eu-west-1·eu-central-1·ap-southeast-1, GCP us-central1·europe-west4, Azure eastus2 (요약) · 2026-10-01)
+- 서울 리전: **없음** (https://docs.pinecone.io/troubleshooting/available-cloud-regions · AWS us-east-1·us-west-2·eu-west-1·eu-central-1·ap-southeast-1, GCP us-central1·europe-west4, Azure eastus2 (요약) · 2026-10-01) ⚠️출처확인필요
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
-| DS.concurrent_writers | 네임스페이스당 upsert 100 요청/초(모든 플랜) | | https://docs.pinecone.io/reference/api/database-limits/rate-limits (요약) |
+| DS.concurrent_writers | 네임스페이스당 upsert 100 요청/초(모든 플랜) | | https://docs.pinecone.io/reference/api/database-limits/rate-limits (요약) ⚠️출처확인필요 |
 | DS.row_contention | 해당 없음(레코드 덮어쓰기, 잠금 없음) | | 해당 없음 |
 | DS.transactions | 해당 없음 | | 해당 없음 |
-| DS.replication | 결과적 일관성(upsert 후 질의 반영에 지연) | 복제 구성은 미확인 | https://docs.pinecone.io/reference/api/known-limitations.md · "Pinecone is eventually consistent, so there can be a slight delay before upserted records are available to query." |
-| DS.query_models | 밀집·희소 벡터, 전문 검색(BM25, Lucene 문법), 메타데이터 필터(`$eq`, `$gt`, `$in`, `$and`, `$or`, `$not`), 네임스페이스 멀티테넌시 | | https://docs.pinecone.io/guides/index-data/indexing-overview (요약) |
-| DS.size_limits | 차원 최대 20,000, upsert 배치 1,000건·2 MB, 메타데이터 40 KB, top_k 10,000. Starter: 저장 2 GB, 프로젝트 1개, 인덱스 5개, 인덱스당 네임스페이스 100, 월 읽기 100만 RU·쓰기 200만 WU | | https://docs.pinecone.io/reference/api/database-limits/operation-limits · "20,000" (요약) / https://docs.pinecone.io/reference/api/database-limits/object-limits (요약) |
-| DS.backup | Starter 백업 불가. Standard는 프로젝트당 500개, Enterprise 1,000개. 일·주·월 예약. $0.10/GB·월 | | https://docs.pinecone.io/guides/manage-data/back-up-an-index · "daily, weekly, or monthly frequency" / object-limits (요약) |
-| DS.connections | API·SDK(연결 개념 없음, 추론) | | 해당 없음 |
-| DS.schema_change | 차원·메트릭은 인덱스 생성 시 고정(제자리 변경 미확인) | | https://docs.pinecone.io/guides/index-data/indexing-overview (요약) |
-| DS.availability | Enterprise만 99.95% SLA, 그 외는 미확인 | | https://www.pinecone.io/pricing/ · "99.95% Uptime SLA" |
-| DS.multi_host_access | 가능(API) | | 해당 없음 |
-| DS.security | RBAC, 감사 로그, 프라이빗 엔드포인트, CMEK는 Enterprise 전용 | | https://www.pinecone.io/pricing/ (요약) |
-| DS.regions | 서울·도쿄 없음. **Starter는 AWS us-east-1만** | | https://docs.pinecone.io/troubleshooting/available-cloud-regions · "On the Starter plan, you can create serverless indexes in the `us-east-1` region of AWS only." |
-| DS.scaling | 서버리스 사용량 기반, 유휴 인덱스는 비용 없음 | | https://docs.pinecone.io/guides/manage-cost/understanding-cost · "Idle indexes cost nothing." |
-| DS.cost_floor | 월 최소: Starter $0, Builder $20(정액), Standard $50, Enterprise $500. 저장 $0.33/GB·월, 읽기 100만 RU당 $16~18, 쓰기 100만 WU당 $4~4.50 | | https://docs.pinecone.io/guides/manage-cost/understanding-cost · Starter "$0/month" Standard "$50/month" (요약) |
+| DS.replication | 결과적 일관성(upsert 후 질의 반영에 지연) | 복제 구성은 미확인 | https://docs.pinecone.io/reference/api/known-limitations.md · "Pinecone is eventually consistent, so there can be a slight delay before upserted records are available to query." ⚠️출처확인필요 |
+| DS.query_models | 밀집·희소 벡터, 전문 검색(BM25, Lucene 문법), 메타데이터 필터(`$eq`, `$gt`, `$in`, `$and`, `$or`, `$not`), 네임스페이스 멀티테넌시 | | https://docs.pinecone.io/guides/index-data/indexing-overview (요약) ⚠️출처확인필요 |
+| DS.size_limits | 차원 최대 20,000, upsert 배치 1,000건·2 MB, 메타데이터 40 KB, top_k 10,000. Starter: 저장 2 GB, 프로젝트 1개, 인덱스 5개, 인덱스당 네임스페이스 100, 월 읽기 100만 RU·쓰기 200만 WU | | https://docs.pinecone.io/reference/api/database-limits/operation-limits · "20,000" (요약) / https://docs.pinecone.io/reference/api/database-limits/object-limits (요약) ⚠️출처확인필요 |
+| DS.backup | Starter 백업 불가. Standard는 프로젝트당 500개, Enterprise 1,000개. 일·주·월 예약. $0.10/GB·월 | | https://docs.pinecone.io/guides/manage-data/back-up-an-index · "daily, weekly, or monthly frequency" / object-limits (요약) ⚠️출처확인필요 |
+| DS.connections | API·SDK(연결 개념 없음, 추론) | | 해당 없음 ⚠️근거없음 |
+| DS.schema_change | 차원·메트릭은 인덱스 생성 시 고정(제자리 변경 미확인) | | https://docs.pinecone.io/guides/index-data/indexing-overview (요약) ⚠️출처확인필요 |
+| DS.availability | Enterprise만 99.95% SLA, 그 외는 미확인 | | https://www.pinecone.io/pricing/ · "99.95% Uptime SLA" ⚠️출처확인필요 |
+| DS.multi_host_access | 가능(API) | | 해당 없음 ⚠️근거없음 |
+| DS.security | RBAC, 감사 로그, 프라이빗 엔드포인트, CMEK는 Enterprise 전용 | | https://www.pinecone.io/pricing/ (요약) ⚠️출처확인필요 |
+| DS.regions | 서울·도쿄 없음. **Starter는 AWS us-east-1만** | | https://docs.pinecone.io/troubleshooting/available-cloud-regions · "On the Starter plan, you can create serverless indexes in the `us-east-1` region of AWS only." ⚠️출처확인필요 |
+| DS.scaling | 서버리스 사용량 기반, 유휴 인덱스는 비용 없음 | | https://docs.pinecone.io/guides/manage-cost/understanding-cost · "Idle indexes cost nothing." ⚠️출처확인필요 |
+| DS.cost_floor | 월 최소: Starter $0, Builder $20(정액), Standard $50, Enterprise $500. 저장 $0.33/GB·월, 읽기 100만 RU당 $16~18, 쓰기 100만 WU당 $4~4.50 | | https://docs.pinecone.io/guides/manage-cost/understanding-cost · Starter "$0/month" Standard "$50/month" (요약) ⚠️출처확인필요 |
 
 ### 비용 구조
-- 질의 비용이 네임스페이스 크기에 비례한다("a query uses 1 RU for every 1 GB of namespace size, with a minimum of 0.25 RUs per query.", understanding-cost). Starter와 Builder는 할당량에 도달하면 읽기가 차단된다(https://docs.pinecone.io/release-notes/2026.md · "reads that return record data are blocked once the allowance is reached").
+- 질의 비용이 네임스페이스 크기에 비례한다("a query uses 1 RU for every 1 GB of namespace size, with a minimum of 0.25 RUs per query.", understanding-cost). Starter와 Builder는 할당량에 도달하면 읽기가 차단된다(https://docs.pinecone.io/release-notes/2026.md · "reads that return record data are blocked once the allowance is reached"). ⚠️출처확인필요
 
 ### 교체 계열 정보
-- 서버 측 API 키와 SDK(Python, Node 등. 목록 원문 미확인)를 쓴다.
+- 서버 측 API 키와 SDK(Python, Node 등. 목록 원문 미확인)를 쓴다. ⚠️근거없음
 - pgvector로 옮길 때: 벡터와 메타데이터를 다시 적재하고, 필터를 SQL `WHERE`로 바꾸고, 사후 필터 재현율 문제를 검토한다. 원본 데이터와 같은 트랜잭션에 넣을 수 있게 된다(이점).
 
 ### 함정
