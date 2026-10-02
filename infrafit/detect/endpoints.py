@@ -287,9 +287,14 @@ def _assign(rel: str, webs: list[WorkloadInfo]) -> tuple[WorkloadInfo, bool]:
 
 
 def _owners(rel: str, webs: list[WorkloadInfo]) -> list[WorkloadInfo]:
-    """핸들러 파일을 app_dir 또는 code_root 아래에 둔 web 워크로드들(id 순)."""
-    return sorted((w for w in webs if any(root and rel.startswith(root + "/") for root in {w.app_dir, w.code_root})),
-                  key=lambda w: w.id)
+    """핸들러 파일을 app_dir 또는 code_root 아래에 둔 web 워크로드 중 그 루트가 가장 깊은 것들(같으면 모두, id 순)."""
+    depth: dict[str, int] = {}
+    for w in webs:
+        roots = [r for r in {w.app_dir, w.code_root} if r and rel.startswith(r + "/")]
+        if roots:
+            depth[w.id] = max(len(PurePosixPath(r).parts) for r in roots)
+    deepest = max(depth.values(), default=0)
+    return sorted((w for w in webs if depth.get(w.id) == deepest and deepest), key=lambda w: w.id)
 
 
 # --- nginx location 선택과 노출 판정 -------------------------------------------
@@ -342,15 +347,31 @@ def _all_locations(locations: list[LocationInfo]) -> list[LocationInfo]:
 
 
 def _reached(server: ProxyServer, path: str) -> set[tuple[str, str]]:
-    """외부 요청 path가 이 server에서 닿는 (워크로드 id, 전달 경로)들. 하위 요청(auth_request)도 포함한다."""
+    """외부 요청 path가 이 server에서 고른 location으로 닿는 (워크로드 id, 전달 경로)들."""
     loc = select_location(server.locations, path)
     if loc is None:
         return set()
-    out = {(t, _forwarded(loc, uri, path)) for t, uri in loc.proxies if t}
+    return {(t, _forwarded(loc, uri, path)) for t, uri in loc.proxies if t}
+
+
+def _external(locations: list[LocationInfo]) -> list[LocationInfo]:
+    """외부 요청이 고를 수 있는 location(internal·명명 제외, 그 안의 중첩 포함)."""
+    out = []
+    for loc in locations:
+        if loc.modifier != "@" and not loc.internal:
+            out.append(loc)
+            out.extend(_external(loc.children))
+    return out
+
+
+def _subrequest_reached(server: ProxyServer) -> set[tuple[str, str]]:
+    """외부에서 고를 수 있는 location의 하위 요청(auth_request)은 호출 엔드포인트와 상관없이 닿는다."""
     internal = [x for x in _all_locations(server.locations) if x.internal]
-    for name in loc.subrequests:
-        for sub in (x for x in internal if x.pattern == name):
-            out |= {(t, _forwarded(sub, uri, name)) for t, uri in sub.proxies if t}
+    out: set[tuple[str, str]] = set()
+    for loc in _external(server.locations):
+        for name in loc.subrequests:
+            for sub in (x for x in internal if x.pattern == name):
+                out |= {(t, _forwarded(sub, uri, name)) for t, uri in sub.proxies if t}
     return out
 
 
@@ -361,6 +382,8 @@ def _mark_exposure(out: list[dict], routes: list[ProxyRoute], servers: list[Prox
         if r.target:
             proxies_of[r.target].add(r.proxy)
     reached: set[tuple[str, str]] = set()
+    for server in servers:
+        reached |= _subrequest_reached(server)
     for ep in out:
         if ep["workload"] not in routed:
             continue

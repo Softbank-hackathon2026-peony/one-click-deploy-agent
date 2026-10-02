@@ -205,3 +205,40 @@ def test_select_location_nested():
     assert _pick(locs, "/api/z.json") == ("~", r"\.json$")
     assert _pick(locs, "/api/z") == ("", "/api/")
     assert select_location([_loc("~", "([", 0)], "/x") is None  # 잘못된 정규식은 건너뛴다
+
+
+def test_inherited_key_gets_default_fact_per_route(tmp_path):
+    _lb_repo(tmp_path, "upstream ua { server a:80; }\n"
+             "server {\n"
+             "  location /a/ { proxy_pass http://ua; proxy_read_timeout 15s; }\n"
+             "  location /a2/ { proxy_pass http://ua; }\n}\n")
+    rp = _by_id(_analyze(tmp_path)[0])["path-a"]["hops"][1]
+    read = [s for s in rp["settings"] if s["key"] == "proxy_read_timeout"]
+    assert [(s["value"], s["defaulted"]) for s in read] == [(15, False), (60, True)]
+    assert read[0]["evidence"]["line"] == 3
+    assert read[1]["default_source"]["ref"] == "docs/research/capabilities/09-network-lb-ingress.md"
+    assert "evidence" not in read[1]
+
+
+def _ws(roots):
+    return [WorkloadInfo(id=f"w-{n}", kind="web", name=n, entrypoint=EV, status="confirmed", source="compose",
+                         code_root=r) for n, r in roots]
+
+
+def test_shared_code_goes_to_deepest_root(tmp_path):
+    _write(tmp_path, "svc/api/main.py", '@app.get("/items")\ndef items(): ...\n')
+    _write(tmp_path, "svc/other.py", '@app.get("/o")\ndef o(): ...\n')
+    snap = open_snapshot(str(tmp_path), tmp_path / "_w")
+    eps = extract_endpoints(snap, _ws([("outer", "svc"), ("inner", "svc/api")]))
+    assert [(e["workload"], e["route"]) for e in eps] == [("w-inner", "/items"), ("w-outer", "/o")]
+    eps = extract_endpoints(snap, _ws([("outer", "svc"), ("inner", "svc/api"), ("twin", "svc/api")]))
+    assert sorted((e["workload"], e["route"]) for e in eps) == [
+        ("w-inner", "/items"), ("w-outer", "/o"), ("w-twin", "/items")]
+
+
+def test_subrequest_target_routed_without_calling_endpoint(tmp_path):
+    _compose_repo(tmp_path, "server {\n  location = /_v { internal; proxy_pass http://b/internal/v; }\n"
+                  "  location /api/ { auth_request /_v; proxy_pass http://a; }\n}\n", ["a", "b"])
+    _write(tmp_path, "b/main.py", '@app.get("/internal/v")\ndef v(): ...\n@app.post("/other")\ndef o(): ...\n')
+    _, eps = _analyze(tmp_path)
+    assert _exposure(eps) == {("w-b", "/internal/v"): "routed", ("w-b", "/other"): "not-routed"}

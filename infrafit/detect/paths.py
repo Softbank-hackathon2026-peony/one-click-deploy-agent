@@ -88,8 +88,8 @@ def _load_balancer(snap: Snapshot, w: WorkloadInfo, artifacts: list[ParsedArtifa
     return None
 
 
-def _proxy_hop(facts: list[dict], evs: list[dict | None]) -> dict:
-    """리버스 프록시 구간: 설정은 근거가 달린 사실 그대로(같은 키도 값마다 하나씩) + 기본값."""
+def _proxy_hop(groups: list[list[dict]], evs: list[dict | None]) -> dict:
+    """리버스 프록시 구간: 설정은 route·server마다 기본값을 채운 사실을 값마다 하나씩(같은 키라도) 둔다."""
     seen, ev = set(), []
     for e in evs:
         if e and (e["path"], e["line"]) not in seen:
@@ -97,7 +97,7 @@ def _proxy_hop(facts: list[dict], evs: list[dict | None]) -> dict:
             ev.append(e)
     ev.sort(key=lambda e: (e["path"], e["line"] or 0))
     return {"order": 0, "kind": "reverse-proxy", "component": NGINX_PROXY, "osi_layer": "L7",
-            "settings": fact_settings(NGINX_PROXY, facts, kb.defaults()), "evidence": ev}
+            "settings": fact_settings(NGINX_PROXY, groups, kb.defaults()), "evidence": ev}
 
 
 def _front(snap: Snapshot, w: WorkloadInfo, artifacts: list[ParsedArtifact], env: Environment | None) -> list[dict]:
@@ -132,7 +132,7 @@ def build_paths(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[P
                 mine = [s for s in servers if s.proxy == w.id and s.environment == env_name]
                 if not mine:
                     return own
-                return own + [_proxy_hop([f for s in mine for f in s.settings], [s.evidence for s in mine])]
+                return own + [_proxy_hop([s.settings for s in mine], [s.evidence for s in mine])]
             incoming = [r for r in routes if r.target == w.id and r.environment == env_name and r.proxy != w.id
                         and r.proxy in by_id]
             if own or not incoming:
@@ -141,7 +141,7 @@ def build_paths(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[P
             pid = min(r.proxy for r in incoming)
             mine = [r for r in incoming if r.proxy == pid]
             return (_front(snap, by_id[pid], artifacts, env)
-                    + [_proxy_hop([f for r in mine for f in r.settings], [r.evidence for r in mine])] + tail)
+                    + [_proxy_hop([r.settings for r in mine], [r.evidence for r in mine])] + tail)
 
         def make(pid: str, env: Environment | None) -> dict:
             hops = [dict(h) for h in hops_for(env)]

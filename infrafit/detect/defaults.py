@@ -50,13 +50,16 @@ def hop_settings(component: str, explicit: dict, entries) -> list[dict]:
     return sorted(out, key=lambda s: s["key"])
 
 
-def fact_settings(component: str, facts: list[dict], entries) -> list[dict]:
-    """근거가 달린 설정 사실 + 기본값. 같은 (키, 값)은 처음 것 하나로 합치고, 값이 다르면 값마다 따로 둔다.
-    기본값은 명시된 적 없는 키에만 붙인다. 정렬은 (키, 값의 문자열)."""
+def fact_settings(component: str, groups: list[list[dict]], entries) -> list[dict]:
+    """근거가 달린 설정 사실 묶음들(route·server마다 하나) → 구간 설정.
+    묶음마다 그 묶음에 없는 키는 기본값으로 채운 뒤, 같은 (키, 값)은 하나로 합치고(명시한 것이 우선)
+    값이 다르면 값마다 따로 둔다. 정렬은 (키, 값의 문자열)."""
+    explicit, defaulted = [], []
+    for facts in groups:
+        keys = {f["key"] for f in facts}
+        explicit += facts
+        defaulted += [d for d in hop_settings(component, {}, entries) if d["key"] not in keys]
     merged: dict[tuple[str, str], dict] = {}
-    for f in facts:
+    for f in explicit + defaulted:
         merged.setdefault((f["key"], json.dumps(f["value"], sort_keys=True)), dict(f))
-    out = list(merged.values())
-    present = {f["key"] for f in out}
-    out += [d for d in hop_settings(component, {}, entries) if d["key"] not in present]
-    return sorted(out, key=lambda s: (s["key"], str(s["value"])))
+    return sorted(merged.values(), key=lambda s: (s["key"], str(s["value"])))
