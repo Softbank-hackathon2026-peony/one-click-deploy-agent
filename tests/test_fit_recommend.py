@@ -163,6 +163,32 @@ def test_ranking_feasible_then_unknown_then_cost():
     rec = build_recommendation(inv, prof, fit, caps, RULES)
     order = [(c["assignment"]["w-web"], c["unknown_count"]) for c in rec["candidates"]]
     assert order == [(EC2, 0), (ECS, 0), (RUN, 1)]
+    # 합을 모르면 0이나 부분합이 아니라 null이고, 모르는 구성 요소를 적는다
+    run_cost = rec["candidates"][2]["cost"]
+    assert run_cost["monthly_baseline_usd"] is None
+    assert run_cost["unknown_cost_components"] == [RUN]
+    assert all(item["component"] != RUN for item in run_cost["breakdown"])
+    known = rec["candidates"][0]["cost"]
+    assert known["monthly_baseline_usd"] is not None and known["unknown_cost_components"] == []
+
+
+def test_unknown_cost_total_is_null_and_schema_valid():
+    """데이터 구성 요소 하나의 비용을 모르면 컴퓨트 비용을 알아도 합은 null(무료로 읽히지 않게)."""
+    inv = inventory()
+    prof = profile(dim("A3", "장시간 양방향(웹소켓)"), dim("B2", {"value": "있음", "kinds": ["sqlite"]}, ev=[DS_EV]))
+    caps = capabilities()
+    for c in caps:
+        if c["id"] == SQL:
+            del c["capabilities"]["COST.monthly_floor_usd"]
+    fit = build_fit(inv, prof, caps, RULES)
+    rec = build_recommendation(inv, prof, fit, caps, RULES)
+    run = next(c for c in rec["candidates"] if c["assignment"]["w-web"] == RUN)
+    assert run["assignment"]["ds-sqlite"] == SQL
+    assert run["cost"]["monthly_baseline_usd"] is None
+    assert run["cost"]["unknown_cost_components"] == [SQL]
+    for cand in rec["candidates"]:
+        validate("Candidate", cand)
+    assert check_s4(rec, fit, inv, prof) == []
 
 
 def test_no_feasible_candidate():

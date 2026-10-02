@@ -3,7 +3,8 @@
 조합 = 컴퓨트 1 × 데이터 범위마다 같은 클라우드의 관리형 대응.
 SQLite는 영속 로컬 디스크가 있는 컴퓨트에서만 그대로 두고, 아니면 변형 "SQLite→관리형 Postgres"를 적용한다.
 순위: 실현 불가 제외 → unknown 수(모르는 판정 + 모르는 비용) → 월 최소 비용 합 → 운영 부담 → 설정 요구 수.
-비용을 모르면 합에 넣지 않고 unknown 수로만 센다(값을 지어내지 않는다).
+비용을 모르는 구성 요소가 하나라도 있으면 합(monthly_baseline_usd)은 null이다. 0이나 부분합은 "무료"·"싸다"로
+읽히므로 쓰지 않는다. 모르는 구성 요소는 cost.unknown_cost_components 에 적고 unknown 수로도 센다.
 """
 
 from __future__ import annotations
@@ -43,6 +44,11 @@ def agentcore_target(candidate: dict, capabilities: list[dict]) -> str | None:
         if _family(cid) == "cp" and components.get(cid, {}).get("target"):
             return components[cid]["target"]
     return None
+
+
+def _cost_key(total) -> float:
+    """순위용: 합을 모르면(null) 아는 어떤 합보다 뒤."""
+    return float("inf") if total is None else total
 
 
 @dataclass
@@ -169,11 +175,12 @@ class Recommender:
     # ----- 후보 -----
     def _candidate(self, combo: Combo) -> dict:
         used = sorted(set(combo.assignment.values()))
-        breakdown, total, unknown, snapshots = [], 0.0, 0, []
+        breakdown, total, unknown, snapshots, unknown_cost = [], 0.0, 0, [], []
         for cid in used:
             cost, entry = cost_of(self.components.get(cid))
             if cost is None:
                 unknown += 1
+                unknown_cost.append(cid)
                 continue
             total += cost
             item = {"component": cid, "item": "monthly_floor", "monthly_usd": cost,
@@ -194,7 +201,9 @@ class Recommender:
         return {
             "id": "", "rank": 0,
             "assignment": dict(sorted(combo.assignment.items())),
-            "cost": {"monthly_baseline_usd": round(total, 4), "breakdown": breakdown,
+            # 하나라도 모르면 합은 null(0이나 부분합이 무료·저렴으로 읽히지 않게)
+            "cost": {"monthly_baseline_usd": None if unknown_cost else round(total, 4),
+                     "breakdown": breakdown, "unknown_cost_components": unknown_cost,
                      "price_snapshot": max(snapshots) if snapshots else PRICE_SNAPSHOT_DEFAULT},
             "unknown_count": unknown,
             # 운영 부담 값이 하나도 없으면 보수적으로 high
@@ -220,7 +229,7 @@ class Recommender:
                 rejected.append({"id": combo.compute, "reasons": reasons})
             else:
                 feasible.append(self._candidate(combo))
-        feasible.sort(key=lambda c: (c["unknown_count"], c["cost"]["monthly_baseline_usd"],
+        feasible.sort(key=lambda c: (c["unknown_count"], _cost_key(c["cost"]["monthly_baseline_usd"]),
                                      OPS_ORDER[c["ops_burden"]], c["_config"],
                                      sorted(c["assignment"].items())))
         for i, cand in enumerate(feasible, start=1):
