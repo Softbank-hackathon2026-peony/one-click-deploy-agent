@@ -26,6 +26,7 @@ components:
   - {id: "sc:local/in-process/default", family: sc, name: "앱 프로세스 안 스케줄러", source: docs/research/capabilities/03-cache-queue-scheduler-realtime-storage.md}
   - {id: "sc:k8s/cronjob/default", family: sc, name: "Kubernetes CronJob", source: docs/research/capabilities/03-cache-queue-scheduler-realtime-storage.md}
   - {id: "sc:vercel/cron/unspecified-plan", family: sc, name: "Vercel Cron (플랜 미확인)", source: docs/research/capabilities/03-cache-queue-scheduler-realtime-storage.md}
+  - {id: "sc:github/actions-schedule/default", family: sc, name: "GitHub Actions schedule", source: docs/research/capabilities/03-cache-queue-scheduler-realtime-storage.md}
   # 실시간
   - {id: "rt:lib/socketio/no-adapter", family: rt, name: "Socket.IO (어댑터 없음)", source: docs/research/capabilities/03-cache-queue-scheduler-realtime-storage.md}
   - {id: "rt:lib/socketio/redis-adapter", family: rt, name: "Socket.IO (Redis 어댑터)", source: docs/research/capabilities/03-cache-queue-scheduler-realtime-storage.md}

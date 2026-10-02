@@ -83,3 +83,16 @@ def match_signatures(snap: Snapshot, manifests: Manifests, sigs) -> list[Match]:
         unique.sort(key=lambda e: is_aux_path(e["path"]))
         out.append(Match(sig["id"], component, sig["role"], status, tuple(unique)))
     return out
+
+
+def unmapped_signature_labels(snap: Snapshot, manifests: Manifests, sigs) -> list[dict]:
+    """구성 요소 ID가 없는 시그니처(kb.unmapped_signatures)가 맞으면 unmapped 항목 {label, evidence}. 근거가 모두
+    보조 코드이면 내지 않는다."""
+    out: list[dict] = []
+    for sig in sigs:
+        ev = _eval(sig["when"], snap, manifests)
+        unique = [{k: v for k, v in e.items() if k != "kind"} for i, e in enumerate(ev) if e not in ev[:i]]
+        if unique and not all(is_aux_path(e["path"]) for e in unique):
+            unique.sort(key=lambda e: is_aux_path(e["path"]))
+            out.append({"label": sig["label"], "evidence": unique})
+    return out

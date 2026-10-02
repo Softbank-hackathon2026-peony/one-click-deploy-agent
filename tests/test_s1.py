@@ -13,7 +13,9 @@ def test_analyze_until_s1_on_small_repo(tmp_path):
     ctx = analyze(str(repo), tmp_path / "out", until="S1", run_id="r1")
     inv = json.loads((ctx.out_dir / "inventory.json").read_text())
     assert [w["id"] for w in inv["workloads"]] == ["w-web"]
-    assert [(e["method"], e["route"]) for e in inv["endpoints"]] == [("GET", "/health")]
+    assert [(e["method"], e["route"], e["status"]) for e in inv["endpoints"]] == [
+        ("GET", "/health", "confirmed"), ("GET", "/openapi.json", "candidate"), ("GET", "/docs", "candidate"),
+        ("GET", "/redoc", "candidate")]
     assert [d["id"] for d in inv["datastores"]] == ["ds-postgresql"]
     assert inv["request_paths"][0]["hops"][0]["component"] == "nw:app/uvicorn/default"
     assert check_run(ctx.out_dir) == []
