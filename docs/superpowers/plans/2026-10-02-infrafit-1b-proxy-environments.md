@@ -36,7 +36,7 @@ tests/test_endpoints_prefix.py, tests/test_environments.py, tests/test_nginx.py,
 
 ---
 
-### 작업 1: 라우터 접두어
+### Task 1: 라우터 접두어
 
 **Files:** Modify `infrafit/detect/endpoints.py`; Test `tests/test_endpoints_prefix.py`
 
@@ -63,7 +63,7 @@ tests/test_endpoints_prefix.py, tests/test_environments.py, tests/test_nginx.py,
 
 ---
 
-### 작업 2: 환경과 환경별 요청 경로
+### Task 2: 환경과 환경별 요청 경로
 
 **Files:** Create `infrafit/detect/environments.py`; Modify `infrafit/detect/paths.py`, `infrafit/stages/s1_inventory.py`, `infrafit/consistency.py`, `schemas/infrafit.schema.json`; Test `tests/test_environments.py`
 
@@ -97,7 +97,7 @@ tests/test_endpoints_prefix.py, tests/test_environments.py, tests/test_nginx.py,
 
 ---
 
-### 작업 3: nginx 설정 읽기와 upstream 해석
+### Task 3: nginx 설정 읽기와 upstream 해석
 
 **Files:** Create `infrafit/detect/nginx.py`; Modify `pyproject.toml`(crossplane); Test `tests/test_nginx.py`
 
@@ -156,7 +156,7 @@ location과 설정
 
 ---
 
-### 작업 4: 프록시 체인 경로, 공유 워크로드, exposure
+### Task 4: 프록시 체인 경로, 공유 워크로드, exposure
 
 **Files:** Modify `infrafit/detect/paths.py`, `infrafit/detect/endpoints.py`, `infrafit/stages/s1_inventory.py`, `infrafit/consistency.py`, `schemas/infrafit.schema.json`, `knowledge/defaults.yaml`; Test `tests/test_proxy_paths.py`
 
@@ -206,7 +206,7 @@ exposure
 
 ---
 
-### 작업 5: 골든 갱신과 실제 저장소 확인
+### Task 5: 골든 갱신과 실제 저장소 확인
 
 **Files:** `fixtures/*/golden/*`, `schemas/examples/f2-sqlite-erp/*`(스크립트 산출물만)
 
