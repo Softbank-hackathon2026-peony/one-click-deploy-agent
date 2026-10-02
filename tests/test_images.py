@@ -385,3 +385,14 @@ def test_monitoring_compose_services_are_unmapped_not_workloads(tmp_path):
     inv = _inventory(tmp_path)
     assert [w["id"] for w in inv["workloads"]] == ["w-api"]
     assert [u["label"] for u in inv["unmapped"]] == ["image:postgres-exporter", "image:prom/prometheus"]
+
+
+def test_app_server_evidence_falls_back_to_linked_dockerfile_command(tmp_path):
+    repo = tmp_path / "repo"
+    _write(repo, "requirements.txt", "fastapi==0.115\n")
+    _write(repo, "main.py", APP)
+    _write(repo, "Dockerfile", 'FROM python:3.12\nCOPY . .\nCMD ["uvicorn", "main:app"]\n')
+    _write(repo, "docker-compose.yml", "services:\n  web:\n    image: registry/x:latest\n")
+    inv = _inventory(tmp_path)
+    hop = next(h for p in inv["request_paths"] for h in p["hops"] if h["kind"] == "app-server")
+    assert [(e["path"], e["line"]) for e in hop["evidence"]] == [("Dockerfile", 3)]

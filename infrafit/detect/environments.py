@@ -8,7 +8,7 @@ from pathlib import PurePosixPath
 
 import yaml
 
-from infrafit.detect.artifacts import ParsedArtifact, as_dict, build_source, is_build_path, pod_spec
+from infrafit.detect.artifacts import ParsedArtifact, as_dict, build_source, dockerfile_at, is_build_path, pod_spec
 from infrafit.detect.compose import (COMPOSE_BASE_NAMES, DEVCONTAINER, compose_build, compose_family,
                                      compose_variant, is_compose_override)
 from infrafit.detect.images import image_name
@@ -319,13 +319,28 @@ def env_command_evidence(snap: Snapshot, env: Environment | None, w: WorkloadInf
             rel = env.origins.get(name, {}).get("command", env.source)
             return [evidence(snap, rel, _compose_key_line(snap, rel, name, "command"))]
         build = compose_build(env.source, svc) if svc is not None else None
-        df = next((a for a in artifacts if a.kind == "dockerfile" and a.path == build[1]), None) if build else None
-        evs = [f["evidence"] for f in (df.settings if df else [])
-               if f.get("key") in ("entrypoint", "cmd") and f.get("evidence")]
+        evs = _dockerfile_command_evidence(dockerfile_at(build[1] if build else None, artifacts))
         if evs:
-            return sorted(evs, key=lambda e: e["line"] or 0)
+            return evs
     elif env is not None:
         cmd = _rendered_command(env, w, artifacts)
         if cmd and cmd != w.command:
             return [evidence(snap, env.source)]
+    # 명령이 연결된 Dockerfile의 CMD·ENTRYPOINT에서 왔으면 그 줄이 근거다
+    df = workload_dockerfile(w, artifacts)
+    if df is not None and env_command(env, w, artifacts) in _dockerfile_commands(df):
+        return _dockerfile_command_evidence(df) or [w.entrypoint]
     return [w.entrypoint]
+
+
+def _dockerfile_commands(df: ParsedArtifact) -> set[str]:
+    """Dockerfile이 정하는 실행 명령 표기들: CMD만, ENTRYPOINT 뒤에 CMD."""
+    full = " ".join(str(df.get(k)) for k in ("entrypoint", "cmd") if df.get(k))
+    return {c for c in (str(df.get("cmd") or ""), full) if c}
+
+
+def _dockerfile_command_evidence(df: ParsedArtifact | None) -> list[dict]:
+    """Dockerfile 최종 이미지의 ENTRYPOINT·CMD 줄 근거(줄 순)."""
+    evs = [f["evidence"] for f in (df.settings if df else [])
+           if f.get("key") in ("entrypoint", "cmd") and f.get("evidence")]
+    return sorted(evs, key=lambda e: e["line"] or 0)
