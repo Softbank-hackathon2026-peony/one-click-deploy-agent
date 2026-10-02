@@ -1,5 +1,7 @@
 # 네트워크 능력 표 — CDN, DNS, WAF·DDoS, 인증서, 출구 NAT·고정 IP, 사설 연결
 
+삭제된 절: 1.7 Fastly, 5.5.7 Render 출구 IP, 5.5.8 Fly.io 출구 IP, 사유: 부적격 출처 (2026-10-02. 부적격 출처에 기댄 표 행과 줄도 지웠다. 남은 절 번호는 그대로)
+
 - 작성일: 2026-10-01 (모든 출처 확인일 2026-10-01, 출구 절 일부 2026-10-02 재확인)
 - 형식·능력 키: [README.md](README.md) §1, §2.8 (NW.* 20개). 능력 값마다 OSI 계층(L3 / L4 / L7 / TLS)을 "계층" 열에 적었다.
 - 요구 쪽: [../dimensions.md](../dimensions.md). 짝 문서: [09-network-lb-ingress.md](09-network-lb-ingress.md)(로드밸런서·인그레스), [05-compute-tier1-2.md](05-compute-tier1-2.md)(CP.networking), [08-artifacts-compute.md](08-artifacts-compute.md)(컴퓨트 산출물)
@@ -9,11 +11,11 @@
 
 | 계열 | 구성 요소 |
 |---|---|
-| 1. CDN | Amazon CloudFront, Google Cloud CDN, Google Media CDN(요약), Cloudflare CDN(프록시), Vercel 엣지 캐시(요약), Netlify 엣지 캐시(요약), Fastly(요약) |
+| 1. CDN | Amazon CloudFront, Google Cloud CDN, Google Media CDN(요약), Cloudflare CDN(프록시), Vercel 엣지 캐시(요약), Netlify 엣지 캐시(요약), Fastly(요약, 삭제됨) |
 | 2. DNS | Route 53(라우팅 정책, 헬스 체크 기반 장애 조치), Cloud DNS, Cloudflare DNS, 도메인 등록 기관 기본 DNS(요약) |
 | 3. WAF·DDoS | AWS WAF, AWS Shield Standard, AWS Shield Advanced, Google Cloud Armor Standard, Cloud Armor Enterprise, Cloudflare WAF·DDoS, Vercel Firewall(요약) |
 | 4. 인증서 | AWS Certificate Manager, Google Certificate Manager·Google 관리형 인증서, Let's Encrypt + cert-manager |
-| 5. 출구 | AWS NAT Gateway(존 / 리전), NAT 인스턴스(요약), Google Cloud NAT, 고정 출구 IP 방법(Cloud Run, Lambda, ECS Fargate, Vercel, Netlify, Cloudflare Workers, Render, Fly.io, Railway, Heroku), 퍼블릭 IPv4 요금 |
+| 5. 출구 | AWS NAT Gateway(존 / 리전), NAT 인스턴스(요약), Google Cloud NAT, 고정 출구 IP 방법(Cloud Run, Lambda, ECS Fargate, Vercel, Netlify, Cloudflare Workers, Render(삭제됨), Fly.io(삭제됨), Railway, Heroku), 퍼블릭 IPv4 요금 |
 | 6. 사설 연결 | VPC 게이트웨이 엔드포인트, VPC 인터페이스 엔드포인트, PrivateLink(엔드포인트 서비스·리소스 엔드포인트), Lambda VPC 연결, Serverless VPC Access 커넥터, Direct VPC egress, Private Service Connect, Cloud SQL 사설 IP, Memorystore 사설 연결, SaaS DB(Supabase·Neon·PlanetScale·Atlas·Upstash) 사설 연결(요약) |
 
 ### 표기
@@ -21,16 +23,15 @@
 - `미확인`: 공식 문서를 열었지만 값을 찾지 못했거나 페이지를 열지 못함. `[충돌]`: 공식 출처끼리 값이 다름(양쪽 인용). `(추론)`: 인용한 사실에서 이끌어 낸 판단.
 - "계층" 열: 그 값이 작동하는 계층. DNS는 L7(응용 계층 프로토콜)로 적었다. 출구 NAT·사설 연결 계열은 요청 경로의 **반대 방향**(앱 → 외부·데이터) 연결에 대한 값이다.
 - (요약) 표시 구성 요소는 판정 결정값만 채우고 나머지 키는 한 행으로 묶었다.
-- Terraform 리소스·인자 이름은 provider 저장소의 레지스트리 원문(`website/docs/r/*.html.markdown`)이나 레지스트리 API로 확인했다. Checkov ID는 https://www.checkov.io/5.Policy%20Index/terraform.html 인덱스와 bridgecrewio/checkov 소스에서 존재를 확인한 것만 적었다. ⚠️출처부적격
 
 ## 목차
 
 0. [요약 비교표](#0-요약-비교표)
-1. [CDN](#1-cdn) — [1.1 CloudFront](#11-amazon-cloudfront--표준-배포pay-as-you-go-기본-flat-rate-요금제-선택-가능) · 1.2 Cloud CDN · 1.3 Media CDN · 1.4 Cloudflare · 1.5 Vercel · 1.6 Netlify · 1.7 Fastly
+1. [CDN](#1-cdn) — [1.1 CloudFront](#11-amazon-cloudfront--표준-배포pay-as-you-go-기본-flat-rate-요금제-선택-가능) · 1.2 Cloud CDN · 1.3 Media CDN · 1.4 Cloudflare · 1.5 Vercel · 1.6 Netlify · 1.7 Fastly(삭제됨)
 2. [DNS](#2-dns) — 2.1 Route 53 · 2.2 Cloud DNS · 2.3 Cloudflare DNS · 2.4 등록 기관 DNS
 3. [WAF·DDoS](#3-wafddos) — 3.1 AWS WAF · 3.2 Shield Standard · 3.3 Shield Advanced · 3.4 Cloud Armor Standard · 3.5 Cloud Armor Enterprise · 3.6 Cloudflare · 3.7 Vercel Firewall
 4. [인증서](#4-인증서) — 4.1 ACM · 4.2 Google Certificate Manager·관리형 인증서 · 4.3 Let's Encrypt + cert-manager
-5. [출구 NAT·고정 IP](#5-출구-nat고정-ip) — 5.1 NAT GW 존 · 5.2 NAT GW 리전 · 5.3 NAT 인스턴스 · 5.4 Cloud NAT · 5.5 플랫폼별 고정 출구 IP(5.5.1~5.5.10) · 5.6 퍼블릭 IPv4
+5. [출구 NAT·고정 IP](#5-출구-nat고정-ip) — 5.1 NAT GW 존 · 5.2 NAT GW 리전 · 5.3 NAT 인스턴스 · 5.4 Cloud NAT · 5.5 플랫폼별 고정 출구 IP(5.5.1~5.5.10, 5.5.7 Render·5.5.8 Fly.io는 삭제됨) · 5.6 퍼블릭 IPv4
 6. [사설 연결](#6-사설-연결) — 6.1 게이트웨이 엔드포인트 · 6.2 인터페이스 엔드포인트 · 6.3 PrivateLink · 6.4 Lambda VPC · 6.5 VPC Access 커넥터 · 6.6 Direct VPC egress · 6.7 PSC · 6.8 Cloud SQL 사설 IP · 6.9 Memorystore · 6.10 SaaS DB
 7. [경로 규칙 후보](#7-경로-규칙-후보)
 8. [조사 결과 요약](#8-조사-결과-요약)
@@ -51,7 +52,6 @@
 | 1.4 Cloudflare CDN(프록시) | L7 | HTML·JSON 기본 미캐시, 헤더 없으면 200 = 120분; private/no-store/Set-Cookie 미캐시 단 Edge TTL override 시 무시·Set-Cookie 제거; 524 = 125초; 업로드 100 MB(Free/Pro) | ICN PoP | $0(Free) |
 | 1.5 Vercel CDN 캐시 | L7 | s-maxage 필수, Set-Cookie·Authorization·private 있으면 미캐시, 10 MB, 캐시 키에 배포 ID | icn1 | 미확인 |
 | 1.6 Netlify CDN 캐시 | L7 | 정적 자산 s-maxage 1년+배포 시 무효화, 동적 기본 미캐시, private 미저장 | 미확인 | 미확인 |
-| 1.7 Fastly | L7 | 폴백 TTL 3,600(커스텀 VCL 120), private·Set-Cookie pass, 첫 바이트 15초, 퍼지 약 150 ms | 미확인 | 미확인 |
 
 ### DNS
 
@@ -96,8 +96,6 @@
 | 5.5.4 Vercel Static IPs | L3 | 공유 IP 쌍(리전별), Functions만(Middleware 제외) / Secure Compute 전용 | 미확인 | $100/월/프로젝트 + 전송 |
 | 5.5.5 Netlify Private Connectivity | L3 | Enterprise 애드온 / 함수 리전 cmh·fra·lhr | 없음 | 미확인(견적) |
 | 5.5.6 Cloudflare Workers | L3/L7 | Dedicated CDN Egress IP(Enterprise), fetch()만, connect() 제외 | 글로벌 | 미확인(견적) |
-| 5.5.7 Render | L3 | 기본 리전 공유 CIDR / 전용 IP 세트(3개, Pro+) | 미확인 | 세트당 월 요금(미확인) |
-| 5.5.8 Fly.io | L3 | 기본 출구 IP 가변 / static egress IP, IP당 64 Machine | 미확인 | $3.60/월/IPv4 |
 | 5.5.9 Railway | L3 | Pro, 공유 가능 IPv4, 리전 이동 시 변경 | 미확인 | 미확인 |
 | 5.5.10 Heroku Private Spaces | L3 | 스페이스 전용 고정 IP 목록 | 미확인 | 미확인 |
 | 5.6 퍼블릭 IPv4 | L3 | AWS 사용·유휴 동일 $0.005/시간 / GCP 미사용 정적 $0.01 / AWS 750시간 프리티어(사용 중만) / egress-only IGW 무료 | AWS 있음, GCP 서울값 미확인 | $3.65/월/IP |
@@ -128,7 +126,6 @@
 | 능력 키 | 계층 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|---|
 | NW.layer | L7 | 리버스 프록시(엣지에서 TLS 종단, 오리진에 새 연결) | 오리진으로는 HTTP/1.1로 전달 | https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/RequestAndResponseBehaviorCustomOrigin.html · "CloudFront forwards requests to your custom origin using HTTP/1.1." · 2026-10-01 |
-| NW.idle_timeout | L7 | 오리진 keep-alive 기본 5초, 범위 1–300초(쿼터, 상향 요청 가능) | 커스텀·VPC 오리진만. 뷰어 쪽 유휴 값은 `미확인`. [충돌] Terraform 문서는 "upper limit of 60"이라고 적음 | https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/DownloadDistValuesOrigin.html · "For keep-alive timeout , the default is 5 seconds." · 2026-10-01 / https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cloudfront-limits.html · "Keep-alive timeout per origin ... 1-300 seconds" · 2026-10-01 / https://github.com/hashicorp/terraform-provider-aws/blob/main/website/docs/r/cloudfront_distribution.html.markdown · "By default, AWS enforces an upper limit of `60`." · 2026-10-01 ⚠️출처부적격 |
 | NW.request_timeout | L7 | 오리진 응답 타임아웃 기본 30초, 범위 1–120초(쿼터, 상향 요청 가능). 연결 타임아웃 기본 10초×3회(최대 30초). 응답 완료 타임아웃(선택, 미설정 시 상한 없음) | 패킷 사이 대기에도 같은 값 적용. GET/HEAD는 재시도, POST/PUT/PATCH/DELETE/OPTIONS는 재시도 없이 끊음. 초과 시 504. [충돌] 쿼터 페이지 1–120초 vs Terraform 문서 "maximum is 60 seconds" | https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/DownloadDistValuesOrigin.html · "For response timeout, the default is 30 seconds." · 2026-10-01 / https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cloudfront-limits.html · "Response timeout per origin ... 1-120 seconds" · 2026-10-01 / https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/RequestAndResponseBehaviorCustomOrigin.html · "CloudFront drops the connection and doesn't try again to contact the origin." · 2026-10-01 |
 | NW.websocket | L7 | 지원(모든 배포에서 자동 활성). 유휴 10분이면 끊김 | 오리진 요청 정책에서 `Sec-WebSocket-Key`·`Sec-WebSocket-Version` 전달(또는 AllViewer) 필요. SSE 유휴 한도는 `미확인`(응답 타임아웃 적용으로 추론) | https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-working-with.websockets.html · "WebSocket functionality is automatically enabled to work with any distribution." · 2026-10-01 / https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cloudfront-limits.html · "Origin response timeout (idle timeout) 10 minutes" · 2026-10-01 ⚠️근거없음 |
 | NW.protocols | L7 | 뷰어: HTTP/1.1, HTTP/2, HTTP/3(TLS 1.3+SNI). gRPC 지원(HTTPS 종단 간, POST 허용, HTTP/2 필요). 오리진: HTTP/1.1 | Terraform `http_version` 기본 `http2` | https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/DownloadDistValuesGeneral.html · "For viewers and CloudFront to use HTTP/3, viewers must support TLSv1.3 and Server Name Indication (SNI)." · 2026-10-01 / https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-using-grpc.html · "CloudFront only supports secure (HTTPS-based) gRPC connections." · 2026-10-01 |
@@ -192,23 +189,6 @@
   - `viewer_certificate.acm_certificate_arn`(us-east-1) + `minimum_protocol_version = "TLSv1.2_2021"` 이상 → F5.
   - `web_acl_id` → F5·D1 공개 서비스.
   - `http_version = "http2and3"` (선택), `grpc_config.enabled` → gRPC 경로.
-- Checkov(실재 확인, https://www.checkov.io/5.Policy%20Index/terraform.html): ⚠️출처부적격
-  - CKV_AWS_68 "CloudFront Distribution should have WAF enabled"
-  - CKV_AWS_86 "Ensure CloudFront distribution has Access Logging enabled"
-  - CKV_AWS_174 "Verify CloudFront Distribution Viewer Certificate is using TLS v1.2 or higher"
-  - CKV_AWS_305 "Ensure CloudFront distribution has a default root object configured"(API 전용 배포에선 오탐 가능 — 추론) ⚠️근거없음
-  - CKV_AWS_310 "Ensure CloudFront distributions should have origin failover configured"
-  - CKV_AWS_34 "Ensure CloudFront distribution ViewerProtocolPolicy is set to HTTPS"
-  - CKV_AWS_216 "Ensure CloudFront distribution is enabled"
-  - CKV_AWS_374 "Ensure AWS CloudFront web distribution has geo restriction enabled"
-  - CKV_AWS_259 "Ensure CloudFront response header policy enforces Strict Transport Security"
-  - CKV2_AWS_32 "Ensure CloudFront distribution has a response headers policy attached"
-  - CKV2_AWS_42 "Ensure AWS CloudFront distribution uses custom SSL certificate"
-  - CKV2_AWS_46 "Ensure AWS CloudFront Distribution with S3 have Origin Access set to enabled"
-  - CKV2_AWS_47 "Ensure AWS CloudFront attached WAFv2 WebACL is configured with AMR for Log4j Vulnerability"
-  - CKV2_AWS_54 "Ensure AWS CloudFront distribution is using secure SSL protocols for HTTPS communication"
-  - CKV2_AWS_72 "Ensure AWS CloudFront origin protocol policy enforces HTTPS-only"
-  - 최소 TTL·Set-Cookie 캐시 관련 체크: 해당 체크 없음
 - 배포 후 검증:
   - `curl -sI https://<도메인>/static/app.js` 두 번 → 두 번째 `x-cache: Hit from cloudfront`, `age:` 증가
   - `curl -sI https://<도메인>/api/me -H 'Cookie: session=…'` 두 번 → 둘 다 `x-cache: Miss from cloudfront` 또는 `RefreshHit` 아님, `age` 헤더 없음(개인화 경로 미캐시)
@@ -446,37 +426,6 @@
 
 ---
 
-## 1.7 Fastly — CDN 서비스(VCL) (요약)
-- 계열: 네트워크-CDN
-- 서울 리전: `미확인`
-
-| 능력 키 | 계층 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
-|---|---|---|---|---|
-| NW.layer | L7 | 리버스 프록시 캐시(VCL 또는 Compute) | | https://www.fastly.com/documentation/guides/concepts/edge-state/cache/cache-freshness/ · "The standard VCL boilerplate (which is also included in any Fastly CDN service that does not use custom VCL)" · 2026-10-01 ⚠️출처부적격 |
-| NW.request_timeout | L7 | `first_byte_timeout` 기본 15,000 ms, `between_bytes_timeout` 기본 10,000 ms, `connect_timeout` 기본 1,000 ms. 초과 시 합성 503 | | https://github.com/fastly/terraform-provider-fastly/blob/main/docs/resources/service_vcl.md · "`first_byte_timeout` (Number) How long to wait for the first bytes in milliseconds. Default `15000`" · 2026-10-01 / https://www.fastly.com/documentation/reference/api/services/backend/ · "If exceeded, the connection is aborted and a synthetic 503 response will be presented instead." · 2026-10-01 ⚠️출처부적격 |
-| NW.caching | L7 | TTL 우선순위: `Surrogate-Control: max-age` > `Cache-Control: s-maxage` > `max-age` > `Expires`. 헤더 없으면 폴백 TTL 3,600초(사용자 지정 VCL이면 120초). 기본 VCL은 **`Cache-Control: private` → pass, `Set-Cookie` → pass**. `no-store` 단독 처리: 보일러플레이트 목록에 없음 → `미확인`(문서 예시는 Fastly 미캐시를 `private`로 설명). URL 퍼지 약 150 ms, soft purge 지원 | | https://www.fastly.com/documentation/guides/full-site-delivery/caching/controlling-caching/ · "the TTL is 3600 seconds. If you use custom VCL or Fiddle , the default is 120 seconds." · 2026-10-01 / https://www.fastly.com/documentation/guides/concepts/edge-state/cache/cache-freshness/ · "If the response has a Set-Cookie header, execute a return(pass) ." · 2026-10-01 / 같은 페이지 · "will not be cached by Fastly (the private directive)" · 2026-10-01 / https://www.fastly.com/documentation/guides/concepts/edge-state/cache/purging/ · "URL purges take around 150ms to complete" · 2026-10-01 ⚠️출처부적격 |
-| NW.idle_timeout / NW.websocket / NW.protocols / NW.body_size / NW.draining / NW.health_check / NW.tls / NW.client_ip / NW.routing / NW.scaling / NW.availability / NW.security / NW.regions / NW.cost_floor | — | `미확인` | — | — |
-| NW.dns / NW.egress / NW.private_connectivity | — | 해당 없음 | — | — |
-
-### 비용 구조
-- `미확인`.
-
-### 교체 계열 정보
-- `Surrogate-Control`은 Fastly가 소비하고 하류(브라우저)에 전달 안 하는 용도(문서 예시). CloudFront·Cloudflare로 옮기면 `s-maxage`로 바꿔야 함(추론). ⚠️근거없음
-
-### 함정
-- 첫 바이트 타임아웃 15초 → A2 "수십 초"면 503. CloudFront(30초)·Cloudflare(125초)보다 짧음.
-- 사용자 지정 VCL로 바꾸면 폴백 TTL이 3,600 → 120초로 바뀌고 UI 설정 무시.
-- `no-store`만 보내고 `private`를 빼면 Fastly가 캐시할 가능성(추론) → 개인화 응답은 `private, no-store` 둘 다. ⚠️근거없음
-
-### 생성 산출물
-- Terraform 리소스: `fastly_service_vcl` (https://registry.terraform.io/providers/fastly/fastly/latest/docs/resources/service_vcl) ⚠️출처부적격
-- 요구에 따라 반드시 명시할 속성: `default_ttl`(명시), `backend.first_byte_timeout`(A2 + 여유), `backend.between_bytes_timeout`, `backend.connect_timeout`.
-- Checkov: 해당 체크 없음
-- 배포 후 검증: `curl -sI https://<도메인>/static/app.js` 두 번 → `x-cache: HIT`, `x-cache-hits` 증가; 개인화 경로 `x-cache: MISS`
-
----
-
 # 2. DNS
 
 ## 2.1 Amazon Route 53 — 공개 호스팅 영역 + 헬스 체크(DNS 장애 조치)
@@ -496,14 +445,12 @@
 | NW.tls | — | 해당 없음 (TLS 종단 없음). HTTPS 헬스 체크는 TLS 1.0~1.2 지원 엔드포인트 필요, SNI는 HTTPS 기본 on(Terraform 기본값 설명) | 인증서 만료돼도 헬스 체크는 통과 → 인증서 만료 장애를 DNS 장애 조치로 못 잡음 | https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/health-checks-creating-values.html · "If you choose HTTPS, the endpoint must support TLS v1.0, v1.1, or v1.2." · 2026-10-01 |
 | NW.client_ip | — | 해당 없음 (지연·지리·IP 기반 라우팅은 리졸버 IP 또는 EDNS0 client-subnet으로 위치 추정) | | https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-policy.html · "How Amazon Route 53 uses EDNS0 to estimate the location of a user" · 2026-10-01 |
 | NW.routing | L7 | 단순, 장애 조치(액티브-패시브), 지리 위치, 지리 근접, 지연, IP 기반, 다중 값(정상 레코드 최대 8개 무작위), 가중치. IP 기반 외에는 사설 호스팅 영역에서도 가능. 가중치 0 레코드는 0보다 큰 레코드가 모두 비정상일 때만 고려 | 지리·지리 근접·지연 사용 시 기본(default) 레코드 없으면 일부 클라이언트는 응답 없음 | https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-policy.html · "Multivalue answer routing policy – Use when you want Route 53 to respond to DNS queries with up to eight healthy records selected at random." · 2026-10-01; https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/best-practices-dns.html · "always set a default, unless you want some clients to receive no answer responses" · 2026-10-01 |
-| NW.scaling | — | 관리형(쿼리 처리 증설 불필요, (추론)). API는 계정당 초당 5요청 제한 → 레코드 많은 Terraform plan/apply 느려짐 | | https://github.com/hashicorp/terraform-provider-aws/blob/main/website/docs/r/route53_record.html.markdown · "AWS Route 53 enforces a 5 requests-per-second rate limit on all AWS Route 53 APIs for an AWS account" · 2026-10-01 ⚠️출처부적격 ⚠️근거없음 |
 | NW.availability | L7 | 데이터 플레인(DNS 응답·헬스 체크)은 100% 가용 설계, SLA 크레딧은 월 가동률 100% 미만부터. 컨트롤 플레인(API·콘솔·레코드 변경)은 us-east-1. 공개 영역 "가속 복구" 켜면 us-east-1 장애 시 약 60분 안에 변경 재개 | SLA는 API·콘솔 제외. 장애 조치는 레코드 변경(컨트롤 플레인)이 아니라 헬스 체크(데이터 플레인)로 구성해야 함 | https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/best-practices-dns.html · "are globally distributed, and are designed for 100% availability" · 2026-10-01; https://aws.amazon.com/route53/sla/ · "Less than 100% but greater than or equal to 99.99% 10%" · 2026-10-01; https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/accelerated-recovery.html · "you can resume making DNS changes within about 60 minutes after AWS detects that the US East (N. Virginia) Region is impaired" · 2026-10-01 |
 | NW.caching | — | 해당 없음 (HTTP 캐시 아님. DNS 캐시는 NW.dns의 TTL) | | — |
 | NW.security | L7 | DNSSEC 서명(공개 영역, KSK는 고객 KMS 비대칭 키, ZSK는 Route 53 관리). 서명 시 TTL 최대 1주 강제. 다중 공급자 구성 불가. 부모 영역에 DS 필요 | DNSSEC 오류는 영역 전체 해석 불가로 이어짐 → `DNSSECInternalFailure`·`DNSSECKeySigningKeysNeedingAction` 경보 권장 | https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-configuring-dnssec.html · "each KSK is based on an asymmetric customer managed key in AWS KMS" / "Route 53 enforces a TTL of one week for the records" · 2026-10-01 |
 | NW.dns | L7 | **TTL**: 비별칭 레코드는 TTL 필수, 권장 범위 60~172,800초. 헬스 체크 대상 레코드는 60 또는 120초, NS·MX 등은 3600~86400초. **별칭**: AWS 리소스 대상이면 TTL 지정 불가(리소스 기본 TTL 사용, ELB는 60초), 같은 영역 레코드 대상이면 그 레코드 TTL. 영역 apex에 생성 가능. AWS 리소스 대상 별칭 쿼리는 무료. **장애 조치 동작**: 헬스 체크 없는 레코드는 항상 정상. 그룹 전체가 비정상이면 전체를 정상으로 간주(fail-open). 장애 조치 레코드는 primary·secondary 모두 비정상이면 primary 반환. secondary에 헬스 체크 없으면 primary 비정상 시 무조건 secondary. 별칭은 `Evaluate Target Health=Yes`여야 대상 상태 반영, No면 대상이 모두 실패해도 그 가지로 계속 보냄 | 장애 조치 체감 시간 ≈ 탐지(주기×failure_threshold, 기본 30×3=90초) + TTL (추론) | https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/best-practices-dns.html · "The recommended range for TTL values is 60 to 172,800 seconds." / "Setting a TTL of 60 or 120 seconds is a common choice for this scenario." · 2026-10-01; https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resource-record-sets-choosing-alias-non-alias.html · "If an alias record points to an AWS resource, you can't set the time to live (TTL); Route 53 uses the default TTL for the resource." / "Route 53 doesn't charge for alias queries to AWS resources." · 2026-10-01; https://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/how-elastic-load-balancing-works.html · "The DNS entry also specifies the time-to-live (TTL) of 60 seconds." · 2026-10-01; https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/health-checks-how-route-53-chooses-records.html · "If none of the records in a group of records are healthy ... Route 53 considers all the records in the group to be healthy" / "If Route 53 considers both the primary and secondary records unhealthy, Route 53 returns the primary record." / "Route 53 always responds to DNS queries by using the secondary record. This is true even if the secondary record is unhealthy." · 2026-10-01; https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover-complex-configs.html · "If you set Evaluate Target Health to No, Route 53 continues to route traffic to the records that an alias record refers to even if health checks for those records are failing." · 2026-10-01 ⚠️근거없음 |
 | NW.egress | — | 해당 없음 | | — |
 | NW.private_connectivity | L7 | 사설 호스팅 영역(VPC 연결)으로 VPC 안 이름 해석. 사설 영역 쿼리 무료. 단, 헬스 체크는 사설 IP 대상 불가 → 사설 엔드포인트 장애 조치는 CloudWatch 경보 기반 체크 필요 (추론) | | https://aws.amazon.com/route53/pricing/ · "Queries on private hosted zones are provided at no additional cost to Route 53 customers." · 2026-10-01; https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/health-checks-creating-values.html · "Route 53 cannot check the health of endpoints for which the IP address is in local, private, nonroutable, or multicast ranges." · 2026-10-01 ⚠️근거없음 |
-| NW.regions | — | 글로벌 서비스. 헬스 체커 리전 선택지 8개(us-east-1, us-west-1, us-west-2, eu-west-1, ap-southeast-1, ap-southeast-2, ap-northeast-1, sa-east-1) — 서울 없음 | | https://github.com/hashicorp/terraform-provider-aws/blob/main/website/docs/r/route53_health_check.html.markdown · "Valid values are `us-east-1`, `us-west-1`, `us-west-2`, `eu-west-1`, `ap-southeast-1`, `ap-southeast-2`, `ap-northeast-1`, and `sa-east-1`." · 2026-10-01 ⚠️출처부적격 |
 | NW.cost_floor | — | 호스팅 영역 $0.50/월(처음 25개, 비례 배분 없음, 생성 12시간 안 삭제 시 무료), 이후 $0.10. 영역당 레코드 10,000개 포함, 초과 $0.0015/레코드·월. 표준 쿼리 $0.40/백만(10억까지), 지연 $0.60, 지리·지리 근접 $0.70, IP 기반 $0.80. 헬스 체크 AWS 엔드포인트 50개 무료 후 $0.50, 비AWS $0.75, 옵션(HTTPS·문자열·10초·지연 측정) 각 $1.00(AWS)/$2.00(비AWS) [PL] | 최소 고정비 ≈ $0.50/월(영역 1개, 별칭만 쓰면 쿼리 0원) | [PL] https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonRoute53/current/index.csv · HostedZone "$0.50 per Hosted Zone for the first 25 Hosted Zones" / DNS-Queries "$0.40 per 1,000,000 queries for the first 1 Billion queries" / LBR-Queries "$0.60 per 1,000,000 LBR queries" / Geo-Queries "$0.70 per 1,000,000 Geo queries" / Cidr-Queries "$0.80 per 1,000,000 queries" / Intra-AWS-DNS-Queries "Queries to Alias records are free of charge" / Health-Check-AWS "First 50 Health Checks of AWS endpoints are free of charge", "$0.50 per Health Check for additional" / Health-Check-Non-AWS "$0.75 per Health Check" / Health-Check-Option-AWS "$1.00 per optional feature" / Health-Check-Option-Non-AWS "$2.00 per optional feature" / Global-RRSets "$0.0015 per extra RRSet within HostedZone" · 2026-10-01; https://aws.amazon.com/route53/pricing/ · "A hosted zone includes up to 10,000 records." / "The monthly hosted zone prices listed above are not prorated for partial months." · 2026-10-01 |
 
 ### 비용 구조
@@ -538,7 +485,6 @@
   - `latency_routing_policy { region }` / `geolocation_routing_policy` → D5 여러 지역. 기본(`*`) 레코드 반드시 포함.
   - `aws_route53_health_check { type = "HTTPS", fqdn, port = 443, resource_path, request_interval = 30|10, failure_threshold = 3, regions }` → F1 거의 0이면 `request_interval = 10`(옵션 요금), `failure_threshold` 2~3. `resource_path`는 앱 헬스 엔드포인트(2xx/3xx 2초 안). 문자열 확인 필요 시 `type = "HTTPS_STR_MATCH"`, `search_string`(본문 앞 5120바이트).
   - `aws_route53_hosted_zone_dnssec { hosted_zone_id, signing_status = "SIGNING" }` + `aws_route53_key_signing_key`(us-east-1 KMS ECC 키) → F5 규제·공공일 때.
-- Checkov: `CKV2_AWS_38` "Ensure Domain Name System Security Extensions (DNSSEC) signing is enabled for Amazon Route 53 public hosted zones", `CKV2_AWS_39` "Ensure Domain Name System (DNS) query logging is enabled for Amazon Route 53 hosted zones", `CKV2_AWS_23` "Route53 A Record has Attached Resource", `CKV_AWS_377` "Ensure Route 53 domains have transfer lock protection"(aws_route53domains_registered_domain). 헬스 체크 관련 체크는 해당 체크 없음. (https://www.checkov.io/5.Policy%20Index/terraform.html, 2026-10-01) ⚠️출처부적격
 - 배포 후 검증:
   - `dig +noall +answer app.example.com A` → 기대: ALB/CloudFront IP, 별칭이면 TTL ≤ 60.
   - `dig +short NS example.com` → 영역의 `awsdns` 네임서버 4개와 일치(등록 기관 위임 확인).
@@ -671,7 +617,6 @@
 | NW.routing | — | Squarespace: 단순 레코드만 (추론) | | 미확인 ⚠️근거없음 |
 | NW.availability | — | 미확인 | | 미확인 |
 | NW.security | L7 | Cloudflare Registrar: 원클릭 DNSSEC, WHOIS 비공개 기본. Squarespace: DS 레코드 편집 지원 | | https://developers.cloudflare.com/registrar/ · "Cloudflare Registrar offers one-click DNSSEC activation." · 2026-10-01 |
-| NW.dns | L7 | **Route 53 Domains**: 등록 시 호스팅 영역 자동 생성·과금(2.1 그대로). **Cloudflare Registrar**: Cloudflare 네임서버 강제(타사 NS 불가) → 2.3 그대로. **Squarespace Domains**: 사용자 레코드 기본 TTL 4시간, 사용자 지정 가능, ALIAS 레코드 지원 | Squarespace 기본 TTL 4시간은 장애 조치·이전 시 4시간 캐시 | https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/domain-register.html · "When you register a domain with Route 53, Route 53 automatically creates a hosted zone for the domain and charges a small monthly fee" · 2026-10-01; https://developers.cloudflare.com/registrar/faq/ · "No, all domains on Cloudflare Registrar use Cloudflare nameservers" · 2026-10-01; https://support.squarespace.com/hc/en-us/articles/360002101888-Edit-your-domain-s-DNS-records · "All custom records have a 4-hour TTL by default" / "These include A, AAAA, ALIAS, CNAME" · 2026-10-01 ⚠️출처부적격 |
 | NW.regions | — | 미확인 | | 미확인 |
 | NW.cost_floor | — | Cloudflare Registrar: 레지스트리 원가, 마크업 없음(DNS 무료). Route 53 Domains: 도메인 연 요금 + 영역 $0.50/월 | 도메인 요금 자체는 이 표 범위 밖 | https://developers.cloudflare.com/registrar/ · "will only charge you what is paid to the registry for your domain. No markup." · 2026-10-01 |
 
@@ -761,17 +706,6 @@
   - 모든 규칙과 web ACL에 `visibility_config { cloudwatch_metrics_enabled = true, metric_name, sampled_requests_enabled = true }` (필수 블록).
   - 본문 큰 API(A7)이고 CloudFront·API GW·App Runner·Cognito·Verified Access면 `association_config { request_body { <type> { default_size_inspection_limit = "KB_64" } } }`(요금 증가).
   - 로그: `log_destination_configs = [<aws-waf-logs-... ARN>]`, 개인정보 요구면 `redacted_fields { single_header { name = "authorization" } }`, 비용 절감이면 `logging_filter { default_behavior = "DROP" filter { behavior = "KEEP" requirement = "MEETS_ANY" condition { action_condition { action = "BLOCK" } } } }`.
-- Checkov(https://www.checkov.io/5.Policy%20Index/terraform.html 에서 확인): ⚠️출처부적격
-  - CKV_AWS_192 `aws_wafv2_web_acl` — "Ensure WAF prevents message lookup in Log4j2. See CVE-2021-44228 aka log4jshell"
-  - CKV2_AWS_31 `aws_wafv2_web_acl` — "Ensure WAF2 has a Logging Configuration"
-  - CKV2_AWS_28 `aws_lb`/`aws_alb` — "Ensure public facing ALB are protected by WAF"
-  - CKV2_AWS_29 `aws_api_gateway_rest_api`/`aws_api_gateway_stage` — "Ensure public API gateway are protected by WAF"
-  - CKV2_AWS_33 `aws_appsync_graphql_api` — "Ensure AppSync is protected by WAF"
-  - CKV2_AWS_47 `aws_cloudfront_distribution`/`aws_wafv2_web_acl` — "Ensure AWS CloudFront attached WAFv2 WebACL is configured with AMR for Log4j Vulnerability"
-  - CKV2_AWS_76 (ALB), CKV2_AWS_77 (API Gateway), CKV2_AWS_78 (AppSync) — "... attached WAFv2 WebACL is configured with AMR for Log4j Vulnerability"
-  - CKV_AWS_68 `aws_cloudfront_distribution` — "CloudFront Distribution should have WAF enabled"
-  - CKV_AWS_175 `aws_wafv2_web_acl` — "Ensure WAF has associated rules"
-  - CKV_AWS_342 `aws_wafv2_web_acl` — "Ensure WAF rule has any actions"
 - 배포 후 검증:
   - `aws wafv2 get-web-acl-for-resource --resource-arn <ALB_ARN> --region ap-northeast-2` → `WebACL.Name` 존재.
   - `aws wafv2 get-logging-configuration --resource-arn <WEBACL_ARN> --region ap-northeast-2` → `LogDestinationConfigs`에 `aws-waf-logs-` ARN.
@@ -1175,10 +1109,6 @@
 |---|---|---|---|---|
 | NW.layer | TLS | CA(Let's Encrypt) + 클러스터 내 발급·갱신 컨트롤러(cert-manager). 종단은 Ingress 컨트롤러·게이트웨이 | | https://github.com/cert-manager/website/blob/master/content/docs/usage/certificate.md · "cert-manager will automatically renew `Certificate`s." · 2026-10-01 |
 | NW.idle_timeout / NW.request_timeout / NW.websocket / NW.protocols / NW.body_size / NW.draining / NW.client_ip / NW.routing / NW.caching / NW.egress / NW.private_connectivity / NW.health_check / NW.availability | — | 해당 없음 | | — |
-| NW.tls | TLS | **수명**: `classic`(기본) 90일, `tlsserver` 45일(2026-05-13부터), `shortlived` 160시간(약 6일). 일정: 2027-02-10 classic 64일(승인 재사용 10일), 2028-02-16 classic 45일(승인 재사용 7시간). **cert-manager 갱신 시점**: 기본 수명의 2/3 지점, `renewBefore`(절대값) 또는 `renewBeforePercentage`(권장) 지정 시 그만큼 전. `duration` 기본 90일(발급자가 무시할 수 있음), 최소 1시간, effective renewBefore 최소 5분, `duration > renewBefore`. **만료 알림 이메일 2025-06-04 종료**. **OCSP**: 2025-05-07 인증서에서 OCSP URL 제거, 2025-08-06 OCSP 응답기 종료(CRL로 대체) | Let's Encrypt 권장: ARI 사용, 고정 60일 갱신은 부족, 수명 2/3 지점 갱신 허용 | https://letsencrypt.org/docs/profiles/ · "classic ... Validity Period 90 days" / "tlsserver ... Validity Period 45 days" / "Validity Period 160 hours" · 2026-10-01; https://letsencrypt.org/2025/12/02/from-90-to-45 · "May 13, 2026: Let's Encrypt will switch our tlsserver ACME profile to issue 45-day certificates." / "February 10, 2027: ... issuing 64-day certificates with a 10-day authorization reuse period." / "February 16, 2028: ... issue 45-day certificates with a 7 hour authorization reuse period." / "renewing at a hardcoded interval of 60 days will no longer be sufficient" · 2026-10-01; https://github.com/cert-manager/website/blob/master/content/docs/usage/certificate.md · "By default this will be 2/3 through the X.509 certificate's duration." / "Using `spec.renewBeforePercentage` is recommended to prevent renewal loops" / "minimum value for effective `spec.renewBefore` is 5 minutes" · 2026-10-01; https://letsencrypt.org/2025/01/22/ending-expiration-emails · "We will be ending this service on June 4, 2025." · 2026-10-01; https://letsencrypt.org/2024/12/05/ending-ocsp · "May 7, 2025 ... On this date we will drop OCSP URLs from certificates" / "August 6, 2025 On this date we will turn off our OCSP responders" · 2026-10-01 ⚠️출처부적격 |
-| NW.scaling | — | 레이트 리밋: 등록 도메인당 7일 50개(전역), 동일 식별자 집합 7일 5개, 계정당 3시간 300 주문, 인증서당 식별자 최대 100(classic)/25(tlsserver·shortlived). ARI로 조정된 갱신은 모든 리밋 면제 | 리밋 초과 시 리필 속도로 회복(등록 도메인 202분당 1개) | https://letsencrypt.org/docs/rate-limits/ · "Up to 50 certificates can be issued per registered domain (or IPv4 address, or IPv6 /64 range) every 7 days." / "Up to 5 certificates can be issued per exact same set of identifiers every 7" / "Up to 300 new orders can be created by a single account every 3 hours." / "Renewals coordinated by ARI offer the unique benefit of being exempt from all rate limits." · 2026-10-01 ⚠️출처부적격 |
-| NW.security | TLS | HTTP-01은 포트 80만, 와일드카드 불가. 와일드카드는 DNS-01(TXT) 필요. HTTP-01은 리다이렉트된 HTTPS의 인증서를 검증하지 않음. DNS-PERSIST-01 표준화 진행 중 | | https://letsencrypt.org/docs/challenge-types/ · "The HTTP-01 challenge can only be done on port 80." / "This challenge cannot be used to issue wildcard certificates." · 2026-10-01 ⚠️출처부적격 |
-| NW.dns | L7 | DNS-01: 클러스터가 DNS API(Route 53·Cloud DNS·Cloudflare) 쓰기 권한 필요. 승인 재사용 기간이 30일→7시간으로 줄면 갱신마다 매번 검증 (추론, 일정 근거는 위) | | https://letsencrypt.org/2025/12/02/from-90-to-45 · "We are also reducing the authorization reuse period ... It is currently 30 days, which will be reduced to 7 hours by 2028." · 2026-10-01 ⚠️출처부적격 ⚠️근거없음 |
 | NW.regions | — | 해당 없음 | | — |
 | NW.cost_floor | — | 인증서 무료 (cert-manager 오픈소스, 클러스터 자원만) — Let's Encrypt 요금 문서는 확인 안 함 | | 미확인 ⚠️근거없음 |
 
@@ -1292,7 +1222,6 @@ spec:
   - D2/D3 높음 + 단일 외부 목적지 대량 호출 → `secondary_allocation_ids`(EIP 추가, 최대 7) 및 EIP 쿼터 상향 요청.
   - 온프레미스/타 VPC 허용 목록(사설) → `connectivity_type = "private"`, `secondary_private_ip_address_count`.
 - Checkov:
-  - `CKV2_AWS_19` "Ensure that all EIP addresses allocated to a VPC are attached to EC2 instances" (`aws_eip`; 소스 yaml에서 `aws_nat_gateway`와 연결된 EIP도 통과 처리 확인: https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/aws/EIPAllocatedToVPCAttachedEC2.yaml) ⚠️출처부적격
   - `CKV2_AWS_35` "AWS NAT Gateways should be utilized for the default route" (`aws_route`/`aws_route_table`에 `instance_id`로 기본 경로를 보내면 실패 = NAT 인스턴스 사용 탐지)
   - `CKV_AWS_130` "Ensure VPC subnets do not assign public IP by default" (`aws_subnet`, 사설 서브넷 설계와 연관)
   - NAT Gateway 자체(로깅·다중 AZ) 전용 체크: 해당 체크 없음(정책 인덱스에서 `aws_nat_gateway` 로 걸리는 행은 제목 불일치 항목뿐).
@@ -1441,7 +1370,6 @@ spec:
   - A3(장시간 외부 연결) → `tcp_established_idle_timeout_sec`(기본 1200), 빠른 재연결 많음 → `tcp_time_wait_timeout_sec`(≥15).
   - 운영 가시성 → `log_config { enable = true, filter = "ERRORS_ONLY" }`(값: `ERRORS_ONLY` / `TRANSLATIONS_ONLY` / `ALL`).
   - Cloud Run Direct VPC → `endpoint_types = ["ENDPOINT_TYPE_VM"]`; Cloud Run 쪽 `vpc_access { egress = "ALL_TRAFFIC" }`.
-- Checkov: Cloud NAT(`google_compute_router_nat`) 로깅·설정 체크 **해당 체크 없음**(정책 인덱스에 해당 리소스 행 없음, https://www.checkov.io/5.Policy%20Index/terraform.html). 관련: `CKV_GCP_40` "Ensure that Compute instances do not have public IP addresses"(NAT 사용 근거). ⚠️출처부적격
 - 배포 후 검증:
   - Cloud Run/VM 안에서 `curl -s https://ifconfig.me` → `gcloud compute addresses describe <NAME> --region=asia-northeast3 --format='value(address)'` 와 같음.
   - `gcloud compute routers get-nat-ip-info <ROUTER> --region=asia-northeast3` / `gcloud compute routers get-nat-mapping-info <ROUTER> --region=asia-northeast3` → IP별 사용 포트·VM 매핑.
@@ -1525,24 +1453,6 @@ spec:
 | NW.egress | L3/L7 | 기본 고정 출구 IP 기능 문서 미확인. **Enterprise Dedicated CDN Egress IPs**(Smart Shield): Workers `fetch()`로 오리진 접근 시 적용, **`connect()`(TCP 소켓)에는 미적용** | 계정팀 문의 | https://developers.cloudflare.com/smart-shield/configuration/dedicated-egress-ips/other-products/ · "fetch() requests that access services on your origin will use Dedicated CDN Egress IP addresses." / "Dedicated CDN Egress IPs are not used." · 2026-10-01 ; https://developers.cloudflare.com/smart-shield/configuration/dedicated-egress-ips/ · "Enterprise customers can leverage dedicated egress IPs for layer 7 WAF and CDN services" · 2026-10-01 |
 | NW.private_connectivity | L3 | VPC Network 바인딩(`cf1:network`)이면 Workers 출구가 Cloudflare Gateway 정책을 거침(2026-06 변경) | 플랜 요건 미확인 | https://developers.cloudflare.com/changelog/post/2026-06-05-gateway-egress/ · "Workers using a VPC Network binding with network_id: \"cf1:network\" now egress to public Internet destinations through Cloudflare Gateway." · 2026-10-01 |
 | NW.cost_floor | — | 미확인(Enterprise) | — | — |
-| 그 외 NW.* | — | 미확인/해당 없음 | — | — |
-
-### 5.5.7 Render — 공유 출구 IP 범위 / Dedicated outbound IPs
-- 계열: 네트워크-출구 / 서울 리전: 미확인(Render 리전 목록은 이 절에서 확인 안 함)
-
-| 능력 키 | 계층 | 값 | 조건·한도 | 출처 |
-|---|---|---|---|---|
-| NW.egress | L3 | 기본: **리전 내 모든 서비스가 공유하는 CIDR 범위**(대시보드 Connect → Outbound). 전용: Dedicated IP set(IPv4 3개), **Pro 워크스페이스 이상**, 워크스페이스당 기본 4세트 | 같은 리전 서비스만 사용 | https://render.com/docs/outbound-ip-addresses · "Outbound IP ranges are shared across all services in the same region." · 2026-10-01 ; https://render.com/docs/dedicated-ips · "Each dedicated IP set you create includes three IPv4 addresses." / "Dedicated IPs require a Pro workspace plan or higher." · 2026-10-01 ⚠️출처부적격 |
-| NW.cost_floor | — | IP 세트당 월 요금(금액 미확인) | — | https://render.com/docs/dedicated-ips · "Render bills your workspace monthly for each IP set." · 2026-10-01 ⚠️출처부적격 |
-| 그 외 NW.* | — | 미확인/해당 없음 | — | — |
-
-### 5.5.8 Fly.io — static egress IP
-- 계열: 네트워크-출구 / 서울 리전: 미확인(이 절에서 리전 목록 미확인)
-
-| 능력 키 | 계층 | 값 | 조건·한도 | 출처 |
-|---|---|---|---|---|
-| NW.egress | L3 | 기본 출구 IP **불안정(변경됨)**. 앱 범위 static egress IP(`fly ips allocate-egress --app <app> -r <region>`), 리전마다 최소 1개, **IP 하나당 Machine 최대 64대** | IPv6 함께 할당 | https://docs.fly.io/networking/egress-ips/ · "By default, outbound (egress) IPs from Fly Machines are unstable and may change." / "Each static egress IP can support up to 64 Machines." · 2026-10-01 ⚠️출처부적격 |
-| NW.cost_floor | — | IPv4 **$3.60/월/개**(시간 과금), IPv6 무료 | — | 같은 페이지 · "Each app-scoped IPv4 static egress address costs $3.60/mo, billed hourly." · 2026-10-01 ⚠️출처부적격 |
 | 그 외 NW.* | — | 미확인/해당 없음 | — | — |
 
 ### 5.5.9 Railway — Static Outbound IPs
@@ -2161,18 +2071,12 @@ spec:
 | NW.body_size | — | 해당 없음 | — | — |
 | NW.draining | — | 해당 없음 | — | — |
 | NW.health_check | — | 해당 없음 | — | — |
-| NW.tls | TLS | Upstash: TLS 항상 켜짐. 나머지 미확인 | | https://upstash.com/docs/redis/features/security · "TLS is always enabled on Upstash Redis databases." · 2026-10-01 ⚠️출처부적격 |
 | NW.client_ip | — | 미확인 | — | — |
-| NW.routing | L3 | Supabase PrivateLink: AWS VPC가 **같은 리전**, DB(5432)·PgBouncer(6543)만(API·Auth·Storage·Realtime은 공용). Neon: AWS PrivateLink, **같은 AWS 리전**, 리전당 구성 최대 10 | | https://supabase.com/docs/guides/platform/privatelink · "AWS VPC in the same region as your Supabase project" / "It does not support other Supabase services like API, Storage, Auth, or Realtime." · https://neon.com/docs/guides/neon-private-networking · "This endpoint service is available only within the same AWS region as your client application." · 2026-10-01 ⚠️출처부적격 |
 | NW.scaling | — | 해당 없음 | — | — |
 | NW.availability | — | 해당 없음 | — | — |
 | NW.caching | — | 해당 없음 | — | — |
-| NW.security | L3 | Neon IP Allow(Scale 플랜). Upstash IP allowlist(서버리스는 IP를 알 수 없다고 명시) | | https://neon.com/docs/introduction/ip-allow · "Neon's IP Allow feature, available with the Neon Scale plan" · https://upstash.com/docs/redis/features/security · "you can not know the IP addresses in serverless platforms such AWS Lambda and Vercel functions" · 2026-10-01 ⚠️출처부적격 |
 | NW.dns | — | 미확인 | — | — |
 | NW.egress | — | Supabase IPv4 애드온: 인바운드만 고정, DB 아웃바운드 IP 비고정 | | https://supabase.com/docs/guides/platform/ipv4-address · "If your database is making outbound connections, the outbound IP address is not static" · 2026-10-01 |
-| NW.private_connectivity | L3 | **Supabase**: PrivateLink = **Team·Enterprise만**, AWS 전용(VPC Lattice). **Neon**: AWS PrivateLink, Scale 플랜 [충돌: "Business and Scale"]. **PlanetScale(Vitess 문서)**: AWS PrivateLink + **GCP PSC**, **Base 플랜 포함·추가 요금 없음**, GCP 서울 서비스 연결 `projects/planetscale-production/regions/asia-northeast3/serviceAttachments/edge-gateway-gcp-asia-northeast3`. **MongoDB Atlas**: AWS PrivateLink·Azure Private Link·GCP PSC, **M10 이상 전용 클러스터만**(Free·Flex 불가). **Upstash**: VPC 피어링·AWS PrivateLink [충돌: 보안 문서 "only available for Pro databases" vs 가격 페이지 "VPC peering requires an Enterprise contract"] | Upstash PrivateLink는 AWS만 | https://supabase.com/docs/guides/platform/privatelink · "PrivateLink is available only to Team and Enterprise customers." · https://neon.com/docs/guides/neon-private-networking · "Private Networking is available on Neon's Scale plan." / "You must be a Neon Business and Scale account user" · https://planetscale.com/docs/vitess/connecting/private-connections-gcp · "Private connections are included on the Base plan. There is no additional charge on PlanetScale's end" · https://www.mongodb.com/docs/atlas/security-private-endpoint/ · "This feature is available for M10 clusters or higher." · https://upstash.com/docs/redis/features/security · "VPC Peering is only available for Pro databases." · https://upstash.com/pricing/redis · "VPC peering requires an Enterprise contract." · 2026-10-01 ⚠️출처부적격 |
-| NW.regions | — | PlanetScale AWS PrivateLink 리전: us-east-2, us-east-1, us-west-2, ap-south-1, ap-southeast-1, ap-southeast-2, ap-northeast-1, eu-central-1, eu-west-1, eu-west-2, sa-east-1, ca-central-1(서울 없음). GCP PSC: asia-northeast3, europe-west1, europe-west4, northamerica-northeast1, us-central1, us-east1, us-east4. Neon: 모든 Neon AWS 리전 | | https://planetscale.com/docs/vitess/connecting/private-connections · 리전 표 "ap-northeast-1 com.amazonaws.vpce…" · https://planetscale.com/docs/vitess/connecting/private-connections-gcp · "asia-northeast3 projects/planetscale-production/regions/asia-northeast3/serviceAttachments/edge-gateway-gcp-asia-northeast3" · 2026-10-01 ⚠️출처부적격 |
-| NW.cost_floor | — | Supabase IPv4 애드온 $0.0055/시간(≈$4/월, Pro 이상), 레플리카마다 추가. PlanetScale 사설 연결 추가 요금 없음(클라우드 엔드포인트 요금은 사용자 부담 → GCP PSC $0.01/h + $0.01/GiB, 6.7). Upstash Prod Pack +$200/월(사설 연결 포함 여부 미확인). 나머지 미확인 | | https://supabase.com/docs/guides/platform/manage-your-usage/ipv4 · "$ 0.0055 per hour ( $ 4 per month)." · https://supabase.com/docs/guides/platform/ipv4-address · "Dedicated IPv4 Add-On (Pro Plans+)" · https://upstash.com/pricing/redis · "Prod Pack … +$200/month per database" · 2026-10-01 ⚠️출처부적격 |
 
 ### 비용 구조
 - 사설 연결은 대부분 상위 플랜 조건(Supabase Team+, Neon Scale, Atlas M10+, Upstash Pro/Enterprise 충돌) + 클라우드 쪽 엔드포인트 요금. PlanetScale만 Base 플랜 포함.

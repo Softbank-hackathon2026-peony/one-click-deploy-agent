@@ -1,5 +1,7 @@
 # 데이터 정합성·저장소·메시징
 
+삭제된 항목: C-009, C-022, C-038, C-041, C-042, C-046, C-047, C-051, C-053, C-055, C-056, C-057, C-058, C-059, C-067, C-070, C-072, C-073, C-075, C-076, C-077, C-090, C-097, C-102, C-111, C-113, 사유: 부적격 출처 (2026-10-02, 26개 삭제. 남은 항목 ID는 그대로)
+
 infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠금·제약 같은 DB 안쪽 통제부터 멱등성·웹훅·큐·아웃박스·캐시·복제처럼 "저장소가 둘 이상일 때 깨지는 것"까지, 바이브코더 앱(Next.js/Prisma/Supabase/Firebase/Stripe/토스페이먼츠/Express/FastAPI/Django)에서 코드 신호로 판정할 수 있는 항목을 모았다.
 트래픽·성능(커넥션 풀 포함)은 T, 백업·DR은 D, 배포·마이그레이션은 U, 일반 보안·규제·관측은 다른 문서 담당이다. 각 항목의 비용 영향은 적었지만 비용 판정 자체는 하지 않는다.
 출처 URL은 모두 2026-10-01에 실제로 열어 확인했다. 열지 못한 경우 "일반 원칙(출처 미확인)"으로 적었다.
@@ -66,7 +68,7 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **실패 양상:** 잠금을 트랜잭션 밖에서 잡거나(자동 커밋이면 즉시 풀림) 잠금 없이 판단하면 C-002/C-003과 같은 이중 처리. Django는 트랜잭션 밖에서 `select_for_update`를 평가하면 `TransactionManagementError`.
 - **신호:** 🟢 `select_for_update()`, `.with_for_update()`(SQLAlchemy), raw `FOR UPDATE`, `FOR UPDATE NOWAIT`. 🟡 같은 파일에 `transaction.atomic`/`$transaction`이 있는지 함께 확인해야 유효.
 - **시나리오·수준:** C L3
-- **처방:** 코드: 트랜잭션 안에서 잠그고, 잠금 범위를 최소 행으로, 잠금을 쥔 채 외부 HTTP 호출 금지(C-009). 대기 대신 즉시 실패가 낫다면 `NOWAIT`. 인프라: 없음.
+- **처방:** 코드: 트랜잭션 안에서 잠그고, 잠금 범위를 최소 행으로, 잠금을 쥔 채 외부 HTTP 호출 금지(C-009(삭제됨)). 대기 대신 즉시 실패가 낫다면 `NOWAIT`. 인프라: 없음.
 - **검증:** 두 세션에서 같은 행을 `FOR UPDATE`로 잡게 하고 두 번째가 대기(또는 NOWAIT 오류)하는지 확인. 동시 요청 주입 후 불변식 검사.
 - **비용 영향:** 중립(경합 시 지연 증가).
 - **출처:** https://www.postgresql.org/docs/current/explicit-locking.html ("will be blocked until the current transaction ends"), https://docs.djangoproject.com/en/stable/ref/models/querysets/ (트랜잭션 필수, `nowait`, `skip_locked`)
@@ -96,7 +98,7 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **실패 양상:** 경합 시간대에 결제·예약이 간헐적 500. 재시도를 문장 단위로만 하면 앞 문장 결과를 잃어 반쪽 처리.
 - **신호:** 🟢 `40001`, `40P01`, `serialization_failure`, `deadlock_detected`, `P2034`(Prisma 쓰기 충돌 코드) 처리 코드 유무. SWA는 `is_transient`에서 `40001`, `40P01`을 일시 오류로 분류(rulings Task 9).
 - **시나리오·수준:** C L3 (C-006 또는 C-004를 쓰면 반드시 같이)
-- **처방:** 코드: 트랜잭션 함수 전체를 감싸는 재시도 래퍼(지수 백오프 + 상한 횟수). 트랜잭션 안에 외부 부수효과를 두지 않아야 재시도가 안전하다(C-009, C-074). 인프라: 없음.
+- **처방:** 코드: 트랜잭션 함수 전체를 감싸는 재시도 래퍼(지수 백오프 + 상한 횟수). 트랜잭션 안에 외부 부수효과를 두지 않아야 재시도가 안전하다(C-009(삭제됨), C-074). 인프라: 없음.
 - **검증:** 두 세션으로 교착을 의도적으로 만들고 앱 레벨에서 한쪽이 재시도 후 성공하는지 확인.
 - **비용 영향:** 중립.
 - **출처:** https://www.postgresql.org/docs/current/transaction-iso.html ("it should abort the current transaction and retry the whole transaction from the beginning"), https://www.postgresql.org/docs/current/explicit-locking.html (교착 자동 감지), https://www.prisma.io/docs/orm/prisma-client/queries/transactions ("Prisma ORM does not retry write conflicts for you")
@@ -110,16 +112,6 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **검증:** A→B, B→A 이체를 동시에 1,000쌍 실행해 교착 로그가 0건(또는 재시도 후 전부 성공)인지 확인.
 - **비용 영향:** 중립.
 - **출처:** https://www.postgresql.org/docs/current/explicit-locking.html ("acquire locks on multiple objects in a consistent order")
-
-### C-009 트랜잭션 안의 외부 호출
-- **무엇/왜:** DB 트랜잭션 안에서 결제 API·메일·HTTP를 호출하면 (1) 롤백해도 외부 효과는 되돌릴 수 없고 (2) 외부 지연 동안 행 잠금을 쥔다.
-- **실패 양상:** 결제는 승인됐는데 이후 DB 오류로 롤백 → 돈은 빠졌는데 주문 없음. 외부 API가 30초 멈추면 같은 행을 기다리는 요청이 줄줄이 타임아웃.
-- **신호:** 🟢 `$transaction`/`db.transaction`/`atomic` 블록 안에 `fetch`, `axios`, `stripe.`, `httpx`, `requests.`, `sendMail`, `queue.add` 호출.
-- **시나리오·수준:** C L2 이상
-- **처방:** 코드: 외부 호출은 트랜잭션 밖으로. 순서는 "로컬에 pending 기록 커밋 → 외부 호출(멱등 키 포함) → 결과 반영" 또는 아웃박스(C-073). 인프라: 없음.
-- **검증:** 외부 호출 성공 직후 DB 커밋 실패를 주입해 조정(C-049) 작업이 불일치를 찾아내는지 확인.
-- **비용 영향:** 중립.
-- **출처:** https://microservices.io/patterns/data/transactional-outbox.html (2PC 없이 DB와 메시지를 원자적으로 다루는 문제), https://docs.djangoproject.com/en/stable/topics/db/transactions/ (`on_commit`은 롤백 시 실행되지 않음) ⚠️출처부적격
 
 ### C-010 자동 커밋 기본값과 요청 단위 트랜잭션
 - **무엇/왜:** Django·SQLAlchemy·Prisma 모두 명시하지 않으면 문장 단위로 커밋한다. Django `ATOMIC_REQUESTS=True`는 요청 전체를 트랜잭션으로 묶어 주지만 모든 뷰에 비용이 든다.
@@ -244,16 +236,6 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **검증:** 실패 주입 후 번호 연속성 검사 쿼리.
 - **비용 영향:** 중립(쓰기 직렬화로 처리량 감소).
 - **출처:** https://www.postgresql.org/docs/current/functions-sequence.html ("sequence objects cannot be used to obtain 'gapless' sequences")
-
-### C-022 큰 정수 ID·금액의 JavaScript 정밀도
-- **무엇/왜:** JS `Number`는 2^53−1(9007199254740991)까지만 정확하다. `BIGINT` ID(스노플레이크, 트위터식 ID)나 원 단위 큰 금액을 JSON 숫자로 내보내면 클라이언트에서 값이 바뀐다.
-- **실패 양상:** 상세 조회 ID가 마지막 자리에서 달라져 404 또는 남의 레코드 조회. 금액 합계 오차.
-- **신호:** 🟢 Prisma `BigInt` 필드를 `JSON.stringify` 전에 `Number()`로 변환, `BIGSERIAL` + Express `res.json`. 🟡 외부 ID(카카오·디스코드 등 64비트 ID)를 `number` 타입으로 저장.
-- **시나리오·수준:** C L1 이상
-- **처방:** 코드: 64비트 ID·금액은 문자열로 직렬화, 클라이언트에서 `BigInt` 또는 문자열 유지. 인프라: 없음.
-- **검증:** 2^53 + 1 값을 왕복시켜 값이 보존되는지 테스트.
-- **비용 영향:** 중립.
-- **출처:** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/MAX_SAFE_INTEGER ⚠️출처부적격
 
 ### C-023 타임스탬프 타입(timestamptz)
 - **무엇/왜:** `timestamp with time zone`은 내부적으로 UTC로 저장되고 세션 시간대로 보여 준다. `timestamp without time zone`은 시간대 정보를 버려서 서버·DB·클라이언트 시간대가 다르면 9시간 어긋난 값이 섞인다.
@@ -409,16 +391,6 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **비용 영향:** 중립.
 - **출처:** 일반 원칙(출처 미확인) ⚠️근거없음
 
-### C-038 외부 결제·발송 API 호출에 멱등 키 전달
-- **무엇/왜:** 우리 서버가 Stripe·토스페이먼츠·메일 API를 부를 때도 타임아웃 후 재시도하면 외부에서 두 번 실행될 수 있다. 공급자가 멱등 키를 지원하면 반드시 넘긴다.
-- **실패 양상:** 결제 승인 요청 타임아웃 → 재시도 → 이중 승인. 환불 API 재시도로 이중 환불 시도.
-- **신호:** 🟢 `stripe.paymentIntents.create(…, { idempotencyKey })`, 토스 `Idempotency-Key` 헤더 유무. 🟢 결제 SDK 호출이 재시도 래퍼 안에 있는데 키가 없음.
-- **시나리오·수준:** C L3
-- **처방:** 코드: 주문 ID 기반 결정적 키(예: `order:{id}:confirm`)를 넘긴다. 키에 개인정보를 넣지 않는다. 인프라: 없음.
-- **검증:** 공급자 테스트 모드에서 같은 키로 두 번 호출해 같은 객체가 반환되는지 확인.
-- **비용 영향:** 중립.
-- **출처:** https://docs.stripe.com/api/idempotent_requests ("All POST requests accept idempotency keys", 최대 255자, 민감정보 사용 금지), https://docs.tosspayments.com/reference/using-api/idempotency-key ("모든 POST 메서드 API", 최대 300자) ⚠️출처부적격
-
 ---
 
 ## D. 결제·금액
@@ -443,26 +415,6 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **비용 영향:** 중립.
 - **출처:** https://docs.stripe.com/currencies (minor unit, zero-decimal 통화, 최소 결제 금액 50 KRW)
 
-### C-041 서버 측 금액 확정과 검증
-- **무엇/왜:** 클라이언트가 보낸 금액·가격을 그대로 결제 요청에 쓰면 조작된 금액으로 결제가 승인된다. 금액은 서버의 주문 기록에서 계산하고, 결제 승인 전 PG가 돌려준 금액과 비교한다.
-- **실패 양상:** 개발자 도구로 금액을 100원으로 바꿔 고가 상품 구매.
-- **신호:** 🟢 `req.body.amount`/`searchParams.get('amount')`를 그대로 `confirm`/`paymentIntents.create`에 전달. 🟢 토스 성공 리다이렉트 처리에서 쿼리 `amount`와 저장된 주문 금액 비교 코드 유무.
-- **시나리오·수준:** C L3
-- **처방:** 코드: 주문 생성 시 서버에서 금액 계산·저장(`orderId` 발급) → 승인 단계에서 저장 금액과 PG 금액 일치 확인 후 승인. 인프라: 없음.
-- **검증:** 조작된 금액으로 승인 요청 시 거부되는지 테스트.
-- **비용 영향:** 중립.
-- **출처:** https://docs.tosspayments.com/guides/v2/payment-widget/integration ("쿼리 파라미터의 amount 값과 setAmount()의 amount 파라미터의 값이 같은지 반드시 확인하세요") ⚠️출처부적격
-
-### C-042 결제 승인 시한과 대기 주문
-- **무엇/왜:** 결제 인증 후 서버 승인까지 시한이 있다(토스페이먼츠: 인증 후 10분 안에 승인, 요청 후 30분이 지나면 `EXPIRED`). 승인을 큐 뒤로 미루거나 승인 실패를 방치하면 재고만 묶이고 결제는 사라진다.
-- **실패 양상:** 트래픽 폭증으로 승인 API 호출이 10분 넘게 밀려 결제 데이터 유실, 재고는 "결제 대기"로 묶여 판매 불가.
-- **신호:** 🟢 토스 `confirm` 호출이 큐 워커 안에 있음, 대기 주문 만료 처리(`expiresAt`, 정리 크론) 부재. 🟡 재고 선점(hold) 로직 유무.
-- **시나리오·수준:** C L3
-- **처방:** 코드: 승인은 리다이렉트 처리 경로에서 동기로, 대기 주문에 만료 시각 + 만료 시 재고 반환 작업. 인프라: 만료 처리 크론(C-091 중복 실행 주의).
-- **검증:** 승인을 지연시켜 만료 후 재고가 복구되는지, 결제 상태 조회와 로컬 상태가 일치하는지 확인.
-- **비용 영향:** 소폭 증가(정리 작업).
-- **출처:** https://docs.tosspayments.com/guides/v2/payment-widget/integration ("결제 요청이 완료된 이후 10분 이내에 결제를 승인해야 됩니다"), https://docs.tosspayments.com/reference (`EXPIRED`: 유효 시간 30분 경과) ⚠️출처부적격
-
 ### C-043 결제 레코드 모델(주문 1 : 결제 시도 N, 외부 ID 유니크)
 - **무엇/왜:** 한 주문에 결제 실패·재시도가 여러 번 생긴다. 주문 행에 결제 정보를 덮어쓰면 이력이 사라지고, 외부 결제 ID(`paymentKey`, `pi_…`)가 유니크가 아니면 같은 결제를 두 주문에 연결할 수 있다.
 - **실패 양상:** 실패한 시도의 웹훅이 성공 상태를 덮어씀, 같은 `paymentKey`로 두 주문이 "결제 완료".
@@ -478,7 +430,7 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **실패 양상:** 크레딧 2배 지급, 배송 2건 생성, 확인 메일 여러 통.
 - **신호:** 🟢 `checkout.session.completed` 핸들러와 `success_url` 페이지가 같은 지급 함수를 호출, 지급 전 "이미 이행됨" 확인이 조건부 UPDATE가 아님. 🟢 `fulfilled_at` 컬럼 유무.
 - **시나리오·수준:** C L3
-- **처방:** 코드: `UPDATE orders SET fulfilled_at = now() WHERE id = $1 AND fulfilled_at IS NULL`의 영향 행 수로 이행 권한을 얻은 쪽만 실행(같은 트랜잭션에서 지급 기록). 외부 부수효과는 아웃박스(C-073). 인프라: 없음.
+- **처방:** 코드: `UPDATE orders SET fulfilled_at = now() WHERE id = $1 AND fulfilled_at IS NULL`의 영향 행 수로 이행 권한을 얻은 쪽만 실행(같은 트랜잭션에서 지급 기록). 외부 부수효과는 아웃박스(C-073(삭제됨)). 인프라: 없음.
 - **검증:** 같은 세션 ID로 웹훅과 성공 페이지를 동시에 50회 호출해 지급 1회 확인.
 - **비용 영향:** 중립.
 - **출처:** https://docs.stripe.com/checkout/fulfillment ("your fulfill_checkout function might be called multiple times, possibly concurrently, for the same Checkout Session")
@@ -492,26 +444,6 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **검증:** 결제 후 리다이렉트를 차단한 시나리오에서 주문이 완료되는지 확인(Stripe CLI `stripe trigger`).
 - **비용 영향:** 중립.
 - **출처:** https://docs.stripe.com/checkout/fulfillment ("You can't rely on triggering fulfillment only from your checkout landing page")
-
-### C-046 비동기 결제수단의 중간 상태
-- **무엇/왜:** 계좌이체·가상계좌·은행 자동이체는 "요청 완료"와 "입금 확인"이 다르다. Stripe는 `processing` 후 `async_payment_succeeded`, 토스는 `WAITING_FOR_DEPOSIT` 후 입금 콜백이 온다.
-- **실패 양상:** 가상계좌 발급만으로 상품 지급(미입금 손실), 입금 웹훅을 처리하지 않아 입금했는데 주문 미완료.
-- **신호:** 🟢 `checkout.session.completed`에서 `payment_status` 확인 없이 지급, `async_payment_succeeded`/`async_payment_failed` 미처리, 토스 `DEPOSIT_CALLBACK`/`WAITING_FOR_DEPOSIT` 미처리. 🟡 결제수단에 가상계좌·계좌이체가 켜져 있는지 설정 확인.
-- **시나리오·수준:** C L3
-- **처방:** 코드: 결제 상태가 확정(`paid`/`DONE`)일 때만 이행, 대기 상태 만료 처리. 인프라: 없음.
-- **검증:** 테스트 모드 지연 결제수단으로 대기 → 성공/실패 각각 시나리오.
-- **비용 영향:** 중립.
-- **출처:** https://docs.stripe.com/checkout/fulfillment (`payment_status`, `checkout.session.async_payment_succeeded`), https://docs.stripe.com/payments/paymentintents/lifecycle (`processing`), https://docs.tosspayments.com/guides/v2/webhook (`DEPOSIT_CALLBACK` 이벤트), https://docs.tosspayments.com/reference (`WAITING_FOR_DEPOSIT`) ⚠️출처부적격
-
-### C-047 환불·취소의 중복과 한도
-- **무엇/왜:** 환불 버튼 연타·재시도·관리자 동시 처리로 같은 환불이 두 번 요청될 수 있다. 부분 취소가 있으면 "누적 환불 ≤ 결제 금액"을 로컬에서도 지켜야 한다.
-- **실패 양상:** 이중 환불 시도, 로컬 기록상 환불 합계가 결제 금액 초과, PG와 로컬 상태 불일치.
-- **신호:** 🟢 `stripe.refunds.create`/토스 `/v1/payments/{paymentKey}/cancel` 호출에 멱등 키 없음, `cancelAmount` 사용 + 누적 환불 검사 없음.
-- **시나리오·수준:** C L3
-- **처방:** 코드: 환불 요청 ID 기반 멱등 키, 로컬 `refunds` 테이블 + 누적 합계 조건부 INSERT(잠금 또는 CHECK). 인프라: 없음.
-- **검증:** 같은 환불을 동시에 10회 요청해 PG 호출 1회, 부분 환불 누적 초과 요청 거부 확인.
-- **비용 영향:** 중립.
-- **출처:** https://docs.tosspayments.com/reference (취소 API `cancelAmount`, 멱등키로 중복 취소 방지), https://docs.stripe.com/refunds ("you can't refund a total greater than the original charge amount") ⚠️출처부적격
 
 ### C-048 환불 실패·지연 상태 처리
 - **무엇/왜:** 환불은 즉시 끝나지 않는다. Stripe 환불은 `pending`·`requires_action`·`failed`·`canceled`가 있고, 실패는 최대 30일 뒤에 알려질 수 있다.
@@ -543,16 +475,6 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **비용 영향:** 중립.
 - **출처:** https://docs.stripe.com/refunds ("there's a risk of double refund", `charge_for_pending_refund_disputed`)
 
-### C-051 원장(ledger)은 덧붙이기만
-- **무엇/왜:** 잔액·포인트·크레딧을 숫자 하나로만 관리하면 왜 그 값이 됐는지 설명할 수 없고, 잘못된 갱신을 되돌릴 근거도 없다. 변동 내역(원장)을 덧붙이기만 하고 잔액은 그 합(또는 같은 트랜잭션에서 갱신하는 캐시)으로 둔다.
-- **실패 양상:** 포인트가 사라졌다는 문의에 근거 없음, 버그 복구 시 어디까지 되돌릴지 모름.
-- **신호:** 🟢 `balance`/`points` 컬럼만 있고 `*_transactions`/`ledger` 테이블 없음, 원장 테이블에 UPDATE/DELETE 코드 존재.
-- **시나리오·수준:** C L3 (잔액·포인트·크레딧이 있으면)
-- **처방:** 코드: 원장 INSERT + 잔액 갱신을 한 트랜잭션에, 원장 행은 수정 대신 상쇄 항목 추가, 각 항목에 원인 ID(주문·결제·이벤트) 유니크로 중복 적립 방지. 인프라: 없음(원장 테이블 권한에서 UPDATE/DELETE 회수는 선택).
-- **검증:** 잔액 = 원장 합 불변식 쿼리를 정기 실행.
-- **비용 영향:** 소폭 증가(저장 공간).
-- **출처:** 일반 원칙(출처 미확인). 감사·이벤트 기록의 이점은 https://microservices.io/patterns/data/event-sourcing.html 참고 ⚠️출처부적격 ⚠️근거없음
-
 ### C-052 쿠폰·포인트·체험판의 1회 사용
 - **무엇/왜:** "1인 1회" 쿠폰, 첫 구매 할인, 무료 체험은 동시 요청과 재시도로 여러 번 쓰이기 쉽다. 사용 기록에 유니크(또는 부분 유니크) 제약을 걸어 DB가 막게 한다.
 - **실패 양상:** 동시 요청 두 개로 쿠폰 2회 적용, 탈퇴 후 재가입으로 체험판 반복.
@@ -567,16 +489,6 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 
 ## E. 웹훅 수신
 
-### C-053 웹훅 이벤트 중복 제거
-- **무엇/왜:** 웹훅은 같은 이벤트를 두 번 이상 보낼 수 있다. 처리한 이벤트 ID를 기록하고 이미 처리한 것은 건너뛴다. Stripe는 드물게 **서로 다른 이벤트 객체 두 개**로 같은 변화를 보내므로, 객체 ID + 이벤트 타입으로도 중복을 판단해야 한다.
-- **실패 양상:** 같은 `payment_intent.succeeded`가 두 번 처리되어 크레딧 2배 지급, 메일 2통.
-- **신호:** 🟢 웹훅 라우트(`/api/webhook`, `stripe.webhooks.constructEvent`, `Webhook.construct_event`)에 `event.id` 저장·유니크 검사 없음. 탐지기 사실 `webhook.no_dedupe`. 🟢 안전 패턴: `processed_events(event_id PRIMARY KEY)` INSERT ON CONFLICT DO NOTHING을 처리와 같은 트랜잭션에.
-- **시나리오·수준:** C L2 이상 (웹훅 수신이 L2 판정 신호, 결제 웹훅이면 L3)
-- **처방:** 코드: 이벤트 ID 기록과 비즈니스 갱신을 같은 트랜잭션(멱등 소비자 패턴), 그리고 처리 자체를 멱등하게(C-044, C-024). 인프라: 없음.
-- **검증:** Stripe CLI `stripe events resend`로 같은 이벤트를 재전송해 상태 변화가 한 번뿐인지 확인.
-- **비용 영향:** 중립.
-- **출처:** https://docs.stripe.com/webhooks ("Webhook endpoints might occasionally receive the same event more than once… In some cases, two separate Event objects are generated"), https://microservices.io/patterns/communication-style/idempotent-consumer.html ⚠️출처부적격
-
 ### C-054 웹훅 순서 비보장
 - **무엇/왜:** 웹훅은 발생 순서대로 오지 않는다. `invoice.paid`가 `invoice.created`보다 먼저 올 수 있고, 이벤트의 `created`는 초 단위라 같은 값이 겹친다. 순서에 기대면 상태가 거꾸로 간다.
 - **실패 양상:** `customer.subscription.updated(active)` 뒤에 늦게 온 `(incomplete)`가 상태를 덮어 유료 사용자 차단. 아직 없는 레코드에 대한 이벤트가 와서 처리 실패.
@@ -587,59 +499,9 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **비용 영향:** 소폭 증가(조회 API 호출).
 - **출처:** https://docs.stripe.com/webhooks ("Stripe doesn't guarantee the delivery of events in the order… Don't use created to determine event order")
 
-### C-055 웹훅은 빨리 2xx, 처리는 뒤에서
-- **무엇/왜:** 웹훅 발신자는 짧은 시간 안에 2xx를 기대한다(토스페이먼츠 10초). 무거운 처리를 동기로 하면 타임아웃 → 재전송 → 중복 처리가 연쇄된다. 월초 구독 갱신처럼 웹훅이 몰리는 때 특히 위험하다.
-- **실패 양상:** 처리 중 타임아웃 판정 → 같은 이벤트 재전송 → 처리 2회(C-053 없으면 이중 반영), 엔드포인트 비활성화.
-- **신호:** 🟢 웹훅 핸들러 안에서 메일 발송·이미지 처리·외부 API 다중 호출. 🟡 서버리스 함수 최대 실행 시간과 웹훅 처리 시간 비교.
-- **시나리오·수준:** C L2 이상
-- **처방:** 코드: 서명 검증 → 이벤트를 수신함(C-056)에 저장 → 2xx → 워커가 처리. 인프라: 큐 또는 DB 수신함 + 워커 — 티어0 Vercel Queues/Inngest/QStash 등 또는 DB 테이블 + 크론, 티어1 Cloud Tasks/SQS + 워커 서비스, 티어2 큐 + 워커 Deployment.
-- **검증:** 처리 함수에 15초 지연을 주입해 발신자 쪽 재시도가 생기지 않는지(즉시 2xx) 확인.
-- **비용 영향:** 증가(큐·워커 추가) — 웹훅 볼륨이 작으면 DB 수신함 + 크론으로 비용 최소화.
-- **출처:** https://docs.stripe.com/webhooks ("Quickly returns a successful status code (2xx) before any complex logic", "Handle events asynchronously"), https://docs.tosspayments.com/guides/v2/webhook ("10 초 이내로 200 응답") ⚠️출처부적격
-
-### C-056 웹훅 수신함(inbox) 영속화
-- **무엇/왜:** 2xx를 먼저 돌려주는 순간 발신자는 재전송을 멈춘다. 그 전에 이벤트를 **영속 저장소**에 기록하지 않으면, 프로세스가 죽을 때 이벤트가 영영 사라진다. 반대로 처리 실패 시 5xx를 돌려주면 발신자 재시도(Stripe 라이브 최대 3일, 토스 최대 7회·약 3일 19시간)에 기댈 수 있다.
-- **실패 양상:** 메모리 큐(`setImmediate`, 백그라운드 태스크)에 넣고 200 응답 → 배포로 프로세스 교체 → 결제 이벤트 유실.
-- **신호:** 🟢 웹훅 핸들러가 200 반환 후 `setTimeout`/`setImmediate`/FastAPI `BackgroundTasks`/`waitUntil`로 처리, 이벤트 저장 없음. 🟢 안전 패턴: `webhook_events` 테이블 INSERT 후 200.
-- **시나리오·수준:** C L2 이상 (결제 웹훅이면 L3)
-- **처방:** 코드: 원문 이벤트를 DB에 저장(이벤트 ID 유니크) 후 2xx, 처리 상태 컬럼으로 재처리 가능하게. 인프라: C-055와 같음. 수신함 보존 기간을 정하고 정리(C-112).
-- **검증:** 2xx 직후 프로세스를 강제 종료하고 재기동 후 이벤트가 처리되는지 확인.
-- **비용 영향:** 소폭 증가(저장 공간).
-- **출처:** https://docs.stripe.com/webhooks ("Stripe attempts to deliver events to your destination for up to three days with an exponential back off in live mode"), https://docs.tosspayments.com/guides/v2/webhook (최대 7회, 간격 1·4·16·64·256·1024·4096분) ⚠️출처부적격
-
-### C-057 웹훅 서명 검증과 원문 본문
-- **무엇/왜:** 서명을 검증하지 않으면 누구나 "결제 완료" 이벤트를 위조해 주문을 완료시킬 수 있다(데이터 무결성 침해). 서명은 원문 바이트로 계산되므로 프레임워크가 JSON으로 파싱한 뒤 다시 직렬화하면 검증이 실패한다. 오래된 타임스탬프는 재생 공격으로 보고 거부한다.
-- **실패 양상:** 위조 이벤트로 무료 이행, 또는 검증 실패를 피하려고 검증을 꺼 버림.
-- **신호:** 🟢 웹훅 라우트에 `constructEvent`/서명 비교 없음, Express에서 `express.json()`이 웹훅 라우트보다 먼저 전역 적용(`express.raw` 미사용), Next.js에서 `await req.json()` 후 검증. 🟢 Stripe 라이브러리 tolerance를 0으로 설정. 🟡 토스 웹훅은 이벤트 종류별 검증 방식이 다르므로(문서 확인 필요) 수신 후 결제 조회 API로 상태를 재확인하는지.
-- **시나리오·수준:** C L2 이상
-- **처방:** 코드: 원문 본문(`req.text()`, `express.raw`)으로 공식 라이브러리 검증, 기본 허용 오차(Stripe 라이브러리 5분) 유지, 서버 시계 NTP 동기화. 검증 수단이 약하면 이벤트를 신호로만 쓰고 PG API 조회 결과로 상태 결정. 인프라: 웹훅 시크릿을 비밀 저장소에(티어0 플랫폼 env, 티어1/2 Secret Manager).
-- **검증:** 서명 없는·변조된·오래된 이벤트가 400으로 거부되는지 테스트.
-- **비용 영향:** 중립.
-- **출처:** https://docs.stripe.com/webhooks ("Stripe requires the raw body of the request to perform signature verification", 기본 허용 오차 5분, "Don't use a tolerance value of 0"), https://docs.tosspayments.com/guides/v2/webhook (2026-10-01에 연 페이지 요약에서는 서명 검증 방법이 확인되지 않음) ⚠️출처부적격
-
 ---
 
 ## F. 메시징·큐·비동기 작업
-
-### C-058 at-least-once 소비자의 멱등성
-- **무엇/왜:** SQS 표준 큐, Redis Streams 소비자 그룹, Pub/Sub, Celery(늦은 ack), BullMQ는 모두 "최소 한 번" 전달이다. 소비자가 처리 후 ack 전에 죽으면 같은 메시지를 다시 받는다. 소비자 처리가 멱등이어야 한다.
-- **실패 양상:** 워커 재시작·스케일인 때마다 일부 작업 중복(포인트 2배, 메일 2통, 글 2개).
-- **신호:** 🟢 큐 라이브러리(`bullmq`, `bee-queue`, `celery`, `rq`, `dramatiq`, `@aws-sdk/client-sqs`, `@google-cloud/pubsub`, `xreadgroup`) + 소비자에서 INSERT/증감을 멱등 장치 없이 수행. 🟢 안전 패턴: 메시지 ID 기록 테이블, `ON CONFLICT DO NOTHING`, 조건부 UPDATE. SWA 워커는 `XREADGROUP` → 멱등 INSERT → `XACK`.
-- **시나리오·수준:** C L2 이상 (비동기 작업 큐 존재가 L2 판정 신호)
-- **처방:** 코드: 메시지에 안정적 ID(생산자가 부여)를 넣고, 소비자는 ID 기록과 비즈니스 갱신을 같은 트랜잭션에. 인프라: 없음(큐 종류 무관).
-- **검증:** 처리 직후·ack 직전에 워커를 kill하는 장애 주입, 같은 메시지 수동 재전송 후 결과 1회 확인.
-- **비용 영향:** 중립.
-- **출처:** https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues.html ("more than one copy of a message might be delivered"), https://redis.io/docs/latest/develop/data-types/streams/ ("duplicate processing is possible on failure"), https://microservices.io/patterns/communication-style/idempotent-consumer.html ⚠️출처부적격
-
-### C-059 ack 시점(조기 ack는 유실, 늦은 ack는 중복)
-- **무엇/왜:** 처리 전에 ack하면 워커가 죽을 때 작업이 사라지고, 처리 후 ack하면 중복이 생긴다. 정합성이 필요한 작업은 "늦은 ack + 멱등 처리"가 원칙이다. Celery 기본값은 실행 직전 ack(조기)다.
-- **실패 양상:** Celery 기본 설정에서 워커 OOM으로 결제 후처리 작업 영구 유실.
-- **신호:** 🟢 Celery `acks_late`/`task_acks_late` 미설정(기본 조기 ack), `task_reject_on_worker_lost`. 🟢 SQS `DeleteMessage`를 처리 전에 호출, Pub/Sub `message.ack()`가 처리 전, Redis Streams `XACK` 위치.
-- **시나리오·수준:** C L2 이상
-- **처방:** 코드: 늦은 ack로 바꾸고 C-058 멱등 처리. Celery는 `acks_late=True`여도 자식 프로세스가 비정상 종료하면 ack된다는 점을 알고 `task_reject_on_worker_lost` 등으로 보완 판단. 인프라: 없음.
-- **검증:** 처리 중 워커 강제 종료 후 작업이 재전달·완료되는지 확인.
-- **비용 영향:** 중립.
-- **출처:** https://docs.celeryq.dev/en/stable/userguide/tasks.html ("the default behavior is to acknowledge the message in advance", "If your task is idempotent you can set the acks_late option") ⚠️출처부적격
 
 ### C-060 가시성 타임아웃·재점유 시간과 처리 시간
 - **무엇/왜:** SQS 가시성 타임아웃(기본 30초, 최대 12시간)이나 Redis Streams `XAUTOCLAIM`의 최소 유휴 시간보다 처리가 오래 걸리면, 처리 중인 메시지가 다른 워커에게 다시 간다.
@@ -696,7 +558,7 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **실패 양상:** "FIFO니까 중복 없음"이라고 믿고 소비자 멱등성을 생략 → 생산자 장시간 재시도·DLQ 재처리 때 중복.
 - **신호:** 🟢 `.fifo` 큐 + `ContentBasedDeduplication` 또는 `MessageDeduplicationId`, 소비자에 멱등 장치 없음.
 - **시나리오·수준:** C L2 이상
-- **처방:** 코드: FIFO를 쓰더라도 C-058 적용. 인프라: 없음.
+- **처방:** 코드: FIFO를 쓰더라도 C-058(삭제됨) 적용. 인프라: 없음.
 - **검증:** 6분 후 같은 메시지 재전송 시 소비 결과 1회 확인.
 - **비용 영향:** 중립.
 - **출처:** https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues-exactly-once-processing.html ("within the 5-minute deduplication interval")
@@ -706,20 +568,10 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **실패 양상:** exactly-once 옵션을 켰다고 소비자 멱등성을 빼서, 처리 중 크래시·ack 실패 때 외부 결제가 두 번 실행.
 - **신호:** 🟢 Pub/Sub `enableExactlyOnceDelivery`, Kafka `enable.idempotence`/`transactional.id`/`isolation.level=read_committed`, 문서·주석의 "exactly once". 🟢 push 구독 + exactly-once 기대.
 - **시나리오·수준:** C L2 이상
-- **처방:** 코드: 브로커 설정과 무관하게 C-058 멱등 소비자. Kafka → DB면 오프셋을 결과와 같은 트랜잭션에 저장. 인프라: 없음.
+- **처방:** 코드: 브로커 설정과 무관하게 C-058(삭제됨) 멱등 소비자. Kafka → DB면 오프셋을 결과와 같은 트랜잭션에 저장. 인프라: 없음.
 - **검증:** ack 직전 크래시 주입 테스트.
 - **비용 영향:** 중립(exactly-once 옵션은 지연·처리량 비용이 있음).
 - **출처:** https://docs.cloud.google.com/pubsub/docs/exactly-once-delivery ("Only the pull subscription type supports exactly-once delivery", 같은 리전 한정), https://kafka.apache.org/42/design/design/ ("the consumer can store its offset in the same place as its output")
-
-### C-067 BullMQ jobId 중복 제거의 한계
-- **무엇/왜:** BullMQ에서 같은 `jobId`로 추가하면 무시되지만, 완료·실패 후 `removeOnComplete`/`removeOnFail`로 지워진 작업은 중복으로 보지 않는다. 생산 쪽 중복 제거를 jobId에만 의존하면 정리 설정에 따라 결과가 달라진다.
-- **실패 양상:** `removeOnComplete: true` 설정 후 같은 주문 처리 작업이 재추가되어 두 번 실행.
-- **신호:** 🟢 `queue.add(name, data, { jobId })` + `removeOnComplete: true`/숫자, 소비자 멱등성 없음.
-- **시나리오·수준:** C L2 이상
-- **처방:** 코드: jobId는 1차 방어, 소비자 멱등성(C-058)이 최종 방어. jobId에 `:` 금지·순수 숫자 금지 규칙 준수. 인프라: 없음.
-- **검증:** 작업 완료·제거 후 같은 jobId 재추가 시 결과 1회 확인.
-- **비용 영향:** 중립.
-- **출처:** https://docs.bullmq.io/guide/jobs/job-ids ("jobs that have been removed… will not be considered as duplicates") ⚠️출처부적격
 
 ### C-068 Redis를 큐 저장소로 쓸 때: noeviction + AOF
 - **무엇/왜:** BullMQ·Redis Streams·Sidekiq 계열 큐는 Redis 키가 곧 작업이다. 메모리가 차서 퇴출되거나 재시작으로 마지막 몇 분이 사라지면 작업이 조용히 없어진다.
@@ -741,16 +593,6 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **비용 영향:** 중립.
 - **출처:** https://www.postgresql.org/docs/current/sql-notify.html (커밋 시 전달, 비영속, 큐 8GB, 가득 차면 커밋 실패)
 
-### C-070 프로세스 메모리 안의 백그라운드 작업
-- **무엇/왜:** 응답 후 같은 프로세스에서 작업을 돌리는 방식(FastAPI `BackgroundTasks`, `setImmediate`, Next.js `after`/`waitUntil`, 스레드 풀)은 프로세스가 죽거나 교체되면 작업이 사라지고 재시도도 없다.
-- **실패 양상:** 배포·스케일인·OOM 때 진행 중이던 결제 후처리·메일 발송 유실. 서버리스는 응답 후 인스턴스가 얼어 작업이 끝나지 않을 수도 있음.
-- **신호:** 🟢 `BackgroundTasks.add_task`, `asyncio.create_task`(응답 후), `setImmediate`/`setTimeout`(핸들러 안), `waitUntil`, `after(` + DB 쓰기·외부 호출.
-- **시나리오·수준:** C L2 이상 (작업이 정합성에 영향을 주면)
-- **처방:** 코드: 잃으면 안 되는 작업은 영속 큐·DB 작업 테이블로. 잃어도 되는 것(분석 이벤트)만 메모리 작업 허용. 인프라: 티어0 매니지드 큐(QStash, Inngest, Vercel Queues 등), 티어1 Cloud Tasks/SQS, 티어2 큐 + 워커.
-- **검증:** 작업 실행 중 SIGKILL 후 작업이 재실행되는지 확인.
-- **비용 영향:** 증가(큐 도입).
-- **출처:** 일반 원칙(출처 미확인). 조기 ack 시 유실과 같은 원리는 https://docs.celeryq.dev/en/stable/userguide/tasks.html ⚠️출처부적격 ⚠️근거없음
-
 ### C-071 비동기 쓰기 직후의 상태 조회
 - **무엇/왜:** 쓰기를 큐로 넘기고 202를 돌려주면, 사용자가 곧바로 목록·상세를 볼 때 아직 DB에 없다. "내가 쓴 것이 안 보임"은 사용자에게 유실로 보이고 재시도(중복)를 부른다.
 - **실패 양상:** 글을 썼는데 목록에 없어서 다시 씀 → 중복 글(멱등 키가 새로 발급되면 C-036).
@@ -765,65 +607,15 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 
 ## G. 이중 쓰기·아웃박스·사가
 
-### C-072 이중 쓰기(DB + 큐·캐시·검색·메일)
-- **무엇/왜:** DB에 쓰고 이어서 큐 발행·캐시 갱신·검색 색인·메일 발송을 하면, 두 저장소를 원자적으로 묶을 방법이 없다(분산 트랜잭션은 대개 쓸 수 없다). 둘 중 하나만 성공하는 창이 반드시 있다.
-- **실패 양상:** 주문은 저장됐는데 "주문 생성" 이벤트 발행 전 크래시 → 배송·포인트 처리 누락. 반대로 이벤트는 나갔는데 DB 롤백 → 존재하지 않는 주문의 메일 발송.
-- **신호:** 🟢 같은 함수에서 `prisma.*.create` 뒤 `queue.add`/`sqs.send`/`publish`/`redis.set`/`index.save`/`sendEmail`, 또는 트랜잭션 안에서 발행(C-009). 탐지기 사실 후보 `dualwrite.db_then_publish`.
-- **시나리오·수준:** C L2(이벤트가 부가 기능) / C L3(이벤트가 돈·재고에 영향)
-- **처방:** 코드: L3는 아웃박스(C-073), L2는 커밋 후 발행(C-074) + 대사(C-049·C-030)로 보완. 인프라: 아웃박스 릴레이 워커(티어별 C-073).
-- **검증:** DB 커밋 직후·발행 직전에 프로세스를 죽이는 장애 주입, 이벤트 누락 여부 확인.
-- **비용 영향:** 중립~증가(릴레이 워커).
-- **출처:** https://microservices.io/patterns/data/transactional-outbox.html (2PC 없이 DB 갱신과 메시지 발송을 원자적으로 해야 하는 문제) ⚠️출처부적격
-
-### C-073 트랜잭셔널 아웃박스
-- **무엇/왜:** 비즈니스 쓰기와 같은 트랜잭션에서 `outbox` 테이블에 메시지를 INSERT하고, 별도 릴레이가 이를 읽어 브로커로 보낸 뒤 표시한다. 커밋된 변경만 발행되고, 발행은 최소 한 번이 된다(소비자 멱등 필수).
-- **실패 양상:** (아웃박스가 없을 때) C-072. (있지만 소비자가 멱등이 아닐 때) 릴레이가 발행 후 표시 전에 죽어 중복 발행.
-- **신호:** 🟢 `outbox`/`domain_events`/`event_outbox` 테이블, 같은 트랜잭션 INSERT, 릴레이 워커(폴링 + `SKIP LOCKED`). 🔴 C L3인데 아웃박스가 없으면 미충족.
-- **시나리오·수준:** C L3 (설계 문서 §4.1 L3 통제)
-- **처방:** 코드: 아웃박스 INSERT를 같은 `tx`로, 릴레이는 `FOR UPDATE SKIP LOCKED`로 배치 처리, 메시지에 아웃박스 행 ID를 넣어 소비자 중복 제거. 인프라: 티어0 크론 기반 릴레이(지연 허용 시), 티어1 상시 워커 서비스(min instance 1), 티어2 릴레이 Deployment 또는 CDC(C-075).
-- **검증:** 릴레이를 발행 직후 kill → 재기동 후 중복 발행이 소비자에서 무시되는지, 발행 누락 0건인지 확인.
-- **비용 영향:** 증가(상시 워커, DB 쓰기 증가).
-- **출처:** https://microservices.io/patterns/data/transactional-outbox.html ("The Message relay might publish a message more than once") ⚠️출처부적격
-
 ### C-074 커밋 후에만 부수효과 실행
 - **무엇/왜:** 아웃박스까지는 과할 때(C L2) 최소한 "트랜잭션이 커밋된 뒤에만" 메일·작업 발행을 한다. Django `transaction.on_commit`이 대표적이다. 롤백 시 실행되지 않지만, 커밋 후 콜백 실패는 롤백되지 않으므로 유실 가능성이 남는다.
 - **실패 양상:** 트랜잭션 안에서 Celery 작업을 발행했는데 커밋 전에 워커가 실행 → 아직 없는 행을 못 찾아 실패. 롤백됐는데 메일은 발송됨.
 - **신호:** 🟢 `atomic` 블록 안의 `.delay(`/`.apply_async(`/`send_mail(` (on_commit 없이), 🟢 안전 패턴 `transaction.on_commit(lambda: task.delay(id))`. Prisma는 트랜잭션 콜백이 끝난 뒤(await 이후) 발행하는지 확인.
 - **시나리오·수준:** C L2
-- **처방:** 코드: 커밋 후 발행 + 실패 시 재시도 로그, 결과 대사. 돈·재고가 걸리면 C-073으로 승격. 인프라: 없음.
+- **처방:** 코드: 커밋 후 발행 + 실패 시 재시도 로그, 결과 대사. 돈·재고가 걸리면 C-073(삭제됨)으로 승격. 인프라: 없음.
 - **검증:** 트랜잭션 롤백 테스트에서 작업이 발행되지 않는지 확인(Django `captureOnCommitCallbacks`).
 - **비용 영향:** 중립.
 - **출처:** https://docs.djangoproject.com/en/stable/topics/db/transactions/ (`on_commit`: 롤백 시 실행 안 됨, 트랜잭션의 일부가 아님)
-
-### C-075 CDC 기반 아웃박스(로그 테일링)
-- **무엇/왜:** 폴링 릴레이 대신 DB 변경 로그(WAL)를 읽어 아웃박스 행을 브로커로 보낸다(Debezium Outbox Event Router). 폴링 지연·부하가 없지만 Kafka Connect 같은 운영 부담이 생긴다.
-- **실패 양상:** (잘못 도입 시) 아웃박스 행을 UPDATE해서 이벤트가 중복·누락, 소비자 중복 제거 생략.
-- **신호:** 🟢 Debezium 설정, `transforms.outbox.type=io.debezium.transforms.outbox.EventRouter`, 논리 복제 슬롯(`wal_level=logical`).
-- **시나리오·수준:** C L3 + 처리량이 높을 때만 (그 외에는 과잉 → 축소 처방 후보)
-- **처방:** 코드: 아웃박스 행은 INSERT만, 이벤트 ID로 소비자 중복 제거. 인프라: 티어2 전용(Kafka + Connect + Debezium), 매니지드 DB에서 논리 복제 활성화 필요.
-- **검증:** 커넥터 재시작 중 이벤트 순서·중복 처리 확인.
-- **비용 영향:** 증가(Kafka·Connect 클러스터).
-- **출처:** https://debezium.io/documentation/reference/stable/transformations/outbox-event-router.html ("updates to records in an outbox table are not allowed", 이벤트 ID로 중복 제거) ⚠️출처부적격
-
-### C-076 사가와 보상 트랜잭션
-- **무엇/왜:** 여러 서비스·외부 API에 걸친 작업(결제 → 재고 → 배송 예약)은 하나의 DB 트랜잭션으로 묶을 수 없다. 단계별 로컬 트랜잭션 + 실패 시 앞 단계를 되돌리는 보상 작업(환불, 재고 반환)을 설계한다.
-- **실패 양상:** 결제 성공 후 재고 예약 실패 → 환불 로직 없음 → 돈만 받고 주문 실패.
-- **신호:** 🟢 한 흐름에서 결제 API + 다른 서비스 HTTP 호출 + 로컬 DB 쓰기가 순차로 있고 실패 분기에 되돌리기 없음. 🟢 Temporal·Step Functions·Inngest 같은 오케스트레이터 사용.
-- **시나리오·수준:** C L3 (외부 서비스가 2개 이상 엮인 결제 흐름)
-- **처방:** 코드: 단계·보상 표를 명시하고 오케스트레이션(중앙 조정자) 또는 코레오그래피(이벤트) 선택, 각 단계·보상은 멱등. 인프라: 티어0 Inngest/Vercel Workflow 등, 티어1 Step Functions/Cloud Workflows, 티어2 Temporal 등. 단순 흐름이면 DB 상태 머신 + 재시도 작업으로 충분(과잉 방지).
-- **검증:** 각 단계 실패를 주입해 최종 상태가 "완료" 또는 "완전히 보상됨" 둘 중 하나인지 확인.
-- **비용 영향:** 증가(오케스트레이터).
-- **출처:** https://microservices.io/patterns/data/saga.html ("design compensating transactions that explicitly undo changes made earlier in a saga") ⚠️출처부적격
-
-### C-077 사가의 격리 부재 대응
-- **무엇/왜:** 사가 중간 상태는 다른 요청에게 보인다(ACID의 I가 없음). 보상되기 전의 "결제됨" 상태를 다른 흐름이 읽고 행동할 수 있다.
-- **실패 양상:** 아직 확정되지 않은 예약을 근거로 다른 사용자에게 매진 표시, 보상 전에 포인트 사용.
-- **신호:** 🟡 C-076 신호 + 중간 상태(`PENDING`, `RESERVED`) 표시 없이 최종 상태로 바로 기록.
-- **시나리오·수준:** C L3
-- **처방:** 코드: 중간 상태를 명시적 값으로 두고(semantic lock), 다른 흐름은 중간 상태를 확정으로 취급하지 않음. 인프라: 없음.
-- **검증:** 사가 진행 중 동시 조회·사용 시나리오 테스트.
-- **비용 영향:** 중립.
-- **출처:** https://microservices.io/patterns/data/saga.html ("Lack of automatic rollback… lack of isolation", 대응책 설계 필요) ⚠️출처부적격
 
 ---
 
@@ -952,20 +744,10 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **실패 양상:** 작업이 TTL보다 오래 걸린 클라이언트가 남의 락을 `DEL` → 세 번째 클라이언트까지 진입. `SETNX` 후 `EXPIRE`를 따로 호출하다 그 사이 크래시 → 영원히 안 풀리는 락.
 - **신호:** 🟢 `setnx(` + 별도 `expire(`, `set(key, "1", nx=True)`(고정 값) + `delete(key)`, TTL 없는 락. 🟢 안전 패턴: 랜덤 토큰 + 비교 삭제 스크립트, `redlock`/`node-redlock`/`redis-py` `Lock`. SWA `cache.py`의 스탬피드 락은 `"1"` 고정 값 + TTL(캐시 채우기 용도라 상호 배제가 깨져도 결과가 같아 허용 가능 — 정합성 락과 구분).
 - **시나리오·수준:** C L2 이상 (락이 정합성을 지키는 용도일 때)
-- **처방:** 코드: 랜덤 토큰 + 비교 삭제, TTL ≥ 최대 작업 시간(또는 연장), 정합성이 걸린 곳은 펜싱 토큰(C-090) 또는 DB 잠금으로 대체. 인프라: 없음(락 전용으로 Redis를 새로 두는 것은 과잉일 수 있음 → DB advisory lock 우선 검토).
+- **처방:** 코드: 랜덤 토큰 + 비교 삭제, TTL ≥ 최대 작업 시간(또는 연장), 정합성이 걸린 곳은 펜싱 토큰(C-090(삭제됨)) 또는 DB 잠금으로 대체. 인프라: 없음(락 전용으로 Redis를 새로 두는 것은 과잉일 수 있음 → DB advisory lock 우선 검토).
 - **검증:** TTL보다 긴 작업 + 동시 진입 테스트, 락 해제가 남의 락을 지우지 않는지 확인.
 - **비용 영향:** 중립.
 - **출처:** https://redis.io/docs/latest/develop/clients/patterns/distributed-locks/ ("Using just DEL is not safe as a client may remove another client's lock", 비동기 복제로 인한 안전성 위반 시나리오)
-
-### C-090 펜싱 토큰
-- **무엇/왜:** GC 정지·네트워크 지연으로 락이 만료된 줄 모르는 클라이언트가 늦게 쓰기를 하면, 이미 새 소유자가 있는 자원을 덮어쓴다. 락을 잡을 때 단조 증가 번호를 받고, 저장소가 더 작은 번호의 쓰기를 거부해야 안전하다.
-- **실패 양상:** 오래 멈춘 워커가 깨어나 새 워커의 결과를 옛 데이터로 덮어씀(정산 결과 역전).
-- **신호:** 🟡 분산 락 + 긴 작업 + 공유 자원 쓰기, 쓰기 조건에 토큰·버전 비교 없음.
-- **시나리오·수준:** C L3
-- **처방:** 코드: 락 획득 시 증가 토큰(DB 시퀀스, 버전 컬럼), 쓰기를 `WHERE fence < $token`으로 조건화. 대부분의 앱은 락 대신 DB 조건부 UPDATE로 같은 효과를 낸다. 인프라: 없음.
-- **검증:** 락 보유 클라이언트를 일시 정지시킨 뒤 깨워 늦은 쓰기가 거부되는지 확인.
-- **비용 영향:** 중립.
-- **출처:** https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html (토큰 33/34 예시), https://redis.io/docs/latest/develop/clients/patterns/distributed-locks/ ("You should implement fencing tokens") ⚠️출처부적격
 
 ### C-091 크론 중복 실행
 - **무엇/왜:** 스케줄러는 같은 회차를 두 번 실행할 수 있다. k8s CronJob은 기본 `concurrencyPolicy: Allow`이고 "한 회차에 Job 두 개 또는 0개"가 생길 수 있다. Cloud Scheduler는 at-least-once, Vercel Cron도 같은 회차를 중복 호출할 수 있고 이전 실행이 길면 겹친다.
@@ -1031,16 +813,6 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **비용 영향:** 중립.
 - **출처:** https://supabase.com/docs/guides/database/postgres/row-level-security ("A table in an exposed schema without RLS is readable and writable by any role with a grant on it", "Adding policies doesn't take those grants back"), https://www.postgresql.org/docs/current/ddl-rowsecurity.html (정책 없으면 기본 거부)
 
-### C-097 RLS UPDATE 정책의 WITH CHECK
-- **무엇/왜:** `USING`은 어떤 기존 행을 건드릴 수 있는지, `WITH CHECK`는 바뀐 결과 행이 허용되는지를 본다. UPDATE에 `WITH CHECK`가 없으면 내 행을 고치면서 `user_id`를 남의 것으로 바꾸거나 금지 값으로 바꿀 수 있다.
-- **실패 양상:** 사용자가 자기 주문의 `user_id`를 다른 사람으로 바꿔 떠넘김, `status`를 `refunded`로 직접 변경.
-- **신호:** 🟢 `create policy … for update using (...)`에 `with check` 없음, 또는 `with check (true)`. 🟢 클라이언트가 고칠 수 있는 컬럼에 `status`, `amount`, `role`, `points` 포함.
-- **시나리오·수준:** C L1 이상
-- **처방:** 코드: UPDATE 정책에 `WITH CHECK (auth.uid() = user_id)`, 민감 컬럼은 컬럼 단위 grant 회수 또는 서버 함수로만 변경(C-101). 인프라: 없음.
-- **검증:** 클라이언트에서 소유자·상태 컬럼 변경 시도가 거부되는지 테스트.
-- **비용 영향:** 중립.
-- **출처:** https://supabase.com/docs/guides/database/postgres/row-level-security (USING vs WITH CHECK, UPDATE는 둘 다) ⚠️출처부적격
-
 ### C-098 규칙을 우회하는 서버 자격 증명
 - **무엇/왜:** Supabase `service_role`은 RLS를 우회하고, Firebase Admin SDK·서버 클라이언트 라이브러리는 보안 규칙을 모두 우회한다. 서버 경로에서는 규칙이 지켜 주던 불변식(소유권, 허용 필드)을 코드가 직접 검사해야 한다. PostgreSQL에서도 테이블 소유자·`BYPASSRLS` 역할은 RLS를 우회한다.
 - **실패 양상:** Next.js Route Handler가 `service_role`로 요청 본문 그대로 update → 클라이언트 규칙으로 막던 조작이 서버 경유로 통과. 마이그레이션 계정(소유자)으로 앱을 돌려 RLS가 전혀 작동하지 않음.
@@ -1081,16 +853,6 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **비용 영향:** 중립.
 - **출처:** https://supabase.com/docs/guides/database/functions (`rpc()`로 호출, "Prefer security invoker… When you use security definer, you must set the search_path")
 
-### C-102 뷰가 RLS를 우회
-- **무엇/왜:** PostgreSQL 뷰는 기본적으로 뷰 소유자 권한으로 실행되어 기반 테이블의 RLS를 우회한다. Supabase에서 집계·조인 뷰를 노출하면 다른 사용자의 행이 보인다(이어서 그 정보로 조작).
-- **실패 양상:** `order_summaries` 뷰로 전체 주문 금액·상태 노출.
-- **신호:** 🟢 마이그레이션의 `create view`에 `with (security_invoker = true)` 없음 + 뷰가 `public`(노출) 스키마.
-- **시나리오·수준:** C L1 이상 (Supabase)
-- **처방:** 코드: `security_invoker = true`(PG 15+) 또는 뷰를 비노출 스키마로, grant 회수. 인프라: 없음.
-- **검증:** 다른 사용자 토큰으로 뷰 조회 시 자기 행만 나오는지 확인.
-- **비용 영향:** 중립.
-- **출처:** https://supabase.com/docs/guides/database/postgres/row-level-security ("By default, views bypass RLS. Use security_invoker = true") ⚠️출처부적격
-
 ---
 
 ## L. 파일·검색·파생 저장소
@@ -1126,11 +888,11 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **출처:** https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpu-abort-incomplete-mpu-lifecycle-config.html ("we recommend that you configure a lifecycle rule by using the AbortIncompleteMultipartUpload action to minimize your storage costs")
 
 ### C-106 검색 인덱스 동기화
-- **무엇/왜:** Elasticsearch·OpenSearch·Algolia·Meilisearch 같은 검색 엔진은 DB의 사본이다. DB 쓰기 후 색인을 같은 요청에서 하면 이중 쓰기(C-072)가 되고, 색인 자체도 즉시 검색되지 않는다(Elasticsearch 기본 1초 refresh, 30초간 검색이 없던 인덱스는 refresh 생략).
+- **무엇/왜:** Elasticsearch·OpenSearch·Algolia·Meilisearch 같은 검색 엔진은 DB의 사본이다. DB 쓰기 후 색인을 같은 요청에서 하면 이중 쓰기(C-072(삭제됨))가 되고, 색인 자체도 즉시 검색되지 않는다(Elasticsearch 기본 1초 refresh, 30초간 검색이 없던 인덱스는 refresh 생략).
 - **실패 양상:** 삭제한 상품이 검색에 계속 노출되어 주문 시도, 색인 실패로 새 상품이 영원히 검색 안 됨, 가격이 검색 결과와 상세에서 다름.
 - **신호:** 🟢 `@elastic/elasticsearch`, `algoliasearch`, `meilisearch` 클라이언트 호출이 DB 쓰기 직후 같은 핸들러에, 재색인 스크립트 부재.
 - **시나리오·수준:** C L2 이상 (검색 결과로 거래 판단을 하면)
-- **처방:** 코드: 아웃박스·CDC로 색인 이벤트 전달(C-073), 전체 재색인 작업 보유, 결정 데이터(가격·재고)는 상세 조회 시 DB에서 재확인. 인프라: 색인 워커(티어별 C-073과 공유).
+- **처방:** 코드: 아웃박스·CDC로 색인 이벤트 전달(C-073(삭제됨)), 전체 재색인 작업 보유, 결정 데이터(가격·재고)는 상세 조회 시 DB에서 재확인. 인프라: 색인 워커(티어별 C-073(삭제됨)과 공유).
 - **검증:** 색인 실패 주입 후 재색인·재처리로 DB와 인덱스 문서 수·해시 일치 확인.
 - **비용 영향:** 증가(워커·재색인 작업).
 - **출처:** https://www.elastic.co/docs/manage-data/data-store/near-real-time-search ("periodically refreshes indices every second, but only on indices that have received one search request or more in the last 30 seconds")
@@ -1179,16 +941,6 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **비용 영향:** 중립.
 - **출처:** 일반 원칙(출처 미확인). 근거 사례는 SWA `docs/superpowers/rulings.md` ⚠️근거없음
 
-### C-111 감사 로그
-- **무엇/왜:** 누가 언제 무엇을 바꿨는지(관리자 환불, 권한 변경, 금액 수정)는 분쟁·사고 조사·대사의 근거다. 감사 로그를 비즈니스 쓰기와 다른 경로(비동기 로그 전송)로 남기면 커밋된 변경의 기록이 빠질 수 있다.
-- **실패 양상:** 환불 분쟁 시 누가 환불했는지 기록 없음, 로그 전송 실패로 권한 상승 기록 누락.
-- **신호:** 🟢 `audit_logs`/`activity_log` 테이블, `django-simple-history`/`django-auditlog`, PG 트리거 감사. 🔴 없으면 C L3에서 미충족 가정.
-- **시나리오·수준:** C L3 (결제·관리자 기능이 있으면), 그 외 선택
-- **처방:** 코드: 감사 행을 같은 트랜잭션에 INSERT(또는 DB 트리거), 수정·삭제 금지(권한 회수), 행위자·대상·이전/이후 값·요청 ID 기록. 인프라: 장기 보관이 필요하면 저비용 저장소로 주기 이관(D·비용 문서와 연계).
-- **검증:** 관리자 작업 후 감사 행 존재, 롤백된 작업은 감사 행도 없음을 확인.
-- **비용 영향:** 소폭 증가(저장 공간).
-- **출처:** 일반 원칙(출처 미확인). 변경 이력의 이점은 https://microservices.io/patterns/data/event-sourcing.html ⚠️출처부적격 ⚠️근거없음
-
 ### C-112 보존 기간과 만료 데이터 정리
 - **무엇/왜:** 멱등 키, 웹훅 수신함, 아웃박스, 처리 완료 메시지 ID, 세션, 임시 업로드는 기능상 일정 기간만 필요하다. 정리하지 않으면 테이블이 무한히 커지고, 정리를 잘못하면 아직 필요한 키를 지워 중복이 생긴다.
 - **실패 양상:** `processed_events` 수억 행으로 INSERT 느려짐, 반대로 하루 만에 지운 이벤트 ID가 3일 재시도 웹훅을 다시 처리.
@@ -1199,16 +951,6 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 - **비용 영향:** 감소(저장 공간·인덱스 크기).
 - **출처:** https://docs.stripe.com/webhooks (라이브 자동 재시도 최대 3일, CLI 재전송 30일), https://docs.tosspayments.com/guides/v2/webhook (7회·약 3일 19시간), https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html (보존 기간 설정)
 
-### C-113 이벤트 소싱 채택 여부(과잉 판정 포함)
-- **무엇/왜:** 이벤트 소싱은 상태 대신 변경 이벤트를 저장해 감사·시점 조회·신뢰할 수 있는 이벤트 발행을 얻지만, 학습 곡선이 높고 조회를 위해 CQRS(최종 일관성 읽기 모델)가 필요하다. 바이브코더 앱 대부분에는 과잉이다.
-- **실패 양상:** (불필요한 채택) 읽기 모델 지연으로 "방금 쓴 게 안 보임"이 상시화, 이벤트 스키마 변경 비용 폭증. (필요한데 없음) 금융 원장의 변경 근거 부재 — 이 경우 C-051 원장이 더 가벼운 대안.
-- **신호:** 🟢 `eventstore`, `@eventstore/db-client`, `EventStoreDB`, Axon, `projections`/`aggregates` 디렉터리, 이벤트 테이블에서 상태 재구성 코드.
-- **시나리오·수준:** C L3에서도 대부분 불필요 — 존재 시 과잉 여부 판정
-- **처방:** 코드: 감사·원장 요구는 C-051·C-111로 충족 가능하면 이벤트 소싱 대신 그것을 권고. 이미 쓰고 있으면 "이미 있는 인프라 존중" — 읽기 모델 지연에 대한 쓰기 후 읽기 처리(C-071) 확인. 인프라: 이벤트 저장소 전용 클러스터는 축소 처방 후보.
-- **검증:** 읽기 모델 지연 측정, 프로젝션 재구축 시간 측정.
-- **비용 영향:** 감소(미채택 권고 시) / 증가(채택 시).
-- **출처:** https://microservices.io/patterns/data/event-sourcing.html ("there is a learning curve", CQRS 필요와 최종 일관성) ⚠️출처부적격
-
 ---
 
 ## 새 축·규칙 후보
@@ -1216,29 +958,29 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 카탈로그를 쓰면서 설계 문서 §4·§6·§8에 넣을 만하다고 본 것들이다.
 
 ### 1. C 수준 판정 규칙 보강 (§4.2)
-- **C L2 승격 신호 추가:** `api.idempotency_key` 부재와 무관하게, **비동기 백그라운드 작업이 정합성 쓰기를 하는 경우**(C-070), **크론이 쓰기를 하는 경우**(C-091), **Firestore/Supabase 클라이언트 직접 쓰기**(C-096·C-099)도 L2 신호로 넣는다. 현재 표는 웹훅·큐·클라이언트 재시도만 본다.
-- **C L3 승격 신호 추가:** `balance|points|credits|wallet` 컬럼(원장 성격, C-051), 예약 겹침 검사(C-006), 선착순 쿠폰(C-052). 현재 표는 결제 SDK와 재고·잔액·좌석 차감 패턴만 본다.
+- **C L2 승격 신호 추가:** `api.idempotency_key` 부재와 무관하게, **비동기 백그라운드 작업이 정합성 쓰기를 하는 경우**(C-070(삭제됨)), **크론이 쓰기를 하는 경우**(C-091), **Firestore/Supabase 클라이언트 직접 쓰기**(C-096·C-099)도 L2 신호로 넣는다. 현재 표는 웹훅·큐·클라이언트 재시도만 본다.
+- **C L3 승격 신호 추가:** `balance|points|credits|wallet` 컬럼(원장 성격, C-051(삭제됨)), 예약 겹침 검사(C-006), 선착순 쿠폰(C-052). 현재 표는 결제 SDK와 재고·잔액·좌석 차감 패턴만 본다.
 - **C L0 판정 주의:** "쓰기 경로가 캐시·로그·분석뿐"이라도 Redis가 **원본**인 데이터(C-081)가 있으면 L0이 아니다.
 
 ### 2. 새 탐지기 사실 후보 (§6.2)
 | 사실 ID | 탐지 방법 | 관련 항목 |
 |---|---|---|
 | `money.float_column` | Prisma `Float`/SQL `REAL`·`DOUBLE`·`money`/Django `FloatField` + 금액 이름 | C-039 |
-| `money.client_amount_trusted` | 요청 본문·쿼리 `amount`가 결제 SDK 호출 인자로 흐름(semgrep taint) | C-041 |
+| `money.client_amount_trusted` | 요청 본문·쿼리 `amount`가 결제 SDK 호출 인자로 흐름(semgrep taint) | C-041(삭제됨) |
 | `payment.fulfill_on_redirect_only` | 성공 페이지에만 이행 코드, 웹훅 라우트 없음 | C-045 |
 | `payment.external_id_not_unique` | `paymentKey`·`paymentIntentId` 컬럼에 유니크 없음 | C-043 |
-| `webhook.ack_before_persist` | 웹훅 200 반환 후 메모리 작업으로 처리 | C-056 |
-| `webhook.raw_body_broken` | `express.json()` 전역 + 웹훅 라우트, `req.json()` 후 검증 | C-057 |
-| `queue.early_ack` | Celery `acks_late` 미설정, 처리 전 `DeleteMessage`/`ack()` | C-059 |
+| `webhook.ack_before_persist` | 웹훅 200 반환 후 메모리 작업으로 처리 | C-056(삭제됨) |
+| `webhook.raw_body_broken` | `express.json()` 전역 + 웹훅 라우트, `req.json()` 후 검증 | C-057(삭제됨) |
+| `queue.early_ack` | Celery `acks_late` 미설정, 처리 전 `DeleteMessage`/`ack()` | C-059(삭제됨) |
 | `queue.no_dlq` / `queue.dlq_by_count_only` | 재시도 상한·DLQ 부재 / 예외 분류 없는 횟수 기반 DLQ | C-061·C-062 |
-| `dualwrite.db_then_publish` | 같은 함수에서 DB 쓰기 후 큐·검색·메일 호출, 아웃박스 없음 | C-072 |
-| `tx.external_call_inside` | 트랜잭션 블록 안 HTTP·결제 SDK 호출 | C-009 |
+| `dualwrite.db_then_publish` | 같은 함수에서 DB 쓰기 후 큐·검색·메일 호출, 아웃박스 없음 | C-072(삭제됨) |
+| `tx.external_call_inside` | 트랜잭션 블록 안 HTTP·결제 SDK 호출 | C-009(삭제됨) |
 | `redis.shared_cache_and_state` | 같은 `REDIS_URL`을 캐시 + 큐/락/멱등 키가 공유 | C-068·C-082 |
 | `redis.lock_unsafe_release` | 고정 값 락 + `DEL` 해제, `SETNX` + 별도 `EXPIRE` | C-089 |
 | `db.read_replica_routing` | `readReplicas`, `using('replica')`, reader 엔드포인트 | C-084 |
 | `cron.in_process` | `node-cron`·`setInterval`·APScheduler가 웹 프로세스에서 기동 | C-093 |
 | `k8s.cronjob.concurrency_allow` | CronJob `concurrencyPolicy` 미설정 | C-091 |
-| `supabase.rls_missing` / `supabase.view_definer` | 마이그레이션 `create table` 후 RLS 미활성 / `security_invoker` 없는 뷰 | C-096·C-102 |
+| `supabase.rls_missing` / `supabase.view_definer` | 마이그레이션 `create table` 후 RLS 미활성 / `security_invoker` 없는 뷰 | C-096·C-102(삭제됨) |
 | `firestore.rules_no_field_check` | `allow write: if request.auth != null` 등 내용 검증 없음 | C-099 |
 | `storage.user_filename_key` | 업로드 키에 원본 파일명 사용 | C-104 |
 | `softdelete.unique_conflict` | `deleted_at` + 전체 유니크 | C-107 |
@@ -1246,15 +988,15 @@ infrafit 규칙집의 **시나리오 C(정합성)** 재료다. 트랜잭션·잠
 
 ### 3. 티어 규칙 후보 (§8.2 tier)
 - **C-TIER 후보 A:** C L3 경로(조건부 차감·잠금)가 엣지 런타임 또는 HTTP 전용 서버리스 DB 드라이버에서 실행되면 티어0 구성에 "Node 런타임 + TCP 드라이버" 또는 "DB 함수(RPC) 원자화"를 필수 조건으로 단다(C-015·C-101). 둘 다 불가능하면 티어0 제외.
-- **C-TIER 후보 B:** 아웃박스(C-073)가 필요한데 상시 워커를 둘 수 없는 티어0라면, 크론 기반 릴레이의 지연(분 단위)이 허용되는지로 가른다. 허용 불가면 티어1(min instance ≥ 1 워커) 이상.
+- **C-TIER 후보 B:** 아웃박스(C-073(삭제됨))가 필요한데 상시 워커를 둘 수 없는 티어0라면, 크론 기반 릴레이의 지연(분 단위)이 허용되는지로 가른다. 허용 불가면 티어1(min instance ≥ 1 워커) 이상.
 - **C-TIER 후보 C:** 큐용 Redis와 캐시용 Redis를 분리해야 하는데(C-068·C-082) 비용이 문제면, 큐를 PostgreSQL `SKIP LOCKED` 테이블(C-014)로 옮기는 것을 더 싼 대안으로 비교한다.
 
 ### 4. 비용 규칙 후보 (§8.2 cost, 과잉 탐지)
-- C L2 이하인데 Kafka + Debezium(C-075), 이벤트 소싱 저장소(C-113), 사가 오케스트레이터(C-076)가 있으면 축소 처방 후보.
+- C L2 이하인데 Kafka + Debezium(C-075(삭제됨)), 이벤트 소싱 저장소(C-113(삭제됨)), 사가 오케스트레이터(C-076(삭제됨))가 있으면 축소 처방 후보.
 - C L3 RPO 0 요구(C-085)와 D L2 Multi-AZ 요구는 같은 리소스로 충족되는 경우가 많으므로 견적에서 이중 계상하지 않는다(교차 시나리오 통제 공유 축).
 - 고아 파일 청소(C-103)·미완료 멀티파트 정리(C-105)·만료 데이터 정리(C-112)는 정합성 처방이면서 비용 **감소** 처방이다. "비용 감소형 정합성 처방"을 리포트에서 따로 묶어 보여 주면 설득력이 크다.
 
 ### 5. 새 축 후보
-- **"원본 저장소 지도" 축:** 데이터 종류(주문, 결제, 세션, 멱등 키, 큐, 파일, 검색)마다 원본이 어디인지, 사본이 어디에 몇 개 있는지를 사실로 만든다. 이중 쓰기(C-072), Redis 원본(C-081), 삭제 전파(C-109), 대사(C-049) 판정이 모두 이 지도에서 나온다. 현재 사실 모델(`Fact`)에는 저장소 간 관계를 표현하는 사실이 없다.
+- **"원본 저장소 지도" 축:** 데이터 종류(주문, 결제, 세션, 멱등 키, 큐, 파일, 검색)마다 원본이 어디인지, 사본이 어디에 몇 개 있는지를 사실로 만든다. 이중 쓰기(C-072(삭제됨)), Redis 원본(C-081), 삭제 전파(C-109), 대사(C-049) 판정이 모두 이 지도에서 나온다. 현재 사실 모델(`Fact`)에는 저장소 간 관계를 표현하는 사실이 없다.
 - **"재시도 창 정합" 축:** 상대 시스템의 최대 재시도·재전송 기간(웹훅 3일, 큐 보존 기간, 클라이언트 재시도)과 우리 쪽 중복 제거 보존 기간(멱등 키 TTL, 처리 ID 보존, 삭제 마커 TTL)을 비교하는 규칙. SWA의 `deleted_user` 마커 TTL 2시간 < 백로그 가능 시간 같은 불일치가 정확히 이 축에서 잡힌다(C-035·C-109·C-112).
-- **"검증 가능성" 축(P4 연계):** 항목마다 적은 검증 방법은 동시 요청 주입(C-002·C-003·C-012·C-033·C-044·C-052), 중복 재전송(C-053·C-058·C-065·C-091), 장애 주입(C-001·C-056·C-059·C-062·C-073·C-085), 불변식 쿼리(C-030·C-049·C-051) 네 종류로 묶인다. P4 검증 루프의 C 시나리오 테스트 템플릿을 이 네 종류로 만들면 규칙의 `verify` ID와 1:1로 붙일 수 있다.
+- **"검증 가능성" 축(P4 연계):** 항목마다 적은 검증 방법은 동시 요청 주입(C-002·C-003·C-012·C-033·C-044·C-052), 중복 재전송(C-053(삭제됨)·C-058(삭제됨)·C-065·C-091), 장애 주입(C-001·C-056(삭제됨)·C-059(삭제됨)·C-062·C-073(삭제됨)·C-085), 불변식 쿼리(C-030·C-049·C-051(삭제됨)) 네 종류로 묶인다. P4 검증 루프의 C 시나리오 테스트 템플릿을 이 네 종류로 만들면 규칙의 `verify` ID와 1:1로 붙일 수 있다.

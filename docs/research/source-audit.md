@@ -3,6 +3,7 @@
 - 작성일: 2026-10-02
 - 대상: `docs/research/**/*.md` 21개 파일(약 23,000줄), `knowledge/defaults.yaml`, `knowledge/components/catalog.yaml`, `knowledge/signatures/*.yaml`, `knowledge/images.yaml`
 - 이 감사는 출처를 새로 찾거나 주장 내용을 고치지 않았다. 웹을 열지 않았다. 조사 문서에는 표시(⚠️)만 덧붙였다.
+- 후속(2026-10-02): 사용자 결정으로 ` ⚠️출처부적격` 주장은 표시에서 그치지 않고 조사 문서에서 삭제했다(§11). §3~§7의 파일·줄 번호와 집계는 삭제 전 기준이다.
 - 최종 판정(2026-10-02): 사용자의 최종 규칙(§1 마지막)으로 이전 B·애매 판정과 이전 A 발행처를 다시 판정했다. ` ⚠️출처확인필요` 표시는 더 이상 없다. 남은 표시는 ` ⚠️출처부적격`(쓸 수 없음)과 ` ⚠️근거없음`(출처 없음) 둘이다.
 
 ## 1. 규칙 (사용자 지시)
@@ -1173,3 +1174,72 @@ catalog 항목은 ID·이름·`source` 파일만 가진다(능력 값은 계획 
   - §5.4의 "이전 A가 Stripe뿐인 줄"이 ⚠️출처부적격이 된 경우는 개별로 다시 보지 않았다. Stripe에 관한 주장만 있는 줄은 표시를 지워도 된다.
 - Istio·OPA Gatekeeper의 CNCF graduated 여부를 cncf.io/projects에서 확인했다(둘 다 graduated). A 유지.
 - 이 정정으로 §3 집계는 nginx 13·Grafana 17·Stripe 29건이 다시 A가 된 만큼 달라진다(A 3,588, C 704).
+
+## 11. 부적격 출처 주장 삭제 (2026-10-02)
+
+사용자 결정: 부적격 출처에 기댄 주장은 설득력이 없으므로 표시만 하지 않고 지운다. ` ⚠️근거없음` 줄은 이 결정의 대상이 아니라 그대로 두었다(삭제된 항목·절 안에 있던 줄만 함께 지워졌다). 웹은 열지 않았고 주장을 새로 쓰거나 고치지 않았다.
+
+### 11.1 삭제 규칙
+
+1. 표 행에 ` ⚠️출처부적격`이 있으면 행을 지웠다. 모든 표는 머리글·구분선과 데이터 행을 1개 이상 유지한다.
+2. considerations/*: 표시가 `- **출처:**` 줄에 있으면 항목 전체(제목부터 다음 항목 제목 전까지)를 지웠다. 남은 ID는 바꾸지 않았고, 파일마다 맨 위에 "삭제된 항목: …, 사유: 부적격 출처" 한 줄을 적었다.
+3. 그 밖의 표시 줄은 줄을 지웠다. 그 줄이 `…:`로 끝나는 목록 머리였으면 딸린 하위 줄도 지웠고(예: Checkov 정책 색인에 기댄 CKV 목록), 하위 줄이 모두 지워진 `출처:` 머리 줄도 지웠다.
+4. capabilities 구성 요소 절은 표시 행을 지운 뒤 남은 행이 `미확인`·`해당 없음` 자리표시나 ` ⚠️근거없음` 행뿐이면(적격 출처나 남은 절을 가리키는 "N.N과 같음" 행이 하나도 없으면) 절 전체(비용 구조·교체 계열 정보·함정 포함)를 지웠다. 그 구성 요소의 생성 산출물 절(06·07·08)도 출처 줄이 모두 부적격이어서 함께 지웠다.
+5. 지운 내용만 가리키던 참조: 목차 링크는 "삭제됨"으로 바꿨고, 지운 구성 요소만 요약하던 요약표 행은 지웠다. 지운 considerations ID를 가리키는 본문 참조에는 `(삭제됨)`을 붙였다(89곳, 목차의 ID 범위 표기는 그대로). 개수·합계 문장은 다시 셌다.
+
+### 11.2 파일별 삭제 수
+
+| 파일 | 표시 줄(삭제 전 → 후) | 삭제한 표 행(표시) | 삭제한 표시 줄(표 밖) | 함께 지운 하위 줄 | 삭제한 절·항목 | 요약표 행 | 함께 지워진 ⚠️근거없음 줄 | 삭제한 줄 합계 |
+|---|---|---|---|---|---|---|---|---|
+| capabilities/01-sql-databases.md | 73 → 0 | 66 | 1 | 0 | 절 1 | 1 | 4 | 96 |
+| capabilities/02-nosql-baas.md | 53 → 0 | 6 | 1 | 0 | 절 3 | 3 | 4 | 118 |
+| capabilities/03-cache-queue-scheduler-realtime-storage.md | 63 → 0 | 23 | 4 | 0 | 절 8 | 9 | 8 | 230 |
+| capabilities/04-compute-tier0.md | 116 → 0 | 6 | 0 | 0 | 절 4(하위 절 8) | 8 | 17 | 325 |
+| capabilities/05-compute-tier1-2.md | 5 → 0 | 5 | 0 | 0 | — | — | 0 | 5 |
+| capabilities/06-artifacts-datastores.md | 20 → 0 | 6 | 14 | 0 | 산출물 절 4 | 4 | 0 | 96 |
+| capabilities/07-artifacts-services.md | 14 → 0 | 0 | 14 | 0 | 산출물 절 7 | 7 | 1 | 130 |
+| capabilities/08-artifacts-compute.md | 33 → 0 | 3 | 30 | 2(출처 머리) | 산출물 절 4 | 4 | 4 | 137 |
+| capabilities/09-network-lb-ingress.md | 37 → 0 | 4 | 1 | 11 | 절 4 | 7(+지운 행만 되풀이하던 표 행·목록 줄 11) | 11 | 147 |
+| capabilities/10-network-edge-egress.md | 28 → 0 | 14 | 6 | 26 | 절 3 | 3 | 3 | 100 |
+| considerations/01-resilience-dr.md | 2 → 0 | — | — | — | 항목 2 | — | 1 | 24 |
+| considerations/02-traffic-compute.md | 15 → 0 | — | — | — | 항목 15 | — | 0 | 156 |
+| considerations/03-deploy-release.md | 31 → 0 | — | — | — | 항목 31 | — | 4 | 320 |
+| considerations/04-data-consistency.md | 26 → 0 | — | — | — | 항목 26 | — | 0 | 282 |
+| considerations/05-security-compliance.md | 8 → 0 | — | — | — | 항목 8 | — | 1 | 83 |
+| considerations/06-cost.md | 3 → 0 | — | — | — | 항목 3 | — | 0 | 31 |
+| considerations/07-observability-verification.md | 10 → 0 | — | — | — | 항목 10 | — | 0 | 109 |
+| considerations/08-workloads-platforms.md | 15 → 0 | — | — | — | 항목 15(+빈 소제목 3) | 3 | 0 | 190 |
+| considerations/README.md | 1 → 0 | 1 | — | — | — | — | 0 | 13 |
+
+- 표시 줄 553개를 모두 지웠다(capabilities 442, considerations 111). 이 파일(source-audit.md)의 표시 31곳은 감사 설명이라 남겼다. dimensions.md와 capabilities/README.md에는 표시가 없었다.
+- considerations 항목은 878개에서 110개를 지워 768개다. 삭제된 ID는 각 파일 맨 위에 있다.
+- capabilities 구성 요소는 226개에서 27개를 지워 199개다(01~05: 148 → 128, 네트워크: 78 → 71). 생성 산출물은 06: 35 → 31, 07: 51 → 44, 08: 36 → 32.
+- 각 줄 수의 "삭제한 줄 합계"는 빈 줄, 목차·참조 수정으로 줄어든 줄을 포함한 `git diff` 기준이다.
+
+### 11.3 삭제한 절 제목
+
+- capabilities/01: 3.4 MySQL — PlanetScale Vitess
+- capabilities/02: 12. Appwrite Cloud, 14. Convex, 16. Pinecone — Serverless
+- capabilities/03: 앱 프로세스 안 스케줄러(현재 상태), Upstash Redis, Inngest, Trigger.dev, Upstash QStash, Socket.IO — Redis 어댑터 / Redis Streams 어댑터, Pusher Channels, Ably
+- capabilities/04: 5. Render(5.1 Free, 5.2 유료), 6. Fly.io — Machines, 9. Replit Deployments(9.1 Autoscale, 9.2 Reserved VM, 9.3 Scheduled), 12. Koyeb(12.1 Free, 12.2 유료)
+- capabilities/06: 20. MySQL — PlanetScale Vitess, 31. Appwrite Cloud, 33. Convex, 35. Pinecone
+- capabilities/07: Upstash Redis, Inngest, Trigger.dev, Upstash QStash, Socket.IO — Redis 어댑터, Pusher Channels, Ably
+- capabilities/08: P9. Render, P10. Fly.io Machines, P14. Replit Deployments, P17. Koyeb
+- capabilities/09: 5.3 Caddy, 5.4 Traefik v3, 6.4 Render 엣지 프록시, 6.6 Fly.io 프록시
+- capabilities/10: 1.7 Fastly, 5.5.7 Render 출구 IP, 5.5.8 Fly.io 출구 IP
+- capabilities/01 1.2 SQLite WAL의 빈 "교체 계열 정보" 소제목
+- considerations/08: 빈 소제목 "티어 0 — Render", "티어 0 — Fly.io", "티어 0 — Replit"(W-071~W-076을 지운 결과), 플랫폼 한도 요약표의 Render·Fly.io·Replit 행
+
+### 11.4 지식 베이스 영향
+
+- `uv run infrafit kb lint`: 0개 문제. `uv run pytest`: 362 passed.
+- catalog는 문서 파일 단위로 `source`를 적으므로 가리키는 파일은 모두 남아 있다. 근거 절이 삭제된 항목 6개의 `reason`을 "근거 절 삭제(부적격 출처)"로 바꿨다. 6개 모두 이미 `recommendable: false`였다: `sc:local/in-process/default`, `rt:lib/socketio/redis-adapter`, `cp:fly/machines/default`, `cp:render/web/unspecified-plan`, `nw:fly/proxy/default`, `nw:render/proxy/default`. 이 ID들은 현재 상태 탐지(`fly.toml`, `render.yaml`, `superfly/flyctl-actions`, 인프로세스 스케줄러 시그니처)에 계속 쓰인다.
+- 추천 가능(`recommendable` 기본값 true) 항목이나 defaults.yaml 값 가운데 근거가 사라진 것은 없다. defaults.yaml 13개 중 조사 문서를 가리키는 12개의 근거(considerations/03의 CronJob `concurrencyPolicy: Allow`, capabilities/06의 `storage_encrypted` 기본 false, capabilities/09 §5.1 nginx·§7 uvicorn·gunicorn·Node·ALB·GCP 백엔드 값)는 모두 남아 있다. 09 §7에서 지운 행은 Puma·Hypercorn뿐이고 엔진은 이 둘을 쓰지 않는다.
+- `qu:lib/bullmq`, `qu:lib/celery`, `rt:lib/socketio/no-adapter`의 절은 "Redis를 따름" 같은 행이 남아 절이 유지됐다. 이전 reason("근거 절이 … 문서(C)에만 기댐")과 `recommendable: false`는 그대로다.
+- 엔진 동작은 바꾸지 않았다. `knowledge/images.yaml`의 `caddy`·`traefik` → `reverse-proxy` 분류와 `signatures/watchlist.yaml`의 `pusher`·`ably`·`@upstash/redis`·`@planetscale/database`·`appwrite`·`convex`는 탐지용 이름 목록이라 그대로 두었다(근거 절은 삭제됨).
+
+### 11.5 남긴 것 (사용자 확인 필요)
+
+- **표시가 없던 종합 문장 속 언급.** 지운 구성 요소가 여러 구성 요소를 함께 다루는 문장·표 행에 남아 있다. 주장을 고치지 말라는 지시에 따라 그대로 두었다: capabilities/04 "교차 관찰"(Render·Fly·Replit·Koyeb), 02 §17 교차 규칙 메모(Appwrite·Convex·Pinecone), 03 §7(Upstash·QStash·Pusher), 07 요약표 아래 문장과 §1.1(Upstash), 08 "생성 자동화를 막는 발견"(Render·Fly·Replit·Koyeb), 09 R2 문장(Puma), 10 §6.10·§7·§8(Fastly·Upstash), considerations/08 W-088·W-091·규칙 후보 13·14(Render·Fly·Replit), considerations/README §4.4-14(Render·Fly).
+- **출처 줄을 잃은 생성 산출물 절.** 출처 줄이 모두 부적격이라 지워졌지만 구성 요소 능력 절은 남아 있어 산출물 절도 남겼다: capabilities/06 §2 Turso, §3 LiteFS, §4 PostgreSQL 자체 운영, §14 Neon, §15 PlanetScale Postgres, §16 Prisma Postgres, §34 pgvector, 07 §1.3 compose 공통 이미지, Confluent Cloud, BullMQ, Celery, Sidekiq, Postgres 큐, 08 §1.2 기존 Dockerfile 판정, §1.3.3 환경변수화, §1.3.4 stdout 로그.
+- **표시 행만 지워 얇아진 절.** capabilities/01 1.3 Turso·1.4 LiteFS·2.12~2.15(Neon·PlanetScale Postgres·Prisma Postgres), 02 §15 pgvector, 03 BullMQ·Celery·Sidekiq·Socket.IO(어댑터 없음)는 남은 행이 "1.1과 같음"·"호스트 Postgres 따름" 같은 참조 행이라 절을 남겼다.

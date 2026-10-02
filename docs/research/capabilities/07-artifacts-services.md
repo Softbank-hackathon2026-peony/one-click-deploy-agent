@@ -1,5 +1,7 @@
 # 생성 산출물 표 07: 캐시, 큐·스트림·작업, 스케줄러, 실시간 연결, 파일 저장소
 
+삭제된 절: Upstash Redis, Inngest, Trigger.dev, Upstash QStash, Socket.IO Redis 어댑터, Pusher Channels, Ably, 사유: 부적격 출처 (2026-10-02. 부적격 출처에 기댄 표 행과 줄도 지웠다. 남은 절 번호는 그대로)
+
 - 작성일: 2026-10-01
 - 짝 문서: [03-cache-queue-scheduler-realtime-storage.md](03-cache-queue-scheduler-realtime-storage.md)(능력), [README.md](README.md)(능력 키), [../dimensions.md](../dimensions.md)(요구 차원)
 - 이 문서의 역할: 판정 결과로 구성 요소가 정해진 뒤 에이전트가 **무엇을 생성하고 무엇으로 검증하는가**를 적는다. 사용자는 생성물을 리뷰할 수 없다. 그래서 각 항목은 "검증 명령으로 확인되는가"를 기준으로 썼다.
@@ -22,7 +24,6 @@
   - 두 API 모두 Registry 문서 페이지(`https://registry.terraform.io/providers/<ns>/<name>/latest/docs/resources/<slug>`)와 같은 원문을 돌려준다. 출처 칸에는 이 문서 페이지 URL을 쓴다.
   - 확인한 provider 버전: hashicorp/aws 6.67.0, hashicorp/google 8.5.0, hashicorp/google-beta 8.5.0, cloudflare/cloudflare 5.26.0, vercel/vercel 5.18.0, supabase/supabase 1.11.0, upstash/upstash 2.1.0(2025-08-27 게시), confluentinc/confluent 2.88.0, hashicorp/kubernetes 3.2.1, integrations/github 6.13.0, ably/ably 1.1.0
   - **provider가 없다는 판정**은 Registry API에서 `pusher/pusher`, `inngest/inngest`, `triggerdotdev/trigger`, `triggerdotdev/triggerdev`가 404를 돌려준 것에 근거한다. 다른 네임스페이스의 커뮤니티 provider가 있는지는 확인하지 않았다(`미확인`).
-- **Checkov 규칙 ID**는 Checkov 저장소의 공식 정책 색인 `https://raw.githubusercontent.com/bridgecrewio/checkov/main/docs/5.Policy%20Index/terraform.md`에서 리소스 타입별로 뽑았다. 색인에 있는 ID만 적었다. ⚠️출처부적격
   - 색인에는 거의 모든 리소스에 `CKV2_AWS_37`(CodeCommit 승인 규칙)과 `CKV2_AWS_75`(CORS)가 붙어 있다. 색인을 만드는 방식 때문에 생긴 잡음으로 보여서 적지 않았다.
   - Cloudflare, Vercel, Supabase, Upstash 리소스에 대한 Checkov 규칙은 색인에 **0건**이다.
 - 앱 쪽 계약과 로컬 개발 문서는 WebFetch로 연 페이지만 출처로 썼다. 연 페이지에 그 내용이 없으면 `미확인`으로 적었다.
@@ -32,10 +33,10 @@
 
 - [0. 요약표](#0-요약표)
 - [1. 공통 산출물 패턴](#1-공통-산출물-패턴)
-- [파트 2. 캐시·키-값](#파트-2-캐시키-값): Redis/Valkey 자체 운영 · ElastiCache 노드 기반 · ElastiCache Serverless · MemoryDB · Memorystore Redis Basic · Memorystore Redis Standard · Memorystore Valkey · Memorystore Redis Cluster · Upstash Redis · Vercel Edge Config · Cloudflare Workers KV
-- [파트 3. 큐·스트림·작업](#파트-3-큐스트림작업): SQS 표준 · SQS FIFO · SNS · EventBridge · Pub/Sub · Cloud Tasks · MSK · Confluent Cloud · Redis Streams · BullMQ · Celery · Sidekiq · Postgres 큐 · Inngest · Trigger.dev · QStash · Vercel Queues
+- [파트 2. 캐시·키-값](#파트-2-캐시키-값): Redis/Valkey 자체 운영 · ElastiCache 노드 기반 · ElastiCache Serverless · MemoryDB · Memorystore Redis Basic · Memorystore Redis Standard · Memorystore Valkey · Memorystore Redis Cluster · Upstash Redis(삭제됨) · Vercel Edge Config · Cloudflare Workers KV
+- [파트 3. 큐·스트림·작업](#파트-3-큐스트림작업): SQS 표준 · SQS FIFO · SNS · EventBridge · Pub/Sub · Cloud Tasks · MSK · Confluent Cloud · Redis Streams · BullMQ · Celery · Sidekiq · Postgres 큐 · Inngest(삭제됨) · Trigger.dev(삭제됨) · QStash(삭제됨) · Vercel Queues
 - [파트 4. 스케줄러](#파트-4-스케줄러): Kubernetes CronJob · Cloud Scheduler · EventBridge Scheduler · Vercel Cron · Supabase Cron · Cloudflare Cron Triggers · GitHub Actions schedule
-- [파트 5. 실시간 연결](#파트-5-실시간-연결): Socket.IO Redis 어댑터 · Supabase Realtime · Firebase RTDB · Pusher · Ably · API Gateway WebSocket · AppSync · Durable Objects
+- [파트 5. 실시간 연결](#파트-5-실시간-연결): Socket.IO Redis 어댑터(삭제됨) · Supabase Realtime · Firebase RTDB · Pusher(삭제됨) · Ably(삭제됨) · API Gateway WebSocket · AppSync · Durable Objects
 - [파트 6. 파일 저장소](#파트-6-파일-저장소): S3 · GCS · R2 · Supabase Storage · Vercel Blob · Firebase Storage · EFS · Filestore
 - [7. 생성 자동화에서 걸리는 발견](#7-생성-자동화에서-걸리는-발견)
 
@@ -58,7 +59,6 @@
 | 6 | Memorystore Redis Standard | 가능 | 7 | 없음 | 있음 |
 | 7 | Memorystore Valkey | 가능 | 8 | 없음 | 없음 |
 | 8 | Memorystore Redis Cluster | 가능 | 7 | 없음 | 없음 |
-| 9 | Upstash Redis | 가능 | 4 | 있음(계정·API 키) | 없음 |
 | 10 | Vercel Edge Config | 가능 | 3 | 있음(API 토큰) | 없음 |
 | 11 | Cloudflare Workers KV | 가능 | 3 | 있음(API 토큰) | 없음 |
 | 12 | SQS 표준 | 가능 | 7 | 없음 | 있음 |
@@ -74,9 +74,6 @@
 | 22 | Celery | 해당 없음(브로커를 따름) | 6 | 없음 | 없음 |
 | 23 | Sidekiq | 해당 없음(Redis를 따름) | 4 | 없음 | 없음 |
 | 24 | Postgres 큐(SKIP LOCKED, pg-boss) | 해당 없음(DB를 따름) | 3 | 없음 | 없음 |
-| 25 | Inngest | **불가** | 3 | 있음(계정·키·앱 동기화) | 없음 |
-| 26 | Trigger.dev | **불가** | 3 | 있음(계정·토큰·환경변수) | 없음 |
-| 27 | Upstash QStash | 가능 | 4 | 있음(계정·API 키) | 없음 |
 | 28 | Vercel Queues(베타) | **불가**(vercel.json) | 3 | 없음(배포로 반영) | 없음 |
 | 29 | Kubernetes CronJob | 가능 | 7 | 없음 | 있음 |
 | 30 | Cloud Scheduler | 가능 | 6 | 없음 | 없음 |
@@ -85,11 +82,8 @@
 | 33 | Supabase Cron(pg_cron) | **불가**(SQL 마이그레이션) | 3 | 없음 | 없음 |
 | 34 | Cloudflare Cron Triggers | 가능 | 3 | 있음(API 토큰) | 없음 |
 | 35 | GitHub Actions schedule | 일부(파일·시크릿은 가능) | 4 | 있음(PAT·앱 설치) | 없음 |
-| 36 | Socket.IO Redis 어댑터 | 해당 없음(Redis + LB 스티키) | 4 | 없음 | 없음 |
 | 37 | Supabase Realtime | **불가**(SQL·클라이언트 설정) | 3 | 없음 | 없음 |
 | 38 | Firebase RTDB | 일부(인스턴스만, 규칙은 CLI) | 4 | 없음(CLI로 가능) | 없음 |
-| 39 | Pusher Channels | **불가** | 3 | 있음(앱 생성·키 발급) | 없음 |
-| 40 | Ably | 가능 | 4 | 있음(Control API 토큰) | 없음 |
 | 41 | API Gateway WebSocket | 가능 | 6 | 없음 | 있음 |
 | 42 | AppSync(Event API / GraphQL) | 가능 | 4 | 없음 | 있음(GraphQL만) |
 | 43 | Durable Objects | 일부(`[충돌]`, wrangler 권장) | 3 | 없음 | 없음 |
@@ -102,7 +96,7 @@
 | 50 | Amazon EFS | 가능 | 7 | 없음 | 있음 |
 | 51 | Google Filestore | 가능 | 4 | 없음 | 없음 |
 
-- 합계 51개. Terraform 가능 32, 일부 6, 불가 7, 해당 없음 6.
+- 합계 44개(원래 51개. #9 Upstash Redis, #25 Inngest, #26 Trigger.dev, #27 Upstash QStash, #36 Socket.IO Redis 어댑터, #39 Pusher, #40 Ably는 근거가 부적격 출처뿐이라 2026-10-02에 삭제). Terraform 가능 29, 일부 6, 불가 4, 해당 없음 5.
 - 서드파티 SaaS(Upstash, Vercel, Cloudflare, Confluent, Ably, Inngest, Trigger.dev, Pusher, GitHub)는 **provider 인증용 계정·토큰을 사람이 한 번 만들어 넣어야** 한다. Terraform이 있어도 이 첫 단계는 자동화할 수 없다.
 
 ---
@@ -143,7 +137,6 @@
 | AWS 에뮬레이션 | `localstack/localstack` | **2026.03.0부터 커뮤니티 이미지와 Pro 이미지를 하나로 합쳤고, 시작할 때 `LOCALSTACK_AUTH_TOKEN`이 필요하다.** 무료 Hobby 플랜은 비상업 용도만 허용한다. 계정 없이 시작하던 유예 변수 `LOCALSTACK_ACKNOWLEDGE_ACCOUNT_REQUIREMENT=1`은 2026-04-06까지만 통했다 |
 | S3 호환 | MinIO | **저장소가 "더 이상 유지보수하지 않음"으로 보관됐다.** 커뮤니티판은 소스로만 배포하고 바이너리도 내지 않는다. 기존 바이너리는 업데이트가 없다. 생성물의 기본값으로 쓰지 않는다 |
 
-출처(2026-10-01): https://hub.docker.com/_/redis · https://hub.docker.com/r/valkey/valkey · https://blog.localstack.cloud/localstack-for-aws-release-2026-03-0/ · https://docs.localstack.cloud/getting-started/auth-token/ · https://github.com/minio/minio ⚠️출처부적격
 
 ---
 
@@ -158,7 +151,7 @@
   3. `requirepass` 또는 ACL 사용자(F5).
   4. TLS: OSS Redis는 빌드 옵션과 인증서가 필요해서 생성 난도가 높다(`미확인`). 같은 VPC의 사설망으로만 노출하는 것을 기본으로 한다.
   5. 볼륨: `/data`를 영속 볼륨에 둔다. 컨테이너 로컬 디스크에 두면 B2 문제가 다시 생긴다.
-- **앱 쪽 계약:** `REDIS_URL=redis://:<password>@<host>:6379/0`. 클라이언트 설정은 [BullMQ](#bullmq-node-redis-기반), [connect-redis](#socketio--redis-어댑터--redis-streams-어댑터) 절을 따른다.
+- **앱 쪽 계약:** `REDIS_URL=redis://:<password>@<host>:6379/0`. 클라이언트 설정은 [BullMQ](#bullmq-node-redis-기반), connect-redis(Socket.IO Redis 어댑터 절, 부적격 출처로 삭제됨) 절을 따른다.
 - **로컬 개발 대응:** 위 1.3의 `redis`나 `valkey/valkey` 이미지. 운영과 같은 `--appendonly yes --maxmemory-policy noeviction` 인자를 compose에도 넣어서 차이를 줄인다.
 - **검증 명령:**
   - 정적: compose 파일에 `docker compose config`
@@ -312,27 +305,6 @@
 - **로컬 개발 대응:** 단일 노드 `redis`. CROSSSLOT 오류는 재현되지 않는다(`미확인`: 로컬 클러스터 이미지).
 - **검증 명령:** Checkov 규칙 없음. plan 단언으로 대신한다. 배포 후 여러 키 명령으로 왕복을 확인한다.
 - **출처:** https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/redis_cluster · https://docs.bullmq.io/bull/patterns/redis-cluster · https://github.com/sidekiq/sidekiq/wiki/Using-Redis (2026-10-01)
-
-## Upstash Redis — 서버리스
-
-- **Terraform:** provider `upstash/upstash`(2.1.0, 마지막 게시 2025-08-27). `upstash_redis_database`
-  - **자동화 불가 단계:** provider 인증(계정 이메일과 API 키)은 Upstash 콘솔에서 사람이 발급한다.
-- **요구 수준에 따라 바뀌는 핵심 속성:**
-  1. `region`과 `primary_region`, `read_regions`(D5)
-     - provider 문서의 `primary_region` 허용 목록은 `us-east-1, us-west-1, us-west-2, eu-central-1, eu-west-1, sa-east-1, ap-southeast-1, ap-southeast-2`다. **03이 말하는 도쿄(ap-northeast-1)가 이 목록에 없다.** 실제로 허용되는지는 `미확인`이므로 `terraform apply` 전에 `plan`과 API 응답으로 확인해야 한다.
-  2. `eviction`(bool): 큐 용도이면 `false`. 03에 따르면 꺼져 있으면 가득 찼을 때 쓰기를 거부한다.
-  3. `tls`: 새 DB는 기본으로 켜져 있고 끌 수 없다.
-  4. `budget`, `prod_pack`(G3, F1)
-  - `multizone`은 deprecated다.
-- **앱 쪽 계약:**
-  - 출력: `endpoint`, `port`, `password`, `rest_token`, `read_only_rest_token`
-  - TCP 접속: Upstash 문서에 "토큰이 곧 DB 비밀번호"이고 `redis-cli --tls`로 접속한다고 나온다. 그래서 `rediss://default:<password>@<endpoint>:<port>`다. 사용자 이름 `default`는 `미확인`이다.
-  - REST 접속 환경변수 이름 `UPSTASH_REDIS_REST_URL`과 `UPSTASH_REDIS_REST_TOKEN`은 연 페이지에서 확인하지 못했다(`미확인`).
-- **로컬 개발 대응:** TCP 클라이언트를 쓰면 `redis` 이미지로 대체한다. REST 클라이언트(`@upstash/redis`)의 로컬 대체재는 `미확인`이다.
-- **검증 명령:**
-  - Checkov 규칙 없음. plan 단언: `eviction == false`(큐), `region`
-  - 배포 후: `redis-cli --tls -a <password> -h <endpoint> -p <port> PING`
-- **출처:** https://registry.terraform.io/providers/upstash/upstash/latest/docs/resources/redis_database · https://upstash.com/docs/redis/overall/getstarted (2026-10-01) ⚠️출처부적격
 
 ## Vercel Edge Config (Global Config)
 
@@ -532,7 +504,6 @@
 - **앱 쪽 계약:** 부트스트랩 서버, `confluent_api_key`의 key/secret(SASL)을 앱 비밀로 넘긴다.
 - **로컬 개발 대응:** `미확인`
 - **검증 명령:** Checkov 규칙 없음. 배포 후 생산·소비 왕복
-- **출처:** https://registry.terraform.io/providers/confluentinc/confluent/latest/docs/resources/confluent_kafka_cluster · https://registry.terraform.io/providers/confluentinc/confluent/latest/docs/resources/confluent_kafka_topic · https://registry.terraform.io/providers/confluentinc/confluent/latest/docs/resources/confluent_environment · https://registry.terraform.io/providers/confluentinc/confluent/latest/docs/resources/confluent_api_key · https://registry.terraform.io/providers/confluentinc/confluent/latest/docs/resources/confluent_service_account (2026-10-01) ⚠️출처부적격
 
 ## Redis Streams (Redis/Valkey 위의 스트림)
 
@@ -565,7 +536,6 @@
   - Checkov 규칙 없음. **1.2의 맞춤 단언이 필수다.**
   - 정적: 생성 코드에서 `new Worker(` 근처의 연결 옵션에 `maxRetriesPerRequest: null`이 있는지 grep이나 AST로 검사한다.
   - 배포 후: 작업 추가 → 완료 이벤트. 처리 중에 Worker를 SIGTERM으로 끄고 재시작한 뒤 작업이 stalled 재처리로 완료되는지 확인한다.
-- **출처:** https://docs.bullmq.io/guide/connections · https://docs.bullmq.io/guide/going-to-production · https://docs.bullmq.io/bull/patterns/redis-cluster (2026-10-01) ⚠️출처부적격
 
 ## Celery (Python) — 브로커별: RabbitMQ / Redis / SQS
 
@@ -585,7 +555,6 @@
 - **검증 명령:**
   - 정적: 생성한 Celery 설정 파일에 `task_acks_late`, `task_reject_on_worker_lost`, `visibility_timeout`, SQS면 `region`이 있는지 단언
   - 배포 후: 작업 실행 중에 워커를 `kill -9`로 죽인 뒤 다른 워커가 다시 실행하는지 확인한다.
-- **출처:** https://docs.celeryq.dev/en/stable/userguide/configuration.html · https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/sqs.html · https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/mq_broker (2026-10-01) ⚠️출처부적격
 
 ## Sidekiq (Ruby, Redis 기반)
 
@@ -598,7 +567,6 @@
 - **앱 쪽 계약:** `REDIS_URL` 환경변수. 다른 이름을 쓰려면 `REDIS_PROVIDER=<변수명>`. `config/initializers/sidekiq.rb`에 server와 client 블록을 둘 다 둔다.
 - **로컬 개발 대응:** `redis` 이미지에 `noeviction`
 - **검증 명령:** 1.2의 맞춤 단언, 그리고 클러스터 모드 리소스와 Sidekiq를 함께 생성하면 거부한다. 배포 후 작업 왕복
-- **출처:** https://github.com/sidekiq/sidekiq/wiki/Using-Redis (2026-10-01) ⚠️출처부적격
 
 ## Postgres 기반 큐 — `FOR UPDATE SKIP LOCKED`, pg-boss(Node)
 
@@ -613,56 +581,6 @@
   - `start()`가 스키마를 자동으로 만드는지는 `미확인`이다. 마이그레이션 CLI가 있다는 것까지는 확인했다.
 - **로컬 개발 대응:** Postgres 이미지(01 파일 범위)
 - **검증 명령:** 배포 후 작업을 넣고 두 워커가 같은 작업을 동시에 가져가지 않는지 확인한다(동시 소비 시험).
-- **출처:** https://github.com/timgit/pg-boss (2026-10-01) ⚠️출처부적격
-
-## Inngest (서버리스 내구 함수)
-
-- **Terraform:** **불가.** Registry에서 `inngest/inngest` provider는 404다.
-  - **자동화 불가 단계:** 계정 생성, 환경별 Event Key·Signing Key 발급, 앱 동기화(serve 엔드포인트 등록)
-  - 앱 동기화를 CLI나 API로 할 수 있는지는 `미확인`이다(문서상 "serve handler로 동기화").
-- **요구 수준에 따라 바뀌는 핵심 속성:**
-  1. 환경별 키 분리: 문서상 "환경마다 자체 event key와 signing key"(F5)
-  2. 함수 동시성과 재시도 설정: 코드 안에 있다. 03에 따르면 Free는 동시 5개, 기본 재시도 4회다(D2, QU.retry_dlq).
-  3. serve 엔드포인트의 플랫폼 실행 시간 한도(A2, CP.request_timeout)
-- **앱 쪽 계약:**
-  - `INNGEST_EVENT_KEY`: 이벤트 전송
-  - `INNGEST_SIGNING_KEY`: Inngest와 주고받는 요청 서명
-  - `INNGEST_SIGNING_KEY_FALLBACK`: 키 교체 중에만, SDK 3.18.0 이상
-  - `INNGEST_DEV=1`: 로컬 Dev 모드. `INNGEST_BASE_URL`은 보통 설정하지 않는다.
-- **로컬 개발 대응:** `npx --ignore-scripts=false inngest-cli@latest dev`(포트 8288), 또는 Docker 이미지 `inngest/inngest`: `docker run -p 8288:8288 -p 8289:8289 inngest/inngest inngest dev -u http://host.docker.internal:3000/api/inngest`
-- **검증 명령:** 정적으로 운영 환경변수에 `INNGEST_DEV`가 없는지 검사한다(있으면 서명 검증 동작이 바뀐다). 배포 후 시험 이벤트를 보내고 실행 기록을 확인한다(대시보드 또는 API, API는 `미확인`).
-- **출처:** https://www.inngest.com/docs/sdk/environment-variables · https://www.inngest.com/docs/dev-server · https://www.inngest.com/docs/platform/environments (2026-10-01) ⚠️출처부적격
-
-## Trigger.dev (관리형 작업 실행)
-
-- **Terraform:** **불가.** Registry에서 `triggerdotdev/*` provider는 404다.
-  - **자동화 불가 단계:** 계정·프로젝트 생성, Production API 키(`TRIGGER_SECRET_KEY`) 발급, CI용 `TRIGGER_ACCESS_TOKEN` 발급
-- **요구 수준에 따라 바뀌는 핵심 속성:**
-  1. 작업 코드의 재시도·동시성·머신 크기(설정 이름 `미확인`)
-  2. 환경변수 동기화 방식: 대시보드 수동 / `syncEnvVars` 확장 / `syncVercelEnvVars` 확장
-  3. 배포 경로: CLI(`npx trigger.dev@latest deploy`)
-- **앱 쪽 계약:** 백엔드에서 작업을 트리거할 때 `TRIGGER_SECRET_KEY`(Production 환경의 "Trigger only" 키)를 쓴다. 작업 코드가 쓰는 비밀은 Trigger.dev 쪽에도 있어야 한다. 배포 대상이 둘이 된다.
-- **로컬 개발 대응:** `npx trigger.dev dev`가 있다고 알려져 있으나 연 페이지에서 확인하지 못했다(`미확인`).
-- **검증 명령:** CI에서 `npx trigger.dev@latest deploy`의 종료 코드. 배포 후 시험 작업을 트리거해서 완료를 확인한다.
-- **출처:** https://trigger.dev/docs/deployment/overview (2026-10-01) ⚠️출처부적격
-
-## Upstash QStash (HTTP 메시지 큐·스케줄러)
-
-- **Terraform:** provider `upstash/upstash`. `upstash_qstash_topic_v2`(`name`, `endpoints`), `upstash_qstash_endpoint`, `upstash_qstash_schedule_v2`(`cron`, `destination`, `retries`, `callback`, `delay`, `method`, `body`, `forward_headers`)
-  - **자동화 불가 단계:** Upstash 계정과 API 키
-- **요구 수준에 따라 바뀌는 핵심 속성:**
-  1. `retries`: 재시도 횟수(QU.retry_dlq)
-  2. `callback`: 실패·완료 콜백
-  3. `delay`: 지연
-  4. 리전: 03에 따르면 **서울이 없다(EU·US)**(D5, F5). provider 리소스에 리전 인자는 없다.
-- **앱 쪽 계약:**
-  - 수신 엔드포인트는 `Upstash-Signature` 헤더를 `QSTASH_CURRENT_SIGNING_KEY`와 `QSTASH_NEXT_SIGNING_KEY`로 검증한다(SDK `Receiver.verify()`).
-  - 수동으로 검증할 때 확인할 클레임: `iss = "Upstash"`, `sub` = 내 URL, `exp`/`nbf`, `body` SHA-256
-  - 발행자는 `QSTASH_TOKEN`을 쓴다.
-  - 최소 1회 전달이므로 멱등이어야 한다(03).
-- **로컬 개발 대응:** 로컬 개발 서버는 `미확인`이다. QStash가 localhost를 부를 수 없으므로 터널이 필요하다(추론). ⚠️근거없음
-- **검증 명령:** Checkov 규칙 없음. 배포 후 서명 없이 엔드포인트를 호출하면 401이 나오는지, QStash 발행 → 수신 → 2xx가 왕복하는지 확인한다.
-- **출처:** https://registry.terraform.io/providers/upstash/upstash/latest/docs/resources/qstash_topic_v2 · https://registry.terraform.io/providers/upstash/upstash/latest/docs/resources/qstash_schedule_v2 · https://registry.terraform.io/providers/upstash/upstash/latest/docs/resources/qstash_endpoint · https://upstash.com/docs/qstash/howto/signature (2026-10-01) ⚠️출처부적격
 
 ## Vercel Queues (베타)
 
@@ -815,21 +733,6 @@
 
 # 파트 5. 실시간 연결
 
-## Socket.IO — Redis 어댑터 / Redis Streams 어댑터
-
-- **Terraform:** 해당 없음. 하부 Redis(파트 2)와 **로드밸런서 스티키 세션**을 생성한다.
-  - AWS ALB: `aws_lb_target_group.stickiness`
-  - Cloud Run: `google_cloud_run_v2_service.template.session_affinity`
-- **요구 수준에 따라 바뀌는 핵심 속성:**
-  1. 스티키 세션: Socket.IO 문서 — 어댑터를 써도 필요하고, 없으면 HTTP 400이 난다(RT.fanout, A3).
-  2. 어댑터 종류: pub/sub 어댑터는 Redis 연결이 끊기면 다른 서버로 가는 패킷이 사라진다. 03에 따르면 Streams 어댑터는 유실이 없다(C7).
-  3. Redis 7 이상의 클러스터·서버리스이면 `createShardedAdapter()`(샤딩 pub/sub)
-  4. 플랫폼 연결 지속 한도(A3, 05 파일)
-- **앱 쪽 계약:** `@socket.io/redis-adapter`, `const pubClient = createClient({ url }); const subClient = pubClient.duplicate(); await Promise.all([pubClient.connect(), subClient.connect()]); new Server({ adapter: createAdapter(pubClient, subClient) })`. 같은 앱의 세션 저장소가 connect-redis이면 그것도 **node-redis(`redis` 패키지) 클라이언트만** 받는다(`new RedisStore({ client, prefix })`, 기본 prefix `sess:`, 기본 ttl 86400초). ioredis를 쓰는 기존 코드라면 클라이언트를 하나 더 만들어야 한다.
-- **로컬 개발 대응:** `redis` 이미지와 앱 인스턴스 2개를 compose에 두고, 앞에 스티키를 지원하는 프록시를 둔다(프록시 이미지는 생성 규칙, `미확인`).
-- **검증 명령:** 배포 후 인스턴스 A에 붙은 클라이언트가 보낸 메시지를 인스턴스 B에 붙은 클라이언트가 받는지 확인한다(인스턴스 2개 이상으로 강제). plan 단언으로 스티키 설정이 있는지 검사한다.
-- **출처:** https://socket.io/docs/v4/redis-adapter/ · https://github.com/tj/connect-redis · https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb_target_group · https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloud_run_v2_service (2026-10-01) ⚠️출처부적격
-
 ## Supabase Realtime (Broadcast / Presence / Postgres Changes)
 
 - **Terraform:** **불가.** provider에 Realtime 리소스가 없다. 비공개 채널 권한은 `realtime.messages` 테이블의 RLS 정책(SQL 마이그레이션)으로 만든다.
@@ -854,33 +757,6 @@
 - **로컬 개발 대응:** Firebase 에뮬레이터 `firebase emulators:start`. RTDB 포트 9000, Node 16 이상과 **Java 11 이상**이 필요하다. CI는 `FIREBASE_TOKEN`을 쓴다.
 - **검증 명령:** 규칙은 에뮬레이터 테스트(`firebase emulators:exec`)로 확인한다. 배포 후 인증 안 된 쓰기가 거부되는지 확인한다.
 - **출처:** https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/firebase_database_instance · https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/firebaserules_release · https://firebase.google.com/docs/rules/manage-deploy · https://firebase.google.com/docs/emulator-suite/install_and_configure (2026-10-01)
-
-## Pusher Channels
-
-- **Terraform:** **불가.** Registry에서 `pusher/pusher`는 404다.
-  - **자동화 불가 단계:** 앱 생성, 클러스터 선택, 자격 증명 발급(대시보드)
-- **요구 수준에 따라 바뀌는 핵심 속성:**
-  1. 클러스터: 03에 따르면 서울이 없다(도쿄). 클러스터 목록은 연 페이지에서 확인하지 못했다(`미확인`)(D5).
-  2. 플랜별 동시 연결: 03에 따르면 100(무료)부터(RT.connections)
-  3. 메시지 크기: 03에 따르면 10 KB(RT.limits)
-- **앱 쪽 계약:** `APP_ID`, `APP_KEY`, `APP_SECRET`, `APP_CLUSTER`(문서의 자리표시자 이름). 비공개·프레즌스 채널에는 서버 인증 엔드포인트가 필요하다(기본 `/pusher/user-auth`). `useTLS: true`
-- **로컬 개발 대응:** `미확인`(실제 Pusher 앱의 개발용 인스턴스를 쓴다)
-- **검증 명령:** 배포 후 인증 엔드포인트가 인증 없는 요청을 거부하는지, 서버 trigger → 클라이언트 수신이 되는지 확인한다.
-- **출처:** https://pusher.com/docs/channels/server_api/authenticating-users/ (2026-10-01) ⚠️출처부적격
-
-## Ably
-
-- **Terraform:** provider `ably/ably`. `ably_app`(`tls_only` 등), `ably_api_key`(`capabilities`), `ably_namespace`(`authenticated`, `persisted`, `persist_last`, `tls_only`, `batching_enabled`, `conflation_enabled` 등). 연동 규칙 리소스(`ably_rule_*`)도 있다.
-  - **자동화 불가 단계:** provider 인증용 Control API 토큰
-- **요구 수준에 따라 바뀌는 핵심 속성:**
-  1. `ably_api_key.capabilities`: 키별 채널·동작 권한(F5)
-  2. `ably_namespace.authenticated`, `identified`: 익명 접속 금지
-  3. `persisted` / `persist_last`: 메시지 보존(C7)
-  4. `tls_only`
-- **앱 쪽 계약:** **API 키는 서버에만 둔다**(환경변수 이름 `ABLY_API_KEY`는 생성 규칙). 클라이언트는 `authUrl` 또는 `authCallback`으로 서버에서 토큰(JWT 권장)을 받는다. 토큰 수명은 최대 24시간이고, 회수 가능한 토큰은 1시간이다.
-- **로컬 개발 대응:** `미확인`
-- **검증 명령:** Checkov 규칙 없음. 정적으로 프런트엔드 번들에 API 키 형식 문자열이 없는지 검사한다. 배포 후 토큰 발급 → 구독 → 발행 왕복
-- **출처:** https://registry.terraform.io/providers/ably/ably/latest/docs/resources/app · https://registry.terraform.io/providers/ably/ably/latest/docs/resources/api_key · https://registry.terraform.io/providers/ably/ably/latest/docs/resources/namespace · https://ably.com/docs/auth/token (2026-10-01) ⚠️출처부적격
 
 ## AWS API Gateway WebSocket API
 

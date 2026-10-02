@@ -45,7 +45,7 @@
 | 원본 | 내용 | 기계용 |
 |---|---|---|
 | [docs/research/dimensions.md](../../research/dimensions.md) | 앱 요구 차원 35개. 값의 범위, 코드에서 읽는 법, 맞춰 볼 능력 키 | `knowledge/dimensions.yaml` |
-| [docs/research/capabilities/01~05](../../research/capabilities/README.md) | 구성 요소 148개의 능력. 능력 키 단위, 값마다 공식 출처 | `knowledge/components/*.yaml` |
+| [docs/research/capabilities/01~05](../../research/capabilities/README.md) | 구성 요소 128개의 능력(원래 148개, 부적격 출처뿐인 20개는 2026-10-02 삭제). 능력 키 단위, 값마다 공식 출처 | `knowledge/components/*.yaml` |
 | [docs/research/capabilities/06~08](../../research/capabilities/README.md) | 구성 요소별 생성 산출물: Terraform 리소스, 핵심 속성, 앱 계약, 로컬 대응, 검증 명령 | `knowledge/artifacts/*.yaml` |
 | [docs/research/capabilities/09~10](../../research/capabilities/README.md) | 네트워크 경로 구성 요소(로드밸런서, 인그레스, CDN, DNS, WAF, 인증서, 출구 NAT, 사설 연결)의 능력과 생성 산출물. 능력 값마다 OSI 계층 표시 | `knowledge/components/nw-*.yaml` |
 | 요구 조건 변환표 (M1에서 작성) | 차원 값 → 능력 조건 매핑. 비교 규칙은 이 표에서 생성된다(§8.3) | `knowledge/requirements.yaml` |
@@ -55,7 +55,7 @@
 | 산정 상수 (M2에서 작성) | 생각 시간, 처리 시간 등급, 목표 사용률 등 용량 산정 상수와 이유(§9.5) | `knowledge/sizing.yaml` |
 | 순위·환경 설정 | 동률 기준 등 순위 설정값(§9.7), dev 환경 파생 규칙(§9.8) | `knowledge/ranking.yaml`, `knowledge/environments.yaml` |
 | 교체 차이 표 (작성 예정) | 구성 요소 A → B로 바꿀 때 코드 변경 항목 (프레임워크별) | `knowledge/swaps/*.yaml` |
-| [docs/research/considerations/](../../research/considerations/README.md) | 고려 요소 878개. 위 문서들과 규칙의 재료 | — |
+| [docs/research/considerations/](../../research/considerations/README.md) | 고려 요소 768개(원래 878개, 부적격 출처뿐인 110개는 2026-10-02 삭제). 위 문서들과 규칙의 재료 | — |
 | `rules/` | 비교 규칙, 위생 규칙, 비용 규칙 (§16) | `rules/*.yaml` |
 
 ### 3.1 ID 체계

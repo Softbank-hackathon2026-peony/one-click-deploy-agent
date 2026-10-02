@@ -1,5 +1,7 @@
 # 구성 요소 능력 표 — 문서·키-값·BaaS 데이터베이스
 
+삭제된 절: 12 Appwrite Cloud, 14 Convex, 16 Pinecone, 사유: 부적격 출처 (2026-10-02. 부적격 출처에 기댄 표 행과 줄도 지웠다. 남은 절 번호는 그대로)
+
 - 작성일: 2026-10-01 (모든 출처 확인일 2026-10-01)
 - 형식·능력 키: [README.md](README.md) §1, §2.1 (DS.*). 요구 쪽: [../dimensions.md](../dimensions.md)
 - 범위: Firebase(Cloud Firestore Standard/Enterprise, Realtime Database), Supabase(BaaS 플랫폼 관점), Amazon DynamoDB(단일 리전·글로벌 테이블), MongoDB Atlas(Free·Flex / Dedicated), Amazon DocumentDB, Google Cloud Spanner, Google Cloud Bigtable, Appwrite Cloud, PocketBase, Convex, pgvector, Pinecone
@@ -24,11 +26,11 @@
 9. [Amazon DocumentDB — 인스턴스 기반 클러스터(Elastic·Serverless 병기)](#9-amazon-documentdb--인스턴스-기반-클러스터elasticserverless-병기)
 10. [Google Cloud Spanner](#10-google-cloud-spanner)
 11. [Google Cloud Bigtable](#11-google-cloud-bigtable)
-12. [Appwrite Cloud(Free / Pro)](#12-appwrite-cloudfree--pro)
+12. Appwrite Cloud(Free / Pro) — 삭제됨(부적격 출처, 2026-10-02)
 13. [PocketBase — 자체 호스팅](#13-pocketbase--자체-호스팅)
-14. [Convex(Free·Starter / Professional)](#14-convexfreestarter--professional)
+14. Convex(Free·Starter / Professional) — 삭제됨(부적격 출처, 2026-10-02)
 15. [pgvector — Postgres 확장](#15-pgvector--postgres-확장)
-16. [Pinecone — Serverless](#16-pinecone--serverless)
+16. Pinecone — Serverless — 삭제됨(부적격 출처, 2026-10-02)
 17. [판정에 쓰는 교차 규칙 메모](#17-판정에-쓰는-교차-규칙-메모)
 
 ---
@@ -50,11 +52,8 @@
 | DocumentDB | 있음 | 다문서 1분, 32 MB 로그, 스냅샷 격리; Elastic은 트랜잭션 없음 | 단일 프라이머리 쓰기 | Mongo API 일부(버전별 차이 큼) | 16 MiB | 자동 백업 끌 수 없음(기본 1일, 최대 35일), PITR 최근 5분 이전까지 | VPC 전용 | 무료 등급 없음(30일 체험) | t4g.medium 약 $84/월(서울) |
 | Spanner | 있음(regional-asia-northeast3) | 직렬화+외부 일관성, 커밋당 8만 뮤테이션·100 MiB | 잠금 + wound-wait, 클라이언트 라이브러리 자동 재시도 | SQL 조인(쿼리당 20), FTS·벡터는 Enterprise | 셀 10 MiB | 버전 보존 기본 1시간(최대 7일) | 서버 전용(IAM) | 90일 무료 체험 후 삭제 | 100 PU Standard 약 $66/월(아이오와) |
 | Bigtable | 있음(asia-northeast3) | **단일 행만** | 단일 행 원자성, 조건부 쓰기는 단일 클러스터 라우팅만 | 행 키 범위 스캔만, SQL은 읽기 전용·조인 없음 | 셀 권장 10 MB, 행 100 MB | 백업(최대 90~365일), PITR 없음 | 서버 전용(IAM) | 없음 | 노드 1개 약 $475/월(아이오와) |
-| Appwrite Cloud | **없음**(SGP·SYD 등) | 트랜잭션: Free 100·Pro 1,000 작업 | 충돌 시 커밋 실패(자동 재시도 없음), 원자적 증감 있음 | 관계 지원, DocumentsDB 전문 검색 | 미확인 | Free 없음, Pro 일일 7일 | 직접(권한 모델), 서버 키는 권한 우회 | 7일 비활동 일시정지, 90일 후 삭제 | Pro $25/월 |
 | PocketBase | 호스팅 위치 따름 | 단일 쓰기 트랜잭션(SQLite WAL) | **동시 쓰기 1개** | 필터·관계 확장 6단계 | 미확인 | 내장 백업(ZIP, S3), 수동 설정 | 직접(API 규칙), 기본 superuser 전용 | 해당 없음 | VPS 비용만 |
-| Convex | **없음**(미 동부, EU, 시드니, 캐나다) | 뮤테이션 = 트랜잭션, 1초, 쓰기 1.6만 문서·16 MiB | OCC 직렬화 자동 재실행, 동시 뮤테이션 16(Free)/256(Pro) | 조인은 코드로, 벡터 검색은 액션에서만 | 1 MiB | 주기 백업 유료 플랜 | 함수 경유만(RLS 없음, 함수에서 권한 검사) | 한도 초과 시 쓰기 실패 | $0 / Pro $25/개발자 |
 | pgvector | 호스트 Postgres 따름 | Postgres 따름 | Postgres 따름 | 근사 인덱스는 **사후 필터**(재현율 하락) | 인덱스 차원 vector 2,000 / halfvec 4,000 | Postgres 따름 | Postgres 따름 | 해당 없음 | 호스트 비용 |
-| Pinecone | **없음**(Starter는 us-east-1만) | 없음 | 네임스페이스당 upsert 100 req/s | 메타데이터 필터, 결과적 일관성 | 메타데이터 40 KB | Starter 백업 불가 | 서버 API 키 | 2 GB, 쿼터 도달 시 읽기 차단 | $0 / Standard 최소 $50/월 |
 
 ---
 
@@ -353,7 +352,6 @@
 | DS.size_limits | 문서 16 MiB. Free 저장 0.5 GB, DB 100·컬렉션 500, 전송 7일 기준 10 GB 입·출. Flex 저장 5 GB(비압축 BSON + 인덱스) | 저장 자동 확장 없음 | https://www.mongodb.com/docs/manual/reference/limits/ · "The maximum BSON document size is 16 mebibytes (MiB)." / free-shared-limitations · "Free clusters: 0.5 GB" / flex-limitations · "Flex clusters limit the maximum total data storage space to 5 GB." |
 | DS.backup | **Free 백업 불가**(mongodump 권장). Flex는 일일 스냅샷, 최근 8개 보존. 연속 백업·PITR·온디맨드 스냅샷 없음 | | free-shared-limitations · "You can't enable backups on Free clusters." / https://www.mongodb.com/docs/atlas/backup/cloud-backup/flex-cluster-backup/ · "Atlas retains the last 8 daily snapshots." / flex-limitations · "Flex clusters don't support Continuous Backup and Point-in-Time Restore." |
 | DS.connections | 최대 500 연결(Free·Flex) | | free-shared-limitations · "Free clusters can only have a maximum of 500 connections." / flex-limitations · "Flex clusters have a maximum of 500 connections." |
-| DS.schema_change | 스키마 없음(선택적 스키마 검증) | Prisma Migrate는 MongoDB 미지원(`db push` 사용) | https://www.prisma.io/docs/orm/overview/databases/mongodb (요약) ⚠️출처부적격 |
 | DS.availability | 3노드 레플리카셋. SLA 적용 티어는 미확인(SLA 법률 페이지 404). **Free는 30일 비활동 시 자동 일시정지** | | free-shared-limitations · "Atlas automatically pauses Free clusters after 30 days of inactivity" |
 | DS.multi_host_access | IP 접근 목록에 있는 호스트면 가능(드라이버 연결) | 서버리스·동적 IP 플랫폼은 0.0.0.0/0을 열어야 하는 경우가 생김(추론) | https://www.mongodb.com/docs/atlas/security/ip-access-list/ · "Atlas only allows client connections to the cluster from entries in the project's IP access list." ⚠️근거없음 |
 | DS.security | IP 목록 기본 거부, TLS 필수. Free는 네트워크 피어링·프라이빗 엔드포인트·감사 불가. Flex는 프라이빗 엔드포인트·감사·고객 키 암호화 불가 | 행 수준 권한 없음(앱에서 처리) | https://www.mongodb.com/docs/atlas/setup-cluster-security.md · "Atlas requires TLS" / free-shared-limitations · "Free clusters don't support private endpoints." "You can't configure database auditing on Free clusters." |
@@ -528,43 +526,6 @@
 
 ---
 
-## 12. Appwrite Cloud(Free / Pro)
-
-- 계열: 저장소-문서(BaaS). Dedicated DB(관리형 Postgres) 옵션이 있다.
-- 서울 리전: **없음** (https://appwrite.io/docs/products/network/regions · FRA, NYC, SYD, SFO, SGP, TOR (요약) · 2026-10-01) ⚠️출처부적격
-
-| 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
-|---|---|---|---|
-| DS.concurrent_writers | 서버리스 DB는 미확인. Dedicated DB는 쓰기 프라이머리 1개 + 읽기 복제본, 커넥션 풀러 | | https://appwrite.io/products/databases · "Dedicated databases run behind a connection pooler with a primary for writes and read replicas" ⚠️출처부적격 |
-| DS.row_contention | 원자적 숫자 증감 지원. 트랜잭션 커밋 전에 외부 수정이 있으면 충돌로 실패(자동 재시도 없음, 다시 읽고 재구성) | | https://appwrite.io/docs/products/databases/tablesdb/atomic-numeric-operations · "Safely increment and decrement numeric fields without race conditions." / https://appwrite.io/docs/products/databases/documentsdb/transactions (요약) ⚠️출처부적격 |
-| DS.transactions | 여러 작업을 모아 원자적으로 커밋. 트랜잭션당 작업 수 Free 100, Pro 1,000. 스키마 작업(인덱스 생성 등)은 포함 불가 | 격리 수준 미확인 | https://appwrite.io/docs/products/databases/documentsdb/transactions · "Stage multiple database operations and commit them atomically." "Schema operations (for example, creating or deleting indexes) are not included in transactions." ⚠️출처부적격 |
-| DS.replication | 서버리스 미확인. Dedicated는 비동기·동기·쿼럼 선택, HA 복제본은 기본가의 50%씩 추가 | | https://appwrite.io/products/databases (요약) / https://appwrite.io/pricing (요약) ⚠️출처부적격 |
-| DS.query_models | TablesDB(관계형 스타일, 관계), DocumentsDB(JSON, 필터, 전문 검색), VectorsDB(임베딩), 관리형 Postgres(SQL, pgvector) | 조인 대신 관계("without custom joins") | https://appwrite.io/products/databases · "Relational-style tables, columns, and indexes" "Flexible JSON documents with filters and full-text search" "link related tables without custom joins" ⚠️출처부적격 |
-| DS.size_limits | Free: 저장 2 GB, 대역폭 5 GB, DB 1개, 프로젝트 2개. Pro 수치는 미확인(가격 표가 클라이언트 렌더링) | 문서·행 크기는 미확인 | https://appwrite.io/blog/post/best-free-hosting-platforms-you-probably-havent-tried-in-2026 · "2 GB storage" "1 Database" ⚠️출처부적격 |
-| DS.backup | Free 없음. 유료 플랜은 일일 백업 7일 보존. Dedicated DB는 PITR 7일(기본가 +20%) | | https://appwrite.io/blog/post/introducing-database-backups · "available on Appwrite Cloud for all paid plans" "a daily backup that is stored for 7 days" ⚠️출처부적격 |
-| DS.connections | 서버리스는 REST/SDK(연결 개념 없음, 추론). Dedicated는 네이티브 연결 문자열 | | https://appwrite.io/products/databases (요약) ⚠️출처부적격 ⚠️근거없음 |
-| DS.schema_change | 컬렉션·속성 정의(스키마 있음). 스키마 작업은 트랜잭션 밖 | 속성 변경 시 잠금 동작 미확인 | https://appwrite.io/docs/products/databases/documentsdb/transactions ⚠️출처부적격 |
-| DS.availability | SLA: Free 없음, Pro 99.5%, Scale 99.9%, Enterprise 99.95% | | https://appwrite.io/docs/advanced/billing/uptime-sla (요약) ⚠️출처부적격 |
-| DS.multi_host_access | 가능(관리형 API) | | 해당 없음 ⚠️근거없음 |
-| DS.security | 권한 모델: 서버 SDK나 콘솔로 권한 없이 만들면 아무도 접근 불가. 클라이언트 SDK로 만들면 생성자에게 읽기·수정·삭제 권한. 서버 API 키는 권한 무시 | 감사·암호화 미확인 | https://appwrite.io/docs/advanced/security/permissions · "If you create a resource using a Server SDK or the Appwrite Console without explicit permissions, no one can access it by default" ⚠️출처부적격 |
-| DS.regions | 서울·도쿄 없음, 가장 가까운 곳은 싱가포르. 데이터는 리전 안에 머묾 | | https://appwrite.io/docs/products/network/regions · "All data remains within the region" ⚠️출처부적격 |
-| DS.scaling | 서버리스 관리형(세부 미확인). Dedicated는 Micro $10 ~ 4XL $960/월 | | https://appwrite.io/pricing (요약) ⚠️출처부적격 |
-| DS.cost_floor | Free $0. Pro $25/월(프로젝트 단위, 2025-09-01부터). Dedicated DB $10/월부터 | 대역폭 초과 100 GB당 $15 | https://appwrite.io/blog/post/appwrite-pricing-update (요약) / https://appwrite.io/pricing · "From $10/mo per database" ⚠️출처부적격 |
-
-### 비용 구조
-- Free $0, Pro $25/월/프로젝트. Dedicated DB는 HA 복제본마다 +50%, PITR +20%다.
-
-### 교체 계열 정보
-- 클라이언트 SDK는 권한 모델 아래에서 직접 접근하고, 서버 SDK는 API 키로 접근하며 권한을 우회한다. SDK 언어 목록은 미확인이다.
-- 마이그레이션 도구: Firebase, Supabase, Nhost에서 가져오기와 Cloud와 자체 호스팅 간 이동을 지원한다. `$createdAt`·`$updatedAt` 같은 필드는 옮겨지지 않을 수 있다("Certain fields, such as `$createdAt` and `$updatedAt`, may not be transferred.", https://appwrite.io/docs/advanced/migrations). ⚠️출처부적격
-- 관계형으로 옮길 때: SDK 호출을 SQL이나 ORM으로 바꾸고, 문서 권한을 서버 권한 검사나 RLS로 바꾼다.
-
-### 함정
-- Free 프로젝트는 개발 활동 없이 7일이 지나면 일시정지된다(백업, 크론, 예약 함수도 중단). 90일 동안 정지 상태면 삭제된다(https://appwrite.io/changelog/entry/2026-02-20-1 · "Projects on the Free plan with no development activity for 7 consecutive days will be automatically paused." / https://appwrite.io/changelog/entry/2026-06-29 · "Free projects that stay paused for 90 days will be deleted"). ⚠️출처부적격
-- 서울 리전이 없다.
-
----
-
 ## 13. PocketBase — 자체 호스팅
 
 - 계열: 저장소-관계형(내장 SQLite) + BaaS(인증, 파일, 실시간)
@@ -602,49 +563,10 @@
 
 ---
 
-## 14. Convex(Free·Starter / Professional)
-
-- 계열: 저장소-문서(반응형 BaaS, 서버 함수 내장)
-- 서울 리전: **없음** (https://docs.convex.dev/production/regions · aws-us-east-1, aws-eu-west-1, aws-ap-southeast-2, aws-ca-central-1 (요약) · 2026-10-01) ⚠️출처부적격
-
-| 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
-|---|---|---|---|
-| DS.concurrent_writers | 동시 뮤테이션 Free/Starter 16, Professional 256(배포 클래스 S16/S256, 최대 D2048) | | https://docs.convex.dev/production/state/limits (요약) ⚠️출처부적격 |
-| DS.row_contention | OCC(낙관적 동시성 제어). 충돌하면 트랜잭션을 자동으로 다시 실행. 진정한 직렬화 | 같은 문서에 몰리는 쓰기는 재실행이 반복됨(추론) | https://docs.convex.dev/database/advanced/occ · "true serializability" / on conflict "we can simply re-run the transaction" (요약 포함) ⚠️출처부적격 ⚠️근거없음 |
-| DS.transactions | 뮤테이션 1개 = 트랜잭션 1개(항상 원자적). 트랜잭션당 읽기 16 MiB, 스캔 32,000 문서, 인덱스 범위 4,096, 쓰기 16 MiB·16,000 문서. 질의·뮤테이션 1초 | 액션(외부 호출)은 트랜잭션이 아님(10분/30분) | https://docs.convex.dev/database/advanced/occ · "always be guaranteed to be atomic" / https://docs.convex.dev/production/state/limits · "1 second" "16,000" (요약) ⚠️출처부적격 |
-| DS.replication | 미확인 | | 미확인 |
-| DS.query_models | 인덱스 기반 문서 질의, 조인은 함수 코드로. 전문 검색(질의당 16단어, 결과 1,024). 벡터 검색(2~4096차원, 결과 최대 256, 액션에서만, 필터는 등호·OR) | 벡터 검색은 일관적이고 최신 | https://docs.convex.dev/search/vector-search · "vector searches can only be performed in a Convex action" "Vector search is consistent and fully up-to-date" ⚠️출처부적격 |
-| DS.size_limits | 문서 1 MiB, 필드 1,024, 중첩 16. Free/Starter: DB 0.5 GB, 파일 1 GB, 함수 호출 100만. Professional: 50 GB, 100 GB, 2,500만 | | https://docs.convex.dev/production/state/limits · document "1 MiB" (요약) / https://www.convex.dev/pricing (요약) ⚠️출처부적격 |
-| DS.backup | 수동 백업 7일 보존. 주기 백업은 유료 플랜(일일 7일, 주간 14일). Free/Starter는 배포당 최대 2개. 복원은 파괴적 | | https://docs.convex.dev/database/backup-restore · "Daily backups are stored for 7 days. Weekly backups are stored for 14 days." ⚠️출처부적격 |
-| DS.connections | DB 직접 연결 없음. 클라이언트는 함수 호출(웹소켓·HTTP). 동시 질의 16/256 | | https://docs.convex.dev/production/state/limits (요약) ⚠️출처부적격 |
-| DS.schema_change | 스키마는 선택. 스키마를 추가·변경한 첫 푸시에서 기존 문서 전체를 검증하고, 불일치가 있으면 푸시 실패 | | https://docs.convex.dev/database/schemas · "If there are documents that fail validation, the push will fail." ⚠️출처부적격 |
-| DS.availability | SLA는 Business·Enterprise만 | | https://www.convex.dev/pricing (요약) ⚠️출처부적격 |
-| DS.multi_host_access | 관리형 API(해당 없음). 자체 호스팅 가능(SQLite·Postgres 백엔드) | | https://github.com/get-convex/convex-backend · "Self-hosted Convex works well with ... Sqlite, Postgres" ⚠️출처부적격 |
-| DS.security | RLS 없음. 공개 함수 시작 부분에서 인증·권한을 코드로 검사. 클라이언트는 DB에 직접 접근하지 않음 | | https://docs.convex.dev/auth · "simply write code that checks if the user is logged in and if they are allowed to do the requested action at the beginning of each public function." ⚠️출처부적격 |
-| DS.regions | 미 동부, EU 서부, 시드니, 캐나다. 한국·일본 없음. 배포 리전은 변경 불가 | | https://docs.convex.dev/production/regions · "An existing deployment's region cannot be changed." ⚠️출처부적격 |
-| DS.scaling | 배포 클래스(S16 ~ D2048) | | https://docs.convex.dev/production/state/limits (요약) ⚠️출처부적격 |
-| DS.cost_floor | Free/Starter $0(종량 과금). Professional $25/개발자·월. Business 월 최소 $2,500 | 함수 호출 초과 100만당 $2.20(Starter), $2.00(Pro) | https://www.convex.dev/pricing · "$25 per developer/month" "$2,500 monthly minimum" ⚠️출처부적격 |
-
-### 비용 구조
-- 개발자 수에 비례하는 좌석 과금이다. 함수 호출, 저장, 대역폭은 종량 과금된다. 벡터 검색은 질의마다 인덱스 크기 기준으로 과금된다(요약).
-
-### 교체 계열 정보
-- 클라이언트(React 등 TypeScript)는 query·mutation·action 함수만 호출한다. 질의 결과는 반응형으로 자동 갱신된다.
-- 관계형으로 옮길 때: Convex 함수를 API 서버와 SQL로 다시 작성하고, 반응형 구독을 대체하고, 함수 안의 권한 검사를 옮긴다. OCC 자동 재실행에 기댄 코드는 명시적 트랜잭션과 재시도로 바꾼다.
-- 내보내기: `npx convex export`(JSONL, `_storage` 포함 가능), CSV/JSON 가져오기, Fivetran 스트리밍 내보내기.
-
-### 함정
-- 뮤테이션은 1초 안에 끝나야 하고 문서 쓰기 16,000개가 상한이다. 대량 배치는 액션이나 분할이 필요하다.
-- Free 한도를 넘으면 새 쓰기가 실패할 수 있다("After these limits are hit on the Free plan, new mutations that attempt to commit more insertions or updates may fail.", https://docs.convex.dev/production/state/limits). ⚠️출처부적격
-- 서울 리전이 없고, 배포를 만든 뒤에는 리전을 바꿀 수 없다.
-
----
-
 ## 15. pgvector — Postgres 확장
 
 - 계열: 저장소-관계형의 확장(벡터 질의 능력만 더함)
 - 서울 리전: 호스트 Postgres를 따름(Supabase, RDS, Cloud SQL 서울 제공 여부는 01 파일)
-- 출처: https://github.com/pgvector/pgvector (README, 0.8.x) ⚠️출처부적격
 
 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
 |---|---|---|---|
@@ -652,17 +574,12 @@
 | DS.row_contention | 호스트 Postgres 따름 | | 해당 없음 |
 | DS.transactions | 호스트 Postgres 따름(벡터와 원본 데이터가 한 트랜잭션에 들어감) | | 해당 없음 |
 | DS.replication | 호스트 Postgres 따름 | | 해당 없음 |
-| DS.query_models | 기본은 정확한 최근접 검색(재현율 완전). 근사 인덱스는 HNSW(빠른 질의, 느린 빌드, 메모리 많음), IVFFlat(빠른 빌드, 메모리 적음, 질의 성능 낮음, 데이터로 학습 필요). **근사 인덱스는 필터를 스캔 뒤에 적용** | 0.8.0부터 반복 인덱스 스캔으로 보완. 테넌트 간 인덱스를 공유하면 재현율에 영향 | https://github.com/pgvector/pgvector · "By default, pgvector performs exact nearest neighbor search, which provides perfect recall." "With approximate indexes, filtering is applied *after* the index is scanned." ⚠️출처부적격 |
-| DS.size_limits | 인덱스 가능 차원: vector 2,000, halfvec 4,000, bit 64,000, sparsevec 비영 원소 1,000. 저장은 vector 16,000차원까지 | | https://github.com/pgvector/pgvector · "`vector` - up to 2,000 dimensions" "`halfvec` - up to 4,000 dimensions" ⚠️출처부적격 |
 | DS.backup | 호스트 Postgres 따름 | | 해당 없음 |
 | DS.connections | 호스트 Postgres 따름 | | 해당 없음 |
-| DS.schema_change | 인덱스 생성은 Postgres DDL. 근사 인덱스를 추가하면 질의 결과가 달라짐 | | https://github.com/pgvector/pgvector · "you will see different results for queries after adding an approximate index." ⚠️출처부적격 |
 | DS.availability | 호스트 Postgres 따름 | | 해당 없음 |
 | DS.multi_host_access | 호스트 Postgres 따름 | | 해당 없음 |
 | DS.security | 호스트 Postgres 따름(RLS 적용 가능) | | 해당 없음 |
 | DS.regions | 호스트 따름 | | 해당 없음 |
-| DS.scaling | 호스트 Postgres 따름. HNSW 인덱스 메모리가 인스턴스 크기를 정함 | | https://github.com/pgvector/pgvector · "uses more memory" ⚠️출처부적격 |
-| DS.cost_floor | 추가 비용 없음(확장). Postgres 13+ | | https://github.com/pgvector/pgvector · "supports Postgres 13+" ⚠️출처부적격 |
 
 ### 비용 구조
 - 별도 과금이 없다. 인덱스 메모리 때문에 컴퓨트를 키워야 할 수 있다.
@@ -673,42 +590,6 @@
 ### 함정
 - 1536차원 이상 임베딩은 vector 인덱스 한도(2,000)에 가깝다. 3072차원 같은 큰 임베딩은 halfvec이나 차원 축소가 필요하다(4,000 한도 기준 추론). ⚠️근거없음
 - 선택적 필터와 근사 인덱스를 함께 쓰면 결과가 k개보다 적게 나온다(기본 ef_search 40에서 조건이 10%만 맞으면 평균 4행).
-
----
-
-## 16. Pinecone — Serverless
-
-- 계열: 저장소-문서(벡터 전용)
-- 서울 리전: **없음** (https://docs.pinecone.io/troubleshooting/available-cloud-regions · AWS us-east-1·us-west-2·eu-west-1·eu-central-1·ap-southeast-1, GCP us-central1·europe-west4, Azure eastus2 (요약) · 2026-10-01) ⚠️출처부적격
-
-| 능력 키 | 값 | 조건·한도 | 출처 (URL · 짧은 인용 · 2026-10-01) |
-|---|---|---|---|
-| DS.concurrent_writers | 네임스페이스당 upsert 100 요청/초(모든 플랜) | | https://docs.pinecone.io/reference/api/database-limits/rate-limits (요약) ⚠️출처부적격 |
-| DS.row_contention | 해당 없음(레코드 덮어쓰기, 잠금 없음) | | 해당 없음 |
-| DS.transactions | 해당 없음 | | 해당 없음 |
-| DS.replication | 결과적 일관성(upsert 후 질의 반영에 지연) | 복제 구성은 미확인 | https://docs.pinecone.io/reference/api/known-limitations.md · "Pinecone is eventually consistent, so there can be a slight delay before upserted records are available to query." ⚠️출처부적격 |
-| DS.query_models | 밀집·희소 벡터, 전문 검색(BM25, Lucene 문법), 메타데이터 필터(`$eq`, `$gt`, `$in`, `$and`, `$or`, `$not`), 네임스페이스 멀티테넌시 | | https://docs.pinecone.io/guides/index-data/indexing-overview (요약) ⚠️출처부적격 |
-| DS.size_limits | 차원 최대 20,000, upsert 배치 1,000건·2 MB, 메타데이터 40 KB, top_k 10,000. Starter: 저장 2 GB, 프로젝트 1개, 인덱스 5개, 인덱스당 네임스페이스 100, 월 읽기 100만 RU·쓰기 200만 WU | | https://docs.pinecone.io/reference/api/database-limits/operation-limits · "20,000" (요약) / https://docs.pinecone.io/reference/api/database-limits/object-limits (요약) ⚠️출처부적격 |
-| DS.backup | Starter 백업 불가. Standard는 프로젝트당 500개, Enterprise 1,000개. 일·주·월 예약. $0.10/GB·월 | | https://docs.pinecone.io/guides/manage-data/back-up-an-index · "daily, weekly, or monthly frequency" / object-limits (요약) ⚠️출처부적격 |
-| DS.connections | API·SDK(연결 개념 없음, 추론) | | 해당 없음 ⚠️근거없음 |
-| DS.schema_change | 차원·메트릭은 인덱스 생성 시 고정(제자리 변경 미확인) | | https://docs.pinecone.io/guides/index-data/indexing-overview (요약) ⚠️출처부적격 |
-| DS.availability | Enterprise만 99.95% SLA, 그 외는 미확인 | | https://www.pinecone.io/pricing/ · "99.95% Uptime SLA" ⚠️출처부적격 |
-| DS.multi_host_access | 가능(API) | | 해당 없음 ⚠️근거없음 |
-| DS.security | RBAC, 감사 로그, 프라이빗 엔드포인트, CMEK는 Enterprise 전용 | | https://www.pinecone.io/pricing/ (요약) ⚠️출처부적격 |
-| DS.regions | 서울·도쿄 없음. **Starter는 AWS us-east-1만** | | https://docs.pinecone.io/troubleshooting/available-cloud-regions · "On the Starter plan, you can create serverless indexes in the `us-east-1` region of AWS only." ⚠️출처부적격 |
-| DS.scaling | 서버리스 사용량 기반, 유휴 인덱스는 비용 없음 | | https://docs.pinecone.io/guides/manage-cost/understanding-cost · "Idle indexes cost nothing." ⚠️출처부적격 |
-| DS.cost_floor | 월 최소: Starter $0, Builder $20(정액), Standard $50, Enterprise $500. 저장 $0.33/GB·월, 읽기 100만 RU당 $16~18, 쓰기 100만 WU당 $4~4.50 | | https://docs.pinecone.io/guides/manage-cost/understanding-cost · Starter "$0/month" Standard "$50/month" (요약) ⚠️출처부적격 |
-
-### 비용 구조
-- 질의 비용이 네임스페이스 크기에 비례한다("a query uses 1 RU for every 1 GB of namespace size, with a minimum of 0.25 RUs per query.", understanding-cost). Starter와 Builder는 할당량에 도달하면 읽기가 차단된다(https://docs.pinecone.io/release-notes/2026.md · "reads that return record data are blocked once the allowance is reached"). ⚠️출처부적격
-
-### 교체 계열 정보
-- 서버 측 API 키와 SDK(Python, Node 등. 목록 원문 미확인)를 쓴다. ⚠️근거없음
-- pgvector로 옮길 때: 벡터와 메타데이터를 다시 적재하고, 필터를 SQL `WHERE`로 바꾸고, 사후 필터 재현율 문제를 검토한다. 원본 데이터와 같은 트랜잭션에 넣을 수 있게 된다(이점).
-
-### 함정
-- 원본 DB와 벡터 저장소가 분리되어 있어 동기화(이중 쓰기) 정합성 문제가 생긴다(C3). 결과적 일관성이라 upsert 직후 검색에 안 나올 수 있다.
-- Starter는 미국 리전만 쓸 수 있고 백업이 없다.
 
 ---
 

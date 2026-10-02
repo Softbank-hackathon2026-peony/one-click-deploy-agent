@@ -1,5 +1,7 @@
 # 워크로드 유형·도메인·플랫폼
 
+삭제된 항목: W-002, W-005, W-012, W-015, W-016, W-021, W-030, W-032, W-045, W-071, W-072, W-073, W-074, W-075, W-076, 사유: 부적격 출처 (2026-10-02, 15개 삭제. 남은 항목 ID는 그대로)
+
 - 작성일·확인일: 2026-10-01
 - 담당 영역: W (워크로드 유형·도메인·플랫폼별 특화 요소)
 - 상위 문서: `docs/superpowers/specs/2026-10-01-infrafit-design.md` (시나리오 D/T/U/C × L0~L3, §4.2 필요 수준 규칙, §4.3 가정, §7.1 도메인, §9 티어)
@@ -38,7 +40,7 @@
   - 추가 유형(협업 편집, 코드 실행, 크롤러, 모바일 백엔드): W-043 ~ W-046
 - [파트 2. 도메인 → 필요 수준·가정 매핑](#파트-2-도메인--필요-수준가정-매핑)
 - [파트 3. 플랫폼별 제약과 함정](#파트-3-플랫폼별-제약과-함정)
-  - 티어 0: Vercel W-050 ~ W-056, Netlify W-057 ~ W-058, Cloudflare W-059 ~ W-062, Supabase W-063 ~ W-066, Firebase W-067 ~ W-068, Railway W-069 ~ W-070, Render W-071 ~ W-073, Fly.io W-074 ~ W-075, Replit W-076
+  - 티어 0: Vercel W-050 ~ W-056, Netlify W-057 ~ W-058, Cloudflare W-059 ~ W-062, Supabase W-063 ~ W-066, Firebase W-067 ~ W-068, Railway W-069 ~ W-070. Render W-071 ~ W-073, Fly.io W-074 ~ W-075, Replit W-076은 부적격 출처로 삭제됨
   - 티어 1: Cloud Run W-077 ~ W-079, ECS Fargate·App Runner W-080 ~ W-082, Azure Container Apps W-083
   - 티어 2: GKE·EKS W-084 ~ W-087
   - 플랫폼 교차 비교: W-088 ~ W-093
@@ -62,17 +64,6 @@
 - **비용 영향:** 최소 Redis 1개(월 수십 달러 수준) 추가
 - **출처:** https://socket.io/docs/v4/using-multiple-nodes/ ("Without an adapter, broadcasts on one server won't reach clients connected to other servers"), https://docs.cloud.google.com/run/docs/triggering/websockets (Redis Pub/Sub 또는 Firestore로 인스턴스 간 동기화 권장)
 
-### W-002 HTTP 롱폴링 폴백과 스티키 세션
-- **해당:** socket.io(기본 전송이 롱폴링으로 시작), SockJS, SignalR 폴백
-- **무엇/왜:** 롱폴링은 한 세션이 여러 HTTP 요청으로 이루어지므로 같은 서버로 가야 한다. 스티키 세션이 없으면 핸드셰이크 오류가 난다. 클라이언트를 웹소켓 전용으로 두면 스티키 세션이 필요 없다.
-- **실패 양상:** 인스턴스가 2대 이상일 때 "Session ID unknown"/400 오류, 연결이 반복해서 끊겼다 붙음. Cloud Run·ACA의 세션 어피니티는 best effort라 근본 해결이 아니다.
-- **신호:** 🟢 `socket.io-client` 사용 + `transports: ['websocket']` 미설정 · 🟡 Nginx/Ingress에 `sticky`/`affinity` 설정 유무
-- **시나리오·수준:** T≥1. 티어 0 Vercel은 `transports: ['websocket']`이 필수(공식 예제에 "required" 주석).
-- **처방:** 코드: 클라이언트 `transports: ['websocket']` (P2 코드 처방) · 티어 1: 세션 어피니티는 보조 수단으로만 · 티어 2: Ingress 쿠키 어피니티는 롱폴링 유지 시에만
-- **검증:** 인스턴스 3개에서 연결 100개 생성, 핸드셰이크 오류율 0%
-- **비용 영향:** 없음(코드 한 줄)
-- **출처:** https://socket.io/docs/v4/using-multiple-nodes/ ("When you configure the Socket.IO client to not use HTTP long-polling ... sticky sessions are no longer required"), https://vercel.com/docs/functions/websockets, https://docs.cloud.google.com/run/docs/configuring/session-affinity (best effort) ⚠️출처부적격
-
 ### W-003 배포·축소 시 대량 재연결 (재연결 폭풍)
 - **해당:** 장시간 연결(웹소켓, SSE, MQTT)을 가진 모든 서비스
 - **무엇/왜:** 롤링 배포, 스케일 인, 노드 교체 때 연결이 한꺼번에 끊기고 클라이언트가 동시에 재접속한다. 재접속마다 인증·구독 복원 쿼리가 실행되어 DB에 순간 폭증을 만든다.
@@ -94,17 +85,6 @@
 - **검증:** 인스턴스 강제 종료 후 TTL 안에 접속자 목록에서 사라지는지
 - **비용 영향:** W-001의 Redis를 공유하면 0
 - **출처:** https://vercel.com/docs/functions/websockets ("Store durable state, presence, counters, rooms, and pub/sub coordination in an external data store")
-
-### W-005 SSE·스트리밍 응답과 중간 프록시 버퍼링·유휴 타임아웃
-- **해당:** SSE 알림, LLM 토큰 스트리밍, Next.js 스트리밍(Suspense, PPR)
-- **무엇/왜:** 스트리밍 응답은 앞단(Nginx, LB)이 버퍼링하면 끝날 때 한꺼번에 도착한다. 또 토큰 사이 공백이 LB 유휴 타임아웃(ALB 기본 60초)보다 길면 연결이 끊긴다.
-- **실패 양상:** 로컬에서는 글자가 흘러나오는데 배포하면 한참 뒤 한 번에 표시, 또는 긴 생각 단계에서 502/연결 종료.
-- **신호:** 🟢 `text/event-stream`, `ReadableStream`, `streamText`, `StreamingResponse`(FastAPI), `EventSource` · 🟢 Nginx 설정에 `proxy_buffering` 미설정 · 🔴 ECS+ALB인데 `idle_timeout.timeout_seconds` 기본(60) + 하트비트 없음
-- **시나리오·수준:** T≥1, 티어별 제외 조건(W-090)
-- **처방:** 코드: 15~30초 간격 하트비트 코멘트(`:\n\n`) · 티어 1 ECS: ALB 유휴 타임아웃 상향(1~4000초 범위) · 티어 2: Ingress 버퍼링 끄기, `X-Accel-Buffering: no`
-- **검증:** 60초 이상 지연 후 첫 토큰을 내는 테스트 엔드포인트로 연결 유지 확인
-- **비용 영향:** 없음
-- **출처:** https://nextjs.org/docs/app/guides/self-hosting (nginx는 `X-Accel-Buffering: no`, LB와 프록시가 청크 응답을 버퍼링하지 않아야 함), https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-load-balancer-attributes.html (유휴 타임아웃 기본 60초, 범위 1~4000초) ⚠️출처부적격
 
 ### 미디어·업로드
 
@@ -176,17 +156,6 @@
 - **비용 영향:** 잘림→재시도로 인한 토큰 이중 지출 방지
 - **출처:** https://vercel.com/docs/functions/limitations (Hobby 300초, Pro/Ent 800초, 1800초 베타, 스트리밍 응답 포함, Edge 런타임은 25초 안에 응답 시작·300초까지 스트리밍), https://learn.microsoft.com/en-us/azure/container-apps/ingress-overview (요청 타임아웃 240초), https://docs.netlify.com/build/functions/api/ (스트리밍 60초·20MB), https://supabase.com/docs/guides/functions/limits (Free 150초, 유료 400초)
 
-### W-012 LLM 프로바이더 레이트 리밋·지출 한도
-- **해당:** 외부 LLM API를 호출하는 모든 앱
-- **무엇/왜:** 프로바이더는 조직 단위로 분당 요청·입력 토큰·출력 토큰 한도(RPM/ITPM/OTPM, OpenAI는 RPM/TPM/RPD/TPD)와 월 지출 상한을 둔다. 우리 앱의 오토스케일은 이 한도를 늘리지 못한다. 트래픽 폭증 = 429 폭증이다.
-- **실패 양상:** T L2/L3 이벤트에서 인스턴스는 늘었는데 LLM 응답은 429. Anthropic 월 지출 상한 도달 시 다음 달 1일까지 429가 `retry-after` 없이 계속(재시도로는 회복 안 됨). 새 조직은 Evaluation 등급으로 더 낮은 한도에서 시작.
-- **신호:** 🟢 LLM SDK 의존성 · 🟡 SDK `maxRetries` 기본값만 사용, 429 처리 없음 · 🔴 사용자별 호출 한도 없음 + 공개 가입
-- **시나리오·수준:** T≥2이면 외부 API 한도를 용량 계획에 포함 (새 축 후보 참조), COST-008
-- **처방:** 공통: 사용자·테넌트별 한도, 요청 큐 + 동시 호출 상한, `retry-after` 존중 백오프, 프롬프트 캐싱(Anthropic은 대부분 모델에서 캐시 읽기 토큰이 ITPM에 미포함), 비실시간 작업은 Batch API · 티어 1/2: 큐 워커로 LLM 호출 격리
-- **검증:** 피크 가정 × 평균 토큰으로 필요 ITPM/OTPM 계산 → 현재 등급 한도와 비교, 429 주입 시 디그레이드 동작 확인
-- **비용 영향:** 한도 초과로 인한 장애 대신 대기열 지연으로 전환. 캐싱은 비용도 절감
-- **출처:** https://platform.claude.com/docs/en/api/rate-limits (RPM/ITPM/OTPM, 토큰 버킷, 429 + `retry-after`, 월 지출 상한 Start $500·Build $1,000·Scale $200,000, 상한 도달 시 `retry-after` 없는 429), https://developers.openai.com/api/docs/guides/rate-limits (RPM/RPD/TPM/TPD/IPM, 지수 백오프 + 지터, Batch API) ⚠️출처부적격
-
 ### W-013 긴 AI 작업의 비동기화 (작업 ID + 폴링/웹훅)
 - **해당:** 문서 일괄 임베딩, 긴 에이전트 작업, 영상·음성 생성, 리포트 생성
 - **무엇/왜:** 사용자 요청 안에서 끝낼 수 없는 작업은 "접수 → 작업 ID 반환 → 워커 처리 → 상태 조회/알림"으로 바꿔야 한다. 플랫폼 한도와 무관하게 동작하고, 재시도·멱등성을 설계할 자리가 생긴다.
@@ -208,28 +177,6 @@
 - **검증:** 콜드 스타트(모델 로드 포함) 시간 측정, 유휴 시 0 인스턴스 확인
 - **비용 영향:** GPU 최소 인스턴스는 가장 큰 단일 비용 항목이 될 수 있음
 - **출처:** https://docs.cloud.google.com/run/docs/configuring/services/gpu (L4·RTX PRO 6000, 제공 리전 목록에 서울 없음: L4는 싱가포르·뭄바이(초대)·벨기에·네덜란드·아이오와·북버지니아, 인스턴스 기반 과금 필수, 드라이버 포함 약 5초 기동), https://docs.aws.amazon.com/eks/latest/userguide/automode.html (Auto Mode GPU 지원)
-
-### W-015 벡터 검색: 별도 벡터 DB 대신 pgvector 우선
-- **해당:** RAG, 의미 검색, 추천
-- **무엇/왜:** 이미 Postgres가 있으면 pgvector로 충분한 경우가 많다. 별도 벡터 DB는 동기화·비용·운영 대상이 하나 늘어난다. 다만 HNSW 인덱스 빌드는 메모리를 많이 쓰고, 인덱싱 가능한 차원 수에 한계(vector 2,000, halfvec 4,000)가 있다.
-- **실패 양상:** 소규모 앱에 관리형 벡터 DB 추가로 고정비 과잉, 또는 pgvector HNSW 빌드가 `maintenance_work_mem`을 넘어 매우 느려지고 작은 DB 인스턴스가 메모리 압박.
-- **신호:** 🟢 `pgvector`, `vector(` 컬럼, `@pinecone-database/pinecone`, `weaviate`, `qdrant-client`, `chromadb` · 🟡 임베딩 차원 상수(1536, 3072 등)
-- **시나리오·수준:** 비용 필터(과잉 탐지), D≥1(임베딩은 재생성 가능 → 원본 문서만 백업 대상)
-- **처방:** 티어 0: Supabase pgvector · 티어 1/2: RDS/Cloud SQL pgvector, 3072차원은 halfvec 또는 차원 축소
-- **검증:** 인덱스 빌드 시간·메모리, recall@k
-- **비용 영향:** 별도 벡터 DB 제거 시 고정비 절감
-- **출처:** https://github.com/pgvector/pgvector (HNSW는 속도-재현율이 더 좋고 빌드 메모리 많음, IVFFlat은 빌드 빠름, `maintenance_work_mem`, vector 2,000차원·halfvec 4,000차원 인덱싱) ⚠️출처부적격
-
-### W-016 토큰 비용이 트래픽에 비례 (요청당 유료 외부 API)
-- **해당:** LLM, 음성 인식, 번역, 지도 지오코딩 등 호출 건당 과금 API
-- **무엇/왜:** 인프라 비용은 오토스케일 상한으로 묶이지만, 외부 API 비용은 상한이 없다. 공개 가입 + 로그인 없는 LLM 엔드포인트는 남용 시 비용 폭주.
-- **실패 양상:** 봇이 무료 챗봇을 두드려 하루에 월 예산 소진, 또는 프로바이더 지출 상한 도달로 서비스 정지(W-012).
-- **신호:** 🟢 LLM SDK + 🔴 인증 미들웨어 없는 라우트에서 호출 · 🟡 사용자별 사용량 테이블(`usage`, `credits`) 부재
-- **시나리오·수준:** COST-008(원칙 5), T≥3이면 레이트 리밋(T-CTL-007)과 결합. 크레딧 차감이 있으면 C3(잔액 차감 패턴)
-- **처방:** 공통: 인증 필수, 사용자·IP 한도, 일일 예산 차단기, 프롬프트 캐싱 · 크레딧 모델이면 잔액 차감 잠금(C-CTL-005)
-- **검증:** 한도 초과 요청이 429로 막히는지, 예산 차단기 동작
-- **비용 영향:** 상한 없는 변동비를 상한 있는 비용으로 전환
-- **출처:** 설계 원칙 5(§2), https://platform.claude.com/docs/en/api/rate-limits (사용자 정의 지출 한도·워크스페이스 한도, 캐시 읽기 토큰의 ITPM 제외) ⚠️출처부적격
 
 ### 백그라운드·배치·크론
 
@@ -278,17 +225,6 @@
 - **출처:** https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html (`stopTimeout` 기본 30초, 최대 120초), https://karpenter.sh/docs/concepts/disruption/ (`do-not-disrupt`, 만료·중단은 이 어노테이션을 무시, 기본 `expireAfter` 720h), 설계 S3(Cloud Run 10초)
 
 ### 메시지 발송 (이메일·푸시·SMS)
-
-### W-021 이메일 발송 평판: 인증·구독 해지·스팸률
-- **해당:** 가입 인증, 비밀번호 재설정, 뉴스레터, 마케팅 메일
-- **무엇/왜:** Gmail은 하루 5,000통 이상 보내는 발신자에게 SPF·DKIM·DMARC, From 도메인 정렬, 원클릭 구독 해지, 스팸 신고율 0.3% 미만을 요구한다. 트랜잭션 메일과 마케팅 메일을 같은 도메인·IP로 보내면 마케팅 평판이 비밀번호 재설정 메일까지 스팸함으로 보낸다.
-- **실패 양상:** 인프라는 멀쩡한데 "인증 메일이 안 와요" 문의 폭증. 재난·예약 확인처럼 메일이 핵심 경로인 도메인에서는 사실상 장애.
-- **신호:** 🟢 `nodemailer`, `@sendgrid/mail`, `resend`, `postmark`, `@aws-sdk/client-sesv2`, `django.core.mail` · 🟡 SMTP를 앱에서 직접(`smtp.gmail.com`) · 🟡 `List-Unsubscribe` 헤더 부재(마케팅 메일)
-- **시나리오·수준:** D≥3 도메인이면 발송 경로도 의존성(D-CTL-005), 보안·운영 교차
-- **처방:** 공통: 전문 발송 서비스(HTTP API) + 도메인 인증 3종 + 트랜잭션/마케팅 서브도메인 분리 · 대량 발송은 큐(W-013)
-- **검증:** DNS에서 SPF/DKIM/DMARC 레코드 확인, 테스트 메일 헤더의 인증 결과
-- **비용 영향:** 발송 서비스 건당 과금. 평판 손상의 복구 비용이 훨씬 큼
-- **출처:** https://support.google.com/a/answer/81126 (일 5,000통 이상 대량 발신자 요건: SPF·DKIM·DMARC, 원클릭 구독 해지, 스팸률 0.30% 미만, 2024-02-01 시행) ⚠️출처부적격
 
 ### W-022 발송 서비스의 초기 제한 (SES 샌드박스 등)
 - **해당:** Amazon SES를 새로 쓰는 앱
@@ -373,7 +309,7 @@
 
 ### W-029 시끄러운 이웃과 테넌트별 한도
 - **해당:** 멀티테넌트 SaaS, 공개 API, 공유 워커 큐
-- **무엇/왜:** 한 테넌트의 대량 가져오기·리포트·API 폭주가 공유 DB·큐·외부 API 한도(W-012)를 독점하면 모든 테넌트가 느려진다. 사용자 단위 레이트 리밋만으로는 부족하고 테넌트 단위 한도와 공정 큐가 필요하다.
+- **무엇/왜:** 한 테넌트의 대량 가져오기·리포트·API 폭주가 공유 DB·큐·외부 API 한도(W-012(삭제됨))를 독점하면 모든 테넌트가 느려진다. 사용자 단위 레이트 리밋만으로는 부족하고 테넌트 단위 한도와 공정 큐가 필요하다.
 - **실패 양상:** 큰 고객이 CSV 100만 행을 올린 순간 다른 고객 화면이 멈춤, 큐 지연 수 시간.
 - **신호:** 🟡 `import`/`bulk`/`export` 라우트 + 테넌트 모델 · 🟡 큐 작업에 테넌트 키 없음 · 🟢 `plan`/`tier` 컬럼(요금제별 한도의 근거)
 - **시나리오·수준:** T≥2(B2B 이벤트성 부하), T-CTL-007 확장(테넌트 기준)
@@ -381,17 +317,6 @@
 - **검증:** 한 테넌트 폭주 중 다른 테넌트 p95 유지
 - **비용 영향:** 전체 증설 대신 격리로 해결 → 절감
 - **출처:** https://www.rfc-editor.org/rfc/rfc6585#section-4 (429 Too Many Requests, Retry-After), https://platform.claude.com/docs/en/api/rate-limits (워크스페이스별 한도로 다른 워크스페이스 보호하는 예시: 같은 패턴의 공식 사례)
-
-### W-030 모바일 백엔드: 구버전 앱 호환
-- **해당:** iOS/Android 앱의 API 서버
-- **무엇/왜:** 웹은 배포하면 모든 사용자가 새 코드를 받지만, 모바일은 구버전 앱이 수개월~수년 남는다. API·스키마 변경의 expand/contract 기간이 웹보다 훨씬 길어야 하고, 최소 지원 버전·강제 업데이트 장치가 필요하다.
-- **실패 양상:** 필드 이름 변경 배포 직후 구버전 앱 크래시, 앱스토어 심사 기간 동안 핫픽스 불가.
-- **신호:** 🟢 `X-App-Version`/`app_version` 헤더 처리, `/v1/`·`/v2/` 경로 · 🟡 저장소에 `ios/`, `android/`, `react-native`, `expo`, `flutter` 동시 존재 · 🟡 `min_supported_version` 설정 부재
-- **시나리오·수준:** U≥2(U-CTL-003의 contract 단계 지연: 구버전 점유율 기준), 새 축 후보(클라이언트 배포 통제 불가)
-- **처방:** 공통: API 버전 + 최소 버전 응답(강제 업데이트), 필드 삭제는 구버전 사용률 임계치 이하에서만
-- **검증:** 이전 릴리스 앱 빌드로 신규 API 계약 테스트
-- **비용 영향:** 구버전 엔드포인트 유지 비용 소폭
-- **출처:** 일반 원칙(출처 미확인). expand/contract 자체는 설계 S9(https://martinfowler.com/bliki/ParallelChange.html) ⚠️출처부적격 ⚠️근거없음
 
 ### W-031 공개 API 제공: 키·쿼터·버전·멱등성
 - **해당:** 개발자용 공개 API, 파트너 API
@@ -403,17 +328,6 @@
 - **검증:** 키 하나로 한도 초과 → 429 + `Retry-After`, 같은 멱등성 키 재전송 → 같은 응답
 - **비용 영향:** Redis 공유 시 거의 0
 - **출처:** https://www.rfc-editor.org/rfc/rfc6585#section-4 (429, Retry-After), 설계 S12(Stripe Idempotency-Key, https://docs.stripe.com/api/idempotent_requests)
-
-### W-032 웹훅 발송자 역할
-- **해당:** 고객 서버로 이벤트를 보내는 SaaS(결제 알림, 상태 변경 통지)
-- **무엇/왜:** 수신자 서버는 느리거나 죽어 있다. 요청 경로에서 동기로 보내면 고객 장애가 우리 장애가 된다. 표준 관행은 큐 + 지수 백오프 재시도(며칠에 걸침) + 서명 + `webhook-id`(수신자 중복 제거용) + 15~30초 타임아웃.
-- **실패 양상:** 한 고객 엔드포인트가 30초씩 응답 안 해 워커 전체가 막힘, 재시도 시 수신자가 중복 처리, 서명 없어 위조 이벤트 주입.
-- **신호:** 🟡 `webhook_url`/`callback_url` 컬럼 + 핸들러 안에서 `fetch(webhookUrl)` · 🔴 위 호출에 타임아웃 없음(`ext.no_timeout`) · 🟢 `svix`, `standardwebhooks` 의존성(충족 후보)
-- **시나리오·수준:** C≥2, D≥2(고객 장애 격리), T≥2(팬아웃)
-- **처방:** 공통: 아웃박스 → 발송 워커, 엔드포인트별 동시성 상한·서킷 브레이커, `410 Gone`이면 비활성화 · 티어 0: 관리형 웹훅 서비스
-- **검증:** 수신자 지연·5xx 주입 시 다른 고객 발송 지연 없음, 재시도 시 같은 `webhook-id`
-- **비용 영향:** 워커·큐 소폭
-- **출처:** https://github.com/standard-webhooks/standard-webhooks/blob/main/spec/standard-webhooks.md (`webhook-id`·`webhook-timestamp`·`webhook-signature`, 즉시·5초·5분·30분 … 최대 24시간 간격 재시도와 지터, 15~30초 타임아웃 권장, 410은 수신 중단 신호) ⚠️출처부적격
 
 ### IoT·게임·커머스·예약
 
@@ -480,7 +394,7 @@
 - **실패 양상:** 티어 1로 이전 직후 간헐적 폼 제출 실패, 배포 중 화면 깨짐.
 - **신호:** 🟢 `'use server'` 사용 · 🟢 `next.config`의 `deploymentId`, `generateBuildId` 유무 · 🟡 `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` 미설정
 - **시나리오·수준:** U≥1(배포 중 오류), 티어 0 → 1 이전 비용(`migration_effort`)에 반영
-- **처방:** 티어 1/2: 이미지 하나를 빌드해 모든 인스턴스에 사용, `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` 고정, `deploymentId` 설정, 앞단 프록시 스트리밍 버퍼링 끄기(W-005)
+- **처방:** 티어 1/2: 이미지 하나를 빌드해 모든 인스턴스에 사용, `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` 고정, `deploymentId` 설정, 앞단 프록시 스트리밍 버퍼링 끄기(W-005(삭제됨))
 - **검증:** 롤링 배포 중 Server Action 호출 오류율 0
 - **비용 영향:** 없음. 이전 작업량 +small
 - **출처:** https://nextjs.org/docs/app/guides/self-hosting (Server Functions encryption key, deploymentId와 version skew, 같은 빌드로 여러 컨테이너 기동)
@@ -522,7 +436,7 @@
 
 ### W-042 지도·위치 서비스
 - **해당:** 주변 검색, 배달·모빌리티 위치 추적, 지오펜싱
-- **무엇/왜:** 위치 갱신은 이동 중인 사용자 수 × 갱신 주기만큼 쓰기를 만든다(분석 이벤트와 비슷한 쓰기 폭증). 반경 검색은 공간 인덱스(PostGIS GiST 등) 없으면 전체 스캔. 지도·지오코딩 API는 호출 건당 과금(W-016).
+- **무엇/왜:** 위치 갱신은 이동 중인 사용자 수 × 갱신 주기만큼 쓰기를 만든다(분석 이벤트와 비슷한 쓰기 폭증). 반경 검색은 공간 인덱스(PostGIS GiST 등) 없으면 전체 스캔. 지도·지오코딩 API는 호출 건당 과금(W-016(삭제됨)).
 - **실패 양상:** 출퇴근 시간 위치 쓰기로 DB 쓰기 포화, `lat BETWEEN` 조건 전체 스캔, 지오코딩 비용 폭주.
 - **신호:** 🟢 `postgis`, `geography(`, `ST_DWithin`, `h3-js`, `@turf/turf`, `mapbox-gl`, `leaflet`, 카카오·네이버 지도 SDK · 🟡 `lat`/`lng` 컬럼 + 인덱스 없음 · 🟡 위치 업데이트 라우트 호출 주기 상수
 - **시나리오·수준:** T≥2(통근 시간대 예측 가능 피크), C1(최신 위치는 덮어써도 됨), 비용 필터
@@ -555,23 +469,12 @@
 - **비용 영향:** 세션당 과금(ACA 코드 인터프리터 세션은 할당 시간 1시간 단위 과금)
 - **출처:** https://learn.microsoft.com/en-us/azure/container-apps/billing (dynamic sessions: 코드 인터프리터는 할당~해제 시간을 1시간 단위로 과금, 커스텀 컨테이너는 Dedicated 플랜)
 
-### W-045 크롤러·외부 연동 수집기: 고정 egress IP와 상대방 레이트 리밋
-- **해당:** 스크래핑, 외부 API 동기화, 파트너사 IP 허용 목록이 필요한 연동(은행·공공 API)
-- **무엇/왜:** 상대방이 IP 허용 목록을 요구하면 고정 송신 IP가 필요하다. 서버리스·관리형 컨테이너는 기본적으로 송신 IP가 바뀌므로 NAT·정적 IP 옵션(유료)이 필요하다. 상대방 레이트 리밋을 넘으면 차단당한다.
-- **실패 양상:** 배포·확장 때마다 송신 IP가 바뀌어 파트너 API 403, 수집 작업이 상대 한도를 넘어 IP 차단.
-- **신호:** 🟡 README/설정에 "IP whitelist", "허용 IP" · 🟢 `puppeteer`/`playwright`/`scrapy`/`cheerio` + 스케줄 · 🟢 `PROXY_URL`, `HTTPS_PROXY` 환경변수
-- **시나리오·수준:** D≥1(외부 의존성), 비용 필터(정적 IP·NAT 비용, COST-002와 연결)
-- **처방:** 티어 0: 플랫폼 정적 IP 옵션(유료) · 티어 1: Cloud Run/ECS + NAT 게이트웨이 고정 IP · 티어 2: 동일
-- **검증:** 재배포 전후 송신 IP 동일
-- **비용 영향:** Fly.io 정적 egress IP 시간당 $0.005(월 약 $3.60), AWS NAT 서울 시간당 $0.059 + GB당 $0.059(S18)
-- **출처:** https://docs.fly.io/about/pricing/ (Static Egress IPs $0.005/시간), 설계 S18(NAT Gateway 요금) ⚠️출처부적격
-
 ### W-046 모바일 백엔드의 푸시 토큰·오프라인 동기화
 - **해당:** 모바일 앱, PWA
 - **무엇/왜:** 모바일은 오프라인에서 쓰고 나중에 동기화한다. 같은 쓰기가 네트워크 재시도로 여러 번 도착하므로 클라이언트 생성 ID(멱등성 키)가 필요하다. 푸시 토큰은 앱 재설치·만료로 계속 바뀌며, 무효 토큰을 정리하지 않으면 발송 실패율과 비용이 쌓인다.
 - **실패 양상:** 지하철에서 쓴 메모가 3개로 중복 저장, 푸시 실패율 40%.
 - **신호:** 🟢 `react-native`, `expo`, `flutter`, `@react-native-firebase/messaging` · 🟡 `device_tokens`/`push_tokens` 테이블 + 무효 토큰 삭제 코드 부재 · 🟡 클라이언트 측 UUID 생성 없이 서버 자동 증가 ID만 사용
-- **시나리오·수준:** C2(클라이언트 재시도 경로 → §4.2 C L2), W-030과 함께 U2
+- **시나리오·수준:** C2(클라이언트 재시도 경로 → §4.2 C L2), W-030(삭제됨)과 함께 U2
 - **처방:** 공통: 클라이언트 생성 UUID + 업서트, 발송 응답의 무효 토큰 삭제
 - **검증:** 같은 요청 3회 재전송 후 레코드 1개
 - **비용 영향:** 없음
@@ -600,7 +503,7 @@
 | 재난·공공 알림 | 3 | 3 | 2 (T≥2) | 2 (중복 발송 방지) | 20 | ×20, 1분 (규칙 기본). 실제는 더 클 수 있음 | D3·T3(§4.2). 평시 거의 0, 사건 시 폭증 + 장애 동시(W-040) |
 | 실시간·채팅 | 1 | 1 (라이브 이벤트형이면 3) | 1 | 2 (메시지 재전송 중복 제거) | 동시 **연결** 100 | ×3, 10분 | 지표가 요청 수가 아니라 연결 수. 메시지 클라이언트 재시도 → C2 |
 | 기타 | 1 | 1 | 1 | 1 | 50 | ×3, 10분 | §4.3 기본값 |
-| **AI·LLM 앱** | 1 | 1 (런칭 이벤트면 2) | 1 | 1 (크레딧 차감 있으면 3) | 20 | ×3, 10분 | 처리량 상한이 우리 인프라가 아니라 프로바이더 한도(W-012). 크레딧 = 잔액 차감 |
+| **AI·LLM 앱** | 1 | 1 (런칭 이벤트면 2) | 1 | 1 (크레딧 차감 있으면 3) | 20 | ×3, 10분 | 처리량 상한이 우리 인프라가 아니라 프로바이더 한도(W-012(삭제됨)). 크레딧 = 잔액 차감 |
 | **교육·시험(LMS)** | 2 | 2 | 2 | 2 | 30 | ×10, 시험 시작 시각 | 제출물·성적은 잃으면 안 됨. 시험·수강 신청 시작 시각 예고. 제출 재시도 중복 |
 | **핀테크·금융** | 2 | 1 | 2 | 3 | 30 | ×3, 10분 | 잔액·이체 → C3. 규제(W-041)는 수준이 아니라 티어 제외 조건으로 다룸 |
 | **헬스케어·의료** | 3 | 1 | 2 | 2 (처방·재고 차감 있으면 3) | 20 | ×3, 10분 | §4.2 D L3(의료). 예약 기능 있으면 W-036 적용 |
@@ -872,7 +775,7 @@
 - **실패 양상:** 느린 모바일 회선의 대용량 업로드가 5분에서 실패, 5분 넘게 아무것도 안 보내는 긴 LLM 생각 단계에서 연결 종료.
 - **신호:** 🟢 `railway.json`/`railway.toml`, `RAILWAY_` 환경변수
 - **시나리오·수준:** TIER-002 Railway 버전(15분 초과 요청), 웹소켓 도메인에는 유리
-- **처방:** 하트비트(W-005), 업로드는 서명 URL(W-006)
+- **처방:** 하트비트(W-005(삭제됨)), 업로드는 서명 URL(W-006)
 - **검증:** 설정·경로 정적 분석
 - **비용 영향:** 없음
 - **출처:** https://docs.railway.com/networking/public-networking/specs-and-limits
@@ -887,78 +790,6 @@
 - **검증:** 설정 확인
 - **비용 영향:** 상시 컨테이너 1개(0.5vCPU·512MB)는 약 월 $15 수준(단가로 계산한 우리 추정)
 - **출처:** https://docs.railway.com/reference/pricing/plans, https://docs.railway.com/reference/app-sleeping
-
-### 티어 0 — Render
-
-### W-071 Render Free: 15분 유휴 스핀다운, Postgres 30일 만료
-- **해당:** Render Free 인스턴스·Free Postgres·Free Key Value
-- **무엇/왜:** Free 웹 서비스는 15분간 인바운드 트래픽이 없으면 내려가고, 다시 올라오는 데 약 1분. 워크스페이스당 월 750 인스턴스 시간, 소진 시 다음 달까지 정지. Free Postgres는 생성 30일 후 만료(14일 유예 후 삭제). Free Key Value는 디스크에 저장하지 않아 재시작 시 데이터 소실. Free 웹 서비스는 영속 디스크 불가, 사설 네트워크 트래픽 수신 불가.
-- **실패 양상:** 첫 방문자 1분 대기(사실상 장애), 한 달 뒤 DB 삭제 → 데이터 전부 유실.
-- **신호:** 🟢 `render.yaml`의 `plan: free`, `type: pserv`/`databases` 플랜
-- **시나리오·수준:** D≥1이면 Free Postgres 제외(🔴), T≥1 공개 서비스면 Free 웹 비권장, Free Key Value를 세션 저장소로 쓰면 T-CTL-001 미충족
-- **처방:** 유료 인스턴스·유료 Postgres
-- **검증:** `render.yaml` 플랜 정적 분석
-- **비용 영향:** 유료 최저 플랜 비용(금액은 이 문서에서 미확인)
-- **출처:** https://render.com/docs/free ⚠️출처부적격
-
-### W-072 Render 영속 디스크: 스케일 아웃 불가 + 무중단 배포 불가
-- **해당:** Render 서비스에 Persistent Disk 연결
-- **무엇/왜:** 디스크가 붙은 서비스는 인스턴스를 여러 개로 늘릴 수 없고, 배포 때 기존 인스턴스를 먼저 멈춰서 수 초 다운타임이 생긴다. 디스크는 빌드·사전 배포 명령·일회성 작업·크론에서 접근 불가. 일일 스냅샷 최소 7일 보관.
-- **실패 양상:** 로컬 업로드·SQLite를 디스크로 "해결"하는 순간 T(오토스케일)와 U(무중단)를 동시에 포기.
-- **신호:** 🟢 `render.yaml`의 `disk:` 블록 · 🟢 `db.sqlite_file`, `state.upload.local_fs`
-- **시나리오·수준:** T≥1 또는 U≥1이면 "디스크 의존" 구성 부족 판정, D-PRE-001/002 처방 우선
-- **처방:** 오브젝트 스토리지·매니지드 DB로 이전 후 디스크 제거
-- **검증:** 디스크 제거 후 인스턴스 2개 + 무중단 배포 확인
-- **비용 영향:** 매니지드 DB 비용 추가, 대신 확장 가능
-- **출처:** https://render.com/docs/disks ⚠️출처부적격
-
-### W-073 Render 웹소켓과 종료 유예
-- **해당:** Render 웹 서비스의 웹소켓
-- **무엇/왜:** 웹소켓 고정 타임아웃은 없지만 인스턴스 교체(배포) 때 닫힌다. 교체 시 SIGTERM 후 기본 30초, 최대 300초까지 늘릴 수 있는 종료 유예. 관리형 PaaS 중 유예 상한이 긴 편이다.
-- **실패 양상:** 배포마다 전원 재연결(W-003).
-- **신호:** 🟢 Render + 웹소켓 의존성
-- **시나리오·수준:** U≥1 실시간 도메인
-- **처방:** 유예 시간 상향 + 서버 측 정리 메시지 + 클라이언트 백오프
-- **검증:** 배포 중 재연결 완료 시간
-- **비용 영향:** 없음
-- **출처:** https://render.com/docs/websocket, https://render.com/docs/web-services (웹소켓·무중단 배포 지원) ⚠️출처부적격
-
-### 티어 0 — Fly.io
-
-### W-074 Fly 볼륨은 한 물리 서버에 묶이고 복제되지 않음
-- **해당:** Fly Machines + Fly Volumes(직접 운영 DB, SQLite, 업로드 저장)
-- **무엇/왜:** 볼륨은 머신이 올라간 물리 서버의 NVMe 일부이며 그 하드웨어에 묶인다. Fly는 볼륨 간 데이터를 자동 복제하지 않는다. 일일 스냅샷 기본 5일(1~60일 설정)이지만 최신 데이터가 없을 수 있어 자체 백업을 권장한다. 앱당 볼륨 최소 2개를 권장한다.
-- **실패 양상:** 호스트 하드웨어 고장 → 볼륨 위 SQLite·업로드 유실, 마지막 스냅샷 이후 데이터 손실(RPO 최대 24시간).
-- **신호:** 🟢 `fly.toml`의 `[mounts]` · 🟢 `db.sqlite_file` + Fly · 🔴 볼륨 1개 + 사용자 데이터
-- **시나리오·수준:** D≥1: 스냅샷만으로는 RPO 24시간 수준(D1 경계). D≥2: 볼륨 위 단일 DB 불가 → 매니지드 Postgres 또는 복제 구성
-- **처방:** 매니지드 Postgres 이전(D-PRE-001) 또는 LiteFS류 복제 + 외부 백업
-- **검증:** 머신 파괴 후 복원 리허설
-- **비용 영향:** 볼륨 GB당 월 $0.15, 스냅샷 GB당 월 $0.08(월 10GB 무료)
-- **출처:** https://docs.fly.io/volumes/overview/, https://docs.fly.io/about/pricing/ ⚠️출처부적격
-
-### W-075 Fly 자동 정지·시작과 최소 머신
-- **해당:** Fly Machines `auto_stop_machines`, `min_machines_running`
-- **무엇/왜:** 프록시가 유휴 머신을 stop 또는 suspend(더 빠른 재개)하고 요청이 오면 자동 시작한다. `min_machines_running`은 주 리전에서 유지할 최소 머신 수다. 정지된 머신은 rootfs GB당 30일 $0.15만 과금된다. shared-cpu-1x 256MB는 애시번 기준 시간당 약 $0.00205(월 약 $1.49).
-- **실패 양상:** T3 1분 램프에서 정지 머신 기동 지연, 두 설정 중 하나만 켜서 머신이 영원히 꺼지거나 영원히 켜짐.
-- **신호:** 🟢 `fly.toml`의 `auto_stop_machines`, `auto_start_machines`, `min_machines_running`
-- **시나리오·수준:** TIER-003의 Fly 버전: T3이면 `min_machines_running` ≥ 평시 필요 대수
-- **처방:** 두 설정을 함께 켜고/끄기, T3이면 최소 머신 상향
-- **검증:** 스파이크 테스트에서 첫 요청 지연
-- **비용 영향:** 최소 머신 상시 비용
-- **출처:** https://docs.fly.io/launch/autostop-autostart/, https://docs.fly.io/about/pricing/ ⚠️출처부적격
-
-### 티어 0 — Replit
-
-### W-076 Replit 배포 유형과 파일 시스템 비영속
-- **해당:** Replit Deployments (Autoscale, Reserved VM, Static, Scheduled)
-- **무엇/왜:** Autoscale은 사용량에 따라 자원을 늘리고 줄인다(유휴 축소 → 콜드 스타트). 상시 실행이 필요한 웹소켓·백그라운드 워커는 Reserved VM. 정기 작업은 Scheduled. 배포된 앱의 파일 시스템에 쓴 데이터에 의존하지 말라고 공식 문서가 경고한다. 바이브코딩 저장소에서 SQLite·로컬 업로드가 흔한 곳이다.
-- **실패 양상:** 재배포·축소 후 업로드 파일·SQLite 데이터 소실.
-- **신호:** 🟢 `.replit`, `replit.nix`, `[deployment]` 섹션의 `deploymentTarget` · 🔴 `db.sqlite_file`/`state.upload.local_fs` + Replit
-- **시나리오·수준:** D≥1이면 로컬 파일 데이터 → D-PRE-001/002 필수, 웹소켓·워커면 Autoscale 제외
-- **처방:** 외부 DB·스토리지, 상시 연결은 Reserved VM
-- **검증:** 재배포 후 데이터 유지
-- **비용 영향:** Reserved VM은 상시 비용(금액 미확인)
-- **출처:** https://docs.replit.com/cloud-services/deployments/about-deployments ⚠️출처부적격
 
 ### 티어 1 — Google Cloud Run
 
@@ -1002,7 +833,7 @@
 - **무엇/왜:** ALB 연결 유휴 타임아웃 기본 60초(1~4000초), 앱의 keep-alive 타임아웃은 ALB보다 길게 해야 502를 피한다. HTTP/2 PING은 유휴 타이머를 리셋하지 않는다. 컨테이너 `stopTimeout` 기본 30초·최대 120초. 태스크 임시 저장소 기본 20GiB·최대 200GiB(이미지 포함, 비영속). Cloud Run과 달리 상시 실행이라 응답 후 백그라운드 작업이 동작한다.
 - **실패 양상:** Node 기본 `keepAliveTimeout`(5초) < ALB 60초 → 간헐적 502. SSE·LLM 스트림이 60초 무응답에서 끊김. 2분 넘는 정리 작업 강제 종료.
 - **신호:** 🟢 Terraform `aws_lb` `idle_timeout`, `aws_ecs_task_definition`의 `stopTimeout`, `ephemeral_storage` · 🟡 `server.keepAliveTimeout` 설정 부재(Node), gunicorn `--keep-alive`
-- **시나리오·수준:** U-CTL-002, U-CTL-006, W-005
+- **시나리오·수준:** U-CTL-002, U-CTL-006, W-005(삭제됨)
 - **처방:** 앱 keep-alive > ALB 유휴 타임아웃, 스트리밍 경로는 하트비트 또는 유휴 타임아웃 상향, 장기 정리는 120초 내 분할
 - **검증:** 부하 중 502 비율, 설정 정적 분석
 - **비용 영향:** 없음
@@ -1181,7 +1012,7 @@
 
 ## 플랫폼 한도 요약표
 
-2026-10-01 확인값. 빈칸은 이번에 확인하지 못한 값.
+2026-10-01 확인값. 빈칸은 이번에 확인하지 못한 값. Render·Fly.io·Replit 행은 근거 항목(W-071~W-076)이 부적격 출처로 삭제되어 뺐다(2026-10-02).
 
 | 플랫폼 | 최대 요청 시간 | 요청 본문 | 웹소켓 | 응답 후 백그라운드 | 상시 워커 | 영속 디스크 | DB 연결 권장 | 무료/저가 함정 |
 |---|---|---|---|---|---|---|---|---|
@@ -1191,9 +1022,6 @@
 | Supabase Edge | Free 150초, 유료 400초 | | (Realtime 별도) | 벽시계 시간 내 | 불가 | 없음 | 트랜잭션 풀러 6543 | Free 1주 무활동 중지, 백업 없음 |
 | Firebase Functions 2세대 | HTTP 60분, 이벤트 540초 | 32MB | | | 불가 | 없음 | | Blaze 필수 |
 | Railway | 15분(무전송 5분) | 5분 내 업로드 | 무기한 | 가능 | 가능 | 볼륨(Free 0.5GB) | | Free 레플리카 1, 슬리핑 |
-| Render | | | 지원(배포 시 끊김) | 가능 | 가능(유료) | 유료, 붙이면 스케일 아웃·무중단 불가 | | Free 15분 스핀다운, Postgres 30일 만료 |
-| Fly.io | | | 지원 | 가능 | 가능 | 볼륨(단일 호스트, 복제 없음) | | 자동 정지 시 콜드 스타트 |
-| Replit | | | Reserved VM | Reserved VM | Reserved VM | 비영속 | | Autoscale 축소 |
 | Cloud Run | 기본 300초, 최대 3600초 | HTTP/1 32MiB | 지원(타임아웃 적용, 인스턴스 과금) | 인스턴스 기반 과금 필요 | 인스턴스 기반 과금 / Jobs | 없음(인메모리 FS) | 풀러 또는 커넥터 | 요청 기반 무료 등급(S21) |
 | ECS Fargate | ALB 유휴 60초(최대 4000초) | | 지원 | 가능 | 가능 | 임시 20~200GiB(비영속), EFS | RDS Proxy(S8) | ALB 고정비 |
 | App Runner | | | | | | | | **신규 고객 불가** |
@@ -1208,22 +1036,22 @@
 ### A. 새 가정 키(§4.3 확장)
 1. **`traffic.baseline_connections`** — 실시간·IoT 도메인은 동시 요청이 아니라 동시 **연결 수**가 용량을 결정한다. T 판정과 티어 한도(Supabase Realtime 200/500, Railway 1만 연결 등)를 이 값으로 비교한다. 근거: W-001, W-033, W-066.
 2. **`traffic.reconnect_ramp_seconds`** — 배포·정전 복구 시 재접속이 몰리는 시간. 예고 없는 램프이므로 T 수준이 낮아도 T-CTL-003(커넥션 풀)과 백오프 통제를 요구. 근거: W-003, W-033.
-3. **`external.<provider>_limit`** (예: LLM ITPM/OTPM, FCM 분당 60만, SES 초당 발송) — 외부 한도를 용량 계획에 포함. 피크 가정 × 단위 사용량 > 외부 한도이면 "큐 + 백오프" 처방. 근거: W-012, W-022, W-023.
+3. **`external.<provider>_limit`** (예: LLM ITPM/OTPM, FCM 분당 60만, SES 초당 발송) — 외부 한도를 용량 계획에 포함. 피크 가정 × 단위 사용량 > 외부 한도이면 "큐 + 백오프" 처방. 근거: W-012(삭제됨), W-022, W-023.
 4. **`traffic.peak_multiplier` 도메인 재정의** — 재난·공공 알림은 T3 기본 ×20이 과소일 가능성. 도메인별로 ×20보다 큰 값을 둘 수 있게 `rules/assumptions.yaml`에서 덮어쓰기 허용(값은 실측 되먹임 §17.5로 보정).
 
 ### B. 새 수준 규칙 후보(§4.2 확장)
 5. **C-L3 조건에 "예약 슬롯 겹침" 추가** — 좌석 차감과 같은 성격. 신호: `Reservation`/`Booking` + 시간 구간 컬럼. 근거: W-036.
-6. **C-L3 조건에 "크레딧·포인트 차감" 명시** — AI 앱 크레딧, 게임 재화. 근거: W-016.
+6. **C-L3 조건에 "크레딧·포인트 차감" 명시** — AI 앱 크레딧, 게임 재화. 근거: W-016(삭제됨).
 7. **C-L2 하위 통제 "테넌트 격리"** — B2B 신호가 있으면 수준과 별개로 필수 통제: 테넌트 컨텍스트 강제 + RLS FORCE + 비소유자 역할. P4 검증에 교차 테넌트 접근 테스트 추가. 근거: W-028.
-8. **T-CTL-007(레이트 리밋)을 T 수준 무관 필수로 만드는 경로 목록** — SMS/OTP 발송, 공개 API, 로그인 없는 LLM 호출. 수준이 아니라 "남용 시 비용·평판 손실" 기준. 근거: W-016, W-024, W-031.
-9. **U-L2 조건에 "모바일 클라이언트 존재" 추가** — 구버전 클라이언트가 남으므로 expand/contract가 필수. 근거: W-030.
+8. **T-CTL-007(레이트 리밋)을 T 수준 무관 필수로 만드는 경로 목록** — SMS/OTP 발송, 공개 API, 로그인 없는 LLM 호출. 수준이 아니라 "남용 시 비용·평판 손실" 기준. 근거: W-016(삭제됨), W-024, W-031.
+9. **U-L2 조건에 "모바일 클라이언트 존재" 추가** — 구버전 클라이언트가 남으므로 expand/contract가 필수. 근거: W-030(삭제됨).
 10. **C 판정에서 경로별 분리** — 분석 이벤트·텔레메트리·프레즌스 경로는 C0으로 분리해 전체 C 수준을 끌어올리지 않게 한다(§4.2 C L0 조건의 경로 단위 적용). 근거: W-004, W-026, W-033.
 
 ### C. 새 티어 규칙 후보(§8.4 TIER 확장)
 11. **TIER-006 플랫폼 수치 표 기반 제외** — TIER-001/002를 W-089·W-090 표로 일반화: `max(경로 처리 시간) > 플랫폼 상한` 또는 `max(본문) > 플랫폼 한도`이면 해당 경로 처방(비동기화·서명 URL) 후에도 남으면 제외.
 12. **TIER-007 신규 불가 플랫폼 제외** — App Runner는 신규 구성 후보에서 제외, 기존 사용 시 유지 + 경고. 근거: W-081.
-13. **TIER-008 무료 플랜 하한** — D≥1 또는 공개 서비스(T≥1)면 Render Free(Postgres 30일 만료·스핀다운), Supabase Free(1주 중지·백업 없음), Vercel Hobby(결제·광고 신호 시 비상업 조항)를 "수준 미충족"으로 보고 최저 유료 플랜으로 견적. 근거: W-051, W-065, W-071, W-091.
-14. **TIER-009 디스크 의존 구성 제외** — Render 디스크·Fly 단일 볼륨·Replit 파일 시스템에 사용자 데이터가 있으면 T≥1/U≥1/D≥2와 충돌 → 매니지드 DB·스토리지 처방 선행. 근거: W-072, W-074, W-076.
+13. **TIER-008 무료 플랜 하한** — D≥1 또는 공개 서비스(T≥1)면 Render Free(Postgres 30일 만료·스핀다운), Supabase Free(1주 중지·백업 없음), Vercel Hobby(결제·광고 신호 시 비상업 조항)를 "수준 미충족"으로 보고 최저 유료 플랜으로 견적. 근거: W-051, W-065, W-071(삭제됨), W-091.
+14. **TIER-009 디스크 의존 구성 제외** — Render 디스크·Fly 단일 볼륨·Replit 파일 시스템에 사용자 데이터가 있으면 T≥1/U≥1/D≥2와 충돌 → 매니지드 DB·스토리지 처방 선행. 근거: W-072(삭제됨), W-074(삭제됨), W-076(삭제됨).
 15. **TIER-010 GPU·리전 조합** — 자체 추론 + 서울 리전이면 Cloud Run GPU 불가(서울 미제공) → 리전 분리 또는 외부 API. 근거: W-014, W-078.
 16. **TIER-011 규제 데이터 플랫폼 제한** — 의료·금융 신호가 있으면 BAA·규제 대상 목록에 있는 서비스만 후보. 코드로 계약 확인 불가 → 리포트에 "사용자 확인 필요". 근거: W-041.
 17. **TIER-012 앱·DB 리전 불일치 경고** — Vercel 기본 `iad1` + 서울 DB 등. 근거: W-053, W-092.
@@ -1232,7 +1060,7 @@
 18. **COST-010 EKS 연장 지원 경고** — 버전이 표준 지원 밖이면 클러스터당 시간당 $0.60. 근거: W-085.
 19. **COST-011 미완료 멀티파트 정리 규칙 부재** — 업로드 신호 + 수명주기 규칙 없음. 근거: W-007.
 20. **COST-012 egress 지배 도메인** — 미디어 신호가 있으면 견적에서 전송 비용을 별도 항목으로 강조, CDN·무료 egress 스토리지 비교. 근거: W-009.
-21. **COST-013 과잉 검색·벡터 인프라** — 소규모 데이터에 전용 검색 클러스터·벡터 DB가 있으면 Postgres FTS/pgvector로 축소 제안. 근거: W-015, W-025.
+21. **COST-013 과잉 검색·벡터 인프라** — 소규모 데이터에 전용 검색 클러스터·벡터 DB가 있으면 Postgres FTS/pgvector로 축소 제안. 근거: W-015(삭제됨), W-025.
 
 ### E. 새 탐지 사실(fact ID) 후보
 `rt.longpoll_enabled`, `rt.presence_inmem`, `upload.through_app`, `upload.multipart`, `media.transcode_in_request`, `llm.agent_loop`, `llm.no_user_quota`, `bg.fire_and_forget`, `cron.in_process`, `queue.db_no_skip_locked`, `mail.provider`, `push.loop_send`, `sms.unauth_endpoint`, `search.dual_write`, `tenant.rls_not_forced`, `api.public_no_idempotency`, `webhook.outbound_sync`, `counter.single_row_hot`, `booking.no_exclusion`, `next.isr_no_shared_cache`, `next.server_actions_key_unset`, `platform.plan`(대부분 "미확인"), `platform.region`, `db.conn_mode`(direct/session/transaction).

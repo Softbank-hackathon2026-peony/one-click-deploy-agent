@@ -182,23 +182,23 @@
 
 | 파일 | 구성 요소 수 | 비고 |
 |---|---|---|
-| 01-sql-databases.md | 23 | SQLite(기본·WAL), libSQL·Turso, LiteFS, PostgreSQL 13종(자체 운영, RDS 3종, Aurora 2종, Cloud SQL 2종, AlloyDB, Supabase 2종, Neon 2종, PlanetScale Postgres, Prisma Postgres), MySQL 4종. §5에 드라이버·ORM·방언 차이·이전 도구(교체 차이 표 재료) |
-| 02-nosql-baas.md | 16 | Firestore 2종, Realtime Database, Supabase, DynamoDB 2종, Atlas 2종, DocumentDB, Spanner, Bigtable, Appwrite, PocketBase, Convex, pgvector, Pinecone |
-| 03-cache-queue-scheduler-realtime-storage.md | 58 | 교체 전 출발점 4(프로세스 메모리, 앱 안 작업 큐, 로컬 디스크, 앱 안 스케줄러), 캐시 12, 큐 17, 스케줄러 7, 실시간 9, 파일 저장소 9 |
-| 04-compute-tier0.md | 29 | Vercel 4, Netlify 3, Cloudflare 4, Railway 3, Render 2, Fly.io, Firebase 2, Supabase Edge 2, Replit 3, Heroku 2, DigitalOcean, Koyeb 2. 생성 도구(v0, Lovable, Bolt, AI Studio)의 기본 배포 대상 포함 |
+| 01-sql-databases.md | 22 | SQLite(기본·WAL), libSQL·Turso, LiteFS, PostgreSQL 13종(자체 운영, RDS 3종, Aurora 2종, Cloud SQL 2종, AlloyDB, Supabase 2종, Neon 2종, PlanetScale Postgres, Prisma Postgres), MySQL 3종(PlanetScale Vitess 삭제). §5에 드라이버·ORM·방언 차이·이전 도구(교체 차이 표 재료) |
+| 02-nosql-baas.md | 13 | Firestore 2종, Realtime Database, Supabase, DynamoDB 2종, Atlas 2종, DocumentDB, Spanner, Bigtable, PocketBase, pgvector (Appwrite·Convex·Pinecone 삭제) |
+| 03-cache-queue-scheduler-realtime-storage.md | 50 | 교체 전 출발점 3(프로세스 메모리, 앱 안 작업 큐, 로컬 디스크), 캐시 11, 큐 14, 스케줄러 7, 실시간 6, 파일 저장소 9 (앱 안 스케줄러·Upstash Redis·Inngest·Trigger.dev·QStash·Socket.IO Redis 어댑터·Pusher·Ably 삭제) |
+| 04-compute-tier0.md | 21 | Vercel 4, Netlify 3, Cloudflare 4, Railway 3, Firebase 2, Supabase Edge 2, Heroku 2, DigitalOcean (Render 2·Fly.io·Replit 3·Koyeb 2 삭제). 생성 도구(v0, Lovable, Bolt, AI Studio)의 기본 배포 대상 포함 |
 | 05-compute-tier1-2.md | 22 | Cloud Run(과금 모드별), ECS Fargate·Express Mode·Spot, App Runner, Lambda, Cloud Run functions, Azure Container Apps, GKE Autopilot·Standard, EKS(노드 그룹, Karpenter, Auto Mode, Fargate), 경량 k8s, 단일 VM + compose |
-| 09-network-lb-ingress.md | 32 | AWS 9(ALB, NLB, GWLB, API Gateway 3종, Function URL, Express Mode ALB, LB Controller), GCP 9, Azure 1, 쿠버네티스 3, 자체 프록시 4(nginx, Envoy, Caddy, Traefik), 티어 0 엣지 프록시 6. 앱 서버 기본값 14종, 경로 부등식 규칙 R1~R13 |
-| 10-network-edge-egress.md | 46 | CDN 7, DNS 4, WAF·DDoS 7, 인증서 3, 출구 15(플랫폼별 고정 출구 IP 10 포함), 사설 연결 10. 경로 규칙 후보 18 + 계열별 |
+| 09-network-lb-ingress.md | 28 | AWS 9(ALB, NLB, GWLB, API Gateway 3종, Function URL, Express Mode ALB, LB Controller), GCP 9, Azure 1, 쿠버네티스 3, 자체 프록시 2(nginx, Envoy), 티어 0 엣지 프록시 4 (Caddy·Traefik·Render·Fly.io 삭제). 앱 서버 기본값 12종, 경로 부등식 규칙 R1~R13 |
+| 10-network-edge-egress.md | 43 | CDN 6, DNS 4, WAF·DDoS 7, 인증서 3, 출구 13(플랫폼별 고정 출구 IP 8 포함), 사설 연결 10 (Fastly·Render 출구·Fly.io 출구 삭제). 경로 규칙 후보 18 + 계열별 |
 
-- 합계 **226개 구성 요소**(01~05의 148 + 네트워크 78).
+- 합계 **199개 구성 요소**(01~05의 128 + 네트워크 71). 원래 226개였고, 능력 근거가 부적격 출처뿐인 27개를 2026-10-02에 삭제했다([../source-audit.md](../source-audit.md) §11).
 - 값을 확인하지 못한 칸은 `미확인`, 공식 페이지끼리 값이 다르면 `[충돌]`로 표시했다. 규칙으로 옮기기 전에 판정에 쓰이는 미확인·충돌 값부터 다시 확인한다.
 - 일부 가격은 공식 Price List 파일(AWS)이나 공식 가격 페이지 원문(GCP)을 curl로 받아 읽었다. GCP 서울 가격 중 일부는 us-central1 값이며 파일에 표시했다.
 - 생성 산출물(Terraform 리소스, 요구 수준에 따라 바뀌는 핵심 속성, 앱 쪽 계약, 로컬 개발 대응, 검증 명령):
 
 | 파일 | 대상 | 비고 |
 |---|---|---|
-| [06-artifacts-datastores.md](06-artifacts-datastores.md) | 저장소 35개 | 공식 provider 19, 파트너 4, 커뮤니티 8, 없음 4. 15개는 CLI·수동 단계 필요 |
-| [07-artifacts-services.md](07-artifacts-services.md) | 캐시·큐·스케줄러·실시간·파일 저장소 51개 | Terraform 가능 32, 일부 6, 불가 7, 라이브러리 6 |
-| [08-artifacts-compute.md](08-artifacts-compute.md) | 컴퓨트 36개 + 공통(Dockerfile 생성 규칙, 기존 Dockerfile 판정, 앱 계약, CI/CD) | 티어 0 대부분은 정적 토큰만 지원 → 첫 토큰 발급은 사람이 한다 |
+| [06-artifacts-datastores.md](06-artifacts-datastores.md) | 저장소 31개 | 공식 provider 19, 파트너 2, 커뮤니티 7, 없음 3. 11개는 CLI·수동 단계 필요 (Vitess·Appwrite·Convex·Pinecone 삭제) |
+| [07-artifacts-services.md](07-artifacts-services.md) | 캐시·큐·스케줄러·실시간·파일 저장소 44개 | Terraform 가능 29, 일부 6, 불가 4, 라이브러리 5 (Upstash Redis·Inngest·Trigger.dev·QStash·Socket.IO Redis 어댑터·Pusher·Ably 삭제) |
+| [08-artifacts-compute.md](08-artifacts-compute.md) | 컴퓨트 32개(Render·Fly.io·Replit·Koyeb 삭제) + 공통(Dockerfile 생성 규칙, 기존 Dockerfile 판정, 앱 계약, CI/CD) | 티어 0 대부분은 정적 토큰만 지원 → 첫 토큰 발급은 사람이 한다 |
 
 - 생성 원칙(조사에서 나옴): Terraform·플랫폼 기본값은 콘솔보다 위험한 경우가 많으므로 핵심 속성은 항상 명시한다. Checkov가 다루지 않는 리소스는 plan JSON을 직접 검사한다. 자동화할 수 없는 단계는 "사람이 할 단계"로 산출물에 포함하고, 그 수를 후보 순위에 반영한다. ⚠️근거없음
