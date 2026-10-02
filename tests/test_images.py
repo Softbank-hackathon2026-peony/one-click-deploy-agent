@@ -41,7 +41,7 @@ def test_classify_image_names():
         "infra", "ds:gcp/cloudsql-postgres/single", "cloud-sql-proxy")
     assert classify_image("dpage/pgadmin4:8")["role"] == "dev-tool"
     assert classify_image("acme/nginx-app:1") is None
-    assert classify_image("acme/redis-exporter:1") is None
+    assert classify_image("acme/redis-exporter:1")["role"] == "infra"
     assert classify_image("") is None
 
 
@@ -364,3 +364,24 @@ def test_manifests_and_build_dirs_under_test_paths_do_not_create_workloads(tmp_p
     _write(repo, "testing/build.gradle", "plugins { id 'org.springframework.boot' }\n"
                                         "dependencies { implementation 'org.springframework.boot:spring-boot-starter-web' }\n")
     assert [(w.id, w.code_root) for w in _workloads(repo)] == [("w-web", "")]
+
+
+def test_monitoring_images_are_infra():
+    for image, label in (("prom/prometheus:v2", "prom/prometheus"), ("prom/node-exporter", "node-exporter"),
+                         ("grafana/grafana:11", "grafana/grafana"), ("grafana/loki:3", "grafana/loki"),
+                         ("otel/opentelemetry-collector-contrib:0.100", "otel/opentelemetry-collector-contrib"),
+                         ("prometheuscommunity/postgres-exporter", "postgres-exporter"),
+                         ("oliver006/redis_exporter:v1", "redis_exporter"),
+                         ("percona/mongodb_exporter:0.40", "mongodb_exporter")):
+        c = classify_image(image)
+        assert (c["role"], c["component"], c["label"]) == ("infra", None, label), image
+
+
+def test_monitoring_compose_services_are_unmapped_not_workloads(tmp_path):
+    repo = tmp_path / "repo"
+    _write(repo, "docker-compose.yml", "services:\n  api:\n    image: acme/api:1\n"
+                                       "  prom:\n    image: prom/prometheus\n"
+                                       "  pgx:\n    image: prometheuscommunity/postgres-exporter\n")
+    inv = _inventory(tmp_path)
+    assert [w["id"] for w in inv["workloads"]] == ["w-api"]
+    assert [u["label"] for u in inv["unmapped"]] == ["image:postgres-exporter", "image:prom/prometheus"]

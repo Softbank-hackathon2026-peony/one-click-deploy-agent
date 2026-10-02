@@ -496,3 +496,20 @@ def test_subprojects_dependencies_without_child_build_files_still_match_signatur
     assert m.locations["org.postgresql:postgresql"] == [("build.gradle", 7)]
     assert m.deps_by_dir == {}
     assert "SIG-DS-POSTGRES" in {x.signature for x in match_signatures(snap, m, kb.signatures())}
+
+
+def test_kotlin_apply_plugin_and_configure_blocks(tmp_path):
+    _write(tmp_path, "settings.gradle.kts", 'rootProject.name = "shop"\ninclude("api", "core")\n')
+    _write(tmp_path, "build.gradle.kts",
+           'configure(subprojects) {\n    apply(plugin = "org.springframework.boot")\n'
+           '    dependencies {\n        implementation("org.springframework.boot:spring-boot-starter")\n'
+           '        runtimeOnly("org.postgresql:postgresql")\n    }\n}\n')
+    _write(tmp_path, "api/build.gradle.kts",
+           'apply(plugin = "org.springframework.boot")\n'
+           'dependencies { implementation("org.springframework.boot:spring-boot-starter-web") }\n')
+    _write(tmp_path, "core/build.gradle.kts", "dependencies {\n}\n")
+    _, m, workloads, _ = _detect(tmp_path)
+    assert [(w.id, w.kind) for w in workloads] == [("w-api", "web")]
+    assert ("api/build.gradle.kts", 1) in m.locations["org.springframework.boot"]
+    assert "org.postgresql:postgresql" in m.deps_by_dir["core"]
+    assert "org.postgresql:postgresql" not in m.deps_by_dir.get("", set())

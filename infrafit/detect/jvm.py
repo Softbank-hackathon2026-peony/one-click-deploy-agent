@@ -79,10 +79,12 @@ _GRADLE_COORD = re.compile(r"""["']([\w.\-]+):([\w.\-]+)(?::[^"']*)?["']""")
 _GRADLE_MAP = re.compile(r"""\bgroup\s*[:=]\s*["']([\w.\-]+)["']\s*,\s*name\s*[:=]\s*["']([\w.\-]+)["']""")
 _GRADLE_ACCESSOR = re.compile(r"(?<![\w.])libs\.([\w.]+)")
 _GRADLE_BOOT = re.compile(r"""\bid\s*\(?\s*["']org\.springframework\.boot["']"""
-                          r"""|\bapply\s+plugin\s*:\s*["']org\.springframework\.boot["']""")
+                          r"""|\bapply\s+plugin\s*:\s*["']org\.springframework\.boot["']"""
+                          r"""|\bapply\s*\(\s*plugin\s*=\s*["']org\.springframework\.boot["']""")
 _GRADLE_PLUGIN_ALIAS = re.compile(r"\balias\s*\(\s*libs\.plugins\.([\w.]+)\s*\)")
 _GRADLE_APPLY_FALSE = re.compile(r"\bapply\s*\(?\s*false\b")
-_GRADLE_SHARED = re.compile(r"(?<![\w.])(?:subprojects|allprojects)\s*\{")
+_GRADLE_SHARED = re.compile(r"(?<![\w.])(?:subprojects|allprojects"
+                            r"|configure\s*\(\s*(?:subprojects|allprojects)\s*\))\s*\{")
 XML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
 VERSION_CATALOG = "gradle/libs.versions.toml"
 
@@ -141,7 +143,8 @@ def _conf_span(struct: str, end: int) -> tuple[int, int]:
 
 
 def _shared_blocks(struct: str) -> list[tuple[int, int]]:
-    """`subprojects { ... }`·`allprojects { ... }` 블록 범위들(하위 모듈에 적용하는 공통 설정)."""
+    """`subprojects { ... }`·`allprojects { ... }`·`configure(subprojects|allprojects) { ... }` 블록 범위들
+    (하위 모듈에 적용하는 공통 설정)."""
     return [(m.start(), close_bracket(struct, m.end() - 1)) for m in _GRADLE_SHARED.finditer(struct)]
 
 
