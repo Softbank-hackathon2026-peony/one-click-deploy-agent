@@ -27,7 +27,7 @@ def test_ingress_and_app_server_hops(tmp_path):
                         "rules": [{"http": {"paths": [{"backend": {"service": {"name": "api"}}}]}}]}}
     k8s = ParsedArtifact("k8s", "k8s/ingress.yaml", True, objects=[ingress])
     paths = build_paths(snap, [_w("w-api", "uvicorn main:app"), _w("w-worker", kind="worker")], [k8s],
-                        {"w-api": "cp:k8s/deployment/unspecified-cluster"})
+                        {"w-api": "cp:k8s/deployment/unspecified-cluster"}, [])
     assert [p["id"] for p in paths] == ["path-api"]
     hops = paths[0]["hops"]
     assert [(h["order"], h["kind"], h["component"]) for h in hops] == [
@@ -40,7 +40,7 @@ def test_managed_runtime_skips_app_server(tmp_path):
     snap = open_snapshot(str(tmp_path), tmp_path / "_w")
     vercel = ParsedArtifact("platform-config", "vercel.json", True)
     paths = build_paths(snap, [_w("w-web", "next start", source="code")], [vercel],
-                        {"w-web": "cp:vercel/functions/unspecified-plan"})
+                        {"w-web": "cp:vercel/functions/unspecified-plan"}, [])
     assert [(h["kind"], h["component"]) for h in paths[0]["hops"]] == [("edge-proxy", "nw:vercel/edge-proxy/default")]
 
 
@@ -50,7 +50,7 @@ def test_kustomize_build_ingress_evidence_points_to_real_file(tmp_path):
                "spec": {"ingressClassName": "nginx",
                         "defaultBackend": {"service": {"name": "api"}}}}
     built = ParsedArtifact("k8s", "deploy/kustomization.yaml#build", True, objects=[ingress])
-    paths = build_paths(snap, [_w("w-api")], [built], {})
+    paths = build_paths(snap, [_w("w-api")], [built], {}, [])
     hop = paths[0]["hops"][0]
     assert hop["component"] == "nw:k8s/ingress-nginx/default"
     assert hop["evidence"][0]["path"] == "deploy/kustomization.yaml"
@@ -64,6 +64,6 @@ def test_malformed_inputs_do_not_crash(tmp_path):
         {"kind": "Ingress", "metadata": "x", "spec": ["y"]},
         {"kind": "Ingress", "metadata": {"annotations": ["a"]},
          "spec": {"ingressClassName": 5, "rules": "r", "defaultBackend": {"service": "s"}}}])
-    paths = build_paths(snap, [_w("w-api", command=None)], [bad], {})
+    paths = build_paths(snap, [_w("w-api", command=None)], [bad], {}, [])
     assert paths[0]["hops"] == []
     assert app_server(None) is None

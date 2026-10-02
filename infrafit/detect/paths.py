@@ -9,6 +9,7 @@ from infrafit import kb
 from infrafit.detect.artifacts import ParsedArtifact, _d, build_source, ingress_backends
 from infrafit.detect.components import platform_config_for
 from infrafit.detect.defaults import hop_settings
+from infrafit.detect.environments import Environment, env_slug, workload_in
 from infrafit.detect.workloads import WorkloadInfo
 from infrafit.evidence import evidence
 from infrafit.repo import Snapshot
@@ -58,38 +59,58 @@ def _edge(snap: Snapshot, w: WorkloadInfo, artifacts: list[ParsedArtifact]) -> d
     return _hop("edge-proxy", comp, {}, [evidence(snap, config.path)]) if comp else None
 
 
+def _ingress_hop(snap: Snapshot, w: WorkloadInfo, objects: list, source: str) -> dict | None:
+    for doc in objects if isinstance(objects, list) else []:
+        if not isinstance(doc, dict) or doc.get("kind") != "Ingress" or w.name not in ingress_backends(doc):
+            continue
+        annotations = _d(_d(doc.get("metadata")).get("annotations"))
+        cls = _d(doc.get("spec")).get("ingressClassName") or annotations.get("kubernetes.io/ingress.class")
+        comp = LB_BY_CLASS.get(str(cls), "unmapped")
+        explicit = {}
+        m = _ALB_IDLE.search(str(annotations.get("alb.ingress.kubernetes.io/load-balancer-attributes", "")))
+        if comp == "nw:aws/alb/default" and m:
+            explicit["idle_timeout"] = int(m.group(1))
+        # 렌더 결과(#build)는 실제 파일이 아니므로 kustomization.yaml을 근거로 쓴다
+        return _hop("load-balancer", comp, explicit, [evidence(snap, build_source(source))])
+    return None
+
+
 def _load_balancer(snap: Snapshot, w: WorkloadInfo, artifacts: list[ParsedArtifact]) -> dict | None:
     # 경로 순으로 보아 실제 파일이 kustomize 렌더(#build)보다 먼저 나오게 한다.
     for art in sorted(artifacts, key=lambda a: a.path):
         if art.kind != "k8s":
             continue
-        for doc in art.objects if isinstance(art.objects, list) else []:
-            if not isinstance(doc, dict) or doc.get("kind") != "Ingress" or w.name not in ingress_backends(doc):
-                continue
-            annotations = _d(_d(doc.get("metadata")).get("annotations"))
-            cls = _d(doc.get("spec")).get("ingressClassName") or annotations.get("kubernetes.io/ingress.class")
-            comp = LB_BY_CLASS.get(str(cls), "unmapped")
-            explicit = {}
-            m = _ALB_IDLE.search(str(annotations.get("alb.ingress.kubernetes.io/load-balancer-attributes", "")))
-            if comp == "nw:aws/alb/default" and m:
-                explicit["idle_timeout"] = int(m.group(1))
-            # 렌더 결과(#build)는 실제 파일이 아니므로 kustomization.yaml을 근거로 쓴다
-            return _hop("load-balancer", comp, explicit, [evidence(snap, build_source(art.path))])
+        hop = _ingress_hop(snap, w, art.objects, art.path)
+        if hop:
+            return hop
     return None
 
 
 def build_paths(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[ParsedArtifact],
-                compute: dict[str, str]) -> list[dict]:
+                compute: dict[str, str], environments: list[Environment], proxy=None) -> list[dict]:
+    """워크로드마다, 그 워크로드가 있는 렌더된 환경마다 경로 하나. 어느 환경에도 없으면 environment null 경로 하나."""
+    rendered = sorted((e for e in environments if e.rendered), key=lambda e: e.name)
     paths = []
     for w in sorted(workloads, key=lambda w: w.id):
         if w.kind != "web":
             continue
-        hops = [h for h in (_edge(snap, w, artifacts), _load_balancer(snap, w, artifacts)) if h]
+        edge = _edge(snap, w, artifacts)
+        tail = []
         if not str(compute.get(w.id, "")).startswith(MANAGED_RUNTIME_PREFIXES):
             server = app_server(w.command)
             if server:
-                hops.append(_hop("app-server", server[0], server[1], [w.entrypoint]))
-        for i, hop in enumerate(hops):
-            hop["order"] = i
-        paths.append({"id": f"path-{w.id[2:]}", "workload": w.id, "hops": hops})
+                tail.append(_hop("app-server", server[0], server[1], [w.entrypoint]))
+
+        def make(pid: str, env_name: str | None, lb: dict | None) -> dict:
+            hops = [dict(h) for h in (edge, lb, *tail) if h]
+            for i, hop in enumerate(hops):
+                hop["order"] = i
+            return {"id": pid, "workload": w.id, "environment": env_name, "hops": hops}
+
+        present = [e for e in rendered if workload_in(e, w)]
+        if not present:
+            paths.append(make(f"path-{w.id[2:]}", None, _load_balancer(snap, w, artifacts)))
+        for e in present:
+            paths.append(make(f"path-{w.id[2:]}.{env_slug(e.name)}", e.name,
+                              _ingress_hop(snap, w, e.objects, e.source)))
     return paths

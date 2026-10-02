@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 from infrafit import kb
+from infrafit.detect.environments import env_slug
 from infrafit.schema import SchemaError, validate
 
 SPECIAL_COMPONENTS = {"unmapped", "pending"}
@@ -49,11 +50,19 @@ def check_s1(inventory: dict, repo_root: Path | None) -> list[str]:
             issues.append(f"current component: unknown scope {c['scope']}")
         if c["component"] not in SPECIAL_COMPONENTS and c["component"] not in catalog:
             issues.append(f"current component {c['scope']}: not in catalog {c['component']}")
+    env_list = [e["name"] for e in inventory.get("environments", [])]
+    env_names = set(env_list)
+    for dup in sorted({n for n in env_list if env_list.count(n) > 1}):
+        issues.append(f"duplicate environment name: {dup}")
     for p in inventory["request_paths"]:
         if p["workload"] not in workloads:
             issues.append(f"request path {p['id']}: unknown workload {p['workload']}")
-        if p["id"] != "path-" + p["workload"][2:]:
+        env = p.get("environment")
+        expected = "path-" + p["workload"][2:] + (f".{env_slug(env)}" if env is not None else "")
+        if p["id"] != expected:
             issues.append(f"request path id {p['id']} does not match workload {p['workload']}")
+        if env is not None and env not in env_names:
+            issues.append(f"request path {p['id']}: unknown environment {env}")
         if [h["order"] for h in p["hops"]] != list(range(len(p["hops"]))):
             issues.append(f"request path {p['id']}: hop order is not 0..n-1")
         for h in p["hops"]:

@@ -445,6 +445,29 @@
           "items": {
             "$ref": "#/$defs/Endpoint"
           }
+        },
+        "environments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "rendered": {
+                "type": "boolean"
+              },
+              "source": {
+                "$ref": "#/$defs/Evidence"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "rendered",
+              "source"
+            ]
+          }
         }
       },
       "additionalProperties": false,
@@ -456,7 +479,8 @@
         "existing_artifacts",
         "unmapped",
         "request_paths",
-        "endpoints"
+        "endpoints",
+        "environments"
       ]
     },
     "DimensionValue": {
@@ -2181,13 +2205,20 @@
           "items": {
             "$ref": "#/$defs/Hop"
           }
+        },
+        "environment": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "additionalProperties": false,
       "required": [
         "id",
         "workload",
-        "hops"
+        "hops",
+        "environment"
       ]
     },
     "PathCheck": {
