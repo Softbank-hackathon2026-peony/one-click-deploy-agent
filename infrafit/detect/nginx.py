@@ -217,8 +217,9 @@ def _compose_services(artifacts: list[ParsedArtifact]) -> list[tuple[str, str, d
     return out
 
 
-def _compose_mapping(snap: Snapshot, compose_path: str, svc: dict) -> dict[str, str]:
-    out: dict[str, str] = {}
+def _compose_mounts(snap: Snapshot, compose_path: str, svc: dict) -> list[tuple[str, str]]:
+    """저장소 안을 가리키는 바인드 마운트 (저장소 경로, 컨테이너 경로)."""
+    out: list[tuple[str, str]] = []
     volumes = svc.get("volumes")
     for v in volumes if isinstance(volumes, list) else []:
         if isinstance(v, str):
@@ -234,7 +235,26 @@ def _compose_mapping(snap: Snapshot, compose_path: str, svc: dict) -> dict[str, 
             continue
         src = _norm(posixpath.join(parent_dir(compose_path), host))
         if not src.startswith(".."):
-            _map_source(snap, src, target, out, False)
+            out.append((src, target))
+    return out
+
+
+def _compose_mapping(snap: Snapshot, compose_path: str, svc: dict) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for src, target in _compose_mounts(snap, compose_path, svc):
+        _map_source(snap, src, target, out, False)
+    return out
+
+
+def _mount_over(snap: Snapshot, image: dict[str, str], compose_path: str, svc: dict) -> dict[str, str]:
+    """이미지 매핑 위에 바인드 마운트(docker 동작): 디렉터리 마운트는 그 컨테이너 디렉터리 아래의
+    이미지 파일을 모두 가리고, 같은 컨테이너 경로면 마운트가 이긴다."""
+    out = dict(image)
+    for src, target in _compose_mounts(snap, compose_path, svc):
+        if src == "" or not snap.exists(src):  # 디렉터리 마운트
+            prefix = posixpath.normpath(target).rstrip("/") + "/"
+            out = {c: r for c, r in out.items() if not c.startswith(prefix)}
+        _map_source(snap, src, target, out, False)
     return out
 
 
@@ -526,7 +546,7 @@ def _is_confd_entry(cpath: str | None) -> bool:
 def _scope_mapping(snap: Snapshot, w: WorkloadInfo, env: Environment | None, image: dict[str, str],
                    services: list[tuple[str, str, dict]]) -> dict[str, str]:
     """한 범위에서 컨테이너 경로 → 저장소 경로: 이미지(Dockerfile COPY/ADD) 위에 그 범위의 바인드 마운트.
-    같은 컨테이너 경로면 런타임 마운트가 이미지 내용을 덮는다(docker 동작)."""
+    compose 환경에서는 런타임 마운트가 이미지 내용을 덮고 디렉터리 마운트는 그 아래 이미지 파일을 가린다(docker 동작)."""
     mapping = dict(image)
     if env is None:
         if w.source == "compose":
@@ -536,7 +556,7 @@ def _scope_mapping(snap: Snapshot, w: WorkloadInfo, env: Environment | None, ima
     else:
         svc = env_service(env, w)
         if svc is not None:
-            mapping.update(_compose_mapping(snap, env.source, svc))
+            mapping = _mount_over(snap, mapping, env.source, svc)
     return _with_templates(mapping)
 
 

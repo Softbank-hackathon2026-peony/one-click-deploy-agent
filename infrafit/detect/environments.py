@@ -80,8 +80,9 @@ def _variant(rel: str) -> str | None:
 
 
 def _is_override(variant: str | None) -> bool:
-    """`*.override.yml`: 기본 파일 위에 늘 병합하는 파일."""
-    return variant is not None and (variant == OVERRIDE or variant.endswith("." + OVERRIDE))
+    """`docker-compose.override.yml`·`compose.override.yaml` 등: 기본 파일 위에 늘 병합하는 파일(docker 동작).
+    `compose.prod.override.yml` 같은 이름은 변형 파일이다."""
+    return variant == OVERRIDE
 
 
 def _env_vars(value) -> dict | None:
@@ -182,10 +183,14 @@ def _match_services(env: Environment, workloads: list[WorkloadInfo], artifacts: 
 
 
 def detect_environments(artifacts: list[ParsedArtifact], workloads: list[WorkloadInfo]) -> list[Environment]:
+    kustomize = _kustomize_environments(artifacts)
+    taken = {e.name for e in kustomize}
     compose = _compose_environments(artifacts)
     for env in compose:
+        if env.name in taken:  # kustomize 환경과 이름이 겹치면 compose 쪽에 원본 디렉터리를 붙인다
+            env.name = f"{env.name}@{parent_dir(env.source) or 'root'}"
         _match_services(env, workloads, artifacts)
-    return sorted(_kustomize_environments(artifacts) + compose, key=lambda e: e.name)
+    return sorted(kustomize + compose, key=lambda e: e.name)
 
 
 def env_slug(name: str) -> str:

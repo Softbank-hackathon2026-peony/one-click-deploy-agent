@@ -1,4 +1,4 @@
-from infrafit.detect.artifacts import parse_artifacts
+from infrafit.detect.artifacts import ParsedArtifact, parse_artifacts
 from infrafit.detect.environments import detect_environments, env_command, workload_in
 from infrafit.detect.manifests import parse_manifests
 from infrafit.detect.nginx import find_proxies
@@ -213,3 +213,39 @@ def test_plain_k8s_workload_keeps_null_path_beside_compose(tmp_path):
     _, _, _, _, _, paths = _analyze(tmp_path)
     kinds = {p["id"]: [h["kind"] for h in p["hops"]] for p in paths}
     assert kinds == {"path-api": ["load-balancer", "app-server"], "path-api.compose": ["app-server"]}
+
+
+def test_only_plain_override_merges_into_base(tmp_path):
+    _write(tmp_path, "compose.yaml", "services:\n  api:\n    image: acme/api:1\n")
+    _write(tmp_path, "compose.override.yaml", "services:\n  api:\n    command: a\n")
+    _write(tmp_path, "compose.prod.override.yml", "services:\n  api:\n    command: b\n")
+    _, _, _, envs, _, _ = _analyze(tmp_path)
+    assert [(e.name, e.source, e.services["api"].get("command")) for e in envs] == [
+        ("compose", "compose.yaml", "a"), ("compose.prod.override", "compose.prod.override.yml", "b")]
+
+
+def test_compose_name_colliding_with_kustomize_gets_source_dir():
+    arts = [ParsedArtifact("k8s", "k8s/overlays/compose/kustomization.yaml#build", True, objects=[]),
+            ParsedArtifact("compose", "docker-compose.yml", True, objects=[("api", {})])]
+    envs = detect_environments(arts, [])
+    assert [(e.name, e.kind) for e in envs] == [("compose", "kustomize"), ("compose@root", "compose")]
+
+
+def test_directory_mount_hides_image_files_under_it(tmp_path):
+    _write(tmp_path, "proxy/Dockerfile", "FROM nginx:1.27\nCOPY templates/ /etc/nginx/templates/\n")
+    _write(tmp_path, "proxy/templates/default.conf.template",
+           "server {\n  location / { proxy_pass http://api:8000; }\n}\n")
+    _write(tmp_path, "proxy/templates/extra.conf.template",
+           "server {\n  listen 81;\n  location / { proxy_pass http://api:8000; }\n}\n")
+    _write(tmp_path, "nginx-dev/default.conf.template",
+           "server {\n  proxy_read_timeout 7s;\n  location / { proxy_pass http://api:8000; }\n}\n")
+    _write(tmp_path, "k8s/proxy.yaml", _deploy("proxy", "acme/proxy:1"))
+    _write(tmp_path, "k8s/api.yaml", _deploy("api", "acme/api:1"))
+    _write(tmp_path, "docker-compose.yml", "services:\n  proxy:\n    image: acme/proxy:1\n"
+           "    volumes:\n      - ./nginx-dev:/etc/nginx/templates\n  api:\n    image: acme/api:1\n")
+    _, _, _, _, (servers, _), _ = _analyze(tmp_path)
+    by_env = {}
+    for s in servers:
+        by_env.setdefault(s.environment, []).append(s.evidence["path"])
+    assert by_env == {None: ["proxy/templates/default.conf.template", "proxy/templates/extra.conf.template"],
+                      "compose": ["nginx-dev/default.conf.template"]}

@@ -158,7 +158,7 @@ def test_exposure_with_uri_rewrite(tmp_path):
     assert _exposure(eps) == {("w-a", "/v1/items/{i}"): "routed", ("w-a", "/api/items/{i}"): "not-routed"}
 
 
-def test_no_proxy_keeps_plan1_output(tmp_path):
+def test_without_proxy_paths_equal_paths_without_proxy_input(tmp_path):
     _write(tmp_path, "docker-compose.yml", "services:\n  a:\n    build: ./a\n")
     _write(tmp_path, "a/Dockerfile", "FROM python:3.12\nCMD uvicorn main:app\n")
     _write(tmp_path, "a/main.py", '@app.get("/x")\ndef x(): ...\n')
