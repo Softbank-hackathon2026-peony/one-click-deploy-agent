@@ -3,7 +3,8 @@
 조합 = 컴퓨트 1 × 데이터 범위마다 같은 클라우드의 관리형 대응.
 SQLite는 영속 로컬 디스크가 있는 컴퓨트에서만 그대로 두고, 아니면 변형 "SQLite→관리형 Postgres"를 적용한다.
 BaaS 저장소(Supabase·Firestore 등)는 바꾸지 않고 현재 구성 요소를 그대로 배정한다(external_scopes).
-순위: 실현 불가 제외 → 합을 아는 후보가 먼저 → 월 비용 합 → 모르는 판정 셀 수 → 운영 부담 → 설정 요구 수
+순위: 실현 불가 제외 → 합을 아는 후보가 먼저 → 월 비용 합(합이 null인 후보끼리는 모르는 비용 구성 요소 수, 그다음
+아는 부분의 합; 부분합은 순위에만 쓰고 출력하지 않는다) → 모르는 판정 셀 수 → 운영 부담 → 설정 요구 수
 → 과금 방식(응답 밖 CPU가 필요 없으면 요청 기반이 먼저, A4·B3·워커가 있으면 응답 밖 CPU가 있는 쪽이 먼저) → ID.
 비용을 모르는 구성 요소가 하나라도 있으면 합(monthly_baseline_usd)은 null이다. 0이나 부분합은 "무료"·"싸다"로
 읽히므로 쓰지 않는다. 모르는 구성 요소는 cost.unknown_cost_components 에 적고 unknown_count 로도 센다.
@@ -251,8 +252,9 @@ class Recommender:
             "paths": [], "cross_scope_violations": [], "sizing": [],
             "transforms": list(combo.transforms),
             "external_scopes": sorted(combo.external),
+            # 합이 null인 후보끼리는 모르는 구성 요소 수 → 아는 부분의 합으로 가른다(출력에는 쓰지 않는다)
             "_sort": (unknown_cells, sum(len(c["requires_config"]) for c in combo.cells),
-                      self._mode_key(combo.compute)),
+                      self._mode_key(combo.compute), len(unknown_cost), round(total, 4)),
         }
 
     def run(self) -> dict:
@@ -268,8 +270,8 @@ class Recommender:
                 rejected.append({"id": combo.compute, "reasons": reasons})
             else:
                 feasible.append(self._candidate(combo))
-        feasible.sort(key=lambda c: (c["cost"]["monthly_baseline_usd"] is None,
-                                     _cost_key(c["cost"]["monthly_baseline_usd"]), c["_sort"][0],
+        feasible.sort(key=lambda c: (c["cost"]["monthly_baseline_usd"] is None, c["_sort"][3],
+                                     _cost_key(c["cost"]["monthly_baseline_usd"]), c["_sort"][4], c["_sort"][0],
                                      OPS_ORDER[c["ops_burden"]], c["_sort"][1], c["_sort"][2],
                                      sorted(c["assignment"].items())))
         for i, cand in enumerate(feasible, start=1):

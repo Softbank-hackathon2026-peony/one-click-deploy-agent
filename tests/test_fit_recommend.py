@@ -444,3 +444,17 @@ def test_outcome_static_only_and_not_deployable(tmp_path):
     ctx = RunContext.create(tmp_path / "r", run_id="r")
     fit = run_s3(ctx, _static_inv(), profile(), capabilities(), RULES)
     validate("Recommendation", run_s4(ctx, _static_inv(), profile(), fit, capabilities(), RULES))
+
+
+def test_null_totals_compare_known_part_when_unknown_parts_match():
+    """BaaS처럼 모든 후보에 같은 모르는 비용이 있으면 아는 부분(컴퓨트)으로 가른다. 합은 여전히 null."""
+    inv = inventory(sqlite=False)
+    inv["datastores"].append({"id": "ds-supabase", "role": "primary-db", "used_by": ["w-web"],
+                              "evidence": [DS_EV], "status": "confirmed"})
+    inv["current_components"].append({"scope": "ds-supabase", "component": SUPA, "evidence": [DS_EV],
+                                      "status": "confirmed"})
+    caps = [comp(EC2, "aws", cost=20), comp(RUN, "gcp", cost=0), comp(ECS, "aws")]
+    fit = build_fit(inv, profile(), caps, RULES)
+    rec = build_recommendation(inv, profile(), fit, caps, RULES)
+    assert [c["assignment"]["w-web"] for c in rec["candidates"]] == [RUN, EC2, ECS]
+    assert all(c["cost"]["monthly_baseline_usd"] is None for c in rec["candidates"])
