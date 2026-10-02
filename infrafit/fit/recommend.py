@@ -75,6 +75,14 @@ def _strip_sqlite_b2(dims: list[dict], sqlite_scopes: list[Scope], inventory: di
             out.append(d)
             continue
         value = d.get("value")
+        if isinstance(value, dict):  # S2 형식 {value: 있음|없음, kinds: [...]}: SQLite 종류만 뺀다
+            kinds = list(value.get("kinds") or [])
+            rest = [k for k in kinds if not any(_mentions(k, s) for s in sqlite_scopes)]
+            if len(rest) == len(kinds):
+                out.append(d)
+            elif rest:
+                out.append({**d, "value": {**value, "kinds": rest}})
+            continue
         if isinstance(value, list):
             rest = [v for v in value if not any(_mentions(v, s) for s in sqlite_scopes)]
             if rest and len(rest) != len(value):

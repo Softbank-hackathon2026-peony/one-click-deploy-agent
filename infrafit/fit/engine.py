@@ -122,7 +122,14 @@ def match_when(when: dict, dims: list[dict]) -> list[dict]:
                 return []
             out += hit
         return out
-    return [d for d in dims if d["dimension"] == when.get("dimension") and _cmp(d.get("value"), when)]
+    return [d for d in dims if d["dimension"] == when.get("dimension") and _cmp(dim_value(d.get("value")), when)]
+
+
+def dim_value(value):
+    """S2 차원 값을 비교할 값으로: {value, kinds} 객체(B1·B2·E2)는 value, 목록(A1)·문자열은 그대로."""
+    if isinstance(value, dict):
+        return value.get("value")
+    return value
 
 
 def check_require(require: dict | None, component: dict | None):

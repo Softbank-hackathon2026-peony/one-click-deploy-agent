@@ -348,7 +348,7 @@ PRICE_LIST_PREFIX = "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/"
 DIMENSION_ROW = re.compile(r"^\|\s*([A-G][0-9]+)\s*\|", re.M)
 # schemas/infrafit.schema.json $defs.RuleId
 RULE_ID = re.compile(r"^(CMP|CAP|TIM|CMB|OVR|HYG|COST)-[A-Z]+-[0-9]{3}$")
-WHEN_OPS = {"equals", "in", "exists"}
+WHEN_OPS = {"equals", "in"}
 REQUIRE_OPS = {"equals", "gte", "exists"}
 
 
@@ -511,6 +511,28 @@ def _lint_rules(entries: list[dict] | None = None, research_dir=None) -> list[st
     return issues
 
 
+
+def _lint_rule_vocabulary(entries: list[dict] | None = None, detectors: dict | None = None) -> list[str]:
+    """규칙 when의 차원은 S2가 내는 차원이고, 비교 값은 그 차원의 어휘(profile_detectors.yaml values)에 있다."""
+    issues: list[str] = []
+    dims = (kb.profile_detectors() if detectors is None else detectors).get("dimensions") or {}
+    for i, r in enumerate(kb.rules() if entries is None else entries):
+        when = r.get("when") if isinstance(r, dict) else None
+        if not isinstance(when, dict):
+            continue
+        rid = str(r.get("id", f"rule {i}"))
+        dim = when.get("dimension")
+        spec = dims.get(dim)
+        if not isinstance(spec, dict):
+            issues.append(f"{rid}: when.dimension {dim}은 profile_detectors.yaml에 정의되지 않은 차원(S2가 내지 않음)")
+            continue
+        vocab = spec.get("values") or []
+        values = [when["equals"]] if "equals" in when else list(when.get("in") or [])
+        for v in values:
+            if v not in vocab:
+                issues.append(f"{rid}: when 값 {v!r}이 {dim} 어휘 {vocab}에 없음")
+    return issues
+
 WORKLOAD_KINDS = {"web", "worker", "scheduled", "realtime", "static-frontend", "migration-job", "reverse-proxy"}
 DIM_SHAPES = {"set", "ordered", "flag", "kinds"}
 DIM_ID = re.compile(r"^[A-G][0-9]+$")
@@ -645,4 +667,4 @@ def _lint_profile_detectors(cfg: dict | None = None) -> list[str]:
 def lint() -> list[str]:
     return (_lint_catalog() + _lint_signatures() + _lint_unmapped_signatures() + _lint_defaults() + _lint_images()
             + _lint_implicit_routes() + _lint_external() + _lint_deploy() + _lint_capabilities() + _lint_rules()
-            + _lint_profile_detectors())
+            + _lint_rule_vocabulary() + _lint_profile_detectors())

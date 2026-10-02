@@ -111,7 +111,7 @@ def test_ops_burden_needs_reason_and_source(research):
     assert _lint(research, entry) == []
 
 
-RULE = {"id": "CAP-WEBSOCKET-001", "when": {"dimension": "A3", "equals": "websocket"},
+RULE = {"id": "CAP-WEBSOCKET-001", "when": {"dimension": "A3", "equals": "장시간 양방향(웹소켓)"},
         "require": {"capability": "CP.websocket", "equals": True}, "otherwise": "infeasible",
         "config_from": None, "message": "m"}
 
@@ -123,10 +123,10 @@ def _rule(**changes):
 
 
 def test_valid_rules_pass(research):
-    config_rule = _rule(id="CAP-MEMSTATE-002", when={"dimension": "B1", "exists": True},
+    config_rule = _rule(id="CAP-MEMSTATE-002", when={"dimension": "B1", "equals": "있음"},
                         require={"capability": "CP.single_instance_config", "exists": False},
                         otherwise="config", config_from="CP.single_instance_config")
-    any_rule = _rule(id="CAP-ALWAYSON-002", when={"dimension": "A1", "in": ["worker"]},
+    any_rule = _rule(id="CAP-ALWAYSON-002", when={"dimension": "A1", "in": ["워커"]},
                      require={"any": [{"capability": "CP.always_on", "equals": True},
                                       {"capability": "CP.cpu_after_response", "equals": True}]})
     assert _lint_rules([RULE, config_rule, any_rule], research_dir=research) == []
@@ -186,3 +186,20 @@ def test_loaders_return_knowledge():
     assert {r["id"] for r in kb.rules()} >= {"CAP-TIMEOUT-001", "CAP-WEBSOCKET-001", "CAP-BGWORK-001",
                                              "CAP-MEMSTATE-001", "CAP-LOCALDISK-001", "CAP-SINGLERUN-001",
                                              "CAP-ALWAYSON-001"}
+
+
+def test_rule_when_values_follow_s2_vocabulary():
+    from infrafit.kb_lint import _lint_rule_vocabulary
+    assert _lint_rule_vocabulary() == []
+    assert _lint_rule_vocabulary([RULE]) == []
+    english = _rule(when={"dimension": "A1", "in": ["워커", "worker"]})
+    assert _lint_rule_vocabulary([english]) == [
+        "CAP-WEBSOCKET-001: when 값 'worker'이 A1 어휘 ['웹', '워커', '정기 작업', '실시간 연결']에 없음"]
+    unknown_dim = _rule(when={"dimension": "D2", "equals": "낮음"})
+    assert _lint_rule_vocabulary([unknown_dim]) == [
+        "CAP-WEBSOCKET-001: when.dimension D2은 profile_detectors.yaml에 정의되지 않은 차원(S2가 내지 않음)"]
+
+
+def test_when_exists_operator_is_rejected(research):
+    issues = _lint_rules([_rule(when={"dimension": "B1", "exists": True})], research_dir=research)
+    assert issues == ["CAP-WEBSOCKET-001: when 연산자는 ['equals', 'in'] 중 하나"]

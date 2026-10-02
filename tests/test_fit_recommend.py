@@ -50,13 +50,13 @@ def capabilities():
 
 
 RULES = [
-    {"id": "CAP-WEBSOCKET-001", "when": {"dimension": "A3", "equals": "websocket"},
+    {"id": "CAP-WEBSOCKET-001", "when": {"dimension": "A3", "equals": "장시간 양방향(웹소켓)"},
      "require": {"capability": "CP.websocket", "equals": True}, "otherwise": "infeasible",
      "config_from": None, "message": "websocket needed"},
-    {"id": "CAP-AFTERRESP-001", "when": {"dimension": "A4", "equals": True},
+    {"id": "CAP-AFTERRESP-001", "when": {"dimension": "A4", "equals": "있음"},
      "require": {"capability": "CP.cpu_after_response", "equals": True}, "otherwise": "config",
      "config_from": "CP.cpu_after_response_config", "message": "work after response"},
-    {"id": "CAP-LOCALDISK-001", "when": {"dimension": "B2", "exists": True},
+    {"id": "CAP-LOCALDISK-001", "when": {"dimension": "B2", "equals": "있음"},
      "require": {"capability": "CP.persistent_local_disk", "equals": True}, "otherwise": "infeasible",
      "config_from": None, "message": "local disk state"},
 ]
@@ -92,7 +92,7 @@ def cell(fit, scope, cand):
 
 
 def test_websocket_rejects_candidate_without_websocket():
-    prof = profile(dim("A3", "websocket"))
+    prof = profile(dim("A3", "장시간 양방향(웹소켓)"))
     fit = build_fit(inventory(sqlite=False), prof, capabilities(), RULES)
     eks = cell(fit, "w-web", EKS)
     assert eks["result"] == "infeasible"
@@ -109,7 +109,7 @@ def test_websocket_rejects_candidate_without_websocket():
 
 
 def test_after_response_work_needs_config_and_missing_key_is_unknown():
-    fit = build_fit(inventory(sqlite=False), profile(dim("A4", True)), capabilities(), RULES)
+    fit = build_fit(inventory(sqlite=False), profile(dim("A4", "있음")), capabilities(), RULES)
     run = cell(fit, "w-web", RUN)
     assert run["result"] == "feasible_with_config"
     assert run["requires_config"][0]["setting"] == "instance-based billing"
@@ -123,13 +123,13 @@ def test_after_response_work_needs_config_and_missing_key_is_unknown():
 def test_config_rule_without_setting_is_violation():
     caps = capabilities()
     del caps[0]["capabilities"]["CP.cpu_after_response_config"]
-    fit = build_fit(inventory(sqlite=False), profile(dim("A4", True)), caps, RULES)
+    fit = build_fit(inventory(sqlite=False), profile(dim("A4", "있음")), caps, RULES)
     assert cell(fit, "w-web", RUN)["result"] == "infeasible"
 
 
 def test_sqlite_kept_on_disk_compute_else_transformed():
     inv = inventory()
-    prof = profile(dim("B2", ["ds-sqlite"], ev=[DS_EV]))
+    prof = profile(dim("B2", {"value": "있음", "kinds": ["sqlite"]}, ev=[DS_EV]))
     fit = build_fit(inv, prof, capabilities(), RULES)
     assert cell(fit, "w-web", RUN)["result"] == "infeasible"   # 변형 전에는 B2 위반
     rec = build_recommendation(inv, prof, fit, capabilities(), RULES)
@@ -148,7 +148,7 @@ def test_sqlite_kept_on_disk_compute_else_transformed():
 
 def test_ranking_feasible_then_unknown_then_cost():
     inv = inventory(sqlite=False)
-    prof = profile(dim("A3", "websocket"))
+    prof = profile(dim("A3", "장시간 양방향(웹소켓)"))
     caps = capabilities()
     fit = build_fit(inv, prof, caps, RULES)
     rec = build_recommendation(inv, prof, fit, caps, RULES)
@@ -168,7 +168,7 @@ def test_ranking_feasible_then_unknown_then_cost():
 def test_no_feasible_candidate():
     caps = [c for c in capabilities() if c["id"] == EKS]
     inv = inventory(sqlite=False)
-    prof = profile(dim("A3", "websocket"))
+    prof = profile(dim("A3", "장시간 양방향(웹소켓)"))
     fit = build_fit(inv, prof, caps, RULES)
     rec = build_recommendation(inv, prof, fit, caps, RULES)
     assert rec["recommended"] is None and rec["candidates"] == []
@@ -177,7 +177,7 @@ def test_no_feasible_candidate():
 
 def test_stages_write_valid_deterministic_output(tmp_path):
     inv = inventory()
-    prof = profile(dim("A3", "websocket"), dim("A4", True), dim("B2", ["ds-sqlite"], ev=[DS_EV]))
+    prof = profile(dim("A3", "장시간 양방향(웹소켓)"), dim("A4", "있음"), dim("B2", {"value": "있음", "kinds": ["sqlite"]}, ev=[DS_EV]))
     caps = capabilities()
     outputs = []
     for run_id in ("r1", "r2"):
@@ -199,7 +199,7 @@ def test_stages_write_valid_deterministic_output(tmp_path):
 
 def test_check_s4_flags_bad_references():
     inv = inventory(sqlite=False)
-    prof = profile(dim("A3", "websocket"))
+    prof = profile(dim("A3", "장시간 양방향(웹소켓)"))
     fit = build_fit(inv, prof, capabilities(), RULES)
     rec = build_recommendation(inv, prof, fit, capabilities(), RULES)
     rec["candidates"][0]["assignment"]["w-web"] = EKS
@@ -207,3 +207,40 @@ def test_check_s4_flags_bad_references():
     issues = check_s4(rec, fit, inv, prof)
     assert any("infeasible assignment" in i for i in issues)
     assert any("C9" in i for i in issues)
+
+
+def test_when_reads_list_membership_and_object_value():
+    from infrafit.fit.engine import match_when
+    a1 = dim("A1", ["웹", "워커"])
+    assert match_when({"dimension": "A1", "in": ["워커", "정기 작업"]}, [a1]) == [a1]
+    assert match_when({"dimension": "A1", "in": ["정기 작업"]}, [a1]) == []
+    b1_on = dim("B1", {"value": "있음", "kinds": ["in-memory-session"]})
+    b1_off = dim("B1", {"value": "없음", "kinds": []})
+    assert match_when({"dimension": "B1", "equals": "있음"}, [b1_on]) == [b1_on]
+    assert match_when({"dimension": "B1", "equals": "있음"}, [b1_off]) == []
+
+
+def test_kb_timeout_rules_by_a2_value():
+    from infrafit import kb
+    rules = [r for r in kb.rules() if r["id"].startswith("CAP-TIMEOUT-")]
+    caps = [comp(RUN, "gcp", CP__max_request_seconds=3600), comp(ECS, "aws", CP__max_request_seconds=300),
+            comp(EKS, "aws")]
+    results = {}
+    for value in ("1초 미만", "수십 초", "수 분", "그 이상"):
+        fit = build_fit(inventory(sqlite=False), profile(dim("A2", value)), caps, rules)
+        results[value] = (cell(fit, "w-web", RUN)["result"], cell(fit, "w-web", ECS)["result"],
+                          cell(fit, "w-web", EKS)["result"])
+    assert results == {"1초 미만": ("feasible", "feasible", "feasible"),
+                       "수십 초": ("feasible", "feasible", "unknown"),
+                       "수 분": ("feasible", "infeasible", "unknown"),
+                       "그 이상": ("infeasible", "infeasible", "unknown")}
+
+
+def test_sqlite_kind_stripped_from_b2_object_keeps_other_kinds():
+    from infrafit.fit.recommend import _strip_sqlite_b2
+    from infrafit.fit.scopes import Scope
+    sq = Scope(id="ds-sqlite", kind="data", dims=[], members=["ds-sqlite"], engine="sqlite")
+    both = dim("B2", {"value": "있음", "kinds": ["local-files", "sqlite"]})
+    only = dim("B2", {"value": "있음", "kinds": ["sqlite"]})
+    assert _strip_sqlite_b2([both], [sq], inventory())[0]["value"]["kinds"] == ["local-files"]
+    assert _strip_sqlite_b2([only], [sq], inventory()) == []
