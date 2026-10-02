@@ -304,6 +304,23 @@ def test_variant_environment_does_not_include_override(tmp_path):
     assert (prod.get("command"), prod["environment"]) == (None, {"A": "1", "C": "3"})
 
 
+def test_args_only_overlay_keeps_image_entrypoint(tmp_path):
+    # F5: command 없이 args만 바꾼 overlay는 이미지 ENTRYPOINT 뒤에 args
+    _write(tmp_path, "api/Dockerfile", 'FROM python:3.12\nENTRYPOINT ["uvicorn"]\nCMD ["main:app"]\n')
+    _write(tmp_path, "k8s/base/api.yaml", _deploy("api", "acme/api:1"))
+    _write(tmp_path, "k8s/base/kustomization.yaml", "resources: [api.yaml]\n")
+    _write(tmp_path, "k8s/overlays/dev/kustomization.yaml",
+           "resources: [../../base]\npatches:\n- target: {kind: Deployment, name: api}\n  patch: |-\n"
+           "    - op: add\n      path: /spec/template/spec/containers/0/args\n"
+           '      value: ["main:app", "--timeout-keep-alive", "45"]\n')
+    _, arts, ws, envs, _, paths = _analyze(tmp_path)
+    api = next(w for w in ws if w.id == "w-api")
+    assert env_command(_env(envs, "dev"), api, arts) == "uvicorn main:app --timeout-keep-alive 45"
+    hop = next(h for p in paths if p["id"] == "path-api.dev" for h in p["hops"] if h["kind"] == "app-server")
+    assert hop["component"] == "nw:app/uvicorn/default"
+    assert next(s["value"] for s in hop["settings"] if s["key"] == "timeout_keep_alive") == 45
+
+
 def test_devcontainer_and_infra_only_compose_make_no_environment(tmp_path):
     # F7: .devcontainer compose와 대응한 워크로드가 없는 compose는 환경이 아니다
     _write(tmp_path, "k8s/api.yaml", _deploy("api", "acme/api:1"))

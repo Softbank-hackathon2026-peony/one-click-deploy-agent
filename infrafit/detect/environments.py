@@ -256,13 +256,28 @@ def env_scopes(w: WorkloadInfo, environments: list[Environment]) -> list[Environ
     return inside or [None]
 
 
-def _rendered_command(env: Environment, w: WorkloadInfo) -> str:
-    doc = next((d for d in env.objects if is_workload_doc(d, w)), None)
-    containers = pod_spec(doc).get("containers") if doc is not None else None
+def workload_container(objects: list, w: WorkloadInfo) -> dict | None:
+    """매니페스트 객체들에서 워크로드 w의 컨테이너: 이미지가 w와 같은 것, 없으면 첫 번째. 객체가 없으면 None."""
+    doc = next((d for d in objects if is_workload_doc(d, w)), None)
+    if doc is None:
+        return None
+    containers = pod_spec(doc).get("containers")
     containers = [as_dict(c) for c in containers] if isinstance(containers, list) else []
-    c = next((x for x in containers if w.image and x.get("image") == w.image), containers[0] if containers else {})
-    parts = [v if isinstance(v, list) else [] for v in (c.get("command"), c.get("args"))]
-    return " ".join(str(x) for x in parts[0] + parts[1])
+    return next((c for c in containers if w.image and c.get("image") == w.image), containers[0] if containers else {})
+
+
+def _rendered_command(env: Environment, w: WorkloadInfo, artifacts: list[ParsedArtifact]) -> str:
+    """렌더 객체 컨테이너의 실행 명령(쿠버네티스 규칙): `command`가 있으면 command + args, args만 있으면
+    이미지 최종 단계의 ENTRYPOINT + args, 둘 다 없으면 ""(워크로드 명령, 곧 이미지 CMD를 쓴다)."""
+    c = workload_container(env.objects, w) or {}
+    command, args = ([str(x) for x in v] if isinstance(v, list) else [] for v in (c.get("command"), c.get("args")))
+    if command:
+        return " ".join(command + args)
+    if not args:
+        return ""
+    df = workload_dockerfile(w, artifacts)
+    entry = str(df.get("entrypoint") or "") if df else ""
+    return " ".join(([entry] if entry else []) + args)
 
 
 def env_command(env: Environment | None, w: WorkloadInfo, artifacts: list[ParsedArtifact]) -> str:
@@ -272,7 +287,7 @@ def env_command(env: Environment | None, w: WorkloadInfo, artifacts: list[Parsed
         svc = env_service(env, w)
         cmd = compose_command(env.source, svc, artifacts) if svc is not None else ""
     elif env is not None:
-        cmd = _rendered_command(env, w)
+        cmd = _rendered_command(env, w, artifacts)
     return cmd or w.command
 
 
@@ -311,7 +326,7 @@ def env_command_evidence(snap: Snapshot, env: Environment | None, w: WorkloadInf
         if evs:
             return sorted(evs, key=lambda e: e["line"] or 0)
     elif env is not None:
-        cmd = _rendered_command(env, w)
+        cmd = _rendered_command(env, w, artifacts)
         if cmd and cmd != w.command:
             return [evidence(snap, env.source)]
     return [w.entrypoint]
