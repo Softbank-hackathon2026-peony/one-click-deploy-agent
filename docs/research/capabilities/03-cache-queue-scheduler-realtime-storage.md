@@ -1435,3 +1435,17 @@ Cloud Run·GKE에 NFS 볼륨으로 마운트(Cloud Run 볼륨 마운트 상세 �
 6. **엔진 하나로 최소비가 15배 차이 난다.** 서울 ElastiCache Serverless의 최소비는 Valkey가 약 $7.4/월이고 Redis OSS가 약 $110/월이다. 최소 과금 저장량이 Valkey는 100MB, Redis OSS는 1GB이기 때문이다. 공유 상태 저장소(B1)를 가장 싸게 충족하는 관리형 후보는 Valkey 서버리스다. 다만 퇴출 정책이 `volatile-lru`로 고정이어서 세션 키에는 TTL이 있어야 한다.
 7. **S3 객체 최대 크기는 이제 약 50 TB다(48.8 TiB).** 예전의 "5 TB"를 전제로 한 규칙은 고쳐야 한다. 단일 PUT 한도는 여전히 5 GB다.
 8. **블록 볼륨으로는 수평 확장을 할 수 없다.** RWO 볼륨, 그리고 EBS·PD의 기본 연결은 노드 하나에만 붙는다. 그래서 B2 처방은 객체 저장소다. 공유 POSIX가 꼭 필요하면 EFS나 Filestore(RWX)를 쓴다. 다만 EFS 저장 단가는 S3의 13배이고, Filestore는 최소 1 TiB부터라 비싸다.
+
+
+---
+
+## 추가 조사 (2026-10-03) — VM 안 Redis(docker compose, `ca:vm/compose-redis/default`)
+
+compute VM(05 §7.1 EC2, §7.2 Compute Engine) 안에서 공식 `redis` 이미지를 compose 서비스로 돌리는 구성. 별도 과금 자원이 없어 추가 비용은 0이다(VM·디스크 비용은 compute 바닥 비용에 이미 들어 있음). 위 절의 줄 번호가 바뀌지 않도록 이 절에만 덧붙인다.
+
+| 대상 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 원문 인용 · 날짜) |
+|---|---|---|---|---|
+| redis 공식 이미지 | DS.engine · COST.monthly_floor_usd | 엔진 redis. 공식 이미지를 같은 호스트의 컨테이너로 실행한다 → 별도 요금 없음, 추가 월 비용 **$0**(VM 비용에 포함) | 같은 VM | https://hub.docker.com/_/redis · "$ docker run --name some-redis -d redis" · 2026-10-03 |
+| redis 공식 이미지 | DS.durability | 영속은 설정해야 켜진다(예: `--save 60 1` 스냅샷). 켜면 데이터는 `/data` 볼륨에 저장된다 | `--save` 등 영속 설정 | https://hub.docker.com/_/redis · "If persistence is enabled, data is stored in the `VOLUME /data`" · 2026-10-03 |
+| Docker 볼륨 | DS.colocated_vm · DS.durability | 볼륨은 Docker 호스트(= compute VM)의 디렉터리에 저장되고, 컨테이너를 지워도 남는다. 따라서 데이터 영속성은 그 VM 디스크의 영속성을 따른다: EC2는 EBS(05 §7.1 CP.local_disk, "EBS volumes persist independently from the running life of an EC2 instance."), Compute Engine은 PD(05 §7.2) | 이름 있는 볼륨 | https://docs.docker.com/engine/storage/volumes/ · "When you create a volume, it's stored within a directory on the Docker host." / "Using a volume ensures that the data is persisted even if the container using it is removed." · 2026-10-03 |
+| Docker 볼륨 | DS.backup_config | 백업은 자동이 아니고 사용자가 실행한다: 볼륨을 tar로 떠서 백업하고 복원하는 명령을 문서가 안내한다(또는 VM 디스크 스냅샷) | 사용자 설정 | https://docs.docker.com/engine/storage/volumes/ · "Volumes are useful for backups, restores, and migrations." · 2026-10-03 |

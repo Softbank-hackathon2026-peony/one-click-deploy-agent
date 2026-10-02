@@ -341,7 +341,7 @@ def _lint_deploy(entries: list[dict] | None = None) -> list[str]:
 
 RESEARCH_DIR = kb.KB_DIR.parent / "docs" / "research"
 CLOUDS = {"aws", "gcp", "azure", "local"}
-TARGETS = {"aws_lambda", "gcp_cloud_run", "aws_ecs_fargate", "aws_ec2", "gcp_compute_engine"}
+TARGETS = {"aws_lambda", "gcp_cloud_run", "aws_ecs_fargate", "aws_ec2", "gcp_compute_engine", "gcp_gke", "aws_eks"}
 OPS_BURDEN = {"low", "medium", "high"}
 DS_ENGINES = {"postgres", "redis", "sqlite"}
 # 능력 키(계획 2 MVP 고정 형식) → 값 검사
@@ -355,16 +355,28 @@ CAPABILITY_KEYS = {
     "CP.single_instance_config": lambda v: isinstance(v, str) and bool(v),
     "CP.always_on": lambda v: isinstance(v, bool),
     "CP.always_on_config": lambda v: isinstance(v, str) and bool(v),
+    # 인스턴스(레플리카)를 여러 개로 늘릴 수 있는가 / 한 클러스터·환경에 여러 워크로드를 두는가
+    "CP.horizontal_scaling": lambda v: isinstance(v, bool),
+    "CP.multi_workload": lambda v: isinstance(v, bool),
     "DS.engine": lambda v: v in DS_ENGINES,
+    # compute VM 안에서 함께 돈다(VM compute와만 짝지음)
+    "DS.colocated_vm": lambda v: isinstance(v, bool),
+    # 데이터가 어디에 어떻게 남는지(설명 문자열)
+    "DS.durability": lambda v: isinstance(v, str) and bool(v),
+    # 백업을 사용자가 설정해야 할 때 그 설정(requires_config)
+    "DS.backup_config": lambda v: isinstance(v, str) and bool(v),
     "COST.monthly_floor_usd": lambda v: isinstance(v, (int, float)) and not isinstance(v, bool) and v >= 0,
     # 인스턴스를 고정(1개 상시)했을 때 서울 리전 월 비용. scale-to-zero 플랫폼에서 고정 설정이 필요한 후보에 쓴다
     "COST.monthly_pinned_usd": lambda v: isinstance(v, (int, float)) and not isinstance(v, bool) and v >= 0,
+    # 레플리카 1개를 더할 때의 서울 리전 월 비용(바닥 비용에 1개가 들어 있음)
+    "COST.per_replica_usd": lambda v: isinstance(v, (int, float)) and not isinstance(v, bool) and v >= 0,
 }
 # 조사 문서 줄에 붙은 이 표시가 있으면 그 줄은 근거로 쓸 수 없다(README §3)
 BAD_MARKERS = ("⚠️근거없음", "⚠️출처부적격", "⚠️출처확인필요")
 # 적격(A) 발행처 호스트(README §3, source-audit.md §1). 능력 값에 쓰는 것만 둔다.
 ELIGIBLE_HOSTS = ("docs.aws.amazon.com", "aws.amazon.com", "pricing.us-east-1.amazonaws.com",
-                  "cloud.google.com", "docs.cloud.google.com", "www.sqlite.org", "docs.docker.com")
+                  "cloud.google.com", "docs.cloud.google.com", "www.sqlite.org", "docs.docker.com",
+                  "hub.docker.com")
 # [PL] = 문서 머리말에 적은 AWS Price List 오퍼 파일
 PRICE_LIST_PREFIX = "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/"
 DIMENSION_ROW = re.compile(r"^\|\s*([A-G][0-9]+)\s*\|", re.M)

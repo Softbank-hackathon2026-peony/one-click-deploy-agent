@@ -195,11 +195,56 @@ def test_rule_when_values_follow_s2_vocabulary():
     english = _rule(when={"dimension": "A1", "in": ["워커", "worker"]})
     assert _lint_rule_vocabulary([english]) == [
         "CAP-WEBSOCKET-001: when 값 'worker'이 A1 어휘 ['웹', '워커', '정기 작업', '실시간 연결', '일회성 실행']에 없음"]
-    unknown_dim = _rule(when={"dimension": "D2", "equals": "낮음"})
+    unknown_dim = _rule(when={"dimension": "D5", "equals": "한 지역"})
     assert _lint_rule_vocabulary([unknown_dim]) == [
-        "CAP-WEBSOCKET-001: when.dimension D2은 profile_detectors.yaml에 정의되지 않은 차원(S2가 내지 않음)"]
+        "CAP-WEBSOCKET-001: when.dimension D5은 profile_detectors.yaml에 정의되지 않은 차원(S2가 내지 않음)"]
 
 
 def test_when_exists_operator_is_rejected(research):
     issues = _lint_rules([_rule(when={"dimension": "B1", "exists": True})], research_dir=research)
     assert issues == ["CAP-WEBSOCKET-001: when 연산자는 ['equals', 'in'] 중 하나"]
+
+
+def test_topology_keys_and_targets_pass(research):
+    """계획 2b: 쿠버네티스 target, 확장·다중 워크로드·레플리카 비용·VM 안 데이터 저장소 키."""
+    entry = dict(_entry(**{"CP.horizontal_scaling": {"value": True, "source": _src()},
+                           "CP.multi_workload": {"value": False, "source": _src()},
+                           "COST.per_replica_usd": {"value": 12.86, "source": _src()}}), target="gcp_gke")
+    assert _lint(research, entry) == []
+    assert _lint(research, dict(_entry(), target="aws_eks")) == []
+    bad = _lint(research, _entry(**{"CP.horizontal_scaling": {"value": "yes", "source": _src()},
+                                    "COST.per_replica_usd": {"value": -1, "source": _src()}}))
+    assert "cp:aws/lambda/function-url#CP.horizontal_scaling: 잘못된 값 'yes'" in bad
+    assert "cp:aws/lambda/function-url#COST.per_replica_usd: 잘못된 값 -1" in bad
+
+
+def test_vm_datastore_keys_and_docker_hub_host(research):
+    line = "| redis | DS.engine | — | — | https://hub.docker.com/_/redis · \"$ docker run --name some-redis -d redis\" |"
+    (research / DOC).write_text("\n".join(LINES + [line]) + "\n", encoding="utf-8")
+    hub = {"doc": DOC, "line": len(LINES) + 1, "url": "https://hub.docker.com/_/redis",
+           "quote": "$ docker run --name some-redis -d redis"}
+    entry = {"id": "ca:vm/compose-redis/default", "cloud": "local", "family": "ca",
+             "capabilities": {"DS.engine": {"value": "redis", "source": hub},
+                              "DS.colocated_vm": {"value": True, "source": hub},
+                              "DS.durability": {"value": "호스트 VM 디스크", "source": hub},
+                              "DS.backup_config": {"value": "사용자가 스냅샷/덤프 설정", "source": hub},
+                              "COST.monthly_floor_usd": {"value": 0, "source": hub}}}
+    catalog = {"ca:vm/compose-redis/default": {"id": "ca:vm/compose-redis/default", "family": "ca"}}
+    assert _lint_capabilities([entry], catalog=catalog, research_dir=research) == []
+    entry["capabilities"]["DS.durability"]["value"] = ""
+    assert _lint_capabilities([entry], catalog=catalog, research_dir=research) == [
+        "ca:vm/compose-redis/default#DS.durability: 잘못된 값 ''"]
+
+
+def test_topology_components_in_knowledge():
+    caps = kb.capabilities()
+    gke, eks = caps["cp:gcp/gke/autopilot"], caps["cp:aws/eks/managed-node-group"]
+    assert (gke["target"], eks["target"]) == ("gcp_gke", "aws_eks")
+    for c in (gke, eks):
+        assert c["capabilities"]["CP.horizontal_scaling"]["value"] is True
+        assert c["capabilities"]["CP.multi_workload"]["value"] is True
+        assert "COST.monthly_floor_usd" in c["capabilities"]
+    for cid in ("ds:vm/compose-postgres/default", "ca:vm/compose-redis/default"):
+        c = caps[cid]["capabilities"]
+        assert c["DS.colocated_vm"]["value"] is True and c["COST.monthly_floor_usd"]["value"] == 0
+        assert c["DS.backup_config"]["value"]

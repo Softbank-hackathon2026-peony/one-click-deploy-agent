@@ -756,3 +756,17 @@ PostgreSQL의 "트랜잭션 DDL 전반" 원칙을 직접 명시한 문서 문장
 5. **"HA 켬"의 비용 계단이 크다.** 서울 RDS PostgreSQL: Single-AZ 약 $21 → Multi-AZ 인스턴스 약 $42(60~120초) → Multi-AZ DB 클러스터 약 $580(35초 미만, t 계열 불가). Supabase는 관리형 HA를 문서로 확인하지 못했다(Multigres는 오픈소스 알파). F1 "짧아야 함"의 가장 싼 근거 있는 선택은 RDS Multi-AZ 인스턴스 또는 Cloud SQL HA다.
 
 그 밖에 판정에 쓰이는 기본값: RDS API 생성 백업 보존 1일, Cloud Run → Cloud SQL 내장 연결 인스턴스당 100, Aurora Serverless v2의 `max_connections`는 최대 ACU로 정해지고 최소 0·0.5 ACU면 2,000 상한, Aurora Serverless v2 일시정지 재개 15초(하루 넘으면 30초 이상), `npx create-db`로 만든 Prisma Postgres는 24시간 뒤 삭제, node-sqlite3 저장소 보관(유지보수 중단).
+
+
+---
+
+## 7. 추가 조사 (2026-10-03) — VM 안 PostgreSQL(docker compose, `ds:vm/compose-postgres/default`)
+
+compute VM(§05 7.1 EC2, 7.2 Compute Engine) 안에서 공식 `postgres` 이미지를 compose 서비스로 돌리는 구성. 별도 과금 자원이 없어 추가 비용은 0이다(VM·디스크 비용은 compute 바닥 비용에 이미 들어 있음). 위 절의 줄 번호가 바뀌지 않도록 이 절에만 덧붙인다.
+
+| 대상 | 능력 키 | 값 | 조건·한도 | 출처 (URL · 원문 인용 · 날짜) |
+|---|---|---|---|---|
+| postgres 공식 이미지 | DS.engine · COST.monthly_floor_usd | 엔진 postgres. 공식 이미지를 compose 서비스로 같은 호스트에서 실행한다 → 별도 요금 없음, 추가 월 비용 **$0**(VM 비용에 포함) | 같은 VM | https://hub.docker.com/_/postgres · "Example `compose.yaml` for `postgres`:" / "$ docker run --name some-postgres -e POSTGRES_PASSWORD=mysecretpassword -d postgres" · 2026-10-03 |
+| postgres 공식 이미지 | (데이터 경로) | 데이터 볼륨은 PostgreSQL 18 이상 `/var/lib/postgresql`, 17 이하 `/var/lib/postgresql/data`에 마운트해야 컨테이너를 다시 만들어도 남는다 | 버전별 경로 | https://hub.docker.com/_/postgres · "The defined `VOLUME` was changed in 18 and above to `/var/lib/postgresql`." / "Mount the data volume at `/var/lib/postgresql/data` and not at `/var/lib/postgresql` because mounts at the latter path WILL NOT PERSIST database data when the container is re-created." · 2026-10-03 |
+| Docker 볼륨 | DS.colocated_vm · DS.durability | 볼륨은 Docker 호스트(= compute VM)의 디렉터리에 저장되고, 컨테이너를 지워도 남는다. 따라서 데이터 영속성은 그 VM 디스크의 영속성을 따른다: EC2는 EBS(05 §7.1 CP.local_disk, "EBS volumes persist independently from the running life of an EC2 instance."), Compute Engine은 PD(05 §7.2) | 이름 있는 볼륨 | https://docs.docker.com/engine/storage/volumes/ · "When you create a volume, it's stored within a directory on the Docker host." / "Using a volume ensures that the data is persisted even if the container using it is removed." · 2026-10-03 |
+| Docker 볼륨 | DS.backup_config | 백업은 자동이 아니고 사용자가 실행한다: 볼륨을 tar로 떠서 백업하고 복원하는 명령을 문서가 안내한다(또는 VM 디스크 스냅샷) | 사용자 설정 | https://docs.docker.com/engine/storage/volumes/ · "Volumes are useful for backups, restores, and migrations." · 2026-10-03 |
