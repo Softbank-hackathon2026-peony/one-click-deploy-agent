@@ -352,3 +352,12 @@ def test_valueless_compose_variable_is_absent(tmp_path):
     _, _, _, envs, (_, routes), _ = _analyze(tmp_path)
     assert _env(envs, "compose").services["proxy"]["environment"] == {"UP": None}
     assert [(r.environment, r.target) for r in routes] == [("compose", "w-b")]
+
+
+def test_devcontainer_compose_makes_no_workload(tmp_path):
+    # 개발 컨테이너용 compose의 서비스는 배포되는 워크로드가 아니다
+    _write(tmp_path, ".devcontainer/docker-compose.yml", "services:\n  dev:\n    image: acme/dev:1\n")
+    _write(tmp_path, "docker-compose.yml", "services:\n  api:\n    image: acme/api:1\n")
+    _, _, ws, envs, _, _ = _analyze(tmp_path)
+    assert [w.name for w in ws] == ["api"]
+    assert [e.name for e in envs] == ["compose"]

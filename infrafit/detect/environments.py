@@ -10,14 +10,13 @@ import yaml
 
 from infrafit.detect.artifacts import ParsedArtifact, as_dict, build_source, is_build_path, pod_spec
 from infrafit.detect.manifests import parent_dir
-from infrafit.detect.workloads import (COMPOSE_BASE_NAMES, WorkloadInfo, compose_build, compose_command,
+from infrafit.detect.workloads import (COMPOSE_BASE_NAMES, DEVCONTAINER, WorkloadInfo, compose_build, compose_command,
                                        compose_family, compose_variant, image_name, is_compose_override, slug,
                                        workload_dockerfile)
 from infrafit.evidence import evidence
 from infrafit.repo import Snapshot
 
 WORKLOAD_KINDS = {"Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"}
-DEVCONTAINER = ".devcontainer"  # 개발 컨테이너용 compose는 배포 환경이 아니다
 
 
 @dataclass

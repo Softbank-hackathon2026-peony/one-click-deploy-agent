@@ -14,6 +14,7 @@ from infrafit.repo import Snapshot
 
 INFRA_IMAGE_TOKENS = ("postgres", "redis", "mysql", "mongo", "valkey", "memcached", "rabbitmq", "minio", "localstack")
 WEB_FRAMEWORKS = ("next", "express", "fastify", "koa", "@nestjs/core", "hono", "fastapi", "flask", "django")
+DEVCONTAINER = ".devcontainer"  # 개발 컨테이너용 compose는 배포 대상(워크로드·환경)이 아니다
 PROC_KINDS = {"web": "web", "worker": "worker", "clock": "scheduled", "release": "migration-job"}
 # 워커 프로세스를 뜻하는 토큰 끝(`board.worker`, `jobs/worker.py` 등). `--workers 4`, `uvicorn.workers.UvicornWorker`는 아니다
 WORKER_SUFFIXES = (".worker", "/worker", ":worker", "worker.py", "worker.js", "worker.ts")
@@ -240,6 +241,8 @@ def _from_compose(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[Workl
     names: set[str] = set()
     # 같은 서비스가 여러 파일에 있으면 기본 파일, override, 변형 파일 순으로 먼저 본 정의의 사실을 쓴다
     for art in sorted((a for a in artifacts if a.kind == "compose"), key=lambda a: compose_file_order(a.path)):
+        if DEVCONTAINER in PurePosixPath(art.path).parts:  # 개발 컨테이너용 compose는 배포 대상이 아니다
+            continue
         for obj in art.objects:
             if not isinstance(obj, tuple) or len(obj) != 2 or not isinstance(obj[0], str):
                 continue
