@@ -115,6 +115,9 @@ def find_external_services(snap: Snapshot, manifests: Manifests, artifacts: list
         # 보조 코드 근거만으로는 만들지 않는다
         if not ev or all(is_aux_path(e["path"]) for e in ev):
             continue
+        # 예시 env 파일의 자리표시자만 있으면 아직 쓰지 않는 서비스일 수 있다(코드·의존성·실제 설정 근거가 필요)
+        if all(_is_env_file(PurePosixPath(e["path"]).name) for e in ev):
+            continue
         ev.sort(key=lambda e: is_aux_path(e["path"]))
         confirmed = bool(code) or (bool(deps) and bool(envs))
         paths = {e["path"] for e in ev}

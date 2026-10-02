@@ -156,3 +156,10 @@ def test_implicit_route_lint_catches_bad_entries():
     assert any("default" in i for i in issues)
     assert any("override" in i for i in issues)
     assert _lint_implicit_routes() == []
+
+
+def test_socketio_ignores_other_namespaces_server_classes(tmp_path):
+    _write(tmp_path, "package.json", json.dumps({"dependencies": {"socket.io": "^4"}}))
+    _write(tmp_path, "server.js", "import http from 'http';\nimport { Server } from 'socket.io';\n"
+           "const server = new http.Server(app);\nconst io = new Server(server);\n")
+    assert [r[:3] + r[4:] for r in _rows(_eps(tmp_path))] == [("WEBSOCKET", "/socket.io", "socket.io", "server.js", 4)]

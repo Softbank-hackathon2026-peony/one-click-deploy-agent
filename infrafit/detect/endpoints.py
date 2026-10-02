@@ -598,7 +598,9 @@ def _socketio(snap: Snapshot) -> list[Raw]:
                 continue
             names = {n for m in _SOCKETIO_NAMES.finditer(text) for n in m.groups() if n}
             classes = {"Server"} | set(_SOCKETIO_ALIAS.findall(text))
-            alts = [rf"\bnew\s+(?:\w+\.)?(?:{'|'.join(sorted(classes))})\s*\(",
+            # `ns.Server`는 ns가 socket.io를 가져온 이름일 때만(`new http.Server(`는 아니다)
+            ns = rf"(?:(?:{'|'.join(sorted(names))})\.)?" if names else ""
+            alts = [rf"\bnew\s+(?<![\w.]){ns}(?:{'|'.join(sorted(classes))})\s*\(",
                     r"""\brequire\s*\(\s*['"]socket\.io['"]\s*\)\s*\("""]
             if names:
                 alts.append(rf"(?<![\w.])(?:new\s+)?(?:{'|'.join(sorted(names))})\s*\(")

@@ -51,7 +51,7 @@ services:
         - {dependency: firebase-admin}
         - {dependency: "com.google.firebase:firebase-admin"}
         - {code: {glob: *src, regex: 'fcm\.googleapis\.com|FirebaseMessaging|messaging\(\)\.send'}}
-        - {env: '^(FIREBASE_\w+|FCM_\w+|GOOGLE_APPLICATION_CREDENTIALS)$'}
+        - {env: '^(FIREBASE_\w+|FCM_\w+)$'}
   - id: ext:stripe
     label: Stripe
     kind: payments

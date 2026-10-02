@@ -204,3 +204,10 @@ def test_consistency_checks_members_environments_and_external_ids():
     assert "current component w-a: unknown environment nope" in issues
     assert "duplicate external service id: ext:a" in issues
     assert "external service ext:a: unknown workload w-c" in issues
+
+
+def test_example_env_placeholder_alone_is_not_an_external_service(tmp_path):
+    files = _app()
+    files[".env.example"] = "# 4차 스프린트에서 사용 예정\nANTHROPIC_API_KEY=\nGOOGLE_APPLICATION_CREDENTIALS=\n"
+    inv = _inventory(tmp_path, files)
+    assert "ext:anthropic" not in _ext(inv) and "ext:firebase" not in _ext(inv)
