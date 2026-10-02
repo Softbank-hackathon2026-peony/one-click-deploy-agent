@@ -752,6 +752,9 @@ def _lint_profile_detectors(cfg: dict | None = None) -> list[str]:
         issue = _regex_issue(name, d.get("regex"))
         if issue:
             issues.append(issue)
+        if "call_site_outside_file" in d and (not isinstance(d["call_site_outside_file"], bool)
+                                              or d.get("scope") != "workload"):
+            issues.append(f"{name}: call_site_outside_file는 workload 범위 탐지기의 불리언")
         if d.get("unless") is not None:
             issue = _regex_issue(f"{name} unless", d["unless"])
             if issue:

@@ -202,12 +202,21 @@ code:
     scope: workload
     glob: ["**/*.py"]
     regex: '\basyncio\.(?:create_task|ensure_future)\(|\bloop\.create_task\(|\bthreading\.Thread\(|^\s*from\s+threading\s+import\s+.*\bThread\b'
+  # @Async는 붙은 메서드를 다른 파일(테스트 제외)에서 부를 때만 근거다(call_site_outside_file). 같은 클래스 안 호출은
+  # 스프링 프록시를 거치지 않아 비동기로 돌지 않고, 부르는 곳이 없으면 응답 후 작업이 아니다.
   - id: PD-A4-SPRING-ASYNC
     dimension: A4
     value: "있음"
     scope: workload
     glob: ["**/*.java", "**/*.kt"]
-    regex: '^\s*@Async\b|\bCompletableFuture\.runAsync\('
+    regex: '^\s*@(?:org\.springframework\.scheduling\.annotation\.)?Async\b'
+    call_site_outside_file: true
+  - id: PD-A4-JVM-RUNASYNC
+    dimension: A4
+    value: "있음"
+    scope: workload
+    glob: ["**/*.java", "**/*.kt"]
+    regex: '\bCompletableFuture\.runAsync\('
   # Node: 응답 전에 await하지 않는 Promise(문장 첫머리 호출), 응답 뒤 실행 API
   - id: PD-A4-NODE-UNAWAITED
     dimension: A4

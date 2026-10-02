@@ -154,11 +154,39 @@ def test_spring_scheduled_async_and_stomp_broker(tmp_path):
             "    @Async\n    fun push() {}\n}\n")
     ws = ("package com.x\n\n@Configuration\n@EnableWebSocketMessageBroker\nclass Ws {\n"
           "    fun c(registry: MessageBrokerRegistry) {\n        registry.enableSimpleBroker(\"/topic\")\n    }\n}\n")
+    caller = "package com.x\n\nclass Api(private val jobs: Jobs) {\n    fun hit() { jobs.push() }\n}\n"
     p = _run(tmp_path, {"build.gradle.kts": gradle, "src/main/kotlin/com/x/App.kt": app,
-                        "src/main/kotlin/com/x/Jobs.kt": jobs, "src/main/kotlin/com/x/Ws.kt": ws})
+                        "src/main/kotlin/com/x/Jobs.kt": jobs, "src/main/kotlin/com/x/Ws.kt": ws,
+                        "src/main/kotlin/com/x/Api.kt": caller})
     assert _app(p, "B3")["value"] == "있음"
     assert _app(p, "A4")["value"] == "있음"
     assert _app(p, "B1")["value"] == {"value": "있음", "kinds": ["websocket-broker"]}
+
+
+def test_spring_async_counts_only_with_call_site_in_another_file(tmp_path):
+    gradle = ('plugins { id("org.springframework.boot") version "3.2.0" }\ndependencies {\n'
+              '    implementation("org.springframework.boot:spring-boot-starter-web")\n}\n')
+    app = "package com.x;\n\n@SpringBootApplication\npublic class App {}\n"
+    mail = ("package com.x;\n\n@Service\npublic class MailService {\n    @Async\n"
+            "    public void sendMail(String to) {}\n\n    public void notifyAll2() { sendMail(\"a\"); }\n}\n")
+    base = {"build.gradle": gradle, "src/main/java/com/x/App.java": app, "src/main/java/com/x/MailService.java": mail}
+    # 같은 클래스 안에서만 부른다
+    assert _app(_run(tmp_path / "a", base), "A4")["value"] == "없음"
+    # 테스트에서만 부른다
+    test_only = {**base, "src/test/java/com/x/MailTest.java": "class MailTest { void t() { svc.sendMail(\"x\"); } }\n"}
+    assert _app(_run(tmp_path / "b", test_only), "A4")["value"] == "없음"
+    # 다른 클래스(파일)에서 부른다
+    ctrl = ("package com.x;\n\n@RestController\npublic class SignupController {\n"
+            "    @PostMapping(\"/signup\")\n    public String signup() { mailService.sendMail(\"u\"); return \"ok\"; }\n}\n")
+    p = _run(tmp_path / "c", {**base, "src/main/java/com/x/SignupController.java": ctrl})
+    a4 = _app(p, "A4")
+    assert a4["value"] == "있음"
+    assert ("src/main/java/com/x/MailService.java", 5) in {(e["path"], e["line"]) for e in a4["evidence"]}
+    # 클래스에 붙은 @Async: 그 클래스의 메서드를 다른 파일에서 부르면 근거
+    cls = "package com.x;\n\n@Async\n@Service\npublic class Bulk {\n    public void run(String x) {}\n}\n"
+    user = "package com.x;\n\npublic class U {\n    void go() { bulk.run(\"x\"); }\n}\n"
+    p = _run(tmp_path / "d", {**base, "src/main/java/com/x/Bulk.java": cls, "src/main/java/com/x/U.java": user})
+    assert _app(p, "A4")["value"] == "있음"
 
 
 def test_worker_has_no_request_dimensions(tmp_path):

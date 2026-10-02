@@ -79,10 +79,66 @@ def _inventory_observations(inventory: dict, cfg: dict, app: set[str], owners: O
     return out
 
 
+_ANNOTATION = re.compile(r"^\s*@[\w.]+(?:\([^)]*\))?")
+_DECL_NAME = re.compile(r"\b([A-Za-z_]\w*)\s*\(")
+_CLASS_DECL = re.compile(r"^(?:[\w]+\s+)*(?:class|interface|object)\s+\w+")
+_METHOD_DECL = re.compile(r"\b(?:fun|void|public|protected|private|internal|override|suspend)\b[^=;(]*?\b([A-Za-z_]\w*)\s*\(")
+_DECL_KEYWORDS = {"if", "for", "while", "switch", "catch", "synchronized", "return", "new"}
+
+
+def _annotated_methods(lines: list[str], n: int) -> list[str]:
+    """n번째 줄(1부터)의 애너테이션이 붙은 메서드 이름. 클래스에 붙었으면 그 파일의 메서드 선언 이름 전부."""
+    rest = _ANNOTATION.sub("", lines[n - 1], count=1)
+    for line in [rest] + lines[n:]:
+        body = line.strip()
+        while body.startswith("@"):
+            body = _ANNOTATION.sub("", body, count=1).strip()
+        if not body:
+            continue
+        if _CLASS_DECL.match(body):
+            names = {m.group(1) for ln in lines for m in [_METHOD_DECL.search(ln)] if m}
+            return sorted(names - _DECL_KEYWORDS)
+        m = _DECL_NAME.search(body)
+        return [m.group(1)] if m and m.group(1) not in _DECL_KEYWORDS else []
+    return []
+
+
+def _called_elsewhere(snap: Snapshot, rel: str, name: str, others: list[str], cache: dict) -> bool:
+    """name( 호출이 rel이 아닌 다른 파일(테스트·보조 경로 제외)에 있는가. 같은 이름의 선언 줄은 세지 않는다."""
+    key = ("call", name, rel)
+    if key not in cache:
+        call = re.compile(rf"\b{re.escape(name)}\s*\(")
+        found = False
+        for other in others:
+            if other == rel:
+                continue
+            try:
+                text = snap.read(other)
+            except OSError:
+                continue
+            if name not in text:
+                continue
+            for line in text.splitlines():
+                if call.search(line) and not ((m := _METHOD_DECL.search(line)) and m.group(1) == name):
+                    found = True
+                    break
+            if found:
+                break
+        cache[key] = found
+    return cache[key]
+
+
 def _hits(snap: Snapshot, rel: str, det: dict, cache: dict) -> list[dict]:
     key = (det["id"], rel)
     if key not in cache:
         lines = hit_lines(snap, rel, det["regex"], det.get("unless"))
+        if det.get("call_site_outside_file"):
+            # 애너테이션이 붙은 메서드(@Async 등)를 다른 파일에서 부를 때만 근거다(같은 클래스 안 호출은 프록시를
+            # 거치지 않아 비동기로 돌지 않는다, 부르는 곳이 없으면 응답 후 작업이 아니다)
+            text = snap.read(rel).splitlines()
+            others = code_files(snap, det["glob"])
+            lines = [n for n in lines
+                     if any(_called_elsewhere(snap, rel, name, others, cache) for name in _annotated_methods(text, n))]
         cache[key] = [evidence(snap, rel, n, "tech") for n in lines[:MAX_HITS_PER_FILE]]
     return cache[key]
 
