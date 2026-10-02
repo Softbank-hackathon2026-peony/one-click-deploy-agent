@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from pathlib import PurePosixPath
 
 from infrafit import kb
@@ -109,6 +110,37 @@ def _front(snap: Snapshot, w: WorkloadInfo, artifacts: list[ParsedArtifact], env
     return [h for h in (_edge(snap, w, artifacts), lb) if h]
 
 
+MAX_CHAIN = 5  # 체인에 넣는 프록시 수의 상한
+
+
+def fronted_proxies(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[ParsedArtifact],
+                    environments: list[Environment], servers: list[ProxyServer]) -> set[tuple[str, str | None]]:
+    """자기 앞 구간(엣지·로드밸런서)이 있는 (프록시 워크로드 id, 환경 이름). 체인은 이런 프록시에서 끝난다."""
+    ids = {s.proxy for s in servers}
+    return {(w.id, e.name if e else None) for w in workloads if w.id in ids
+            for e in env_scopes(w, environments) if _front(snap, w, artifacts, e)}
+
+
+def _upstream_chain(target: str, routes: list[ProxyRoute],
+                    fronted: Callable[[str], bool]) -> list[tuple[str, list[ProxyRoute]]]:
+    """한 환경의 route들로 target에 요청을 넘기는 프록시 체인(위→아래). 단계마다 target으로 넘기는 프록시 중
+    id 순 첫 번째(이미 체인에 있는 것은 빼서 순환을 끊는다)와 그 프록시에서 아래 단계로 가는 route들.
+    앞 구간이 있는 프록시(fronted(id)가 참)에서, 또는 프록시 MAX_CHAIN개에서 끝난다."""
+    chain: list[tuple[str, list[ProxyRoute]]] = []
+    seen, cur = {target}, target
+    while len(chain) < MAX_CHAIN:
+        incoming = [r for r in routes if r.target == cur and r.proxy not in seen]
+        if not incoming:
+            break
+        pid = min(r.proxy for r in incoming)
+        chain.append((pid, [r for r in incoming if r.proxy == pid]))
+        if fronted(pid):
+            break
+        seen.add(pid)
+        cur = pid
+    return chain[::-1]
+
+
 def build_paths(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[ParsedArtifact],
                 compute: dict[str, str], environments: list[Environment],
                 proxy: tuple[list[ProxyServer], list[ProxyRoute]] | None = None) -> list[dict]:
@@ -129,20 +161,21 @@ def build_paths(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[P
             server = app_server(env_command(env, w, artifacts)) if has_app_server else None
             tail = ([_hop("app-server", server[0], server[1], env_command_evidence(snap, env, w, artifacts))]
                     if server else [])
-            own = _front(snap, w, artifacts, env)
             if w.id in proxy_ids:
                 mine = [s for s in servers if s.proxy == w.id and s.environment == env_name]
                 # 이 환경의 server가 없어도 프록시 구간은 기본값만으로 둔다
-                return own + [_proxy_hop([s.settings for s in mine] or [[]], [s.evidence for s in mine])]
-            incoming = [r for r in routes if r.target == w.id and r.environment == env_name and r.proxy != w.id
-                        and r.proxy in by_id]
-            if own or not incoming:
+                tail = [_proxy_hop([s.settings for s in mine] or [[]], [s.evidence for s in mine])]
+            own = _front(snap, w, artifacts, env)
+            if own:
                 return own + tail
-            # 프록시가 여럿이면 프록시 워크로드 id 순 첫 번째
-            pid = min(r.proxy for r in incoming)
-            mine = [r for r in incoming if r.proxy == pid]
-            return (_front(snap, by_id[pid], artifacts, env)
-                    + [_proxy_hop([r.settings for r in mine], [r.evidence for r in mine])] + tail)
+            # 앞 구간이 없으면 이 워크로드로 넘기는 프록시 체인을 따라 올라간다(단계마다 프록시 id 순 첫 번째)
+            env_routes = [r for r in routes if r.environment == env_name and r.proxy in by_id]
+            chain = _upstream_chain(w.id, env_routes,
+                                    lambda pid: bool(_front(snap, by_id[pid], artifacts, env)))
+            if not chain:
+                return tail
+            hops = [_proxy_hop([r.settings for r in mine], [r.evidence for r in mine]) for _, mine in chain]
+            return _front(snap, by_id[chain[0][0]], artifacts, env) + hops + tail
 
         def make(pid: str, env: Environment | None) -> dict:
             hops = [dict(h) for h in hops_for(env)]

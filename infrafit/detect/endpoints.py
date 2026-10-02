@@ -8,6 +8,7 @@ from collections import defaultdict
 from pathlib import PurePosixPath
 
 from infrafit.detect.nginx import LocationInfo, ProxyRoute, ProxyServer
+from infrafit.detect.paths import MAX_CHAIN
 from infrafit.detect.workloads import WorkloadInfo
 from infrafit.evidence import evidence
 from infrafit.repo import Snapshot
@@ -401,42 +402,87 @@ def _subrequest_reached(server: ProxyServer) -> set[tuple[str, str]]:
     return out
 
 
-def _exposure_in(env: str | None, out: list[dict], routes: list[ProxyRoute], servers: list[ProxyServer]) -> dict[str, str]:
-    """환경 env의 server·route만 써서, 그 환경 route가 target으로 하는 워크로드의 엔드포인트 id별 값을 계산한다."""
+def _chains(routes: list[ProxyRoute], fronted: set[str], target: str,
+            below: tuple[str, ...] = ()) -> list[tuple[str, ...]]:
+    """target에 요청을 넘기는 프록시 체인 전부(위→아래, 맨 끝 프록시가 target으로 넘긴다). 갈래마다 따라 올라가며,
+    앞 구간이 있는 프록시, 자기에게 넘기는 다른 프록시가 없는 프록시, 프록시 MAX_CHAIN개에서 끝난다(경로와 같은 상한).
+    이미 체인에 있는 프록시와 맨 아래 워크로드로 되돌아가는 프록시(순환)는 뺀다. 맨 아래 단계에서는
+    자기 자신에게 넘기는 프록시도 체인 하나다."""
+    bottom = below[-1] if below else target
+    out: list[tuple[str, ...]] = []
+    for p in sorted({r.proxy for r in routes if r.target == target}):
+        if p in below or (below and p == bottom):
+            continue
+        chain = (p,) + below
+        ups = ([] if p == target or p in fronted or len(chain) >= MAX_CHAIN
+               else _chains(routes, fronted, p, chain))
+        out += ups or [chain]
+    return out
+
+
+def _chain_reached(chain: tuple[str, ...], top: ProxyServer, by_proxy: dict[str, list[ProxyServer]],
+                   workload: str, path: str) -> set[tuple[str, str]]:
+    """체인 맨 위 server top으로 들어온 외부 요청 후보가 체인 끝 프록시에서 닿는 (워크로드 id, 전달 경로)들.
+    후보는 workload의 upstream 경로 path에서 시작해 아래 단계부터 위로 역매핑해 만들고(_requests_for),
+    맨 위에서부터 단계마다 다시 location을 골라 다음 프록시로 넘어가는 것만 따라간다(internal을 고르면 404)."""
+    targets = chain[1:] + (workload,)
+    cands = {path}
+    for i in range(len(chain) - 1, 0, -1):
+        cands |= {c for server in by_proxy.get(chain[i], []) for r in cands
+                  for c in _requests_for(server, targets[i], r)}
+    cands = {c for r in cands for c in _requests_for(top, targets[0], r)}
+    reached: set[tuple[str, str]] = set()
+    for r in cands:
+        reached |= _reached(top, r)
+    for i in range(1, len(chain)):
+        forwarded = {fwd for t, fwd in reached if t == chain[i]}
+        reached = {hit for server in by_proxy.get(chain[i], []) for r in forwarded for hit in _reached(server, r)}
+    return reached
+
+
+def _exposure_in(env: str | None, out: list[dict], routes: list[ProxyRoute], servers: list[ProxyServer],
+                 fronted: set[str]) -> dict[str, str]:
+    """환경 env의 server·route만 써서, 그 환경 route가 target으로 하는 워크로드의 엔드포인트 id별 값을 계산한다.
+    프록시 뒤의 프록시는 체인 맨 위 프록시로 들어온 외부 요청이 단계마다 전달되어 닿는지로 본다.
+    fronted는 이 환경에서 앞 구간(엣지·로드밸런서)이 있는 프록시 id들이다."""
     routes = [r for r in routes if r.environment == env]
     servers = [s for s in servers if s.environment == env]
     routed = {r.target for r in routes if r.target}
-    proxies_of: dict[str, set[str]] = defaultdict(set)
-    for r in routes:
-        if r.target:
-            proxies_of[r.target].add(r.proxy)
+    by_proxy: dict[str, list[ProxyServer]] = defaultdict(list)
+    for server in servers:
+        by_proxy[server.proxy].append(server)
+    # 하위 요청(auth_request)은 요청이 들어오는 프록시마다 무조건 닿는다. 체인 맨 위가 아닌 프록시도
+    # 위 단계 route로 요청을 받으므로 환경의 모든 server를 본다
     reached: set[tuple[str, str]] = set()
     for server in servers:
         reached |= _subrequest_reached(server)
+    chains = {w: _chains(routes, fronted, w) for w in sorted(routed)}
     for ep in out:
         if ep["workload"] not in routed:
             continue
         path = _request_path(ep["route"], ep["framework"])
-        for server in servers:
-            if server.proxy in proxies_of[ep["workload"]]:
-                for request in _requests_for(server, ep["workload"], path):
-                    reached |= _reached(server, request)
+        for chain in chains[ep["workload"]]:
+            for top in by_proxy.get(chain[0], []):
+                reached |= _chain_reached(chain, top, by_proxy, ep["workload"], path)
     return {ep["id"]: "routed" if (ep["workload"], _request_path(ep["route"], ep["framework"])) in reached
             else "not-routed" for ep in out if ep["workload"] in routed}
 
 
-def _mark_exposure(out: list[dict], routes: list[ProxyRoute], servers: list[ProxyServer]) -> None:
+def _mark_exposure(out: list[dict], routes: list[ProxyRoute], servers: list[ProxyServer],
+                   fronted: set[tuple[str, str | None]]) -> None:
     """엔드포인트마다 exposure를 [{environment, value}]로 쓴다. route가 없는 환경은 넣지 않는다."""
     envs = sorted({r.environment for r in routes if r.target}, key=lambda e: (e is not None, e or ""))
     for env in envs:
-        values = _exposure_in(env, out, routes, servers)
+        values = _exposure_in(env, out, routes, servers, {p for p, e in fronted if e == env})
         for ep in out:
             if ep["id"] in values:
                 ep.setdefault("exposure", []).append({"environment": env, "value": values[ep["id"]]})
 
 
 def extract_endpoints(snap: Snapshot, workloads: list[WorkloadInfo], routes: list[ProxyRoute] | None = None,
-                      servers: list[ProxyServer] | None = None) -> list[dict]:
+                      servers: list[ProxyServer] | None = None,
+                      fronted: set[tuple[str, str | None]] | None = None) -> list[dict]:
+    """fronted: 앞 구간이 있는 (프록시 id, 환경 이름). 프록시 체인이 거기서 끝난다(paths.fronted_proxies)."""
     webs = [w for w in workloads if w.kind == "web"]
     if not webs:
         return []
@@ -461,5 +507,5 @@ def extract_endpoints(snap: Snapshot, workloads: list[WorkloadInfo], routes: lis
                         "route": route, "handler": evidence(snap, rel, line), "framework": framework,
                         "status": "confirmed" if sure else "candidate"})
     if routes:
-        _mark_exposure(out, routes, servers or [])
+        _mark_exposure(out, routes, servers or [], fronted or set())
     return out

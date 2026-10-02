@@ -10,7 +10,7 @@ from infrafit.detect.environments import detect_environments
 from infrafit.detect.endpoints import extract_endpoints
 from infrafit.detect.manifests import parse_manifests
 from infrafit.detect.nginx import find_proxies
-from infrafit.detect.paths import build_paths
+from infrafit.detect.paths import build_paths, fronted_proxies
 from infrafit.detect.signatures import match_signatures
 from infrafit.detect.workloads import detect_workloads
 from infrafit.repo import Snapshot, content_digest
@@ -31,7 +31,8 @@ def run_s1(ctx: RunContext, snap: Snapshot) -> dict:
     workloads = detect_workloads(snap, manifests, artifacts)
     environments = detect_environments(artifacts, workloads)
     servers, routes = find_proxies(snap, workloads, artifacts, environments)
-    endpoints = extract_endpoints(snap, workloads, routes, servers)
+    endpoints = extract_endpoints(snap, workloads, routes, servers,
+                                  fronted_proxies(snap, workloads, artifacts, environments, servers))
     matches = match_signatures(snap, manifests, kb.signatures())
     datastores, components, compute = map_components(snap, matches, workloads, artifacts)
     body = {
