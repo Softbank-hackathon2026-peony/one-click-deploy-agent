@@ -25,12 +25,19 @@ class Manifests:
     locations: dict[str, list[tuple[str, int | None]]] = field(default_factory=dict)
     scripts: dict[str, tuple[str, str, int | None]] = field(default_factory=dict)
     procfile: dict[str, tuple[str, str, int]] = field(default_factory=dict)
+    # (모듈 디렉터리, 의존성) → 그 모듈에 의존성을 준 (파일, 줄)들. 보통 모듈은 파일의 디렉터리이고, Gradle
+    # subprojects·allprojects 블록의 의존성은 그 아래 하위 모듈들의 것이다
+    module_locations: dict[tuple[str, str], list[tuple[str, int | None]]] = field(default_factory=dict)
 
-    def add(self, name: str, rel: str, line: int | None) -> None:
+    def add(self, name: str, rel: str, line: int | None, module: str | None = None) -> None:
+        """module: 의존성이 속한 모듈 디렉터리(없으면 파일의 디렉터리)."""
+        d = parent_dir(rel) if module is None else module
         self.deps.setdefault(name, (rel, line))
-        self.deps_by_dir.setdefault(parent_dir(rel), set()).add(name)
+        self.deps_by_dir.setdefault(d, set()).add(name)
         if (rel, line) not in self.locations.setdefault(name, []):
             self.locations[name].append((rel, line))
+        if (rel, line) not in self.module_locations.setdefault((d, name), []):
+            self.module_locations[(d, name)].append((rel, line))
 
 
 def _node(snap: Snapshot, m: Manifests) -> None:

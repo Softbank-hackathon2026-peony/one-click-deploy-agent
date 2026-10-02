@@ -11,6 +11,7 @@ from infrafit.detect import proxy_graph
 from infrafit.detect.components import platform_config_for
 from infrafit.detect.defaults import fact_settings, hop_settings
 from infrafit.detect.environments import Environment, env_command, env_command_evidence, env_scopes, env_slug
+from infrafit.detect.jvm import jvm_build_dirs, owning_build_dir
 from infrafit.detect.nginx import NGINX_COMPONENT, ProxyRoute, ProxyServer
 from infrafit.detect.testpaths import is_test_path
 from infrafit.detect.workloads import WorkloadInfo
@@ -100,9 +101,11 @@ def _seconds(value: str) -> int | float | None:
 
 
 def _spring_configs(snap: Snapshot, root: str) -> list[str]:
-    """code_root 아래의 application*.yml|yaml|properties(테스트 제외). 기본 파일(`application.*`)이 프로필 파일보다 먼저."""
+    """모듈 code_root의 application*.yml|yaml|properties(테스트 제외): 파일을 품은 가장 가까운 빌드 파일 모듈이
+    code_root인 것만(하위 모듈의 설정은 그 모듈의 것이다). 기본 파일(`application.*`)이 프로필 파일보다 먼저."""
+    build_dirs = set(jvm_build_dirs(snap))
     rels = {rel for pattern in SPRING_CONFIG_GLOBS for rel in snap.glob(pattern)
-            if not is_test_path(rel) and (not root or rel.startswith(root + "/"))}
+            if not is_test_path(rel) and owning_build_dir(rel, build_dirs) == root}
     return sorted(rels, key=lambda rel: (PurePosixPath(rel).stem != "application", rel))
 
 

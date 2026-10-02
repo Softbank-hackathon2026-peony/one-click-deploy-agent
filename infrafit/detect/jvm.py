@@ -82,6 +82,7 @@ _GRADLE_BOOT = re.compile(r"""\bid\s*\(?\s*["']org\.springframework\.boot["']"""
                           r"""|\bapply\s+plugin\s*:\s*["']org\.springframework\.boot["']""")
 _GRADLE_PLUGIN_ALIAS = re.compile(r"\balias\s*\(\s*libs\.plugins\.([\w.]+)\s*\)")
 _GRADLE_APPLY_FALSE = re.compile(r"\bapply\s*\(?\s*false\b")
+_GRADLE_SHARED = re.compile(r"(?<![\w.])(?:subprojects|allprojects)\s*\{")
 XML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
 VERSION_CATALOG = "gradle/libs.versions.toml"
 
@@ -139,18 +140,32 @@ def _conf_span(struct: str, end: int) -> tuple[int, int]:
     return end, len(struct) if stop < 0 else stop
 
 
+def _shared_blocks(struct: str) -> list[tuple[int, int]]:
+    """`subprojects { ... }`·`allprojects { ... }` 블록 범위들(하위 모듈에 적용하는 공통 설정)."""
+    return [(m.start(), close_bracket(struct, m.end() - 1)) for m in _GRADLE_SHARED.finditer(struct)]
+
+
 def read_gradle(snap: Snapshot, m: Manifests) -> None:
     """build.gradle(.kts)의 의존성 좌표(`g:a`, 버전 카탈로그 접근자 `libs.x` 포함)와 Spring Boot 플러그인
     (`alias(libs.plugins.x)` 포함). 주석은 지우고 읽는다. `test*` 구성과 `apply false`인 플러그인 선언(하위 모듈에만
-    적용하는 루트 선언)은 건너뛴다. 줄은 좌표가 있는 줄."""
+    적용하는 루트 선언)은 건너뛴다. 줄은 좌표가 있는 줄.
+    subprojects·allprojects 블록의 플러그인과 의존성은 이 파일의 모듈에 적용하지 않는다: 의존성은 그 아래에 빌드
+    파일이 있는 하위 모듈마다 그 모듈의 것으로 두고(근거 줄은 이 파일), 플러그인은 버린다(라이브러리 모듈까지 앱으로
+    만들지 않도록)."""
     catalogs: dict = {}
-    for rel in sorted(rel for pattern in GRADLE_FILES for rel in snap.glob(f"**/{pattern}")):
+    rels = sorted(rel for pattern in GRADLE_FILES for rel in snap.glob(f"**/{pattern}"))
+    dirs = sorted({parent_dir(rel) for rel in rels})
+    for rel in rels:
+        here = parent_dir(rel)
+        children = [d for d in dirs if d != here and (not here or d.startswith(here + "/"))]
         libs, plugins = _version_catalog(snap, rel, catalogs)
         clean, struct = mask_code(snap.read(rel))
+        shared = _shared_blocks(struct)
+        shared_lines = {i for a, b in shared for i in range(line_at(clean, a), line_at(clean, b) + 1)}
         for i, text in enumerate(clean.splitlines(), 1):
             boot = _GRADLE_BOOT.search(text) or any(
                 plugins.get(_alias_key(a)) == SPRING_BOOT for a in _GRADLE_PLUGIN_ALIAS.findall(text))
-            if boot and not _GRADLE_APPLY_FALSE.search(text):
+            if boot and not _GRADLE_APPLY_FALSE.search(text) and i not in shared_lines:
                 m.add(SPRING_BOOT, rel, i)
         for conf in _GRADLE_CONF.finditer(struct):
             if conf.group(1).startswith("test"):
@@ -162,8 +177,10 @@ def read_gradle(snap: Snapshot, m: Manifests) -> None:
                 coord = libs.get(_alias_key(x.group(1).removesuffix(".get")))
                 if coord:
                     found.append((x.start(), coord))
+            in_shared = any(a <= conf.start() < b for a, b in shared)
             for pos, coord in sorted(found):
-                m.add(coord.lower(), rel, line_at(clean, pos))
+                for module in children if in_shared else [here]:
+                    m.add(coord.lower(), rel, line_at(clean, pos), module)
 
 
 def _blank(match: re.Match) -> str:
@@ -244,9 +261,9 @@ def spring_name(snap: Snapshot, d: str) -> str:
 
 
 def build_location(manifests: Manifests, dep: str, d: str, files=JVM_BUILD_FILES) -> tuple[str, int | None] | None:
-    """디렉터리 d의 빌드 파일에서 dep가 있는 (파일, 줄)."""
-    return next(((rel, ln) for rel, ln in manifests.locations.get(dep, [])
-                 if parent_dir(rel) == d and PurePosixPath(rel).name in files), None)
+    """모듈 d에 dep를 준 빌드 파일의 (파일, 줄): d의 빌드 파일, 또는 위 모듈의 subprojects·allprojects 블록."""
+    found = [(rel, ln) for rel, ln in manifests.module_locations.get((d, dep), []) if PurePosixPath(rel).name in files]
+    return min(found, key=lambda loc: parent_dir(loc[0]) != d, default=None)  # d 자신의 빌드 파일이 먼저
 
 
 def owning_build_dir(rel: str, build_dirs: set[str]) -> str | None:

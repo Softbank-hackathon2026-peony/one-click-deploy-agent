@@ -433,3 +433,57 @@ class P {
     _, _, _, eps = _detect(tmp_path)
     routes = {e["route"] for e in eps if e["handler"]["path"].endswith("Paths.kt")}
     assert routes == {"/ok"}
+
+
+SUBPROJECTS_ROOT = """plugins { id 'java' }
+
+subprojects {
+    apply plugin: 'org.springframework.boot'
+    dependencies {
+        implementation 'org.springframework.boot:spring-boot-starter'
+        runtimeOnly 'org.postgresql:postgresql'
+    }
+}
+"""
+
+
+def _subprojects_repo(root, block=SUBPROJECTS_ROOT):
+    _write(root, "settings.gradle", "rootProject.name = 'shop'\ninclude 'api', 'batch', 'core'\n")
+    _write(root, "build.gradle", block)
+    _write(root, "api/build.gradle",
+           "dependencies { implementation 'org.springframework.boot:spring-boot-starter-web' }\n")
+    _write(root, "api/src/main/java/com/x/Api.java", "@SpringBootApplication\npublic class Api {}\n")
+    _write(root, "batch/build.gradle", "dependencies {\n}\n")
+    _write(root, "batch/src/main/java/com/x/Batch.java", "@SpringBootApplication\npublic class Batch {}\n")
+    _write(root, "core/build.gradle", "dependencies {\n}\n")
+    _write(root, "core/src/main/java/com/x/Repo.java", "public interface Repo {}\n")
+
+
+def test_subprojects_block_applies_to_child_modules_not_root(tmp_path):
+    _subprojects_repo(tmp_path)
+    _, m, workloads, _ = _detect(tmp_path)
+    assert [(w.id, w.kind, w.code_root) for w in workloads] == [("w-api", "web", "api"), ("w-batch", "worker", "batch")]
+    assert "org.postgresql:postgresql" not in m.deps_by_dir.get("", set())
+    assert "org.springframework.boot" not in m.deps_by_dir.get("", set())
+    for d in ("api", "batch", "core"):
+        assert "org.postgresql:postgresql" in m.deps_by_dir[d]
+    batch = next(w for w in workloads if w.id == "w-batch")
+    assert (batch.entrypoint["path"], batch.entrypoint["line"]) == ("build.gradle", 6)
+
+
+def test_allprojects_block_does_not_make_root_an_app(tmp_path):
+    _subprojects_repo(tmp_path, SUBPROJECTS_ROOT.replace("subprojects", "allprojects"))
+    _, m, workloads, _ = _detect(tmp_path)
+    assert [w.id for w in workloads] == ["w-api", "w-batch"]
+    assert m.deps_by_dir.get("", set()) == set()
+
+
+def test_root_app_ignores_child_module_spring_configs(tmp_path):
+    _kotlin_repo(tmp_path / "repo")
+    _write(tmp_path, "repo/tools/build.gradle", "dependencies {\n}\n")
+    _write(tmp_path, "repo/tools/src/main/resources/application.yml",
+           "server:\n  tomcat:\n    keep-alive-timeout: 99s\n")
+    inv = _inventory(tmp_path)
+    hop = inv["request_paths"][0]["hops"][0]
+    assert hop["settings"][0]["defaulted"] is True
+    assert hop["settings"][0]["value"] == 60
