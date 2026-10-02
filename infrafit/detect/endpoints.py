@@ -7,7 +7,7 @@ import re
 from collections import defaultdict
 from pathlib import PurePosixPath
 
-from infrafit.detect.manifests import Manifests, parse_manifests, parent_dir
+from infrafit.detect.manifests import Manifests, close_bracket, mask_code, parse_manifests, parent_dir
 from infrafit.detect.nginx import LocationInfo, ProxyRoute, ProxyServer
 from infrafit.detect.proxy_graph import fronted_in, upstream_chains
 from infrafit.detect.testpaths import is_test_path
@@ -437,67 +437,14 @@ REQUEST_METHODS = "GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE"
 _ANNOTATION = re.compile(r"(?<![\w.@])@([A-Za-z_][\w.]*)")
 _TYPE_DECL = re.compile(r"(?:(?:public|private|protected|internal|open|final|abstract|sealed|data|static|inner"
                         r"|enum|annotation|value)\s+)*(?:class|interface|object|enum|record)\b")
+# 타입 선언 키워드(`Foo.class`, `@interface`, `companion object`는 아니다)
+_TYPE_KEYWORD = re.compile(r"(?<![\w.@$])(?<!companion )(?:class|interface|object|enum|record)\s+[A-Za-z_]")
 _JAVA_STRING = re.compile(r'"((?:[^"\\\n]|\\.)*)"')
-_OPENERS = {"(": ")", "[": "]", "{": "}"}
-
-
-def _blank_range(chars: list[str], start: int, end: int) -> None:
-    for k in range(start, min(end, len(chars))):
-        if chars[k] not in "\r\n":
-            chars[k] = " "
-
-
-def _mask_jvm(text: str) -> tuple[str, str]:
-    """(주석을 지운 글, 주석과 문자열 내용을 지운 글). 지운 글자는 공백이라 위치와 줄 번호가 그대로다."""
-    clean, struct = list(text), list(text)
-    i, n = 0, len(text)
-    while i < n:
-        if text.startswith("//", i):
-            j = text.find("\n", i)
-            j = n if j < 0 else j
-            _blank_range(clean, i, j)
-            _blank_range(struct, i, j)
-        elif text.startswith("/*", i):
-            j = text.find("*/", i + 2)
-            j = n if j < 0 else j + 2
-            _blank_range(clean, i, j)
-            _blank_range(struct, i, j)
-        elif text.startswith('"""', i):
-            j = text.find('"""', i + 3)
-            j = n if j < 0 else j + 3
-            _blank_range(struct, i + 3, j - 3)
-        elif text[i] in "\"'":
-            j = i + 1
-            while j < n and text[j] not in (text[i], "\n"):
-                j += 2 if text[j] == "\\" else 1
-            j = min(j, n)
-            _blank_range(struct, i + 1, j)
-            j += 1
-        else:
-            i += 1
-            continue
-        i = max(j, i + 1)
-    return "".join(clean), "".join(struct)
-
-
-def _close(struct: str, start: int) -> int:
-    """struct[start]의 여는 괄호와 짝이 맞는 닫는 괄호 위치(괄호 종류는 가리지 않는다). 못 찾으면 글 끝."""
-    depth = 0
-    for k in range(start, len(struct)):
-        if struct[k] in _OPENERS:
-            depth += 1
-        elif struct[k] in ")]}":
-            depth -= 1
-            if depth == 0:
-                return k
-    return len(struct)
-
-
 def _expr_end(struct: str, start: int) -> int:
     """start에서 시작하는 값 식의 끝: 괄호 식(`{..}`·`[..]`·`arrayOf(..)`)이면 짝 괄호 뒤, 아니면 다음 `,` 앞."""
     m = re.match(r"\s*(?:arrayOf\s*)?([(\[{])", struct[start:])
     if m:
-        return _close(struct, start + m.start(1)) + 1
+        return close_bracket(struct, start + m.start(1)) + 1
     comma = struct.find(",", start)
     return len(struct) if comma < 0 else comma
 
@@ -516,7 +463,11 @@ def _mapping_paths(clean: str, struct: str) -> list[str] | None:
         return [""]
     else:
         return None
-    paths = _JAVA_STRING.findall(clean[start:_expr_end(struct, start)])
+    end = _expr_end(struct, start)
+    # 문자열 밖 `+`(이어 붙이기)나 `$`(문자열 템플릿·속성 자리표시자)로 만든 경로는 값을 모른다
+    if "+" in struct[start:end] or "$" in clean[start:end]:
+        return None
+    paths = _JAVA_STRING.findall(clean[start:end])
     return paths or None
 
 
@@ -528,8 +479,8 @@ def _mapping_methods(struct: str) -> list[str]:
 
 
 def _annotation_groups(clean: str, struct: str):
-    """(어노테이션들 [(이름, 인자 clean, 인자 struct, 위치)], 선언이 클래스인가). 공백으로만 이어진 어노테이션을
-    한 묶음으로 보고, 묶음 바로 뒤가 타입 선언이면 클래스 묶음이다."""
+    """(어노테이션들 [(이름, 인자 clean, 인자 struct, 위치)], 뒤따르는 타입 선언 범위 또는 None).
+    공백으로만 이어진 어노테이션을 한 묶음으로 보고, 묶음 바로 뒤가 타입 선언이면 클래스 묶음이다."""
     i, group = 0, []
     while (m := _ANNOTATION.search(struct, i)) is not None:
         name = m.group(1).rsplit(".", 1)[-1]
@@ -537,13 +488,15 @@ def _annotation_groups(clean: str, struct: str):
         args = ("", "")
         paren = re.match(r"\s*\(", struct[end:])
         if paren and name != "interface":
-            close = _close(struct, end + paren.end() - 1)
+            close = close_bracket(struct, end + paren.end() - 1)
             args = (clean[end + paren.end():close], struct[end + paren.end():close])
             end = close + 1
         group.append((name, args[0], args[1], m.start()))
         rest = struct[end:].lstrip()
         if not rest.startswith("@"):
-            yield group, bool(_TYPE_DECL.match(rest))
+            decl = _TYPE_DECL.match(rest)
+            start = len(struct) - len(rest)
+            yield group, (start, start + decl.end()) if decl else None
             group = []
         i = max(end, m.end())
 
@@ -569,12 +522,20 @@ def _spring(snap: Snapshot, manifests: Manifests) -> list[Raw]:
         text = snap.read(rel)
         if "Controller" not in text:
             continue
-        clean, struct = _mask_jvm(text)
+        clean, struct = mask_code(text)
         framework = _spring_framework(rel, build_dirs, manifests)
         controller, prefixes = False, None
-        for group, is_type in _annotation_groups(clean, struct):
+        groups = list(_annotation_groups(clean, struct))
+        spans = [decl for _, decl in groups if decl]
+        # 어노테이션 없는 타입 선언도 상태를 바꾼다(그 클래스의 매핑은 컨트롤러가 아니다)
+        # `object`는 Kotlin에서만 선언이다(Java에서는 흔한 변수 이름)
+        bare = [([], (k.start(), k.start())) for k in _TYPE_KEYWORD.finditer(struct)
+                if not any(a <= k.start() < b for a, b in spans)
+                and (rel.endswith(".kt") or not k.group().startswith("object"))]
+        events = sorted(groups + bare, key=lambda e: e[0][0][3] if e[0] else e[1][0])
+        for group, decl in events:
             names = {g[0] for g in group}
-            if is_type:
+            if decl:
                 controller = bool(names & {"RestController", "Controller"})
                 mapping = next((g for g in group if g[0] == "RequestMapping"), None)
                 prefixes = _mapping_paths(mapping[1], mapping[2]) if mapping else [""]

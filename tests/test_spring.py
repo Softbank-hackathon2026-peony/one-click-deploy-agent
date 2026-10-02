@@ -332,3 +332,104 @@ def test_spring_boot_application_in_test_sources_does_not_count(tmp_path):
     _write(tmp_path, "lib/src/test/java/TestApp.java", "@SpringBootApplication\nclass TestApp {}\n")
     _, _, workloads, _ = _detect(tmp_path)
     assert workloads == []
+
+
+CATALOG = """[versions]
+boot = "3.3.0"
+
+[libraries]
+spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
+postgresql = { group = "org.postgresql", name = "postgresql", version = "42.7.3" }
+lombok = "org.projectlombok:lombok:1.18.30"
+
+[plugins]
+spring_boot = { id = "org.springframework.boot", version.ref = "boot" }
+dep-mgmt = "io.spring.dependency-management:1.1.5"
+"""
+
+CATALOG_BUILD = """plugins {
+    alias(libs.plugins.spring.boot)
+    alias(libs.plugins.dep.mgmt)
+}
+
+dependencies {
+    implementation(libs.spring.boot.starter.web)
+    runtimeOnly(libs.postgresql)
+    compileOnly(libs.lombok)
+    testImplementation(libs.spring.boot.starter.web)
+}
+"""
+
+
+def test_gradle_version_catalog(tmp_path):
+    _write(tmp_path, "repo/settings.gradle.kts", 'rootProject.name = "catalog-app"\n')
+    _write(tmp_path, "repo/gradle/libs.versions.toml", CATALOG)
+    _write(tmp_path, "repo/build.gradle.kts", CATALOG_BUILD)
+    _write(tmp_path, "repo/src/main/kotlin/App.kt", "@SpringBootApplication\nclass App\n")
+    snap = open_snapshot(str(tmp_path / "repo"), tmp_path / "_w")
+    m = parse_manifests(snap)
+    assert m.deps["org.springframework.boot"] == ("build.gradle.kts", 2)
+    assert m.deps["org.springframework.boot:spring-boot-starter-web"] == ("build.gradle.kts", 7)
+    assert m.deps["org.postgresql:postgresql"] == ("build.gradle.kts", 8)
+    assert m.deps["org.projectlombok:lombok"] == ("build.gradle.kts", 9)
+    inv = _inventory(tmp_path)
+    assert [(w["id"], w["kind"]) for w in inv["workloads"]] == [("w-catalog-app", "web")]
+    assert "ds-postgresql" in {d["id"] for d in inv["datastores"]}
+
+
+def test_gradle_comments_and_multiline_calls(tmp_path):
+    _write(tmp_path, "build.gradle", """dependencies {
+    // implementation 'org.postgresql:postgresql'
+    /* implementation 'com.mysql:mysql-connector-j'
+       id 'org.springframework.boot' */
+    implementation 'com.example:real' // implementation 'org.xerial:sqlite-jdbc'
+    implementation(
+        "org.springframework.boot:spring-boot-starter-web"
+    )
+    println "api 'x:y'"
+}
+""")
+    snap = open_snapshot(str(tmp_path), tmp_path / "_w")
+    m = parse_manifests(snap)
+    for name in ("org.postgresql:postgresql", "com.mysql:mysql-connector-j", "org.xerial:sqlite-jdbc",
+                 "org.springframework.boot", "x:y"):
+        assert name not in m.deps
+    assert m.deps["com.example:real"] == ("build.gradle", 5)
+    assert m.deps["org.springframework.boot:spring-boot-starter-web"] == ("build.gradle", 7)
+
+
+def test_unannotated_class_after_controller_emits_nothing(tmp_path):
+    _kotlin_repo(tmp_path)
+    _write(tmp_path, "src/main/kotlin/com/example/Two.kt", """@RestController
+class A {
+    @GetMapping("/a")
+    fun a() = ""
+}
+
+class Helper {
+    @GetMapping("/phantom")
+    fun b() = ""
+}
+""")
+    _, _, _, eps = _detect(tmp_path)
+    routes = {e["route"] for e in eps}
+    assert "/a" in routes and "/phantom" not in routes
+
+
+def test_concatenated_or_templated_paths_are_skipped(tmp_path):
+    _kotlin_repo(tmp_path)
+    _write(tmp_path, "src/main/kotlin/com/example/Paths.kt", """@RestController
+class P {
+    @GetMapping("/v1" + SUFFIX)
+    fun a() = ""
+
+    @GetMapping("$BASE/y")
+    fun b() = ""
+
+    @GetMapping("/ok")
+    fun c() = ""
+}
+""")
+    _, _, _, eps = _detect(tmp_path)
+    routes = {e["route"] for e in eps if e["handler"]["path"].endswith("Paths.kt")}
+    assert routes == {"/ok"}
