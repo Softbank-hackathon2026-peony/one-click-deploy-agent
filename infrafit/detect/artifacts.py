@@ -357,6 +357,11 @@ def parse_terraform(snap: Snapshot, rel: str) -> ParsedArtifact:
 
 # --- 분류 ---------------------------------------------------------------------
 
+def is_dockerfile(rel: str) -> bool:
+    """`Dockerfile`·`Dockerfile.<x>`·`<x>.Dockerfile` 이름인가."""
+    return _classify(rel) == "dockerfile"
+
+
 def _classify(rel: str) -> str | None:
     p = PurePosixPath(rel)
     name = p.name

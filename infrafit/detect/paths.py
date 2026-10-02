@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-import shlex
 from pathlib import PurePosixPath
 
 from infrafit import kb
@@ -14,6 +13,7 @@ from infrafit.detect.defaults import fact_settings, hop_settings
 from infrafit.detect.environments import Environment, env_command, env_command_evidence, env_scopes, env_slug
 from infrafit.detect.jvm import jvm_build_dirs, owning_build_dir
 from infrafit.detect.nginx import NGINX_COMPONENT, ProxyRoute, ProxyServer
+from infrafit.detect.shell import shell_tokens, simple_commands
 from infrafit.detect.testpaths import is_test_path
 from infrafit.detect.workloads import WorkloadInfo
 from infrafit.evidence import evidence
@@ -40,45 +40,6 @@ _PROPERTIES_KEY = re.compile(r"^\s*([\w.\-\[\]]+)\s*[=:]\s*(.*?)\s*$")
 _DURATION_UNITS = {"ns": 1e-9, "us": 1e-6, "ms": 1e-3, "s": 1, "m": 60, "h": 3600, "d": 86400}
 
 
-_SHELLS = {"sh", "bash", "ash", "dash", "zsh"}
-_COMMAND_PREFIXES = {"exec", "npx"}
-_SEPARATORS = {"&&", ";", "||"}
-_ENV_ASSIGN = re.compile(r"^[A-Za-z_]\w*=")
-_PYTHON = re.compile(r"^python[\d.]*$")
-
-
-def _tokens(command: str) -> list[str]:
-    """셸 규칙으로 나눈 낱말(`&&`·`;`·`||`는 따로 떼어 낸다). 따옴표가 깨졌으면 공백으로만 나눈다."""
-    try:
-        lex = shlex.shlex(command, posix=True, punctuation_chars=";&|")
-        lex.whitespace_split = True
-        return list(lex)
-    except ValueError:
-        return command.split()
-
-
-def _simple_commands(tokens: list[str], depth: int = 0) -> list[list[str]]:
-    """명령 낱말들 → 단순 명령들(실행 순서). `&&`·`;`·`||`로 나누고, 앞의 환경 변수 대입과 `exec`·`npx`를 떼고,
-    `sh -c "..."`·`bash -c ...`는 그 안의 명령으로, `python -m <모듈>`은 모듈 명령으로 바꾼다."""
-    out: list[list[str]] = []
-    group: list[str] = []
-    for token in tokens + [";"]:
-        if token not in _SEPARATORS:
-            group.append(token)
-            continue
-        while group and (group[0] in _COMMAND_PREFIXES or _ENV_ASSIGN.match(group[0])):
-            group = group[1:]
-        if group and PurePosixPath(group[0]).name in _SHELLS and "-c" in group and depth < 5:
-            rest = group[group.index("-c") + 1:]
-            out += _simple_commands(_tokens(rest[0]) if len(rest) == 1 else rest, depth + 1)
-        elif group and _PYTHON.match(PurePosixPath(group[0]).name) and group[1:2] == ["-m"]:
-            out += _simple_commands(group[2:], depth + 1)
-        elif group:
-            out.append(group)
-        group = []
-    return out
-
-
 def _server_of(tokens: list[str]) -> tuple[str, dict] | None:
     """단순 명령 하나가 띄우는 앱 서버."""
     names = [PurePosixPath(t).name for t in tokens]
@@ -103,7 +64,7 @@ def _server_of(tokens: list[str]) -> tuple[str, dict] | None:
 def app_server(command: str) -> tuple[str, dict] | None:
     """실행 명령이 띄우는 앱 서버(구성 요소, 명시 설정). 단순 명령마다 보고 마지막으로 알아본 서버를 쓴다."""
     cmd = command.strip() if isinstance(command, str) else ""
-    found = [server for tokens in _simple_commands(_tokens(cmd)) if (server := _server_of(tokens))]
+    found = [server for tokens in simple_commands(shell_tokens(cmd)) if (server := _server_of(tokens))]
     return found[-1] if found else None
 
 
