@@ -15,10 +15,10 @@ from infrafit.evidence import evidence, line_of
 from infrafit.repo import Snapshot
 
 WEB_FRAMEWORKS = ("next", "express", "fastify", "koa", "@nestjs/core", "hono", "fastapi", "flask", "django")
-DEVCONTAINER = ".devcontainer"
+DEVCONTAINER = ".devcontainer"  # 개발 컨테이너용 compose·Dockerfile은 배포 대상(워크로드·환경)이 아니다
 # 개발·테스트용 Dockerfile(배포하지 않는 이미지): 파일 이름의 변형 부분 조각, 경로 조각
 DEV_DOCKERFILE_PARTS = {"dev", "test", "tests", "ci", "local", "debug", "e2e"}
-TEST_PATH_SEGMENTS = {"test", "tests", "__tests__", "e2e", "spec"}  # 개발 컨테이너용 compose는 배포 대상(워크로드·환경)이 아니다
+TEST_PATH_SEGMENTS = {"test", "tests", "__tests__", "e2e", "spec"}
 PROC_KINDS = {"web": "web", "worker": "worker", "clock": "scheduled", "release": "migration-job"}
 # 워커 프로세스를 뜻하는 토큰 끝(`board.worker`, `jobs/worker.py` 등). `--workers 4`, `uvicorn.workers.UvicornWorker`는 아니다
 WORKER_SUFFIXES = (".worker", "/worker", ":worker", "worker.py", "worker.js", "worker.ts")
