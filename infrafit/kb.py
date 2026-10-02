@@ -47,6 +47,22 @@ def images() -> tuple[dict, ...]:
 
 
 @lru_cache(maxsize=1)
+def implicit_routes() -> tuple[dict, ...]:
+    return tuple(_load("implicit_routes.yaml").get("implicit_routes") or ())
+
+
+@lru_cache(maxsize=1)
+def unmapped_signatures() -> tuple[dict, ...]:
+    """구성 요소 ID가 아직 없어 unmapped label로 내는 시그니처(signatures/*.yaml의 `unmapped:` 목록)."""
+    out: list[dict] = []
+    for path in sorted((KB_DIR / "signatures").glob("*.yaml")):
+        if path.name == "watchlist.yaml":
+            continue
+        out.extend(yaml.safe_load(path.read_text(encoding="utf-8")).get("unmapped") or [])
+    return tuple(out)
+
+
+@lru_cache(maxsize=1)
 def kb_version() -> str:
     digest = hashlib.sha256()
     for path in sorted(KB_DIR.rglob("*.yaml")):

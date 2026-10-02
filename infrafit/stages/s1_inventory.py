@@ -12,7 +12,7 @@ from infrafit.detect.images import image_services
 from infrafit.detect.manifests import parse_manifests
 from infrafit.detect.nginx import find_proxies
 from infrafit.detect.paths import build_paths, fronted_proxies
-from infrafit.detect.signatures import match_signatures
+from infrafit.detect.signatures import match_signatures, unmapped_signature_labels
 from infrafit.detect.workloads import detect_workloads, schedule_matches
 from infrafit.repo import Snapshot, content_digest
 from infrafit.run import RunContext, code_version, input_hash, now_iso
@@ -45,6 +45,7 @@ def run_s1(ctx: RunContext, snap: Snapshot) -> dict:
         "request_paths": build_paths(snap, workloads, artifacts, compute, environments, (servers, routes)),
         "environments": [e.to_dict(snap) for e in environments],
         "existing_artifacts": [a.to_dict() for a in artifacts],
-        "unmapped": find_unmapped(snap, manifests) + image_unmapped(services),
+        "unmapped": (find_unmapped(snap, manifests) + image_unmapped(services)
+                     + unmapped_signature_labels(snap, manifests, kb.unmapped_signatures())),
     }
     return ctx.write_stage("S1", body, input_hash=h, started_at=started)

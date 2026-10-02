@@ -143,5 +143,108 @@ def _lint_images(entries: list[dict] | None = None) -> list[str]:
     return issues
 
 
+def _lint_unmapped_signatures() -> list[str]:
+    issues: list[str] = []
+    seen = {s.get("id") for s in kb.signatures()}
+    for s in kb.unmapped_signatures():
+        sid = s.get("id", "?")
+        if sid in seen:
+            issues.append(f"unmapped signature: 중복 ID {sid}")
+        seen.add(sid)
+        if not isinstance(s.get("label"), str) or not s["label"]:
+            issues.append(f"{sid}: label 없음")
+        if s.get("role") not in ROLES:
+            issues.append(f"{sid}: 잘못된 role {s.get('role')}")
+        issues += _lint_condition(sid, s["when"]) if s.get("when") else [f"{sid}: when 없음"]
+    return issues
+
+
+def _str_list(v) -> bool:
+    return isinstance(v, list) and bool(v) and all(isinstance(x, str) and x for x in v)
+
+
+def _regex_issue(name: str, rx, groups: int = 0) -> str | None:
+    if not isinstance(rx, str) or not rx:
+        return f"{name}: regex 없음"
+    try:
+        compiled = re.compile(rx)
+    except re.error as e:
+        return f"{name}: 정규식 오류 {e}"
+    return f"{name}: regex에 묶음이 없음" if compiled.groups < groups else None
+
+
+def _lint_implicit_route(name: str, r) -> list[str]:
+    if not isinstance(r, dict):
+        return [f"{name}: 라우트가 객체가 아님"]
+    issues: list[str] = []
+    if not isinstance(r.get("method"), str) or not r["method"]:
+        issues.append(f"{name}: method 없음")
+    path = r.get("path")
+    if not isinstance(path, str) or not path or path.count("{}") > 1:
+        issues.append(f"{name}: path가 없거나 `{{}}`가 여럿")
+        return issues
+    for key in ("off_with", "only_with"):
+        if key in r and not _str_list(r[key]):
+            issues.append(f"{name}: {key}는 문자열 목록이어야 함")
+    if "{}" not in path:
+        if "override" in r or "default" in r:
+            issues.append(f"{name}: `{{}}` 없는 path에 override·default")
+        return issues
+    if not isinstance(r.get("default"), str) or not r["default"].startswith("/"):
+        issues.append(f"{name}: default는 `/`로 시작하는 경로여야 함")
+    ov = r.get("override")
+    keys = sorted(set(ov) & {"keyword", "property", "code"}) if isinstance(ov, dict) else []
+    if len(keys) != 1 or len(ov) != 1:
+        issues.append(f"{name}: override는 keyword·property·code 중 하나")
+    elif keys[0] == "code":
+        code = ov["code"] if isinstance(ov["code"], dict) else {}
+        if not _str_list(code.get("globs")):
+            issues.append(f"{name}: code.globs 없음")
+        if issue := _regex_issue(name, code.get("regex"), 1):
+            issues.append(issue)
+    elif not isinstance(ov[keys[0]], str) or not ov[keys[0]]:
+        issues.append(f"{name}: override {keys[0]}가 비었음")
+    return issues
+
+
+def _lint_implicit_routes(entries: list[dict] | None = None) -> list[str]:
+    issues: list[str] = []
+    seen: set[str] = set()
+    for i, e in enumerate(kb.implicit_routes() if entries is None else entries):
+        if not isinstance(e, dict):
+            issues.append(f"implicit route {i}: 객체가 아님")
+            continue
+        name = str(e.get("id") or f"implicit route {i}")
+        if name in seen:
+            issues.append(f"implicit route: 중복 ID {name}")
+        seen.add(name)
+        if not isinstance(e.get("framework"), str) or not e["framework"]:
+            issues.append(f"{name}: framework 없음")
+        trigger = e.get("trigger") if isinstance(e.get("trigger"), dict) else {}
+        if sorted(trigger) == ["dependency"]:
+            if not _str_list(trigger["dependency"]):
+                issues.append(f"{name}: trigger.dependency는 문자열 목록이어야 함")
+        elif sorted(trigger) == ["call"] and isinstance(trigger["call"], dict):
+            call = trigger["call"]
+            if not _str_list(call.get("globs")):
+                issues.append(f"{name}: call.globs 없음")
+            if not isinstance(call.get("dependency"), str) or not call["dependency"]:
+                issues.append(f"{name}: call.dependency 없음")
+            if issue := _regex_issue(name, call.get("regex")):
+                issues.append(issue)
+            elif not call["regex"].endswith("\\("):
+                issues.append(f"{name}: call.regex는 `\\(`로 끝나야 함")
+        else:
+            issues.append(f"{name}: trigger는 dependency 또는 call 하나")
+        routes = e.get("routes")
+        if not isinstance(routes, list) or not routes:
+            issues.append(f"{name}: routes 없음")
+            continue
+        for r in routes:
+            issues += _lint_implicit_route(name, r)
+    return issues
+
+
 def lint() -> list[str]:
-    return _lint_catalog() + _lint_signatures() + _lint_defaults() + _lint_images()
+    return (_lint_catalog() + _lint_signatures() + _lint_unmapped_signatures() + _lint_defaults() + _lint_images()
+            + _lint_implicit_routes())

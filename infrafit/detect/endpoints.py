@@ -7,6 +7,8 @@ import re
 from collections import defaultdict
 from pathlib import PurePosixPath
 
+from infrafit import kb
+from infrafit.detect.implicit_routes import _close_paren, implicit_routes
 from infrafit.detect.jvm import close_bracket, jvm_build_dirs, mask_code, spring_web
 from infrafit.detect.manifests import Manifests, parse_manifests
 from infrafit.detect.nginx import LocationInfo, ProxyRoute, ProxyServer
@@ -535,6 +537,67 @@ def _spring(snap: Snapshot, manifests: Manifests) -> list[Raw]:
     return out
 
 
+# --- 웹소켓 엔드포인트 -----------------------------------------------------------
+
+_STOMP_ENDPOINT = re.compile(r"\.addEndpoint\s*\(")
+_SERVER_ENDPOINT = re.compile(r"(?<![\w.])@(?:[\w.]+\.)?ServerEndpoint\s*\(")
+
+
+def _spring_websocket(snap: Snapshot, manifests: Manifests) -> list[Raw]:
+    """Spring STOMP `registry.addEndpoint("/x", ...)`와 `@ServerEndpoint("/x")`. 경로가 문자열 상수인 것만."""
+    build_dirs = set(jvm_build_dirs(snap))
+    out: list[Raw] = []
+    for rel in _code_files(snap, "**/*.java") + _code_files(snap, "**/*.kt"):
+        text = snap.read(rel)
+        if "addEndpoint" not in text and "ServerEndpoint" not in text:
+            continue
+        clean, struct = mask_code(text)
+        framework = _spring_framework(rel, build_dirs, manifests)
+        for rx, annotation in ((_STOMP_ENDPOINT, False), (_SERVER_ENDPOINT, True)):
+            for m in rx.finditer(struct):
+                close = close_bracket(struct, m.end() - 1)
+                args, args_struct = clean[m.end():close], struct[m.end():close]
+                if annotation:
+                    paths = _mapping_paths(args, args_struct) or []
+                elif "+" in args_struct or "$" in args:
+                    paths = []
+                else:
+                    paths = _JAVA_STRING.findall(args)
+                out += [("WEBSOCKET", p if p.startswith("/") else "/" + p, rel, line_at(text, m.start()), framework)
+                        for p in paths if p]
+    return out
+
+
+_SOCKETIO_IMPORT = re.compile(r"""(?:\bfrom\s+|\brequire\s*\(\s*)['"]socket\.io['"]""")
+_SOCKETIO_NAMES = re.compile(r"""\bimport\s+(?:\*\s+as\s+)?(\w+)\s*(?:,\s*\{[^}]*\})?\s*from\s+['"]socket\.io['"]"""
+                             r"""|\b(?:const|let|var)\s+(\w+)\s*=\s*require\s*\(\s*['"]socket\.io['"]\s*\)\s*[;\n]""")
+_SOCKETIO_ALIAS = re.compile(r"\bServer\s+as\s+(\w+)")
+_SOCKETIO_PATH = re.compile(r"""\bpath\s*:\s*['"`]([^'"`]+)['"`]""")
+
+
+def _socketio(snap: Snapshot) -> list[Raw]:
+    """socket.io 서버: `new Server(`(별칭·`ns.Server` 포함), 기본 가져오기 이름 호출 `io(`,
+    `require("socket.io")(`. socket.io를 가져오는 파일만 본다(socket.io-client는 아니다). 옵션 `path`, 없으면 `/socket.io`."""
+    out: list[Raw] = []
+    for pattern in ("**/*.js", "**/*.ts", "**/*.mjs", "**/*.cjs"):
+        for rel in _code_files(snap, pattern):
+            text = snap.read(rel)
+            if not _SOCKETIO_IMPORT.search(text):
+                continue
+            names = {n for m in _SOCKETIO_NAMES.finditer(text) for n in m.groups() if n}
+            classes = {"Server"} | set(_SOCKETIO_ALIAS.findall(text))
+            alts = [rf"\bnew\s+(?:\w+\.)?(?:{'|'.join(sorted(classes))})\s*\(",
+                    r"""\brequire\s*\(\s*['"]socket\.io['"]\s*\)\s*\("""]
+            if names:
+                alts.append(rf"(?<![\w.])(?:new\s+)?(?:{'|'.join(sorted(names))})\s*\(")
+            for m in re.finditer("|".join(alts), text):
+                args = text[m.end():_close_paren(text, m.end() - 1)]
+                path = _SOCKETIO_PATH.search(args)
+                out.append(("WEBSOCKET", path.group(1) if path else "/socket.io", rel, line_at(text, m.start()),
+                            "socket.io"))
+    return out
+
+
 def _assign(rel: str, webs: list[WorkloadInfo]) -> tuple[WorkloadInfo, bool]:
     """(워크로드, 근거로 정했는가). web 워크로드가 여럿일 때 쓴다. 아무 근거도 없어 첫 워크로드로 보낸 것은 추측이다."""
     segments = set(PurePosixPath(rel).parts)
@@ -787,7 +850,7 @@ def extract_endpoints(snap: Snapshot, workloads: list[WorkloadInfo], routes: lis
     if manifests is None:
         manifests = parse_manifests(snap)
     found = sorted(set(_python(snap) + _django(snap) + _express(snap, manifests) + _next(snap)
-                       + _spring(snap, manifests)),
+                       + _spring(snap, manifests) + _spring_websocket(snap, manifests) + _socketio(snap)),
                    key=lambda r: (r[2], r[3], r[0], r[1], r[4]))
     # 같은 (메서드, 경로, 파일, 줄)은 하나만 둔다
     seen: set[tuple[str, str, str, int]] = set()
@@ -796,10 +859,15 @@ def extract_endpoints(snap: Snapshot, workloads: list[WorkloadInfo], routes: lis
         if r[:4] not in seen:
             seen.add(r[:4])
             raw.append(r)
+    # 암묵 라우트는 코드 라우트 뒤에 둔다(코드 라우트의 id가 그대로다). 모두 후보다
+    build_dirs = set(jvm_build_dirs(snap))
+    implicit = [(m, path, rel, line, _spring_framework(rel, build_dirs, manifests) if fw == "spring" else fw)
+                for m, path, rel, line, fw in implicit_routes(snap, manifests, kb.implicit_routes())]
     counters: dict[str, int] = defaultdict(int)
     out: list[dict] = []
     others = [w for w in workloads if w.kind != "web"]
-    for method, route, rel, line, framework in raw:
+    for i, (method, route, rel, line, framework) in enumerate(raw + implicit):
+        guessed = i >= len(raw)
         if _owned_by_other(rel, webs, others):
             continue
         # 여러 워크로드가 같은 코드를 쓰면 근거가 있는 워크로드마다 하나씩, 없으면 점수·대체 규칙
@@ -813,6 +881,9 @@ def extract_endpoints(snap: Snapshot, workloads: list[WorkloadInfo], routes: lis
         else:
             targets = [_assign(rel, webs)]
         for w, sure in targets:
+            if guessed and any(e["workload"] == w.id and e["method"] == method and e["route"] == route for e in out):
+                continue  # 코드가 같은 라우트를 직접 만든다
+            sure = sure and not guessed
             counters[w.id] += 1
             out.append({"id": f"ep-{w.id[2:]}-{counters[w.id]:03d}", "workload": w.id, "method": method,
                         "route": route, "handler": evidence(snap, rel, line), "framework": framework,
