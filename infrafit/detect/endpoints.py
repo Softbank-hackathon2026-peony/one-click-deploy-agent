@@ -32,9 +32,11 @@ _FUNC_PARAMS = re.compile(r"\bfunction\b\s*\*?\s*\w*\s*\(([^)]*)\)"
                           r"|\(([^()]*)\)\s*(?::\s*[^=;{}()]+)?=>"
                           r"|\b(\w+)\s*=>")
 _PARAM_NAME = re.compile(r"^\s*(?:\.\.\.)?(\w+)")
-# 가장 가까운 package.json에 이 중 하나가 있으면 매개변수 이름만으로 서버 변수로 본다
+# 가장 가까운 package.json에 이 중 하나가 있으면 매개변수 이름만으로 서버 변수로 본다. 그 이름은 매개변수를
+# 선언한 함수 안에서만 서버이고, 경로가 `/`로 시작하는 호출만 라우트로 본다(`api`·`instance`처럼 HTTP
+# 클라이언트가 흔히 쓰는 이름은 넣지 않는다)
 SERVER_DEPS = ("express", "fastify", "koa", "hono", "@koa/router")
-SERVER_PARAMS = frozenset({"app", "router", "server", "fastify", "instance", "api"})
+SERVER_PARAMS = frozenset({"app", "router", "server", "fastify"})
 # Express 계열 framework 이름: 가장 가까운 package.json 의존성 중 이 순서로 처음 있는 것, 없으면 express
 EXPRESS_FAMILY = ("fastify", "koa", "hono", "express")
 _DJANGO = re.compile(r"\b(?:re_)?path\(\s*r?['\"]([^'\"]*)['\"]")
@@ -275,16 +277,72 @@ def _package_deps(snap: Snapshot, manifests: Manifests, rel: str) -> set[str]:
         d = parent_dir(d)
 
 
-def _param_servers(text: str) -> set[str]:
-    """함수 매개변수 중 서버 변수로 흔히 쓰는 이름(`function x(fastify, opts)`, `async (app) =>` 등)."""
-    out: set[str] = set()
+def _line_at(text: str, pos: int) -> int:
+    """text의 pos 글자가 있는 줄 번호(1부터, Snapshot.lines와 같은 줄 나눔)."""
+    return len((text[:pos] + "x").splitlines())
+
+
+def _block_end(text: str, start: int) -> int:
+    """text[start]의 `{`와 짝이 맞는 `}`의 위치. 문자열 안 괄호는 세지 않는다. 못 찾으면 파일 끝."""
+    depth = 0
+    quote = ""
+    escaped = False
+    for i in range(start, len(text)):
+        ch = text[i]
+        if quote:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == quote:
+                quote = ""
+        elif ch in "'\"`":
+            quote = ch
+        elif ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return i
+    return len(text)
+
+
+Scope = tuple[str, int, int]  # (서버 이름, 시작 위치, 끝 위치)
+
+
+def _param_servers(text: str) -> list[Scope]:
+    """함수 매개변수 중 서버 변수로 흔히 쓰는 이름(`function x(fastify, opts)`, `async (app) =>` 등)과 그 범위:
+    매개변수를 선언한 함수부터 그 함수 본문 끝까지. 본문 끝을 못 찾으면(식 본문 화살표 함수 등) 파일 끝까지."""
+    out: list[Scope] = []
     for m in _FUNC_PARAMS.finditer(text):
         params = m.group(1) if m.group(1) is not None else m.group(2) if m.group(2) is not None else m.group(3)
-        for param in params.split(","):
-            name = _PARAM_NAME.match(param)
-            if name and name.group(1) in SERVER_PARAMS:
-                out.add(name.group(1))
+        names = {n.group(1) for p in params.split(",") if (n := _PARAM_NAME.match(p))} & SERVER_PARAMS
+        if not names:
+            continue
+        if m.group(1) is not None:
+            brace = text.find("{", m.end())
+        else:
+            rest = text[m.end():]
+            brace = m.end() + len(rest) - len(rest.lstrip()) if rest.lstrip().startswith("{") else -1
+        end = _block_end(text, brace) if brace >= 0 else len(text)
+        out += [(name, m.start(), end) for name in sorted(names)]
     return out
+
+
+class _Servers:
+    """파일의 서버 변수: 변수 선언으로 찾은 것은 파일 전체, 매개변수로 찾은 것은 그 함수 안에서 `/` 경로만."""
+
+    def __init__(self, declared: set[str], scoped: list[Scope]):
+        self.declared = declared
+        self.scoped = scoped
+
+    def __bool__(self) -> bool:
+        return bool(self.declared or self.scoped)
+
+    def serves(self, name: str, pos: int, path: str) -> bool:
+        if name in self.declared:
+            return True
+        return path.startswith("/") and any(n == name and s <= pos <= e for n, s, e in self.scoped)
 
 
 def _top_level(text: str, start: int) -> str:
@@ -308,18 +366,16 @@ def _top_level(text: str, start: int) -> str:
     return "".join(out)
 
 
-def _route_objects(text: str, servers: set[str]) -> list[tuple[list[str], str, int]]:
+def _route_objects(text: str, servers: _Servers) -> list[tuple[list[str], str, int]]:
     """`X.route({ method, url })`(X는 서버 변수) → (메서드들, 경로, 줄)."""
     out = []
     for m in _ROUTE_OBJECT.finditer(text):
-        if m.group(1) not in servers:
-            continue
         body = _top_level(text, m.end() - 1)
         method, url = _OBJ_METHOD.search(body), _OBJ_URL.search(body)
-        if not (method and url):
+        if not (method and url and servers.serves(m.group(1), m.start(), url.group(1))):
             continue
         methods = sorted({x.upper() for x in _STRING.findall(method.group(1))})
-        out.append((methods, url.group(1), text.count("\n", 0, m.start()) + 1))
+        out.append((methods, url.group(1), _line_at(text, m.start())))
     return out
 
 
@@ -331,18 +387,17 @@ def _express(snap: Snapshot, manifests: Manifests) -> list[Raw]:
                 continue
             text = snap.read(rel)
             deps = _package_deps(snap, manifests, rel)
-            servers = set(_SERVER_VAR.findall(text))
-            if any(dep in deps for dep in SERVER_DEPS):
-                servers |= _param_servers(text)
+            scoped = _param_servers(text) if any(dep in deps for dep in SERVER_DEPS) else []
+            servers = _Servers(set(_SERVER_VAR.findall(text)), scoped)
             if not servers:
                 continue
             framework = next((fw for fw in EXPRESS_FAMILY if fw in deps), "express")
-            for i, line in enumerate(snap.lines(rel), 1):
-                for m in _ROUTE_CALL.finditer(line):
-                    if m.group(1) not in servers:
-                        continue
-                    method = "ANY" if m.group(2) == "all" else m.group(2).upper()
-                    out.append((method, m.group(3), rel, i, framework))
+            # 여러 줄에 걸친 호출(`app.post(\n  '/x',`)도 읽도록 파일 전체에서 찾고, 줄은 호출 시작 위치로 정한다
+            for m in _ROUTE_CALL.finditer(text):
+                if not servers.serves(m.group(1), m.start(), m.group(3)):
+                    continue
+                method = "ANY" if m.group(2) == "all" else m.group(2).upper()
+                out.append((method, m.group(3), rel, _line_at(text, m.start()), framework))
             for methods, route, i in _route_objects(text, servers):
                 out += [(method, route, rel, i, framework) for method in methods]
     return out

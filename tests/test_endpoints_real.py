@@ -91,7 +91,7 @@ def test_fastify_plugin_and_route_object(tmp_path):
   })
 }
 """)
-    _write(tmp_path, "api/src/more.js", "module.exports = async (instance) => {\n  instance.post('/c', h)\n}\n"
+    _write(tmp_path, "api/src/more.js", "module.exports = async (server) => {\n  server.post('/c', h)\n}\n"
                                         "export default async function (app) { app.route({ method: 'DELETE', url: '/d' }) }\n")
     eps = _eps(tmp_path, [_w()])
     assert _routes(eps) == [("DELETE", "/d"), ("GET", "/a"), ("GET", "/b"), ("HEAD", "/b"), ("POST", "/c")]
@@ -108,6 +108,33 @@ def test_parameter_servers_need_server_dependency(tmp_path):
     _write(tmp_path, "plain.js", "const app = express()\napp.get('/z', h)\n")
     eps = _eps(tmp_path, [_w()])
     assert sorted((e["route"], e["framework"]) for e in eps) == [("/y", "koa"), ("/z", "express")]
+
+
+def test_parameter_servers_are_scoped_to_their_function(tmp_path):
+    _write(tmp_path, "package.json", '{"dependencies": {"express": "^4", "react": "^18"}}\n')
+    _write(tmp_path, "src/client.js", "const f = (server) => server.get('users')\n"
+                                      "function g(api, instance) { api.get('/a'); instance.get('/b') }\n"
+                                      "async function load(client) { return client.get('/x') }\n")
+    _write(tmp_path, "src/plugin.js", """async function r(fastify) {
+  fastify.get('/a', h)
+}
+function other() {
+  const fastify = makeClient()
+  fastify.get('/b')
+}
+""")
+    eps = _eps(tmp_path, [_w()])
+    assert [(e["route"], e["handler"]["path"]) for e in eps] == [("/a", "src/plugin.js")]
+
+
+def test_multiline_route_calls(tmp_path):
+    _write(tmp_path, "srv/package.json", '{"dependencies": {"fastify": "^4"}}\n')
+    _write(tmp_path, "srv/plugin.ts", "export default async function (fastify) {\n  fastify.post(\n    '/x',\n"
+                                      "    { schema },\n    async () => 'ok',\n  )\n}\n")
+    _write(tmp_path, "server.js", "const app = express()\n\napp.get(\n  '/y',\n  h,\n)\n")
+    eps = _eps(tmp_path, [_w()])
+    assert sorted((e["method"], e["route"], e["handler"]["path"], e["handler"]["line"], e["framework"]) for e in eps) == [
+        ("GET", "/y", "server.js", 3, "express"), ("POST", "/x", "srv/plugin.ts", 2, "fastify")]
 
 
 def test_flask_add_url_rule_with_blueprint_prefixes(tmp_path):
