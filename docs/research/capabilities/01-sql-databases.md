@@ -389,6 +389,7 @@
 | DS.regions | 서울 asia-northeast3 | | https://docs.cloud.google.com/sql/docs/postgres/locations "asia-northeast3 \| Seoul" · 2026-10-01 |
 | DS.scaling | 수직(머신 유형 변경, Enterprise는 수 분 중단) | | 위 editions-intro · 2026-10-01 |
 | DS.cost_floor | **us-central1 기준** db-f1-micro $0.0105/시간 ≈ $7.67/월 (SLA 제외), 전용 1vCPU·3.75GB ≈ $49.3/월 (vCPU $0.0413 + 메모리 $0.007/GiB-시간). SSD $0.000232877/GiB-시간 ≈ $0.17/GB-월. **서울 단가 미확인** | 공유 코어는 SLA 대상 아님 | https://cloud.google.com/sql/pricing "db-f1-micro* … $0.0105 / 1 hour" · "*Shared CPU machine types (db-f1-micro and db-g1-small) are not covered by the Cloud SQL SLA." · 2026-10-01 |
+| DS.cost_floor (→ COST.monthly_floor_usd) | **월 $12.21**(서울 정가, 730시간) = db-f1-micro(공유 코어, Enterprise) $0.0137/시간 × 730 = $10.00 + SSD 10 GiB × $0.221/GiB-월 = $2.21. 백업·이그레스 제외. 실행 중 IPv4는 과금 없음(유휴일 때만 $0.01/시간). 공유 코어는 SLA 대상 아님 | 단일 존, SSD 10 GiB | https://cloud.google.com/sql/pricing "$0.0137 / 1 hour" (db-f1-micro, Seoul) · "$0.221 / 1 gibibyte month" (SSD storage capacity, Seoul) · "IPv4 addresses while idle" · "*Shared CPU machine types (db-f1-micro and db-g1-small) are not covered by the Cloud SQL SLA." · 2026-10-02 |
 
 #### 비용 구조
 - vCPU·메모리·스토리지 시간 과금(초 단위). CUD 1년 25%, 3년 52%.
