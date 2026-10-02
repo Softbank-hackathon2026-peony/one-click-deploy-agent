@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from pathlib import PurePosixPath
 
 from infrafit.detect.manifests import Manifests
 from infrafit.detect.testpaths import is_test_path
@@ -11,6 +12,12 @@ from infrafit.evidence import evidence
 from infrafit.repo import Snapshot
 
 MAX_CODE_EVIDENCE = 5
+# 보조 코드(스크립트·QA·도구·예제·벤치마크) 디렉터리: 근거 목록에서 다른 파일 뒤에 둔다
+AUX_DIRS = frozenset({"scripts", "qa", "tools", "examples", "bench"})
+
+
+def _is_aux(rel: str) -> bool:
+    return bool(set(PurePosixPath(rel).parts[:-1]) & AUX_DIRS)
 
 
 @dataclass(frozen=True)
@@ -40,7 +47,7 @@ def _eval(cond: dict, snap: Snapshot, manifests: Manifests) -> list[dict]:
         flags = re.MULTILINE | (re.IGNORECASE if code.get("flags") == "i" else 0)
         rx = re.compile(code["regex"], flags)
         out = []
-        for rel in snap.glob(code["glob"]):
+        for rel in sorted(snap.glob(code["glob"]), key=lambda r: (_is_aux(r), r)):
             if is_test_path(rel):  # 테스트 코드의 흔적은 실제 배포 구성의 근거가 아니다
                 continue
             for i, text in enumerate(snap.lines(rel), 1):
@@ -66,5 +73,8 @@ def match_signatures(snap: Snapshot, manifests: Manifests, sigs) -> list[Match]:
                 status = refine.get("status", status)
                 ev = ev + extra
                 break
-        out.append(Match(sig["id"], component, sig["role"], status, tuple(ev)))
+        # 조건 여러 개가 같은 줄을 가리킬 수 있다(같은 근거는 하나만), 보조 코드 근거는 뒤로
+        unique = [e for i, e in enumerate(ev) if e not in ev[:i]]
+        unique.sort(key=lambda e: _is_aux(e["path"]))
+        out.append(Match(sig["id"], component, sig["role"], status, tuple(unique)))
     return out

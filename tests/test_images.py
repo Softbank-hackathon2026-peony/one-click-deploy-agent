@@ -200,7 +200,8 @@ def test_compose_evidence_points_at_service_definition(tmp_path):
            "  postgres:\n    image: postgres:16\nvolumes:\n  postgres:\n")
     inv = _inventory(tmp_path)
     ds = next(d for d in inv["datastores"] if d["id"] == "ds-postgresql")
-    assert [(e["path"], e["line"]) for e in ds["evidence"]] == [("docker-compose.yml", 9)]
+    # 2번 줄은 접속 URL 시그니처(FB9) 근거다. 이미지 근거는 앵커 값이 아니라 서비스 정의 줄이다
+    assert [(e["path"], e["line"]) for e in ds["evidence"]] == [("docker-compose.yml", 2), ("docker-compose.yml", 9)]
     assert ds["used_by"] == ["w-api"]
 
 

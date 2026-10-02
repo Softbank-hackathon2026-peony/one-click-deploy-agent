@@ -33,3 +33,67 @@ def test_all_requires_every_condition(tmp_path):
     snap = _snap(tmp_path)
     matches = match_signatures(snap, parse_manifests(snap), SIGS)
     assert [m.signature for m in matches] == ["SIG-A"]
+
+
+def _real(tmp_path, files: dict[str, str]):
+    from infrafit import kb
+    for rel, text in files.items():
+        p = tmp_path / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text)
+    snap = open_snapshot(str(tmp_path), tmp_path / "_w")
+    return {m.signature: m for m in match_signatures(snap, parse_manifests(snap), kb.signatures())}
+
+
+def test_supabase_dependency_only_is_candidate(tmp_path):
+    m = _real(tmp_path / "a", {"package.json": '{"dependencies": {"@supabase/supabase-js": "2"}}\n',
+                               "auth.ts": "const { data } = await supabase.auth.getUser()\n"})
+    assert m["SIG-DS-SUPABASE"].status == "candidate"
+    m = _real(tmp_path / "b", {"package.json": '{"dependencies": {"@supabase/supabase-js": "2"}}\n',
+                               "db.ts": "const { data } = await supabase.from('posts').select('*')\n"})
+    assert m["SIG-DS-SUPABASE"].status == "confirmed"
+    assert any(e["path"] == "db.ts" for e in m["SIG-DS-SUPABASE"].evidence)
+    m = _real(tmp_path / "c", {"requirements.txt": "supabase==2\n",
+                               "x.py": "DB = 'postgresql://u:p@db.abc.supabase.co:5432/postgres'\n"})
+    assert m["SIG-DS-SUPABASE"].status == "confirmed"
+
+
+def test_jvm_sqs_dependency_only_is_candidate(tmp_path):
+    gradle = "dependencies { implementation 'io.awspring.cloud:spring-cloud-aws-starter-sqs' }\n"
+    m = _real(tmp_path / "a", {"build.gradle": gradle})
+    assert m["SIG-QU-SQS"].status == "candidate"
+    m = _real(tmp_path / "b", {"build.gradle": gradle, "src/main/java/L.java": "class L {\n  @SqsListener(\"q\")\n  void on(String m) {}\n}\n"})
+    assert m["SIG-QU-SQS"].status == "confirmed"
+    m = _real(tmp_path / "c", {"send.ts": "await client.send(new SendMessageCommand({}))\n"})
+    assert m["SIG-QU-SQS"].status == "confirmed"
+    assert len(m["SIG-QU-SQS"].evidence) == len(set(map(str, m["SIG-QU-SQS"].evidence)))
+
+
+def test_postgres_url_code_condition(tmp_path):
+    m = _real(tmp_path / "a", {"docker-compose.yml": "services:\n  api:\n    environment:\n"
+                                                     "      DATABASE_URL: postgresql+asyncpg://u@db/app\n"})
+    assert [(e["path"], e["line"]) for e in m["SIG-DS-POSTGRES"].evidence] == [("docker-compose.yml", 4)]
+    m = _real(tmp_path / "b", {".env.example": "DATABASE_URL=postgres://u@localhost/db\n"})
+    assert "SIG-DS-POSTGRES" in m
+    m = _real(tmp_path / "c", {"a.py": "url = 'mysql://x'\n"})
+    assert "SIG-DS-POSTGRES" not in m
+
+
+def test_local_file_writes_are_candidates(tmp_path):
+    for i, code in enumerate(("with open(path, 'w') as f:\n    f.write(x)\n", "json.dump(data, f)\n",
+                              "Path('out.txt').write_text(s)\n", "with open(p, mode=\"a\") as f: pass\n")):
+        m = _real(tmp_path / str(i), {"app.py": code})
+        assert m["SIG-FS-LOCAL"].status == "candidate", code
+    m = _real(tmp_path / "r", {"app.py": "with open(path) as f:\n    json.loads(f.read())\n"})
+    assert "SIG-FS-LOCAL" not in m
+
+
+def test_code_evidence_puts_scripts_and_qa_last(tmp_path):
+    files = {f"{d}/a{i}.py": "import sqlite3\nsqlite3.connect('x')\n"
+             for d in ("scripts", "qa", "tools", "examples", "bench") for i in range(2)}
+    files["zz/db.py"] = "import sqlite3\nsqlite3.connect('x')\n"
+    files["backend/scripts/seed.py"] = "import sqlite3\nsqlite3.connect('x')\n"
+    m = _real(tmp_path, files)
+    paths = [e["path"] for e in m["SIG-DS-SQLITE"].evidence]
+    assert paths[0] == "zz/db.py"
+    assert len(paths) == 5

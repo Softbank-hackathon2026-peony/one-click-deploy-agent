@@ -10,6 +10,10 @@ signatures:
         - {code: {glob: "**/*.js", regex: "writeFile(Sync)?\\("}}
         - {code: {glob: "**/*.js", regex: "multer\\(\\s*\\{\\s*dest"}}
         - {code: {glob: "**/*.ts", regex: "multer\\(\\s*\\{\\s*dest"}}
+        # Python 파일 쓰기: 쓰기·덧붙이기 모드 open, json.dump, Path.write_text
+        - {code: {glob: "**/*.py", regex: "\\bopen\\([^)]*,\\s*(?:mode\\s*=\\s*)?['\"][rbxt+]*[wa][rwabxt+]*['\"]"}}
+        - {code: {glob: "**/*.py", regex: "\\bjson\\.dump\\("}}
+        - {code: {glob: "**/*.py", regex: "\\.write_text\\("}}
   - id: SIG-FS-S3
     component: "fs:aws/s3/default"
     role: file-storage
