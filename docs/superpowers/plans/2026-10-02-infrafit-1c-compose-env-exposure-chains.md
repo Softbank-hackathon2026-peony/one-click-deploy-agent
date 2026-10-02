@@ -35,9 +35,9 @@
 **규칙**
 
 compose 환경 만들기
-1. 디렉터리마다 기본 파일(`docker-compose.yml`, `docker-compose.yaml`, `compose.yml`, `compose.yaml`)이 있으면 환경 하나. 같은 디렉터리의 `*.override.yml`/`*.override.yaml`은 기본 파일 위에 병합한다. 이름은 루트면 `compose`, 아니면 `compose/<디렉터리>`. `source`는 기본 파일.
-2. 같은 디렉터리의 변형 파일 `docker-compose.<x>.yml`, `compose.<x>.yaml` 등(`x`가 `override`가 아님)은 기본(+override) 위에 병합한 별도 환경. 이름은 `compose.<x>`(루트) 또는 `compose.<x>/<디렉터리>`. `source`는 변형 파일. 기본 파일이 없으면 변형 파일만으로 만든다.
-3. 병합: 서비스 단위로, 뒤 파일의 키가 앞 파일의 키를 덮는다. `environment`는 변수 이름 단위로 병합한다(목록·맵 형식 모두). 파싱에 실패한 파일은 건너뛴다. 서비스가 하나도 없으면 환경을 만들지 않는다.
+1. 디렉터리마다 기본 파일(`docker-compose.yml`, `docker-compose.yaml`, `compose.yml`, `compose.yaml`)이 있으면 환경 하나. 같은 디렉터리의 `compose.override.*`는 `compose.*` 기본 파일 위에만, `docker-compose.override.*`는 `docker-compose.*` 기본 파일 위에만 병합한다(docker 동작). 이름은 루트면 `compose`, 아니면 `compose/<디렉터리>`. `source`는 기본 파일. `.devcontainer/` 아래 compose 파일은 환경을 만들지 않는다. 서비스 ↔ 워크로드 대응(5~7) 뒤에 대응한 워크로드가 하나도 없는 compose 환경은 버린다.
+2. 같은 디렉터리의 변형 파일 `docker-compose.<x>.yml`, `compose.<x>.yaml`, `docker-compose-<x>.yml` 등(`override` 파일이 아님)은 기본 파일 + 변형 파일만 병합한 별도 환경이다(`docker compose -f <기본> -f <변형>`과 같다. override는 개발 설정을 담으므로 넣지 않는다). 이름은 `compose.<x>`(루트) 또는 `compose.<x>/<디렉터리>`. `source`는 변형 파일. 기본 파일이 없으면 변형 파일만으로 만든다. 변형 파일은 파싱에 성공하고 서비스가 하나 이상 있어야 환경을 만든다.
+3. 병합(docker compose 규칙): 서비스 단위로, `environment`는 변수 이름 단위(목록·맵 형식 모두, 값 없는 `KEY`는 호스트 값을 받으므로 알 수 없음 = 없음), `volumes`는 컨테이너 경로 단위(같은 경로면 뒤 파일이 이긴다), `ports`·`expose`는 겹치지 않게 덧붙이고, 그 밖의 키는 뒤 파일의 값이 앞 파일의 값을 덮는다. 파싱에 실패한 파일은 건너뛴다. 서비스가 하나도 없으면 환경을 만들지 않는다.
 4. `rendered`는 compose 환경에서 항상 true.
 
 서비스 ↔ 워크로드 대응(환경마다)
@@ -46,7 +46,7 @@ compose 환경 만들기
 7. 워크로드가 compose에서 왔으면(source `compose`) 그 compose 파일이 속한 환경들에서 이름으로 대응한다(5와 같음).
 
 명령
-8. `env_command`: compose 환경 → 서비스 `command`(목록은 공백으로 이음), 없으면 서비스 빌드 Dockerfile의 마지막 체인 ENTRYPOINT+CMD. kustomize 환경 → 렌더 객체에서 워크로드 객체(`is_workload_doc`)의 컨테이너(이미지가 워크로드 이미지와 같은 것, 없으면 첫 컨테이너) `command`+`args`. 둘 다 없으면 `w.command`.
+8. `env_command`: compose 환경 → 서비스 `command`(목록은 공백으로 이음), 없으면 서비스 빌드 Dockerfile의 마지막 체인 ENTRYPOINT+CMD. kustomize 환경 → 렌더 객체에서 워크로드 객체(`is_workload_doc`)의 컨테이너(이미지가 워크로드 이미지와 같은 것, 없으면 첫 컨테이너) `command`+`args`(`command` 없이 `args`만 있으면 이미지 최종 체인 ENTRYPOINT + `args`, 둘 다 없으면 이미지 CMD). 둘 다 없으면 `w.command`.
 9. 경로의 `app-server` 구간은 그 경로 환경의 `env_command`로 만든다(environment null이면 `w.command`, 계획 1과 같음).
 
 경로·프록시
