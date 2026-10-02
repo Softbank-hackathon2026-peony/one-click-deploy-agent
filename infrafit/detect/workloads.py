@@ -6,9 +6,12 @@ import json
 import posixpath
 import re
 import shlex
+import tomllib
 from dataclasses import dataclass
 from fnmatch import fnmatchcase
 from pathlib import PurePosixPath
+
+import yaml
 
 from infrafit.detect.artifacts import (ParsedArtifact, as_dict, build_source, dockerfile_at, dockerfiles, is_build_path,
                                        pod_spec)
@@ -16,8 +19,9 @@ from infrafit.detect.compose import DEVCONTAINER, compose_build, compose_service
 from infrafit.detect.images import base_class, image_class, image_name, service_class
 from infrafit.detect.jvm import build_location, jvm_build_dirs, spring_apps, spring_web
 from infrafit.detect.manifests import Manifests
-from infrafit.detect.testpaths import is_dev_dockerfile, is_test_dir
-from infrafit.evidence import evidence, line_of
+from infrafit.detect.signatures import Match, is_aux_path
+from infrafit.detect.testpaths import is_dev_dockerfile, is_test_dir, is_test_path
+from infrafit.evidence import evidence, line_at, line_of
 from infrafit.repo import Snapshot, parent_dir
 
 WEB_FRAMEWORKS = ("next", "express", "fastify", "koa", "@nestjs/core", "hono", "fastapi", "flask", "django")
@@ -49,6 +53,7 @@ class WorkloadInfo:
     root_guessed: bool = False  # 저장소에 하나뿐인 Dockerfile로 code_root를 정했다(규칙상 추측)
     framework: str = ""  # 코드에서 찾은 웹 프레임워크(Spring: spring-mvc·spring-webflux). 출력에는 쓰지 않는다
     framework_evidence: dict | None = None  # 프레임워크를 정한 의존성 줄(Spring 웹 스타터)
+    schedule_evidence: dict | None = None  # 배치 진입점을 실행하는 GitHub Actions 스케줄의 cron 줄
 
     def to_dict(self) -> dict:
         return {"id": self.id, "kind": self.kind, "name": self.name,
@@ -441,6 +446,156 @@ def _bundled_static(workloads: list[WorkloadInfo], artifacts: list[ParsedArtifac
     return out
 
 
+
+# --- 배치·CLI 진입점(워크로드가 하나도 없을 때) ---------------------------------
+
+GHA_SCHEDULE = "sc:github/actions-schedule/default"
+_PY_MAIN = re.compile(r"""^if\s+__name__\s*==\s*['"]__main__['"]\s*:""", re.MULTILINE)
+_RUN_SPLIT = re.compile(r"[\s;&|()]+")
+
+
+@dataclass(frozen=True)
+class _Entry:
+    path: str  # 근거 파일(파이썬 파일 또는 매니페스트)
+    line: int | None
+    name: str  # 워크로드 이름: 파일·스크립트 이름
+    file: str | None = None  # 파이썬 진입점 파일(실행 명령에서 경로로 찾는다)
+    script: str | None = None  # 스크립트 이름(실행 명령에서 낱말로 찾는다)
+
+
+def _py_entries(snap: Snapshot) -> list[_Entry]:
+    out: list[_Entry] = []
+    for rel in snap.glob("**/*.py"):
+        p = PurePosixPath(rel)
+        if p.name == "setup.py":
+            continue
+        text = snap.read(rel)
+        m = _PY_MAIN.search(text)
+        if p.name == "__main__.py":
+            name = p.parent.name or "main"
+        elif m:
+            name = p.stem
+        else:
+            continue
+        out.append(_Entry(rel, line_at(text, m.start()) if m else 1, name, file=rel))
+    return out
+
+
+def _toml_key_line(snap: Snapshot, rel: str, key: str) -> int | None:
+    rx = re.compile(rf"""^\s*["']?{re.escape(key)}["']?\s*=""")
+    return next((i for i, text in enumerate(snap.lines(rel), 1) if rx.match(text)), None)
+
+
+def _script_entries(snap: Snapshot) -> list[_Entry]:
+    """package.json `bin`, pyproject `[project.scripts]`(·`[tool.poetry.scripts]`)의 스크립트."""
+    out: list[_Entry] = []
+    for rel in snap.glob("**/package.json"):
+        try:
+            data = json.loads(snap.read(rel))
+        except (json.JSONDecodeError, ValueError):
+            continue
+        bin_ = data.get("bin") if isinstance(data, dict) else None
+        if isinstance(bin_, str) and bin_ and isinstance(data.get("name"), str) and data["name"]:
+            name = data["name"].rsplit("/", 1)[-1]
+            out.append(_Entry(rel, line_of(snap, rel, '"bin"'), name, script=name))
+        elif isinstance(bin_, dict):
+            for name in sorted(k for k in bin_ if isinstance(k, str) and k):
+                out.append(_Entry(rel, line_of(snap, rel, f'"{name}"'), name, script=name))
+    for rel in snap.glob("**/pyproject.toml"):
+        try:
+            data = tomllib.loads(snap.read(rel))
+        except (tomllib.TOMLDecodeError, ValueError):
+            continue
+        project = data.get("project") if isinstance(data.get("project"), dict) else {}
+        poetry = as_dict(as_dict(data.get("tool")).get("poetry"))
+        for table in (project.get("scripts"), poetry.get("scripts")):
+            for name in sorted(k for k in as_dict(table) if isinstance(k, str) and k):
+                out.append(_Entry(rel, _toml_key_line(snap, rel, name), name, script=name))
+    return out
+
+
+def _runs_entry(run: str, workdir: str, e: _Entry) -> bool:
+    """워크플로 step의 run 명령이 진입점을 실행하는가: 파일 경로(작업 디렉터리 기준, 또는 경로 끝이 같은 것),
+    `python -m 모듈`, 스크립트 이름 낱말."""
+    tokens = [t.strip("'\"") for t in _RUN_SPLIT.split(run) if t.strip("'\"")]
+    for i, tok in enumerate(tokens):
+        if e.script is not None and tok == e.script:
+            return True
+        if e.file is None:
+            continue
+        if i > 0 and tokens[i - 1] == "-m":  # python -m a.b → a/b.py 또는 a/b/__main__.py
+            mod = tok.replace(".", "/")
+            if e.file in (f"{mod}.py", f"{mod}/__main__.py") or e.file.endswith((f"/{mod}.py", f"/{mod}/__main__.py")):
+                return True
+        if tok.endswith(".py"):
+            for cand in {posixpath.normpath(tok), posixpath.normpath(posixpath.join(workdir, tok))}:
+                if e.file == cand or e.file.endswith("/" + cand.lstrip("./")):
+                    return True
+    return False
+
+
+def _scheduled_runs(snap: Snapshot) -> list[tuple[str, int | None, str, str]]:
+    """`on: schedule` GitHub Actions 워크플로의 (파일, cron 줄, run 명령, 작업 디렉터리)들. 읽을 수 없는 파일은 건너뛴다."""
+    out = []
+    for rel in sorted(snap.glob(".github/workflows/*.yml") + snap.glob(".github/workflows/*.yaml")):
+        try:
+            data = yaml.safe_load(snap.read(rel))
+        except yaml.YAMLError:
+            continue
+        if not isinstance(data, dict):
+            continue
+        on = data.get("on", data.get(True))  # YAML 1.1에서 `on` 키는 true로 읽힌다
+        if not (isinstance(on, dict) and "schedule" in on):
+            continue
+        cron = line_of(snap, rel, "cron")
+        for job in as_dict(data.get("jobs")).values():
+            job = as_dict(job)
+            job_dir = as_dict(as_dict(as_dict(job.get("defaults")).get("run"))).get("working-directory")
+            for step in _as_list(job.get("steps")):
+                step = as_dict(step)
+                run = step.get("run")
+                wd = step.get("working-directory", job_dir)
+                if isinstance(run, str):
+                    out.append((rel, cron, run, wd if isinstance(wd, str) else ""))
+    return out
+
+
+def _from_entrypoints(snap: Snapshot) -> list[WorkloadInfo]:
+    """워크로드가 하나도 없을 때: 테스트·보조 디렉터리가 아닌 곳의 진입점(파이썬 `__main__` 블록·`__main__.py`,
+    package.json `bin`, pyproject 스크립트)을 디렉터리마다 하나(경로 순 첫 번째) 후보 워크로드로 만든다.
+    `on: schedule` 워크플로가 실행하면 scheduled(근거: cron 줄), 아니면 worker."""
+    entries = [e for e in _py_entries(snap) + _script_entries(snap)
+               if not is_test_path(e.path) and not is_aux_path(e.path)]
+    first: dict[str, _Entry] = {}
+    for e in sorted(entries, key=lambda e: (e.path, e.line or 0, e.name)):
+        first.setdefault(parent_dir(e.path), e)
+    runs = _scheduled_runs(snap)
+    out: list[WorkloadInfo] = []
+    ids: set[str] = set()
+    for d, e in sorted(first.items()):
+        wid = f"w-{slug(e.name)}"
+        if wid in ids:
+            wid = f"w-{slug(e.name)}-{slug(d)}"
+        if wid in ids:
+            continue
+        ids.add(wid)
+        sched = next(((rel, cron) for rel, cron, run, wd in runs if _runs_entry(run, wd, e)), None)
+        out.append(WorkloadInfo(
+            id=wid, kind="scheduled" if sched else "worker", name=wid[2:], entrypoint=evidence(snap, e.path, e.line),
+            status="candidate", source="code", app_dir=d, code_root=d,
+            schedule_evidence=evidence(snap, sched[0], sched[1], "tech") if sched else None))
+    return out
+
+
+def schedule_matches(workloads: list[WorkloadInfo]) -> list[Match]:
+    """배치 진입점을 실행하는 GitHub Actions 스케줄: 스케줄러 구성 요소(근거: cron 줄, 같은 것은 하나만)."""
+    evs: list[dict] = []
+    for w in workloads:
+        if w.schedule_evidence and w.schedule_evidence not in evs:
+            evs.append(w.schedule_evidence)
+    return [Match("gha-schedule", GHA_SCHEDULE, "scheduler", "confirmed", tuple(evs))] if evs else []
+
+
 def detect_workloads(snap: Snapshot, manifests: Manifests, artifacts: list[ParsedArtifact]) -> list[WorkloadInfo]:
     workloads = _from_k8s(snap, artifacts) or _from_compose(snap, artifacts)
     if not any(is_app(w) for w in workloads):
@@ -455,6 +610,8 @@ def detect_workloads(snap: Snapshot, manifests: Manifests, artifacts: list[Parse
                 workloads.append(w)
     if not any(is_app(w) for w in workloads):
         workloads += _from_dockerfiles(snap, workloads, artifacts)
+    if not workloads:
+        workloads = _from_entrypoints(snap)
     _link_single_dockerfile(workloads, artifacts)
     bundled = _bundled_static(workloads, artifacts)
     workloads = [w for w in workloads if w.id not in bundled]
