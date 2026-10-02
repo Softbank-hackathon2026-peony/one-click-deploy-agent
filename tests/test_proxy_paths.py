@@ -1,3 +1,4 @@
+from infrafit import kb
 from infrafit.detect.artifacts import parse_artifacts
 from infrafit.detect.endpoints import _request_path, extract_endpoints, select_location
 from infrafit.detect.environments import detect_environments
@@ -74,11 +75,8 @@ def test_proxy_chain_paths(tmp_path):
     read = [s for s in rp["settings"] if s["key"] == "proxy_read_timeout"]
     assert read == [{"key": "proxy_read_timeout", "value": 30, "defaulted": False,
                      "evidence": {"path": "nginx/default.conf", "line": 5, "snippet": "proxy_read_timeout 30s;"}}]
-    send = next(s for s in rp["settings"] if s["key"] == "proxy_send_timeout")
-    assert send["value"] == 60 and send["defaulted"] is True and "evidence" not in send
-    assert {s["key"] for s in rp["settings"]} >= {"proxy_connect_timeout", "client_max_body_size", "keepalive_timeout"}
-    keys = [(s["key"], str(s["value"])) for s in rp["settings"]]
-    assert keys == sorted(keys)
+    # nginx 기본값은 지식 베이스에서 뺐다(nginx.org가 최종 출처 규칙 미충족, source-audit §8.1). 명시 값만 남는다
+    assert rp["settings"] == read
     proxy_hop = paths["path-proxy"]["hops"][1]
     assert [e["line"] for e in proxy_hop["evidence"]] == [3]  # server 블록
     assert next(s for s in proxy_hop["settings"] if s["key"] == "proxy_read_timeout")["value"] == 30
@@ -94,8 +92,7 @@ def test_same_key_different_values_per_location(tmp_path):
     rp = paths["path-a"]["hops"][1]
     read = [s for s in rp["settings"] if s["key"] == "proxy_read_timeout"]
     assert [(s["value"], s["defaulted"], s["evidence"]["line"]) for s in read] == [(15, False, 3), (60, False, 4)]
-    send = next(s for s in rp["settings"] if s["key"] == "proxy_send_timeout")
-    assert send["default_source"]["ref"] == "docs/research/capabilities/09-network-lb-ingress.md"
+    assert not any(s["defaulted"] for s in rp["settings"])
     assert [e["line"] for e in rp["evidence"]] == [3, 4, 5]
 
 
@@ -218,7 +215,13 @@ def test_select_location_nested():
     assert select_location([_loc("~", "([", 0)], "/x") is None  # 잘못된 정규식은 건너뛴다
 
 
-def test_inherited_key_gets_default_fact_per_route(tmp_path):
+TEST_NGINX_DEFAULT = {"artifact": "hop", "component": "nw:proxy/nginx/default", "key": "proxy_read_timeout",
+                      "value": 60, "source": {"ref": "tests/fake-default"}}
+
+
+def test_inherited_key_gets_default_fact_per_route(tmp_path, monkeypatch):
+    # 실제 지식 베이스에는 nginx 기본값이 없다. 상속된 키에 기본값 사실을 붙이는 동작은 가짜 기본값으로 확인한다
+    monkeypatch.setattr(kb, "defaults", lambda: (TEST_NGINX_DEFAULT,))
     _lb_repo(tmp_path, "upstream ua { server a:80; }\n"
              "server {\n"
              "  location /a/ { proxy_pass http://ua; proxy_read_timeout 15s; }\n"
@@ -227,7 +230,7 @@ def test_inherited_key_gets_default_fact_per_route(tmp_path):
     read = [s for s in rp["settings"] if s["key"] == "proxy_read_timeout"]
     assert [(s["value"], s["defaulted"]) for s in read] == [(15, False), (60, True)]
     assert read[0]["evidence"]["line"] == 3
-    assert read[1]["default_source"]["ref"] == "docs/research/capabilities/09-network-lb-ingress.md"
+    assert read[1]["default_source"]["ref"] == "tests/fake-default"
     assert "evidence" not in read[1]
 
 
@@ -285,7 +288,7 @@ def test_proxy_without_server_in_environment_gets_default_hop(tmp_path):
     paths = build_paths(snap, [w], [], {}, [], ([other], []))
     hops = paths[0]["hops"]
     assert [(h["kind"], h["evidence"]) for h in hops] == [("reverse-proxy", [])]
-    assert hops[0]["settings"] and all(s["defaulted"] for s in hops[0]["settings"])
+    assert hops[0]["settings"] == []  # nginx 기본값 없음(source-audit §8.1)
 
 
 def _express_compose_repo(tmp_path, conf, routes):
