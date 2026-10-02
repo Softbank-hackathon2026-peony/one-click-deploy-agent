@@ -8,7 +8,7 @@ from pathlib import PurePosixPath
 
 from infrafit.detect.manifests import Manifests
 from infrafit.detect.testpaths import is_test_path
-from infrafit.evidence import evidence
+from infrafit.evidence import evidence, line_at
 from infrafit.repo import Snapshot
 
 MAX_CODE_EVIDENCE = 5
@@ -51,11 +51,15 @@ def _eval(cond: dict, snap: Snapshot, manifests: Manifests) -> list[dict]:
         for rel in sorted(snap.glob(code["glob"]), key=lambda r: (is_aux_path(r), r)):
             if is_test_path(rel):  # 테스트 코드의 흔적은 실제 배포 구성의 근거가 아니다
                 continue
-            for i, text in enumerate(snap.lines(rel), 1):
-                if rx.search(text):
-                    out.append(evidence(snap, rel, i, "tech"))
-                    if len(out) >= MAX_CODE_EVIDENCE:
-                        return out
+            if code.get("multiline"):  # 줄을 넘는 식(메서드 체인 등): 파일 전체에서 찾고 줄은 일치 시작 위치
+                text = snap.read(rel)
+                lines = sorted({line_at(text, m.start()) for m in rx.finditer(text)})
+            else:
+                lines = [i for i, text in enumerate(snap.lines(rel), 1) if rx.search(text)]
+            for i in lines:
+                out.append(evidence(snap, rel, i, "tech"))
+                if len(out) >= MAX_CODE_EVIDENCE:
+                    return out
         return out
     raise ValueError(f"알 수 없는 조건: {cond}")
 

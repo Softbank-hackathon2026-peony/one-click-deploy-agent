@@ -51,6 +51,8 @@ def _lint_condition(sig_id: str, cond: dict) -> list[str]:
                 issues.append(f"{sig_id}: 정규식 오류 {e}")
             if code.get("flags") not in (None, "i"):
                 issues.append(f"{sig_id}: flags는 i만 허용")
+            if code.get("multiline") not in (None, True, False):
+                issues.append(f"{sig_id}: multiline은 true·false만 허용")
         else:
             issues.append(f"{sig_id}: 알 수 없는 조건 {leaf}")
     return issues

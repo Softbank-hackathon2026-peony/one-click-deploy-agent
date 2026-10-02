@@ -88,11 +88,12 @@ signatures:
         status: confirmed
         when:
           any:
-            - {code: {glob: "**/*.ts", regex: "(?<!\\.storage)\\.(?:from|rpc)\\(\\s*['\"`]"}}
-            - {code: {glob: "**/*.tsx", regex: "(?<!\\.storage)\\.(?:from|rpc)\\(\\s*['\"`]"}}
-            - {code: {glob: "**/*.js", regex: "(?<!\\.storage)\\.(?:from|rpc)\\(\\s*['\"`]"}}
-            - {code: {glob: "**/*.jsx", regex: "(?<!\\.storage)\\.(?:from|rpc)\\(\\s*['\"`]"}}
-            - {code: {glob: "**/*.py", regex: "(?<!\\.storage)\\.(?:from_|rpc)\\(\\s*['\"]"}}
+            # 받는 쪽 이름에 supabase가 든 `.from('t')`·`.rpc('f')`(줄바꿈 체인 포함, `.storage.from`은 아니다)
+            - {code: {glob: "**/*.ts", regex: "\\b\\w*supabase\\w*(?:\\(\\))?\\s*\\.(?:from|rpc)\\(\\s*['\"`]", flags: i, multiline: true}}
+            - {code: {glob: "**/*.tsx", regex: "\\b\\w*supabase\\w*(?:\\(\\))?\\s*\\.(?:from|rpc)\\(\\s*['\"`]", flags: i, multiline: true}}
+            - {code: {glob: "**/*.js", regex: "\\b\\w*supabase\\w*(?:\\(\\))?\\s*\\.(?:from|rpc)\\(\\s*['\"`]", flags: i, multiline: true}}
+            - {code: {glob: "**/*.jsx", regex: "\\b\\w*supabase\\w*(?:\\(\\))?\\s*\\.(?:from|rpc)\\(\\s*['\"`]", flags: i, multiline: true}}
+            - {code: {glob: "**/*.py", regex: "\\b\\w*supabase\\w*(?:\\(\\))?\\s*\\.(?:from_|rpc)\\(\\s*['\"]", flags: i, multiline: true}}
             - {code: {glob: "**/*.py", regex: "postgres(?:ql)?://[^\\s'\"]*\\.supabase\\.(?:co|com)"}}
             - {code: {glob: "**/*.ts", regex: "postgres(?:ql)?://[^\\s'\"`]*\\.supabase\\.(?:co|com)"}}
             - {code: {glob: "**/*.js", regex: "postgres(?:ql)?://[^\\s'\"`]*\\.supabase\\.(?:co|com)"}}

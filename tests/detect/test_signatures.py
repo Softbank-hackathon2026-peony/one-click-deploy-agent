@@ -97,3 +97,18 @@ def test_code_evidence_puts_scripts_and_qa_last(tmp_path):
     paths = [e["path"] for e in m["SIG-DS-SQLITE"].evidence]
     assert paths[0] == "zz/db.py"
     assert len(paths) == 5
+
+
+def test_supabase_refine_needs_a_supabase_receiver(tmp_path):
+    dep = '{"dependencies": {"@supabase/supabase-js": "2"}}\n'
+    cases = {
+        "buffer": ("const b = Buffer.from('abc')\nconst a = Array.from(\"xyz\")\n", "candidate"),
+        "storage": ("await supabase\n  .storage\n  .from('avatars')\n  .upload(p, f)\n", "candidate"),
+        "chain": ("const { data } = await supabase\n  .from('posts')\n  .select('*')\n", "confirmed"),
+        "client": ("await getSupabase().rpc('delete_user')\n", "confirmed"),
+    }
+    for name, (code, status) in cases.items():
+        m = _real(tmp_path / name, {"package.json": dep, "db.ts": code})
+        assert m["SIG-DS-SUPABASE"].status == status, name
+    m = _real(tmp_path / "line", {"package.json": dep, "db.ts": "\n" + cases["chain"][0]})
+    assert ("db.ts", 2) in [(e["path"], e["line"]) for e in m["SIG-DS-SUPABASE"].evidence]
