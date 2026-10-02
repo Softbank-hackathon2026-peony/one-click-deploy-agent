@@ -20,7 +20,7 @@ def _analyze(tmp_path):
     snap = open_snapshot(str(tmp_path), tmp_path / "_w")
     arts = parse_artifacts(snap)
     ws = detect_workloads(snap, parse_manifests(snap), arts)
-    envs = detect_environments(arts)
+    envs = detect_environments(arts, ws)
     proxy = find_proxies(snap, ws, arts, envs)
     paths = build_paths(snap, ws, arts, {}, envs, proxy)
     endpoints = extract_endpoints(snap, ws, proxy[1], proxy[0])
@@ -168,7 +168,7 @@ def test_no_proxy_keeps_plan1_output(tmp_path):
     paths, eps = _analyze(tmp_path)
     assert eps == extract_endpoints(snap, ws)
     assert all("exposure" not in e for e in eps)
-    assert paths == build_paths(snap, ws, arts, {}, [])
+    assert paths == build_paths(snap, ws, arts, {}, detect_environments(arts, ws))
 
 
 def _loc(modifier, pattern, order, internal=False, children=()):
@@ -322,7 +322,7 @@ def test_http_settings_from_mapped_main_conf(tmp_path):
         _write(root, "proxy/nginx.conf", MAIN_CONF)
         _write(root, "proxy/conf.d/app.conf", "server {\n  location / { proxy_pass http://app:8000; }\n}\n")
         _write(root, "app/Dockerfile", "FROM python:3.12\nCMD uvicorn main:app\n")
-        hop = _by_id(_analyze(root)[0])["path-app"]["hops"][0]
+        hop = _by_id(_analyze(root)[0])["path-app.compose"]["hops"][0]
         assert hop["kind"] == "reverse-proxy", form
         facts = {s["key"]: s for s in hop["settings"]}
         for key, value, line in (("client_max_body_size", "50m", 3), ("proxy_read_timeout", 300, 4)):
@@ -342,5 +342,5 @@ def test_compose_build_without_command_uses_dockerfile_command(tmp_path):
         root = tmp_path / name
         _write(root, "docker-compose.yml", "services:\n  app:\n    build: {context: ., dockerfile: app/Dockerfile}\n")
         _write(root, "app/Dockerfile", dockerfile)
-        hops = _by_id(_analyze(root)[0])["path-app"]["hops"]
+        hops = _by_id(_analyze(root)[0])["path-app.compose"]["hops"]
         assert [(h["kind"], h["component"]) for h in hops] == [("app-server", component)], name

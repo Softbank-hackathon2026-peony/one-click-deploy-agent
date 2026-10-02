@@ -45,8 +45,13 @@ def _dockerfiles(artifacts: list[ParsedArtifact]) -> list[ParsedArtifact]:
     return [a for a in artifacts if a.kind == "dockerfile"]
 
 
+def image_name(image: str) -> str:
+    """레지스트리·태그·다이제스트를 뗀 이미지의 마지막 이름."""
+    return image.split("/")[-1].split(":")[0].split("@")[0]
+
+
 def dockerfile_for_image(image: str, artifacts: list[ParsedArtifact]) -> ParsedArtifact | None:
-    last = image.split("/")[-1].split(":")[0].split("@")[0]
+    last = image_name(image)
     for df in _dockerfiles(artifacts):
         if last and PurePosixPath(df.path).parent.name == last:
             return df
@@ -64,6 +69,18 @@ def _image_command(dockerfile: str, artifacts: list[ParsedArtifact]) -> str:
     if df is None:
         return ""
     return " ".join(str(df.get(k)) for k in ("entrypoint", "cmd") if df.get(k))
+
+
+def workload_dockerfile(w: WorkloadInfo, artifacts: list[ParsedArtifact]) -> ParsedArtifact | None:
+    """워크로드 이미지의 Dockerfile: compose build의 Dockerfile, 이미지 이름 규칙, code_root의 Dockerfile 순서."""
+    df = next((a for a in _dockerfiles(artifacts) if a.path == w.dockerfile), None) if w.dockerfile else None
+    if df is None and w.image:
+        df = dockerfile_for_image(w.image, artifacts)
+    if df is None and w.code_root is not None:
+        local = sorted((a for a in _dockerfiles(artifacts) if parent_dir(a.path) == w.code_root),
+                       key=lambda a: (PurePosixPath(a.path).name != "Dockerfile", a.path))
+        df = local[0] if local else None
+    return df
 
 
 def _code_root_for_image(image: str, artifacts: list[ParsedArtifact]) -> str | None:
@@ -87,6 +104,16 @@ def compose_build(compose_path: str, svc: dict) -> tuple[str, str] | None:
         context = _repo_path(posixpath.join(base, str(build.get("context") or ".")))
         return context, _repo_path(posixpath.join(context, str(build.get("dockerfile") or "Dockerfile")))
     return None
+
+
+def compose_command(compose_path: str, svc: dict, artifacts: list[ParsedArtifact]) -> str:
+    """compose 서비스의 실행 명령: `command`(목록은 공백으로 잇는다), 없으면 빌드하는 이미지의 명령."""
+    cmd = svc.get("command") or ""
+    cmd = " ".join(str(x) for x in cmd) if isinstance(cmd, list) else cmd if isinstance(cmd, str) else ""
+    build = compose_build(compose_path, svc)
+    if not cmd and build:
+        cmd = _image_command(build[1], artifacts)
+    return cmd
 
 
 def _compose_code_root(compose_path: str, svc: dict, image: str, artifacts: list[ParsedArtifact]) -> str | None:
@@ -167,10 +194,7 @@ def _from_compose(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[Workl
                 continue
             names.add(name)
             build = compose_build(art.path, svc)
-            cmd = svc.get("command") or ""
-            cmd = " ".join(str(x) for x in cmd) if isinstance(cmd, list) else str(cmd) if isinstance(cmd, str) else ""
-            if not cmd and build:  # command가 없으면 빌드하는 이미지의 명령으로 실행된다
-                cmd = _image_command(build[1], artifacts)
+            cmd = compose_command(art.path, svc, artifacts)
             text = f"{name} {cmd}".lower()
             wkind = "migration-job" if "migrat" in text else "worker" if "worker" in text else "web"
             out.append(WorkloadInfo(

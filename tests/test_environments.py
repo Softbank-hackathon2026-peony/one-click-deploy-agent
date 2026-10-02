@@ -32,7 +32,7 @@ def _snap(tmp_path):
 
 def test_environment_names_and_slug():
     arts = [_build("k8s/overlays/aws/prod", []), _build("deploy/staging", []), _build("k8s/overlays/dev", [])]
-    envs = detect_environments(arts)
+    envs = detect_environments(arts, [])
     assert [e.name for e in envs] == ["aws/prod", "deploy/staging", "dev"]
     assert envs[0].source == "k8s/overlays/aws/prod/kustomization.yaml"
     assert env_slug("aws/prod") == "aws-prod"
@@ -41,7 +41,7 @@ def test_environment_names_and_slug():
 def test_two_overlays_each_use_own_ingress(tmp_path):
     arts = [_build("k8s/overlays/a", [_deploy("api"), _ingress("alb", "api")]),
             _build("k8s/overlays/b", [_deploy("api"), _ingress("nginx", "api")])]
-    envs = detect_environments(arts)
+    envs = detect_environments(arts, [])
     paths = build_paths(_snap(tmp_path), [_w("w-api")], arts, {}, envs)
     assert [(p["id"], p["environment"]) for p in paths] == [("path-api.a", "a"), ("path-api.b", "b")]
     assert [p["hops"][0]["component"] for p in paths] == ["nw:aws/alb/default", "nw:k8s/ingress-nginx/default"]
@@ -49,7 +49,7 @@ def test_two_overlays_each_use_own_ingress(tmp_path):
 
 def test_workload_only_in_one_overlay(tmp_path):
     arts = [_build("k8s/overlays/a", [_deploy("api")]), _build("k8s/overlays/b", [_deploy("other")])]
-    envs = detect_environments(arts)
+    envs = detect_environments(arts, [])
     paths = build_paths(_snap(tmp_path), [_w("w-api")], arts, {}, envs)
     assert [p["environment"] for p in paths] == ["a"]
 
@@ -63,7 +63,7 @@ def test_workload_in_matches_label():
 
 def test_no_overlays_gives_null_environment(tmp_path):
     k8s = ParsedArtifact("k8s", "k8s/ing.yaml", True, objects=[_ingress("alb", "api")])
-    assert detect_environments([k8s]) == []
+    assert detect_environments([k8s], []) == []
     paths = build_paths(_snap(tmp_path), [_w("w-api")], [k8s], {}, [])
     assert paths[0]["id"] == "path-api" and paths[0]["environment"] is None
     assert paths[0]["hops"][0]["component"] == "nw:aws/alb/default"
@@ -71,7 +71,7 @@ def test_no_overlays_gives_null_environment(tmp_path):
 
 def test_render_failure_listed_but_no_path(tmp_path):
     arts = [_build("k8s/overlays/bad", [], parsed=False)]
-    envs = detect_environments(arts)
+    envs = detect_environments(arts, [])
     assert [(e.name, e.rendered, e.objects) for e in envs] == [("bad", False, [])]
     assert envs[0].to_dict(_snap(tmp_path))["rendered"] is False
     paths = build_paths(_snap(tmp_path), [_w("w-api")], arts, {}, envs)

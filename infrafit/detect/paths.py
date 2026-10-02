@@ -9,7 +9,7 @@ from infrafit import kb
 from infrafit.detect.artifacts import ParsedArtifact, as_dict, build_source, ingress_backends
 from infrafit.detect.components import platform_config_for
 from infrafit.detect.defaults import fact_settings, hop_settings
-from infrafit.detect.environments import Environment, env_slug, workload_in
+from infrafit.detect.environments import Environment, env_command, env_slug, workload_in
 from infrafit.detect.nginx import ProxyRoute, ProxyServer
 from infrafit.detect.workloads import WorkloadInfo
 from infrafit.evidence import evidence
@@ -101,7 +101,10 @@ def _proxy_hop(groups: list[list[dict]], evs: list[dict | None]) -> dict:
 
 
 def _front(snap: Snapshot, w: WorkloadInfo, artifacts: list[ParsedArtifact], env: Environment | None) -> list[dict]:
-    """워크로드의 앞 구간(엣지·로드밸런서). env가 None이면 환경 밖 매니페스트에서 찾는다."""
+    """워크로드의 앞 구간(엣지·로드밸런서). env가 None이면 환경 밖 매니페스트에서 찾는다.
+    compose 환경에는 앞 구간이 없다."""
+    if env is not None and env.kind == "compose":
+        return []
     lb = _load_balancer(snap, w, artifacts) if env is None else _ingress_hop(snap, w, env.objects, env.source)
     return [h for h in (_edge(snap, w, artifacts), lb) if h]
 
@@ -119,14 +122,13 @@ def build_paths(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[P
     for w in sorted(workloads, key=lambda w: w.id):
         if w.kind != "web" and w.id not in proxy_ids:
             continue
-        tail = []
-        if w.id not in proxy_ids and not str(compute.get(w.id, "")).startswith(MANAGED_RUNTIME_PREFIXES):
-            server = app_server(w.command)
-            if server:
-                tail.append(_hop("app-server", server[0], server[1], [w.entrypoint]))
+        has_app_server = w.id not in proxy_ids and not str(compute.get(w.id, "")).startswith(MANAGED_RUNTIME_PREFIXES)
 
         def hops_for(env: Environment | None) -> list[dict]:
             env_name = env.name if env else None
+            # 앱 서버 구간은 그 환경에서 실제로 실행하는 명령으로 정한다
+            server = app_server(env_command(env, w, artifacts)) if has_app_server else None
+            tail = [_hop("app-server", server[0], server[1], [w.entrypoint])] if server else []
             own = _front(snap, w, artifacts, env)
             if w.id in proxy_ids:
                 mine = [s for s in servers if s.proxy == w.id and s.environment == env_name]

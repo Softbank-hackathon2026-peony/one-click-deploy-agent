@@ -29,7 +29,7 @@ def run_s1(ctx: RunContext, snap: Snapshot) -> dict:
     artifacts = parse_artifacts(snap)
     apply_defaults(artifacts, kb.defaults())
     workloads = detect_workloads(snap, manifests, artifacts)
-    environments = detect_environments(artifacts)
+    environments = detect_environments(artifacts, workloads)
     servers, routes = find_proxies(snap, workloads, artifacts, environments)
     endpoints = extract_endpoints(snap, workloads, routes, servers)
     matches = match_signatures(snap, manifests, kb.signatures())

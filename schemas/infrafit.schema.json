@@ -454,6 +454,13 @@
               "name": {
                 "type": "string"
               },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "kustomize",
+                  "compose"
+                ]
+              },
               "rendered": {
                 "type": "boolean"
               },
@@ -464,6 +471,7 @@
             "additionalProperties": false,
             "required": [
               "name",
+              "kind",
               "rendered",
               "source"
             ]

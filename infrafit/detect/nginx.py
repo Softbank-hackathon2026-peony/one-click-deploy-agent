@@ -13,9 +13,9 @@ from pathlib import PurePosixPath
 import crossplane
 
 from infrafit.detect.artifacts import ParsedArtifact, as_dict, final_chain, dockerfile_stages, is_build_path, pod_spec
-from infrafit.detect.environments import Environment, is_workload_doc, workload_in
+from infrafit.detect.environments import Environment, env_service, is_workload_doc, workload_in
 from infrafit.detect.manifests import parent_dir
-from infrafit.detect.workloads import WorkloadInfo, dockerfile_for_image
+from infrafit.detect.workloads import WorkloadInfo, workload_dockerfile
 from infrafit.evidence import evidence
 from infrafit.repo import Snapshot
 
@@ -118,17 +118,6 @@ def _proxy_configs(snap: Snapshot, configs: list[str], cache: dict) -> list[str]
 
 
 # --- 컨테이너 경로 → 저장소 경로 ---------------------------------------------
-
-def _workload_dockerfile(w: WorkloadInfo, artifacts: list[ParsedArtifact]) -> ParsedArtifact | None:
-    df = next((a for a in artifacts if a.kind == "dockerfile" and a.path == w.dockerfile), None) if w.dockerfile else None
-    if df is None and w.image:
-        df = dockerfile_for_image(w.image, artifacts)
-    if df is None and w.code_root is not None:
-        local = sorted((a for a in artifacts if a.kind == "dockerfile" and parent_dir(a.path) == w.code_root),
-                       key=lambda a: (PurePosixPath(a.path).name != "Dockerfile", a.path))
-        df = local[0] if local else None
-    return df
-
 
 def _chain_instrs(df: ParsedArtifact | None) -> list[tuple[str, str, int]]:
     """최종 이미지에 들어가는 명령(마지막 단계와 FROM으로 잇는 앞 단계, 앞 단계부터)."""
@@ -403,10 +392,17 @@ class _Scope:
     workloads: list[WorkloadInfo]
     compose_names: set[str]
     link_status: str
+    hosts: dict[str, str] | None = None  # compose 환경: 서비스 이름 → 대응한 워크로드 id
 
 
 def _resolve_host(host: str, scope: _Scope) -> tuple[str | None, str]:
     h = host.rsplit(":", 1)[0] if host.count(":") == 1 else host
+    if scope.hosts is not None:  # compose 환경에서는 그 환경의 서비스 이름만 해석한다
+        return (scope.hosts[h], scope.link_status) if h in scope.hosts else (None, "candidate")
+    return _resolve_k8s_host(h, scope)
+
+
+def _resolve_k8s_host(h: str, scope: _Scope) -> tuple[str | None, str]:
     by_name = {w.name: w for w in scope.workloads}
     for doc in scope.objects:
         if not isinstance(doc, dict) or doc.get("kind") != "Service" or as_dict(doc.get("metadata")).get("name") != h:
@@ -527,34 +523,45 @@ def _is_confd_entry(cpath: str | None) -> bool:
     return cpath is not None and posixpath.dirname(cpath) == CONFD_DIR and cpath.endswith(".conf")
 
 
-def _links(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[ParsedArtifact],
-           configs: list[str], proxy_configs: list[str],
-           dockerfiles: dict[str, ParsedArtifact | None]) -> tuple[dict, dict]:
-    """워크로드 id → 경로 매핑, 워크로드 id → [(저장소 파일, 컨테이너 경로 또는 None, 연결 상태)].
+def _scope_mapping(snap: Snapshot, w: WorkloadInfo, env: Environment | None, image: dict[str, str],
+                   services: list[tuple[str, str, dict]]) -> dict[str, str]:
+    """한 범위에서 컨테이너 경로 → 저장소 경로: 이미지(Dockerfile COPY/ADD) 위에 그 범위의 바인드 마운트.
+    같은 컨테이너 경로면 런타임 마운트가 이미지 내용을 덮는다(docker 동작)."""
+    mapping = dict(image)
+    if env is None:
+        if w.source == "compose":
+            for path, name, svc in services:
+                if name == w.name:
+                    mapping.update(_compose_mapping(snap, path, svc))
+    else:
+        svc = env_service(env, w)
+        if svc is not None:
+            mapping.update(_compose_mapping(snap, env.source, svc))
+    return _with_templates(mapping)
+
+
+def _links(workloads: list[WorkloadInfo], configs: list[str], proxy_configs: list[str],
+           dockerfiles: dict[str, ParsedArtifact | None],
+           mappings: dict[tuple[str, str | None], dict[str, str]]) -> dict[tuple[str, str | None], list]:
+    """(워크로드 id, 환경 이름) → [(저장소 파일, 컨테이너 경로 또는 None, 연결 상태)].
     컨테이너에 들어간 설정은 프록시 지시어가 없어도(http 설정만 있는 nginx.conf 등) 연결하고,
-    어디에도 들어가지 않은 설정을 하나뿐인 nginx 워크로드에 붙이는 대체 규칙은 프록시 지시어가 있는 설정만 쓴다."""
-    services = _compose_services(artifacts)
-    mappings: dict[str, dict[str, str]] = {}
-    for w in workloads:
-        mapping = _dockerfile_mapping(snap, dockerfiles[w.id], w.build_context)
-        for path, name, svc in services:  # 런타임 바인드 마운트가 이미지 내용을 덮는다
-            if name == w.name:
-                mapping.update(_compose_mapping(snap, path, svc))
-        mappings[w.id] = _with_templates(mapping)
+    어느 범위에도 들어가지 않은 설정을 하나뿐인 nginx 워크로드에 붙이는 대체 규칙은 프록시 지시어가 있는 설정만 쓴다."""
     nginx_based = [w for w in workloads
                    if "nginx" in w.image.lower() or "nginx" in _final_image(dockerfiles[w.id]).lower()]
     nginx_ids = {w.id for w in nginx_based}
-    links: dict[str, list[tuple[str, str | None, str]]] = {w.id: [] for w in workloads}
+    links: dict[tuple[str, str | None], list[tuple[str, str | None, str]]] = {key: [] for key in mappings}
     linked: set[str] = set()
-    for w in workloads:
-        for cpath, rel in sorted(mappings[w.id].items()):
+    for key, mapping in mappings.items():
+        for cpath, rel in sorted(mapping.items()):
             # nginx 기반이 아닌 워크로드는 /etc/nginx/ 아래로 들어간 설정만 연결한다(`COPY . .` 등 제외)
-            if rel in configs and (w.id in nginx_ids or cpath.startswith(NGINX_ROOT)):
-                links[w.id].append((rel, cpath, "confirmed"))
+            if rel in configs and (key[0] in nginx_ids or cpath.startswith(NGINX_ROOT)):
+                links[key].append((rel, cpath, "confirmed"))
                 linked.add(rel)
     if len(nginx_based) == 1:
-        links[nginx_based[0].id].extend((rel, None, "candidate") for rel in proxy_configs if rel not in linked)
-    return mappings, links
+        for key in links:
+            if key[0] == nginx_based[0].id:
+                links[key].extend((rel, None, "candidate") for rel in proxy_configs if rel not in linked)
+    return links
 
 
 def _entries(snap: Snapshot, links: list[tuple[str, str | None, str]], cache: dict) -> list[tuple[str, str]]:
@@ -584,38 +591,51 @@ def find_proxies(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[
     proxy_configs = _proxy_configs(snap, configs, cache)
     if not proxy_configs:
         return [], []
-    dockerfiles = {w.id: _workload_dockerfile(w, artifacts) for w in workloads}
-    mappings, links = _links(snap, workloads, artifacts, configs, proxy_configs, dockerfiles)
+    dockerfiles = {w.id: workload_dockerfile(w, artifacts) for w in workloads}
+    services = _compose_services(artifacts)
+    scopes = {w.id: _scopes(w, environments) for w in workloads}
+    mappings: dict[tuple[str, str | None], dict[str, str]] = {}
+    for w in workloads:
+        image = _dockerfile_mapping(snap, dockerfiles[w.id], w.build_context)
+        for env in scopes[w.id]:
+            mappings[(w.id, env.name if env else None)] = _scope_mapping(snap, w, env, image, services)
+    links = _links(workloads, configs, proxy_configs, dockerfiles, mappings)
     raw_k8s = [d for a in artifacts if a.kind == "k8s" and not is_build_path(a.path) and isinstance(a.objects, list)
                for d in a.objects if isinstance(d, dict)]
-    services = _compose_services(artifacts)
     compose_names = {name for _, name, _ in services}
     servers: list[ProxyServer] = []
     routes: list[ProxyRoute] = []
     for w in workloads:
-        entries = _entries(snap, links[w.id], cache)
-        if not entries:
-            continue
-        trees, included = [], set()
-        for rel, status in entries:
-            trees.append((rel, status, _expand(snap, rel, _parse(snap, rel, cache) or [], mappings[w.id], cache,
-                                               (rel,), included, [MAX_EXPANDED])))
-        # 다른 진입 설정이 include한 파일은 따로 진입점으로 세지 않는다
-        trees = [t for t in trees if t[0] not in included]
-        upstreams = _upstreams(snap, [t[2] for t in trees])
-        for env in _scopes(w, environments):
+        for env in scopes[w.id]:
+            env_name = env.name if env else None
+            key = (w.id, env_name)
+            entries = _entries(snap, links[key], cache)
+            if not entries:
+                continue
+            trees, included = [], set()
+            for rel, status in entries:
+                trees.append((rel, status, _expand(snap, rel, _parse(snap, rel, cache) or [], mappings[key], cache,
+                                                   (rel,), included, [MAX_EXPANDED])))
+            # 다른 진입 설정이 include한 파일은 따로 진입점으로 세지 않는다
+            trees = [t for t in trees if t[0] not in included]
+            upstreams = _upstreams(snap, [t[2] for t in trees])
             variables = _dockerfile_env(dockerfiles[w.id])
+            hosts = None
             if env is None:
                 for _, name, svc in services:
                     if name == w.name:
                         variables.update(_compose_env(svc))
                 objects = raw_k8s
+                variables.update(_k8s_env(objects, w))
+            elif env.kind == "compose":
+                objects = []
+                variables.update(_compose_env(env_service(env, w) or {}))
+                hosts = {name: wid for wid, name in env.members.items()}
             else:
                 objects = env.objects
-            variables.update(_k8s_env(objects, w))
-            env_name = env.name if env else None
+                variables.update(_k8s_env(objects, w))
             for rel, status, nodes in trees:
-                scope = _Scope(objects, variables, workloads, compose_names, status)
+                scope = _Scope(objects, variables, workloads, compose_names, status, hosts)
                 http = _http_nodes(nodes)
                 http_settings = _block_settings(snap, http)
                 counter = [0]
