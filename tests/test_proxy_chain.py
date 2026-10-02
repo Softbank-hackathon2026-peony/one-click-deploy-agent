@@ -219,3 +219,40 @@ def test_single_proxy_results_unchanged(tmp_path):
     ws = detect_workloads(snap, parse_manifests(snap), arts)
     servers, routes = find_proxies(snap, ws, arts, detect_environments(arts, ws))
     assert extract_endpoints(snap, ws, routes, servers) == eps
+
+
+def _compose_proxies(tmp_path, confs, routes):
+    """compose: 프록시 이름 → nginx 설정, 그리고 uvicorn app 하나."""
+    svcs = "".join(f"  {n}:\n    image: nginx:1.27\n    volumes:\n      - ./{n}.conf:/etc/nginx/conf.d/default.conf:ro\n"
+                   for n in confs)
+    _write(tmp_path, "docker-compose.yml", f"services:\n{svcs}  app:\n    build: ./app\n")
+    for n, conf in confs.items():
+        _write(tmp_path, f"{n}.conf", conf)
+    _write(tmp_path, "app/Dockerfile", "FROM python:3.12\nCMD uvicorn main:app\n")
+    _write(tmp_path, "app/main.py", "".join(f'@app.get("{r}")\ndef h{i}(): ...\n' for i, r in enumerate(routes)))
+
+
+def test_parallel_upstream_proxies(tmp_path):
+    # pa와 pc가 둘 다 pb로 넘기지만 /c/는 pc만 넘긴다: exposure는 모든 갈래를, 경로는 id 순 첫 번째 체인을 쓴다
+    _compose_proxies(tmp_path, {
+        "pa": "server {\n  location /a/ { proxy_pass http://pb; }\n}\n",
+        "pb": "server {\n  location / { proxy_pass http://app; }\n}\n",
+        "pc": "server {\n  location /c/ { proxy_pass http://pb; }\n}\n",
+    }, ["/c/x", "/z"])
+    paths, eps = _analyze(tmp_path)
+    assert _exposure(eps) == {("w-app", "/c/x"): "routed", ("w-app", "/z"): "not-routed"}
+    app = paths["path-app.compose"]["hops"]
+    assert [h["kind"] for h in app] == ["reverse-proxy", "reverse-proxy", "app-server"]
+    assert [[e["path"] for e in h["evidence"]] for h in app[:2]] == [["pa.conf"], ["pb.conf"]]
+
+
+def test_dense_proxy_mesh_is_bounded(tmp_path):
+    import time
+    names = [f"p{i}" for i in range(8)]
+    confs = {n: "server {\n" + "".join(f"  location /to-{m}/ {{ proxy_pass http://{m}/; }}\n" for m in names if m != n)
+             + "  location / { proxy_pass http://app; }\n}\n" for n in names}
+    _compose_proxies(tmp_path, confs, [f"/r{i}/x" for i in range(20)])
+    start = time.monotonic()
+    _, eps = _analyze(tmp_path)
+    assert time.monotonic() - start < 2
+    assert set(_exposure(eps).values()) == {"routed"}

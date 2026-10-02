@@ -402,41 +402,69 @@ def _subrequest_reached(server: ProxyServer) -> set[tuple[str, str]]:
     return out
 
 
-def _chains(routes: list[ProxyRoute], fronted: set[str], target: str,
+MAX_CHAINS = 64  # (워크로드, 환경)마다 따라가는 체인 수의 상한(조밀한 프록시 망에서 조합이 폭증하지 않게)
+
+
+def _chains(routes: list[ProxyRoute], fronted: set[str], target: str, bottom: str | None = None,
             below: tuple[str, ...] = ()) -> list[tuple[str, ...]]:
-    """target에 요청을 넘기는 프록시 체인 전부(위→아래, 맨 끝 프록시가 target으로 넘긴다). 갈래마다 따라 올라가며,
-    앞 구간이 있는 프록시, 자기에게 넘기는 다른 프록시가 없는 프록시, 프록시 MAX_CHAIN개에서 끝난다(경로와 같은 상한).
-    이미 체인에 있는 프록시와 맨 아래 워크로드로 되돌아가는 프록시(순환)는 뺀다. 맨 아래 단계에서는
-    자기 자신에게 넘기는 프록시도 체인 하나다."""
-    bottom = below[-1] if below else target
+    """target에 요청을 넘기는 프록시 체인들(위→아래, 맨 끝 프록시가 맨 아래 워크로드 bottom으로 넘긴다).
+    갈래마다 프록시 id 순으로 따라 올라가며, 앞 구간이 있는 프록시, 자기에게 넘기는 다른 프록시가 없는 프록시,
+    프록시 MAX_CHAIN개에서 끝난다(경로와 같은 상한). 이미 체인에 있는 프록시와 bottom으로 되돌아가는 프록시(순환)는
+    빼고, 맨 아래 단계에서 bottom 자신에게 넘기는 프록시는 그것만으로 체인 하나다. 체인은 MAX_CHAINS개까지 모은다."""
+    bottom = target if bottom is None else bottom
     out: list[tuple[str, ...]] = []
     for p in sorted({r.proxy for r in routes if r.target == target}):
+        if len(out) >= MAX_CHAINS:
+            break
         if p in below or (below and p == bottom):
             continue
         chain = (p,) + below
-        ups = ([] if p == target or p in fronted or len(chain) >= MAX_CHAIN
-               else _chains(routes, fronted, p, chain))
-        out += ups or [chain]
+        ups = ([] if p == bottom or p in fronted or len(chain) >= MAX_CHAIN
+               else _chains(routes, fronted, p, bottom, chain))
+        out += (ups or [chain])[:MAX_CHAINS - len(out)]
     return out
 
 
-def _chain_reached(chain: tuple[str, ...], top: ProxyServer, by_proxy: dict[str, list[ProxyServer]],
-                   workload: str, path: str) -> set[tuple[str, str]]:
-    """체인 맨 위 server top으로 들어온 외부 요청 후보가 체인 끝 프록시에서 닿는 (워크로드 id, 전달 경로)들.
+class _Reach:
+    """한 환경에서 프록시에 들어온 요청 경로가 닿는 (워크로드 id, 전달 경로)들을 기억해 둔다."""
+
+    def __init__(self, servers: list[ProxyServer]):
+        self.by_proxy: dict[str, list[ProxyServer]] = defaultdict(list)
+        for server in servers:
+            self.by_proxy[server.proxy].append(server)
+        self._memo: dict[tuple, frozenset] = {}
+
+    def server(self, proxy: str, i: int, path: str) -> frozenset:
+        key = (proxy, i, path)
+        if key not in self._memo:
+            self._memo[key] = frozenset(_reached(self.by_proxy[proxy][i], path))
+        return self._memo[key]
+
+    def proxy(self, proxy: str, path: str) -> frozenset:
+        key = (proxy, None, path)
+        if key not in self._memo:
+            self._memo[key] = frozenset().union(*(self.server(proxy, i, path)
+                                                  for i in range(len(self.by_proxy.get(proxy, [])))))
+        return self._memo[key]
+
+
+def _chain_reached(chain: tuple[str, ...], top: int, reach: _Reach, workload: str, path: str) -> set[tuple[str, str]]:
+    """체인 맨 위 프록시의 top번째 server로 들어온 외부 요청 후보가 체인 끝 프록시에서 닿는 (워크로드 id, 전달 경로)들.
     후보는 workload의 upstream 경로 path에서 시작해 아래 단계부터 위로 역매핑해 만들고(_requests_for),
     맨 위에서부터 단계마다 다시 location을 골라 다음 프록시로 넘어가는 것만 따라간다(internal을 고르면 404)."""
     targets = chain[1:] + (workload,)
     cands = {path}
     for i in range(len(chain) - 1, 0, -1):
-        cands |= {c for server in by_proxy.get(chain[i], []) for r in cands
+        cands |= {c for server in reach.by_proxy.get(chain[i], []) for r in cands
                   for c in _requests_for(server, targets[i], r)}
-    cands = {c for r in cands for c in _requests_for(top, targets[0], r)}
+    top_server = reach.by_proxy[chain[0]][top]
+    cands = {c for r in cands for c in _requests_for(top_server, targets[0], r)}
     reached: set[tuple[str, str]] = set()
     for r in cands:
-        reached |= _reached(top, r)
+        reached |= reach.server(chain[0], top, r)
     for i in range(1, len(chain)):
         forwarded = {fwd for t, fwd in reached if t == chain[i]}
-        reached = {hit for server in by_proxy.get(chain[i], []) for r in forwarded for hit in _reached(server, r)}
+        reached = {hit for r in forwarded for hit in reach.proxy(chain[i], r)}
     return reached
 
 
@@ -448,22 +476,20 @@ def _exposure_in(env: str | None, out: list[dict], routes: list[ProxyRoute], ser
     routes = [r for r in routes if r.environment == env]
     servers = [s for s in servers if s.environment == env]
     routed = {r.target for r in routes if r.target}
-    by_proxy: dict[str, list[ProxyServer]] = defaultdict(list)
-    for server in servers:
-        by_proxy[server.proxy].append(server)
+    reach = _Reach(servers)
     # 하위 요청(auth_request)은 요청이 들어오는 프록시마다 무조건 닿는다. 체인 맨 위가 아닌 프록시도
     # 위 단계 route로 요청을 받으므로 환경의 모든 server를 본다
     reached: set[tuple[str, str]] = set()
     for server in servers:
         reached |= _subrequest_reached(server)
-    chains = {w: _chains(routes, fronted, w) for w in sorted(routed)}
+    chains = {w: sorted(_chains(routes, fronted, w)) for w in sorted(routed)}
     for ep in out:
         if ep["workload"] not in routed:
             continue
         path = _request_path(ep["route"], ep["framework"])
         for chain in chains[ep["workload"]]:
-            for top in by_proxy.get(chain[0], []):
-                reached |= _chain_reached(chain, top, by_proxy, ep["workload"], path)
+            for top in range(len(reach.by_proxy.get(chain[0], []))):
+                reached |= _chain_reached(chain, top, reach, ep["workload"], path)
     return {ep["id"]: "routed" if (ep["workload"], _request_path(ep["route"], ep["framework"])) in reached
             else "not-routed" for ep in out if ep["workload"] in routed}
 
