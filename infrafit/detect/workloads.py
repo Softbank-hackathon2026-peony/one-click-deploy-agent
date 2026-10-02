@@ -4,15 +4,16 @@ from __future__ import annotations
 
 import posixpath
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from fnmatch import fnmatchcase
 from pathlib import PurePosixPath
 
+from infrafit import kb
 from infrafit.detect.artifacts import ParsedArtifact, as_dict, build_source, is_build_path, pod_spec
 from infrafit.detect.manifests import Manifests, parent_dir
 from infrafit.evidence import evidence, line_of
 from infrafit.repo import Snapshot
 
-INFRA_IMAGE_TOKENS = ("postgres", "redis", "mysql", "mongo", "valkey", "memcached", "rabbitmq", "minio", "localstack")
 WEB_FRAMEWORKS = ("next", "express", "fastify", "koa", "@nestjs/core", "hono", "fastapi", "flask", "django")
 DEVCONTAINER = ".devcontainer"  # 개발 컨테이너용 compose는 배포 대상(워크로드·환경)이 아니다
 PROC_KINDS = {"web": "web", "worker": "worker", "clock": "scheduled", "release": "migration-job"}
@@ -43,6 +44,8 @@ class WorkloadInfo:
     code_root: str | None = None
     build_context: str | None = None  # compose build 컨텍스트(저장소 경로)
     dockerfile: str | None = None  # compose build가 쓰는 Dockerfile(저장소 경로)
+    proxy_component: str | None = None  # reverse-proxy 워크로드: 이미지 분류의 구성 요소
+    root_guessed: bool = False  # 저장소에 하나뿐인 Dockerfile로 code_root를 정했다(규칙상 추측)
 
     def to_dict(self) -> dict:
         return {"id": self.id, "kind": self.kind, "name": self.name,
@@ -192,8 +195,111 @@ def _as_list(v) -> list:
     return v if isinstance(v, list) else []
 
 
-def _is_infra(image: str) -> bool:
-    return any(token in image.lower() for token in INFRA_IMAGE_TOKENS)
+def _image_keys(image: str) -> list[str]:
+    """분류에 쓰는 이름들: 레지스트리·태그·다이제스트를 뗀 마지막 이름, 그리고 `저장소/이름`."""
+    parts = image.strip().lower().split("@")[0].split("/")
+    parts[-1] = parts[-1].split(":")[0]
+    if not parts[-1]:
+        return []
+    return [parts[-1]] + (["/".join(parts[-2:])] if len(parts) >= 2 else [])
+
+
+def classify_image(image) -> dict | None:
+    """knowledge/images.yaml로 이미지를 분류한다: {role, component, hosting_hint, label}, 맞는 항목이 없으면 None.
+    label은 패턴에 맞은 이름(마지막 이름 또는 `저장소/이름`)이다."""
+    keys = _image_keys(image) if isinstance(image, str) else []
+    for entry in kb.images():
+        for pattern in entry.get("match") or []:
+            key = next((k for k in keys if fnmatchcase(k, str(pattern).lower())), None)
+            if key:
+                return {"role": entry.get("role"), "component": entry.get("component"),
+                        "hosting_hint": entry.get("hosting_hint"), "label": key}
+    return None
+
+
+def _dockerfile_at(path: str | None, artifacts: list[ParsedArtifact]) -> ParsedArtifact | None:
+    return next((a for a in _dockerfiles(artifacts) if a.path == path), None) if path else None
+
+
+def _base_class(df: ParsedArtifact | None) -> dict | None:
+    """Dockerfile 마지막 FROM 이미지의 분류."""
+    return classify_image(str(df.get("base_image") or "")) if df else None
+
+
+def _image_class(image: str, df: ParsedArtifact | None) -> dict | None:
+    """워크로드 이미지의 분류: 이미지 이름, 없으면 빌드 Dockerfile의 마지막 FROM."""
+    return classify_image(image) or _base_class(df)
+
+
+def is_app(w: WorkloadInfo) -> bool:
+    """앱 워크로드인가: 리버스 프록시가 아닌 것."""
+    return w.kind != "reverse-proxy"
+
+
+@dataclass
+class ImageService:
+    """이미지 분류로 워크로드가 아닌 compose 서비스(저장소·캐시·큐·기반 서비스)."""
+    name: str
+    label: str
+    role: str
+    component: str | None
+    hosting_hint: str | None
+    evidence: dict
+    dependents: list[str] = field(default_factory=list)  # 이 서비스를 depends_on하는 서비스 이름
+
+
+def _compose_services(artifacts: list[ParsedArtifact]):
+    """(compose 파일, 서비스 이름, 서비스 정의). 같은 서비스가 여러 파일에 있으면 기본 파일, override, 변형 파일
+    순으로 먼저 본 정의를 쓴다. 개발 컨테이너용 compose는 배포 대상이 아니므로 뺀다."""
+    names: set[str] = set()
+    for art in sorted((a for a in artifacts if a.kind == "compose"), key=lambda a: compose_file_order(a.path)):
+        if DEVCONTAINER in PurePosixPath(art.path).parts:
+            continue
+        for obj in art.objects:
+            if not isinstance(obj, tuple) or len(obj) != 2 or not isinstance(obj[0], str) or obj[0] in names:
+                continue
+            names.add(obj[0])
+            yield art, obj[0], as_dict(obj[1])
+
+
+def _depends_on(svc: dict) -> list[str]:
+    deps = svc.get("depends_on")
+    if isinstance(deps, dict):
+        return [str(k) for k in deps]
+    return [str(d) for d in deps if isinstance(d, (str, int))] if isinstance(deps, list) else []
+
+
+def _service_line(snap: Snapshot, rel: str, name: str) -> int | None:
+    """compose 서비스 정의 줄: 최상위 `services:` 블록 안의 `<이름>:` 키 줄 중 들여쓰기가 가장 얕은 첫 줄
+    (앵커 값의 `@postgres:5432`, depends_on 맵의 같은 키, 이름이 같은 볼륨은 피한다). 없으면 None."""
+    rx = re.compile(rf"^(\s+)[\"']?{re.escape(name)}[\"']?\s*:(\s|$)")
+    found, inside = [], False
+    for i, text in enumerate(snap.lines(rel), 1):
+        if text[:1].strip() and not text.startswith("#"):  # 최상위 키에서 블록이 바뀐다
+            inside = text.split(":", 1)[0].strip().strip("\"'") == "services"
+        elif inside and (m := rx.match(text)):
+            found.append((len(m.group(1)), i))
+    return min(found)[1] if found else None
+
+
+def _service_class(art: ParsedArtifact, svc: dict, artifacts: list[ParsedArtifact]) -> dict | None:
+    build = compose_build(art.path, svc)
+    return _image_class(str(svc.get("image") or ""), _dockerfile_at(build[1] if build else None, artifacts))
+
+
+def image_services(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[ImageService]:
+    """워크로드가 아닌 분류된 compose 서비스들(reverse-proxy·dev-tool 제외), 이름 순."""
+    services = list(_compose_services(artifacts))
+    out: list[ImageService] = []
+    for art, name, svc in services:
+        cls = _service_class(art, svc, artifacts)
+        if not cls or cls["role"] in ("reverse-proxy", "dev-tool"):
+            continue
+        out.append(ImageService(
+            name=name, label=cls["label"], role=cls["role"], component=cls["component"],
+            hosting_hint=cls["hosting_hint"], evidence=evidence(snap, art.path, _service_line(snap, art.path, name)),
+            dependents=sorted(n for _, n, other in services if name in _depends_on(other))))
+    return sorted(out, key=lambda s: s.name)
 
 
 def _from_k8s(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[WorkloadInfo]:
@@ -215,11 +321,14 @@ def _from_k8s(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[WorkloadI
                 continue
             c = containers[0]
             image = str(c.get("image") or "")
-            if _is_infra(image):
+            cls = _image_class(image, dockerfile_for_image(image, artifacts))
+            if cls and cls["role"] != "reverse-proxy":  # 저장소·기반 서비스 이미지는 워크로드가 아니다
                 continue
             cmd = " ".join(str(x) for x in _as_list(c.get("command")) + _as_list(c.get("args")))
             text = f"{name} {cmd}".lower()
-            if kind == "CronJob":
+            if cls:
+                wkind = "reverse-proxy"
+            elif kind == "CronJob":
                 wkind = "scheduled"
             elif kind == "Job":
                 wkind = "migration-job" if "migrat" in text else "worker"
@@ -232,35 +341,31 @@ def _from_k8s(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[WorkloadI
                 id=f"w-{slug(name)}", kind=wkind, name=name, entrypoint=evidence(snap, path, line),
                 status="confirmed", source="k8s", image=image,
                 command=cmd or _dockerfile_cmd_for_image(image, artifacts),
-                code_root=_code_root_for_image(image, artifacts))
+                code_root=_code_root_for_image(image, artifacts), proxy_component=cls["component"] if cls else None)
     return list(seen.values())
 
 
 def _from_compose(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[WorkloadInfo]:
     out: list[WorkloadInfo] = []
-    names: set[str] = set()
-    # 같은 서비스가 여러 파일에 있으면 기본 파일, override, 변형 파일 순으로 먼저 본 정의의 사실을 쓴다
-    for art in sorted((a for a in artifacts if a.kind == "compose"), key=lambda a: compose_file_order(a.path)):
-        if DEVCONTAINER in PurePosixPath(art.path).parts:  # 개발 컨테이너용 compose는 배포 대상이 아니다
+    for art, name, svc in _compose_services(artifacts):
+        image = str(svc.get("image") or "")
+        cls = _service_class(art, svc, artifacts)
+        if cls and cls["role"] != "reverse-proxy":  # 저장소·기반 서비스·개발 도구 이미지는 워크로드가 아니다
             continue
-        for obj in art.objects:
-            if not isinstance(obj, tuple) or len(obj) != 2 or not isinstance(obj[0], str):
-                continue
-            name, svc = obj[0], as_dict(obj[1])
-            image = str(svc.get("image") or "")
-            if name in names or _is_infra(image):
-                continue
-            names.add(name)
-            build = compose_build(art.path, svc)
-            cmd = compose_command(art.path, svc, artifacts)
-            text = f"{name} {cmd}".lower()
+        build = compose_build(art.path, svc)
+        cmd = compose_command(art.path, svc, artifacts)
+        text = f"{name} {cmd}".lower()
+        if cls:
+            wkind = "reverse-proxy"
+        else:
             wkind = "migration-job" if "migrat" in text else "worker" if is_worker(name, cmd) else "web"
-            out.append(WorkloadInfo(
-                id=f"w-{slug(name)}", kind=wkind, name=name,
-                entrypoint=evidence(snap, art.path, line_of(snap, art.path, f"{name}:")),
-                status="confirmed", source="compose", image=image, command=cmd,
-                code_root=_compose_code_root(art.path, svc, image, artifacts),
-                build_context=build[0] if build else None, dockerfile=build[1] if build else None))
+        out.append(WorkloadInfo(
+            id=f"w-{slug(name)}", kind=wkind, name=name,
+            entrypoint=evidence(snap, art.path, line_of(snap, art.path, f"{name}:")),
+            status="confirmed", source="compose", image=image, command=cmd,
+            code_root=_compose_code_root(art.path, svc, image, artifacts),
+            build_context=build[0] if build else None, dockerfile=build[1] if build else None,
+            proxy_component=cls["component"] if cls else None))
     return out
 
 
@@ -316,6 +421,77 @@ def _from_code(snap: Snapshot, manifests: Manifests, artifacts: list[ParsedArtif
     return out
 
 
+def _app_dockerfiles(workloads: list[WorkloadInfo], artifacts: list[ParsedArtifact]) -> list[ParsedArtifact]:
+    """어떤 워크로드에도 연결되지 않은 앱 Dockerfile: 마지막 체인에 CMD나 ENTRYPOINT가 있고, 마지막 FROM이
+    리버스 프록시 이미지가 아니며, 개발 컨테이너용이 아닌 것. 경로 순."""
+    linked = {df.path for w in workloads if (df := workload_dockerfile(w, artifacts))}
+    return [df for df in _dockerfiles(artifacts)
+            if df.path not in linked and DEVCONTAINER not in PurePosixPath(df.path).parts
+            and (df.get("cmd") or df.get("entrypoint"))
+            and (_base_class(df) or {}).get("role") != "reverse-proxy"]
+
+
+def _dockerfile_workload_name(path: str) -> str:
+    """`<x>.Dockerfile`·`Dockerfile.<x>`이면 x, 아니면 Dockerfile 디렉터리 이름(저장소 루트는 root)."""
+    name = PurePosixPath(path).name
+    if name.endswith(".Dockerfile") and len(name) > len(".Dockerfile"):
+        return name[:-len(".Dockerfile")]
+    if name.startswith("Dockerfile.") and len(name) > len("Dockerfile."):
+        return name[len("Dockerfile."):]
+    return PurePosixPath(path).parent.name or "root"
+
+
+def _from_dockerfiles(snap: Snapshot, workloads: list[WorkloadInfo],
+                      artifacts: list[ParsedArtifact]) -> list[WorkloadInfo]:
+    """앱 워크로드를 못 찾았을 때: 연결되지 않은 앱 Dockerfile마다 후보 워크로드 하나.
+    code_root는 빌드 컨텍스트 후보 규칙(1b F3)처럼 Dockerfile 디렉터리로 둔다."""
+    ids = {w.id for w in workloads}
+    out: list[WorkloadInfo] = []
+    for df in _app_dockerfiles(workloads, artifacts):
+        name = _dockerfile_workload_name(df.path)
+        command = _image_command(df.path, artifacts)
+        wid = f"w-{slug(name)}"
+        if wid in ids:
+            wid = f"w-{slug(df.path)}"
+        if wid in ids:
+            continue
+        ids.add(wid)
+        fact = next((f for key in ("cmd", "entrypoint") for f in df.settings if f["key"] == key), None)
+        entry = (fact or {}).get("evidence") or evidence(snap, df.path)
+        d = parent_dir(df.path)
+        out.append(WorkloadInfo(id=wid, kind="worker" if is_worker(name, command) else "web", name=name,
+                                entrypoint=entry, status="candidate", source="dockerfile", app_dir=d,
+                                command=command, code_root=d, dockerfile=df.path))
+    return out
+
+
+def _link_single_dockerfile(workloads: list[WorkloadInfo], artifacts: list[ParsedArtifact]) -> None:
+    """이미지만 있는 k8s·compose 앱 워크로드에 Dockerfile이 없고, 연결되지 않은 앱 Dockerfile이 정확히 하나면
+    그것을 연결한다(code_root, 비어 있으면 실행 명령). 이렇게 정한 code_root는 추측이다."""
+    apps = _app_dockerfiles(workloads, artifacts)
+    if len(apps) != 1:
+        return
+    df = apps[0]
+    for w in workloads:
+        if (w.source in ("k8s", "compose") and is_app(w) and w.dockerfile is None
+                and workload_dockerfile(w, artifacts) is None):
+            w.dockerfile, w.code_root, w.root_guessed = df.path, parent_dir(df.path), True
+            w.command = w.command or _image_command(df.path, artifacts)
+
+
 def detect_workloads(snap: Snapshot, manifests: Manifests, artifacts: list[ParsedArtifact]) -> list[WorkloadInfo]:
-    workloads = _from_k8s(snap, artifacts) or _from_compose(snap, artifacts) or _from_code(snap, manifests, artifacts)
+    workloads = _from_k8s(snap, artifacts) or _from_compose(snap, artifacts)
+    if not any(is_app(w) for w in workloads):
+        # k8s·compose에 앱이 없으면(프록시만 있는 경우 포함) 코드 탐지도 합친다
+        ids = {w.id for w in workloads}
+        for w in _from_code(snap, manifests, artifacts):
+            if w.id in ids:
+                w.id = f"{w.id}-{slug(w.app_dir)}"
+                w.name = w.id[2:]
+            if w.id not in ids:
+                ids.add(w.id)
+                workloads.append(w)
+    if not any(is_app(w) for w in workloads):
+        workloads += _from_dockerfiles(snap, workloads, artifacts)
+    _link_single_dockerfile(workloads, artifacts)
     return sorted(workloads, key=lambda w: w.id)

@@ -208,7 +208,8 @@
             "scheduled",
             "realtime",
             "static-frontend",
-            "migration-job"
+            "migration-job",
+            "reverse-proxy"
           ]
         },
         "name": {

@@ -486,6 +486,7 @@ def extract_endpoints(snap: Snapshot, workloads: list[WorkloadInfo], routes: lis
                       servers: list[ProxyServer] | None = None,
                       fronted: set[tuple[str, str | None]] | None = None) -> list[dict]:
     """fronted: 앞 구간이 있는 (프록시 id, 환경 이름). 프록시 체인이 거기서 끝난다(paths.fronted_proxies)."""
+    # 엔드포인트는 web 워크로드에만 배정한다(리버스 프록시·정적 프런트엔드 제외)
     webs = [w for w in workloads if w.kind == "web"]
     if not webs:
         return []
@@ -503,7 +504,8 @@ def extract_endpoints(snap: Snapshot, workloads: list[WorkloadInfo], routes: lis
     for method, route, rel, line, framework in raw:
         # 여러 워크로드가 같은 코드를 쓰면 근거가 있는 워크로드마다 하나씩, 없으면 점수·대체 규칙
         owners = _owners(rel, webs)
-        targets = [(w, True) for w in owners] if owners else [_assign(rel, webs)]
+        # 하나뿐인 Dockerfile로 추측한 code_root로 정한 소유자는 후보다
+        targets = [(w, not w.root_guessed) for w in owners] if owners else [_assign(rel, webs)]
         for w, sure in targets:
             counters[w.id] += 1
             out.append({"id": f"ep-{w.id[2:]}-{counters[w.id]:03d}", "workload": w.id, "method": method,

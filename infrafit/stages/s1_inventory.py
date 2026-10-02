@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from infrafit import kb
 from infrafit.detect.artifacts import kustomize_identity, parse_artifacts
-from infrafit.detect.components import find_unmapped, map_components
+from infrafit.detect.components import find_unmapped, image_unmapped, map_components
 from infrafit.detect.defaults import apply_defaults
 from infrafit.detect.environments import detect_environments
 from infrafit.detect.endpoints import extract_endpoints
@@ -12,7 +12,7 @@ from infrafit.detect.manifests import parse_manifests
 from infrafit.detect.nginx import find_proxies
 from infrafit.detect.paths import build_paths, fronted_proxies
 from infrafit.detect.signatures import match_signatures
-from infrafit.detect.workloads import detect_workloads
+from infrafit.detect.workloads import detect_workloads, image_services
 from infrafit.repo import Snapshot, content_digest
 from infrafit.run import RunContext, code_version, input_hash, now_iso
 
@@ -34,7 +34,8 @@ def run_s1(ctx: RunContext, snap: Snapshot) -> dict:
     endpoints = extract_endpoints(snap, workloads, routes, servers,
                                   fronted_proxies(snap, workloads, artifacts, environments, servers))
     matches = match_signatures(snap, manifests, kb.signatures())
-    datastores, components, compute = map_components(snap, matches, workloads, artifacts)
+    services = image_services(snap, artifacts)
+    datastores, components, compute = map_components(snap, matches, workloads, artifacts, services)
     body = {
         "workloads": [w.to_dict() for w in workloads],
         "endpoints": endpoints,
@@ -43,6 +44,6 @@ def run_s1(ctx: RunContext, snap: Snapshot) -> dict:
         "request_paths": build_paths(snap, workloads, artifacts, compute, environments, (servers, routes)),
         "environments": [e.to_dict(snap) for e in environments],
         "existing_artifacts": [a.to_dict() for a in artifacts],
-        "unmapped": find_unmapped(snap, manifests),
+        "unmapped": find_unmapped(snap, manifests) + image_unmapped(services),
     }
     return ctx.write_stage("S1", body, input_hash=h, started_at=started)

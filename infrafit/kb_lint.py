@@ -10,6 +10,7 @@ COMPONENT_ID = re.compile(r"^(cp|ds|ca|qu|sc|rt|fs|nw):[a-z0-9._-]+/[a-z0-9._-]+
 ROLES = {"primary-db", "cache", "session", "queue", "scheduler", "realtime", "file-storage", "search", "other"}
 STATUSES = {"confirmed", "candidate"}
 ARTIFACTS = {"dockerfile", "k8s", "terraform", "hop"}
+IMAGE_ROLES = {"reverse-proxy", "datastore", "cache", "queue", "infra", "dev-tool"}
 
 
 def _lint_catalog() -> list[str]:
@@ -96,5 +97,25 @@ def _lint_defaults() -> list[str]:
     return issues
 
 
+def _lint_images(entries: list[dict] | None = None) -> list[str]:
+    issues: list[str] = []
+    catalog = kb.catalog()
+    for i, e in enumerate(kb.images() if entries is None else entries):
+        name = f"image {i}"
+        match = e.get("match") if isinstance(e, dict) else None
+        if not isinstance(match, list) or not match or not all(isinstance(m, str) and m for m in match):
+            issues.append(f"{name}: match가 비었거나 문자열 목록이 아님")
+            if not isinstance(e, dict):
+                continue
+        else:
+            name = f"image {match[0]}"
+        if e.get("role") not in IMAGE_ROLES:
+            issues.append(f"{name}: 잘못된 role {e.get('role')}")
+        for key in ("component", "hosting_hint"):
+            if key in e and e[key] not in catalog:
+                issues.append(f"{name}: {key}가 catalog에 없음 {e[key]}")
+    return issues
+
+
 def lint() -> list[str]:
-    return _lint_catalog() + _lint_signatures() + _lint_defaults()
+    return _lint_catalog() + _lint_signatures() + _lint_defaults() + _lint_images()

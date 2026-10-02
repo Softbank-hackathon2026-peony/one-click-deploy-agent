@@ -42,6 +42,11 @@ def defaults() -> tuple[dict, ...]:
 
 
 @lru_cache(maxsize=1)
+def images() -> tuple[dict, ...]:
+    return tuple(_load("images.yaml")["images"])
+
+
+@lru_cache(maxsize=1)
 def kb_version() -> str:
     digest = hashlib.sha256()
     for path in sorted(KB_DIR.rglob("*.yaml")):

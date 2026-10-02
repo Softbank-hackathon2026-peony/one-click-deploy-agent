@@ -121,14 +121,15 @@ def build_paths(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[P
                 compute: dict[str, str], environments: list[Environment],
                 proxy: tuple[list[ProxyServer], list[ProxyRoute]] | None = None) -> list[dict]:
     """워크로드마다, 그 워크로드가 있는 렌더된 환경마다 경로 하나. 어느 환경에도 없으면 environment null 경로 하나.
-    nginx 프록시 워크로드도 경로를 갖고, 자기 앞 구간이 없는 프록시 대상은 프록시를 거치는 경로를 갖는다."""
+    nginx 프록시 워크로드도 경로를 갖고, 자기 앞 구간이 없는 프록시 대상은 프록시를 거치는 경로를 갖는다.
+    nginx 해석이 없는 reverse-proxy 워크로드는 앞 구간 + 이미지 분류의 프록시 구간(설정은 기본값만)이다."""
     servers, routes = proxy if proxy else ([], [])
     proxy_ids = {s.proxy for s in servers}
     by_id = {w.id: w for w in workloads}
     fronted = fronted_proxies(snap, workloads, artifacts, environments, servers)
     paths = []
     for w in sorted(workloads, key=lambda w: w.id):
-        if w.kind != "web" and w.id not in proxy_ids:
+        if w.kind not in ("web", "reverse-proxy") and w.id not in proxy_ids:
             continue
         has_app_server = w.id not in proxy_ids and not str(compute.get(w.id, "")).startswith(MANAGED_RUNTIME_PREFIXES)
 
@@ -143,6 +144,9 @@ def build_paths(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[P
                 # 이 환경의 server가 없어도 프록시 구간은 기본값만으로 둔다
                 tail = [_proxy_hop([s.settings for s in mine] or [[]], [s.evidence for s in mine])]
             own = _front(snap, w, artifacts, env)
+            if w.kind == "reverse-proxy" and w.id not in proxy_ids:
+                comp = w.proxy_component or "unmapped"
+                return own + [_hop("reverse-proxy", comp, {}, [w.entrypoint])]
             if own:
                 return own + tail
             # 앞 구간이 없으면 이 워크로드로 넘기는 프록시 체인을 따라 올라간다(단계마다 프록시 id 순 첫 번째)
