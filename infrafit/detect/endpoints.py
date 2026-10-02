@@ -151,19 +151,22 @@ def _mounts(snap: Snapshot, trees: dict[str, ast.AST]) -> dict[Ref, list[tuple[R
                         prefix = kw.value.value
                     else:
                         ok = False
-            if ok:
-                out[child].append(((rel, node.func.value.id), prefix))
+            parent = _ref(rel, node.func.value, imports)
+            if ok and parent is not None:
+                out[child].append((parent, prefix))
     return out
 
 
-def _include_prefixes(ref: Ref, mounts: dict[Ref, list[tuple[Ref, str]]], stack: tuple[Ref, ...] = ()) -> set[str]:
-    """라우터가 앱까지 연결되며 받는 include 접두어 전부. 순환과 깊이 초과는 끊는다."""
+def _include_prefixes(ref: Ref, mounts: dict[Ref, list[tuple[Ref, str]]], own: dict[Ref, str],
+                      stack: tuple[Ref, ...] = ()) -> set[str]:
+    """라우터가 앱까지 연결되며 받는 include 접두어 전부(중간 라우터 자체 접두어 포함). 순환과 깊이 초과는 끊는다."""
     out: set[str] = set()
     if len(stack) < _MAX_DEPTH:
         for parent, prefix in mounts.get(ref, []):
             if parent == ref or parent in stack:
                 continue
-            out |= {_join(pp, prefix) for pp in _include_prefixes(parent, mounts, stack + (ref,))}
+            mid = own.get(parent, "")
+            out |= {_join(_join(pp, mid), prefix) for pp in _include_prefixes(parent, mounts, own, stack + (ref,))}
     return out or {""}
 
 
@@ -175,6 +178,7 @@ def _python(snap: Snapshot) -> list[Raw]:
         except (SyntaxError, ValueError, RecursionError):
             continue
     mounts = _mounts(snap, trees)
+    own_prefix = {(rel, var): pre for rel, tree in trees.items() for var, pre in _prefixes(tree).items()}
     out: list[Raw] = []
     for rel, tree in trees.items():
         prefixes = _prefixes(tree)
@@ -188,7 +192,7 @@ def _python(snap: Snapshot) -> list[Raw]:
                     continue
                 owner = dec.func.value.id if isinstance(dec.func.value, ast.Name) else ""
                 own = _join(prefixes.get(owner, ""), dec.args[0].value)
-                incs = _include_prefixes((rel, owner), mounts) if owner else {""}
+                incs = _include_prefixes((rel, owner), mounts, own_prefix) if owner else {""}
                 attr = dec.func.attr
                 methods: list[str] = []
                 if attr in HTTP_METHODS:
