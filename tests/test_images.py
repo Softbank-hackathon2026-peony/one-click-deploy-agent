@@ -259,3 +259,57 @@ def test_dev_dockerfile_name_parts():
                                                "test.dockerfile"))
     assert not any(_is_dev_dockerfile(p) for p in ("Dockerfile", "api/Dockerfile.prod", "docker/worker.Dockerfile",
                                                    "devtools/Dockerfile", "latest/Dockerfile"))
+
+
+# 예전 부분 문자열 토큰(postgres, redis, mysql, mongo, valkey, memcached, rabbitmq, minio, localstack)이
+# 워크로드에서 빼던 흔한 이미지들: 이미지 분류도 모두 워크로드가 아닌 것으로 본다
+PG = "ds:unspecified/postgresql/default"
+REDIS = "ca:unspecified/redis/default"
+TOKEN_COVERED = {
+    "postgres:16-alpine": ("datastore", PG), "bitnami/postgresql:16": ("datastore", PG),
+    "postgis/postgis:16-3.4": ("datastore", PG), "timescale/timescaledb:latest-pg16": ("datastore", PG),
+    "timescale/timescaledb-ha:pg16": ("datastore", PG), "pgvector/pgvector:pg16": ("datastore", PG),
+    "ankane/pgvector:latest": ("datastore", PG), "supabase/postgres:15.1.0": ("datastore", PG),
+    "cimg/postgres:16.1": ("datastore", PG), "circleci/postgres:12-alpine": ("datastore", PG),
+    "mysql:8": ("datastore", "ds:unspecified/mysql/default"),
+    "mysql/mysql-server:8.0": ("datastore", "ds:unspecified/mysql/default"),
+    "bitnami/mysql:8.0": ("datastore", "ds:unspecified/mysql/default"),
+    "mongo:7": ("datastore", "ds:unspecified/mongodb/default"),
+    "bitnami/mongodb:7.0": ("datastore", "ds:unspecified/mongodb/default"),
+    "mongodb/mongodb-community-server:7.0-ubi8": ("datastore", "ds:unspecified/mongodb/default"),
+    "bitnami/mongodb-sharded:7.0": ("datastore", "ds:unspecified/mongodb/default"),
+    "redis:7-alpine": ("cache", REDIS), "bitnami/redis:7.2": ("cache", REDIS),
+    "redis/redis-stack:latest": ("cache", REDIS), "redis/redis-stack-server:7.2.0-v10": ("cache", REDIS),
+    "bitnami/redis-cluster:7.2": ("cache", REDIS), "bitnami/redis-sentinel:7.2": ("cache", REDIS),
+    "valkey/valkey:8": ("cache", REDIS), "bitnami/valkey:8.0": ("cache", REDIS),
+    "bitnami/valkey-cluster:8.0": ("cache", REDIS),
+    "memcached:1.6": ("cache", None), "bitnami/memcached:1.6": ("cache", None),
+    "rabbitmq:3-management": ("queue", None), "bitnami/rabbitmq:3.13": ("queue", None),
+    "minio/minio:latest": ("infra", None), "quay.io/minio/minio:RELEASE.2024": ("infra", None),
+    "bitnami/minio:2024": ("infra", None), "minio/mc:latest": ("infra", None),
+    "localstack/localstack:3": ("dev-tool", None), "localstack/localstack-pro:3": ("dev-tool", None),
+    "mongo-express:1": ("dev-tool", None), "rediscommander/redis-commander:latest": ("dev-tool", None),
+    "redis/redisinsight:latest": ("dev-tool", None), "redislabs/redisinsight:1.14": ("dev-tool", None),
+    "phpmyadmin:5": ("dev-tool", None), "phpmyadmin/phpmyadmin:5": ("dev-tool", None),
+    "gcr.io/cloudsql-docker/gce-proxy:1.33": ("infra", None),
+    "gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.8": ("infra", None),
+    "gcr.io/cloudsql-docker/cloudsql-proxy:1.11": ("infra", None),
+}
+
+
+def test_token_covered_images_are_classified():
+    got = {image: (c["role"], c["component"]) if (c := classify_image(image)) else None for image in TOKEN_COVERED}
+    assert got == TOKEN_COVERED
+
+
+def test_cloudsql_proxy_variants_hint_hosting():
+    for image in ("gcr.io/cloudsql-docker/gce-proxy:1.33", "cloudsql-proxy:1", "gcr.io/x/cloud-sql-proxy:2"):
+        assert classify_image(image)["hosting_hint"] == "ds:gcp/cloudsql-postgres/single", image
+
+
+def test_compose_third_party_images_are_not_workloads(tmp_path):
+    repo = tmp_path / "repo"
+    _write(repo, "docker-compose.yml",
+           "services:\n  api:\n    image: acme/api:1\n  mongo:\n    image: bitnami/mongodb:7.0\n"
+           "  redis:\n    image: redis/redis-stack:latest\n  admin:\n    image: mongo-express:1\n")
+    assert [(w.id, w.kind) for w in _workloads(repo)] == [("w-api", "web")]

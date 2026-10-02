@@ -7,17 +7,20 @@ images:
   - {match: [nginx, nginx-unprivileged, openresty], role: reverse-proxy, component: "nw:proxy/nginx/default"}
   - {match: [caddy, traefik, haproxy, envoy], role: reverse-proxy}
   # 저장소
-  - {match: [postgres, postgresql, postgis], role: datastore, component: "ds:unspecified/postgresql/default"}
-  - {match: [mysql], role: datastore, component: "ds:unspecified/mysql/default"}
+  - {match: [postgres, postgresql, postgis, "timescaledb*", "pgvector/*", pgvector], role: datastore,
+     component: "ds:unspecified/postgresql/default"}
+  - {match: [mysql, "mysql/mysql-server"], role: datastore, component: "ds:unspecified/mysql/default"}
   - {match: [mariadb], role: datastore}
-  - {match: [mongo], role: datastore, component: "ds:unspecified/mongodb/default"}
+  - {match: [mongo, "mongodb*"], role: datastore, component: "ds:unspecified/mongodb/default"}
   # 캐시·큐
-  - {match: [redis, valkey], role: cache, component: "ca:unspecified/redis/default"}
+  - {match: [redis, "redis/redis-stack*", "redis-stack*", redis-cluster, redis-sentinel, valkey, valkey-cluster],
+     role: cache, component: "ca:unspecified/redis/default"}
   - {match: [memcached], role: cache}
   - {match: [rabbitmq], role: queue}
   # 기반 서비스
   - {match: ["temporalio/*"], role: infra}
-  - {match: [cloud-sql-proxy], role: infra, hosting_hint: "ds:gcp/cloudsql-postgres/single"}
-  - {match: [minio], role: infra}
+  - {match: [cloud-sql-proxy, cloudsql-proxy, gce-proxy], role: infra, hosting_hint: "ds:gcp/cloudsql-postgres/single"}
+  - {match: [minio, "minio/*"], role: infra}
   # 개발 도구
-  - {match: [localstack, mailhog, mailpit, adminer, pgadmin, dpage/pgadmin4], role: dev-tool}
+  - {match: [localstack, "localstack/*", mailhog, mailpit, adminer, pgadmin, dpage/pgadmin4, mongo-express,
+             redis-commander, redisinsight, phpmyadmin], role: dev-tool}
