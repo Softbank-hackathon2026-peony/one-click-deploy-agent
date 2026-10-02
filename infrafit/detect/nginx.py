@@ -27,7 +27,10 @@ NGINX_ROOT = "/etc/nginx/"
 TEMPLATE_DIR = "/etc/nginx/templates/"
 CONFD_DIR = "/etc/nginx/conf.d"
 MAX_INCLUDE_DEPTH = 10
-TIME_UNITS = {"ms": 0.001, "s": 1, "m": 60, "h": 3600, "d": 86400, "w": 604800, "M": 2592000, "y": 31536000}
+# 밀리초 단위(정수 계산으로 부동소수 오차를 피한다)
+TIME_UNITS_MS = {"ms": 1, "s": 1000, "m": 60_000, "h": 3_600_000, "d": 86_400_000, "w": 604_800_000,
+                 "M": 2_592_000_000, "y": 31_536_000_000}
+MAX_EXPANDED = 10_000  # 진입 설정 하나에서 펼칠 지시어·include 방문 수 상한
 _TIME = re.compile(r"(\d+)(ms|s|m|h|d|w|M|y)?")
 _ENVSUBST = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
 _PROXY_PASS = re.compile(r"^(?:https?|grpcs?)://([^/]*)(/.*)?$")
@@ -287,12 +290,14 @@ def _is_workload_doc(doc, w: WorkloadInfo) -> bool:
 
 
 def _k8s_env(objects: list, w: WorkloadInfo) -> dict[str, str]:
-    """워크로드 첫 컨테이너의 envFrom ConfigMap data, 그 위에 env[].value(쿠버네티스와 같은 우선순위)."""
+    """워크로드 컨테이너(이미지가 같은 것, 없으면 첫 번째)의 envFrom ConfigMap data,
+    그 위에 env[].value(쿠버네티스와 같은 우선순위)."""
     doc = next((d for d in objects if _is_workload_doc(d, w)), None)
     if doc is None:
         return {}
     containers = pod_spec(doc).get("containers")
-    c = _d(containers[0]) if isinstance(containers, list) and containers else {}
+    containers = [_d(x) for x in containers] if isinstance(containers, list) else []
+    c = next((x for x in containers if w.image and x.get("image") == w.image), containers[0] if containers else {})
     configmaps = {_d(o.get("metadata")).get("name"): _d(o.get("data")) for o in objects
                   if isinstance(o, dict) and o.get("kind") == "ConfigMap"}
     out: dict[str, str] = {}
@@ -319,25 +324,32 @@ def _include_targets(pattern: str, mapping: dict[str, str]) -> list[str]:
 
 
 def _expand(snap: Snapshot, rel: str, nodes: list, mapping: dict[str, str], cache: dict,
-            stack: tuple[str, ...], included: set[str]) -> list[dict]:
-    """include를 그 자리에 펼친 지시어 트리. 각 지시어에 원래 파일(`file`)을 단다."""
+            stack: tuple[str, ...], included: set[str], budget: list[int]) -> list[dict]:
+    """include를 그 자리에 펼친 지시어 트리. 각 지시어에 원래 파일(`file`)을 단다.
+    budget(펼칠 수 있는 남은 지시어·include 방문 수)을 다 쓰면 그 뒤의 include는 건너뛴다
+    (이미 읽고 있는 파일 자체의 지시어는 남긴다)."""
     out: list[dict] = []
     for n in nodes:
         if not isinstance(n, dict) or not isinstance(n.get("directive"), str):
             continue
+        budget[0] -= 1
         args = [str(a) for a in n.get("args") or []]
         if n["directive"] == "include":
             if not args or len(stack) > MAX_INCLUDE_DEPTH:
                 continue
             for target in _include_targets(args[0], mapping):
+                if budget[0] <= 0:
+                    break
+                budget[0] -= 1
                 parsed = _parse(snap, target, cache) if target not in stack else None
                 if parsed is not None:
                     included.add(target)
-                    out.extend(_expand(snap, target, parsed, mapping, cache, stack + (target,), included))
+                    out.extend(_expand(snap, target, parsed, mapping, cache, stack + (target,), included,
+                                       budget))
             continue
         node = {"directive": n["directive"], "args": args, "line": n.get("line"), "file": rel, "block": None}
         if isinstance(n.get("block"), list):
-            node["block"] = _expand(snap, rel, n["block"], mapping, cache, stack, included)
+            node["block"] = _expand(snap, rel, n["block"], mapping, cache, stack, included, budget)
         out.append(node)
     return out
 
@@ -345,13 +357,14 @@ def _expand(snap: Snapshot, rel: str, nodes: list, mapping: dict[str, str], cach
 # --- 설정 값 ------------------------------------------------------------------
 
 def _seconds(raw: str):
-    pos, total = 0, 0.0
+    """nginx 시간 값 → 초 단위 정수(1초 미만은 올림)."""
+    pos, total_ms = 0, 0
     for m in _TIME.finditer(raw):
         if m.start() != pos:
             return raw
-        total += int(m.group(1)) * TIME_UNITS[m.group(2) or "s"]
+        total_ms += int(m.group(1)) * TIME_UNITS_MS[m.group(2) or "s"]
         pos = m.end()
-    return round(total) if raw and pos == len(raw) else raw
+    return -(-total_ms // 1000) if raw and pos == len(raw) else raw
 
 
 def _fact(snap: Snapshot, node: dict, key: str, value) -> dict:
@@ -401,10 +414,8 @@ def _resolve_host(host: str, scope: _Scope) -> tuple[str | None, str]:
         selector = _d(_d(doc.get("spec")).get("selector"))
         if not selector:
             continue
-        ids = sorted({by_name[name].id for o in scope.objects
-                      if isinstance(o, dict) and o.get("kind") in WORKLOAD_KINDS
-                      and isinstance(name := _d(o.get("metadata")).get("name"), str) and name in by_name
-                      and all(_pod_labels(o).get(k) == v for k, v in selector.items())})
+        ids = sorted({w.id for o in scope.objects for w in scope.workloads
+                      if _is_workload_doc(o, w) and all(_pod_labels(o).get(k) == v for k, v in selector.items())})
         if ids:
             return ids[0], "candidate" if len(ids) > 1 else scope.link_status
     if h in scope.compose_names and h in by_name:
@@ -529,15 +540,17 @@ def _links(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[Parsed
             if name == w.name:
                 mapping.update(_compose_mapping(snap, path, svc))
         mappings[w.id] = _with_templates(mapping)
+    nginx_based = [w for w in workloads
+                   if "nginx" in w.image.lower() or "nginx" in _final_image(dockerfiles[w.id]).lower()]
+    nginx_ids = {w.id for w in nginx_based}
     links: dict[str, list[tuple[str, str | None, str]]] = {w.id: [] for w in workloads}
     linked: set[str] = set()
     for w in workloads:
         for cpath, rel in sorted(mappings[w.id].items()):
-            if rel in configs:
+            # nginx 기반이 아닌 워크로드는 /etc/nginx/ 아래로 들어간 설정만 연결한다(`COPY . .` 등 제외)
+            if rel in configs and (w.id in nginx_ids or cpath.startswith(NGINX_ROOT)):
                 links[w.id].append((rel, cpath, "confirmed"))
                 linked.add(rel)
-    nginx_based = [w for w in workloads
-                   if "nginx" in w.image.lower() or "nginx" in _final_image(dockerfiles[w.id]).lower()]
     if len(nginx_based) == 1:
         links[nginx_based[0].id].extend((rel, None, "candidate") for rel in configs if rel not in linked)
     return mappings, links
@@ -581,7 +594,7 @@ def find_proxies(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[
         trees, included = [], set()
         for rel, status in entries:
             trees.append((rel, status, _expand(snap, rel, _parse(snap, rel, cache) or [], mappings[w.id], cache,
-                                               (rel,), included)))
+                                               (rel,), included, [MAX_EXPANDED])))
         # 다른 진입 설정이 include한 파일은 따로 진입점으로 세지 않는다
         trees = [t for t in trees if t[0] not in included]
         upstreams = _upstreams(snap, [t[2] for t in trees])

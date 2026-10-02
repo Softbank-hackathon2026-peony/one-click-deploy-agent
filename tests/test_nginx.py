@@ -205,3 +205,82 @@ def test_missing_include_broken_file_and_include_cycle(tmp_path):
     servers, routes = _run(tmp_path)
     assert [(r.location, r.target) for r in routes] == [(("", "/"), "w-api")]
     assert len(servers) == 1
+
+
+def test_copy_all_into_non_nginx_workload_does_not_link_config(tmp_path):
+    _write(tmp_path, "docker-compose.yml", _compose([
+        ("api", "    build: .\n"), ("web", "    image: nginx:1.27\n")]))
+    _write(tmp_path, "Dockerfile", "FROM python:3.12\nWORKDIR /app\nCOPY . .\n")
+    _write(tmp_path, "deploy/nginx.conf", "events {}\nhttp { server { location / { proxy_pass http://api:8000; } } }\n")
+    servers, routes = _run(tmp_path)
+    assert [s.proxy for s in servers] == ["w-web"]
+    assert [(r.proxy, r.target, r.status) for r in routes] == [("w-web", "w-api", "candidate")]
+
+
+def test_sub_second_times_round_up():
+    from infrafit.detect.nginx import _seconds
+    assert [_seconds(x) for x in ("500ms", "1500ms", "0", "0s", "1m30s", "15", "abc", "1x")] == [
+        1, 2, 0, 0, 90, 15, "abc", "1x"]
+
+
+def test_service_selector_matches_name_prefixed_workload_by_label(tmp_path):
+    _write(tmp_path, "proxy/Dockerfile", "FROM nginx:1.27\nCOPY default.conf /etc/nginx/conf.d/default.conf\n")
+    _write(tmp_path, "proxy/default.conf", "server { location / { proxy_pass http://backend; } }\n")
+    env = Environment("dev", "k8s/overlays/dev/kustomization.yaml", True, [
+        {"kind": "Deployment", "metadata": {"name": "dev-proxy", "labels": {"app.kubernetes.io/name": "proxy"}}},
+        {"kind": "Service", "metadata": {"name": "backend"}, "spec": {"selector": {"app": "be"}}},
+        {"kind": "Deployment", "metadata": {"name": "dev-api", "labels": {"app.kubernetes.io/name": "api"}},
+         "spec": {"template": {"metadata": {"labels": {"app": "be"}}}}}])
+    _, routes = _run(tmp_path, [_w("proxy", "acme/proxy:1"), _w("api")], [env])
+    assert [(r.environment, r.target, r.status) for r in routes] == [("dev", "w-api", "confirmed")]
+
+
+def test_k8s_env_uses_container_matching_workload_image(tmp_path):
+    _write(tmp_path, "proxy/Dockerfile", "FROM nginx:1.27\nCOPY default.conf /etc/nginx/conf.d/default.conf\n")
+    _write(tmp_path, "proxy/default.conf", "server { location / { proxy_pass http://${UP}; } }\n")
+    env = Environment("dev", "k8s/overlays/dev/kustomization.yaml", True, [
+        {"kind": "Deployment", "metadata": {"name": "proxy"}, "spec": {"template": {"spec": {"containers": [
+            {"name": "sidecar", "image": "acme/sidecar:1", "env": [{"name": "UP", "value": "b"}]},
+            {"name": "nginx", "image": "acme/proxy:1", "env": [{"name": "UP", "value": "a"}]}]}}}}])
+    _, routes = _run(tmp_path, [_w("proxy", "acme/proxy:1"), _w("a"), _w("b")], [env])
+    assert [r.target for r in routes] == ["w-a"]
+
+
+def test_pathological_glob_includes_terminate(tmp_path):
+    import time
+    _write(tmp_path, "docker-compose.yml", _compose([
+        ("proxy", "    image: nginx:1.27\n    volumes:\n      - ./conf.d:/etc/nginx/conf.d\n      - ./x:/etc/nginx/x\n"),
+        ("api", "    image: acme/api:1\n")]))
+    _write(tmp_path, "conf.d/site.conf",
+           "server { location / { include /etc/nginx/x/*.inc; proxy_pass http://api; } }\n")
+    for i in range(20):
+        _write(tmp_path, f"x/{i:02d}.inc", "include /etc/nginx/x/*.inc;\nproxy_set_header A b;\n")
+    start = time.monotonic()
+    _, routes = _run(tmp_path)
+    assert time.monotonic() - start < 5
+    assert [r.target for r in routes] == ["w-api"]
+
+
+def test_upstream_with_several_servers_gives_route_per_server(tmp_path):
+    _write(tmp_path, "docker-compose.yml", _compose([
+        ("proxy", "    image: nginx:1.27\n    volumes:\n      - ./default.conf:/etc/nginx/conf.d/default.conf\n"),
+        ("a", "    image: acme/a:1\n"), ("b", "    image: acme/b:1\n")]))
+    _write(tmp_path, "default.conf",
+           "upstream u { server a:80; server b:80 backup; server nowhere:80; }\n"
+           "server { location / { proxy_pass http://u; } }\n")
+    servers, routes = _run(tmp_path)
+    assert sorted((r.upstream, r.target or "") for r in routes) == [("u", ""), ("u", "w-a"), ("u", "w-b")]
+    assert sorted(servers[0].locations[0].proxies, key=str) == sorted(
+        [("w-a", None), ("w-b", None), (None, None)], key=str)
+
+
+def test_compose_environment_beats_dockerfile_env_and_env_space_form(tmp_path):
+    _write(tmp_path, "docker-compose.yml", _compose([
+        ("proxy", "    build: .\n    environment:\n      - UP=b:80\n"),
+        ("a", "    image: acme/a:1\n"), ("b", "    image: acme/b:1\n")]))
+    _write(tmp_path, "Dockerfile", "FROM nginx:1.27\nENV UP a:80\nENV OTHER a\n"
+           "COPY default.conf /etc/nginx/conf.d/default.conf\n")
+    _write(tmp_path, "default.conf",
+           "server { location / { proxy_pass http://${UP}; } location /o { proxy_pass http://${OTHER}; } }\n")
+    _, routes = _run(tmp_path)
+    assert {r.location[1]: r.target for r in routes} == {"/": "w-b", "/o": "w-a"}
