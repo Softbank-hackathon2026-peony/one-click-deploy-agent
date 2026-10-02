@@ -104,7 +104,7 @@ def test_websocket_rejects_candidate_without_websocket():
     assert cell(fit, "w-web", RUN)["result"] == "feasible"
     rec = build_recommendation(inventory(sqlite=False), prof, fit, capabilities(), RULES)
     rejected = {r["id"]: r for r in rec["rejected"]}
-    assert rejected[EKS]["reasons"][0]["violation"]["rule"] == "CAP-WEBSOCKET-001"
+    assert rejected["kubernetes/" + EKS]["reasons"][0]["violation"]["rule"] == "CAP-WEBSOCKET-001"
     assert EKS not in {c for cand in rec["candidates"] for c in cand["assignment"].values()}
 
 
@@ -272,13 +272,32 @@ def test_sqlite_kind_stripped_from_b2_object_keeps_other_kinds():
     assert _strip_sqlite_b2([only], [sq], inventory()) == []
 
 
-def test_app_scope_ignores_workload_values_aggregated_from_endpoints():
+def test_app_scopes_are_per_workload_and_borrow_only_app_level_dimensions():
     from infrafit.fit.scopes import app_scopes
+    inv = inventory(sqlite=False)
+    inv["workloads"] += [
+        {"id": "w-worker", "kind": "worker", "name": "worker", "status": "confirmed",
+         "entrypoint": {"path": "worker.py", "line": 1, "snippet": "loop"},
+         "scaling": {"min": 3, "max": 3, "autoscale": False, "evidence": []}},
+        {"id": "w-nginx", "kind": "reverse-proxy", "name": "nginx", "status": "confirmed",
+         "entrypoint": {"path": "nginx.conf", "line": 1, "snippet": "server"}},
+        {"id": "w-db-migrate", "kind": "migration-job", "name": "migrate", "status": "confirmed",
+         "entrypoint": {"path": "migrate.sh", "line": 1, "snippet": "migrate"}}]
     a2_web = {**dim("A2", "수십 초"), "aggregated_from": ["ep-web-001"]}
-    a2_app = {**dim("A2", "수십 초", scope="w-app"), "aggregated_from": ["w-web"]}
-    scopes = app_scopes(inventory(sqlite=False), profile(a2_web, a2_app))
-    assert [s.id for s in scopes] == ["w-app"]
-    assert scopes[0].members == ["w-app", "w-web"] and scopes[0].current == [EC2]
+    b1_worker = dim("B1", {"value": "있음", "kinds": ["in-memory-session"]}, scope="w-worker")
+    b1_app = {**dim("B1", {"value": "있음", "kinds": ["in-memory-session"]}, scope="w-app"),
+              "aggregated_from": ["w-web", "w-worker"]}
+    g3_app = {**dim("G3", "x", scope="w-app"), "source": "assumption", "aggregated_from": ["w-web", "w-worker"]}
+    scopes = {s.id: s for s in app_scopes(inv, profile(a2_web, b1_worker, b1_app, g3_app))}
+    assert sorted(scopes) == ["w-nginx", "w-web", "w-worker"]          # 마이그레이션 작업·w-app은 범위가 아니다
+    assert {d["dimension"] for d in scopes["w-web"].dims} == {"A2", "G3"}   # w-app의 B1은 빌려 오지 않는다
+    assert {d["dimension"] for d in scopes["w-worker"].dims} == {"B1", "G3"}
+    assert {d["dimension"] for d in scopes["w-nginx"].dims} == {"G3"}
+    assert scopes["w-web"].current == [EC2] and scopes["w-worker"].min_replicas == 3
+    assert scopes["w-web"].min_replicas == 1
+    # 앱 워크로드 없이 리버스 프록시만 있으면 compute 범위가 없다
+    proxy_only = {**inv, "workloads": [w for w in inv["workloads"] if w["kind"] == "reverse-proxy"]}
+    assert app_scopes(proxy_only, profile()) == []
 
 
 # ---------- QA 2: 상시 실행·고정 비용·순위·BaaS·결과 ----------
@@ -334,19 +353,19 @@ def test_pinned_instance_uses_pinned_cost_on_scale_to_zero_platform():
                         CP__always_on=False, CP__cpu_after_response=False), 13.8),
             comp(INS, "gcp", cost=0, CP__scale_to_zero=True, CP__single_instance_config="--scaling=1",
                  CP__always_on=False, CP__cpu_after_response=True, CP__always_on_config="min-instances ≥ 1"),
-            comp(EC2, "aws", cost=10, CP__scale_to_zero=False, CP__single_instance_config="container_name",
-                 CP__always_on=True)]
+            comp(EC2, "aws", cost=10, target="aws_ec2", CP__scale_to_zero=False,
+                 CP__single_instance_config="container_name", CP__always_on=True)]
     inv = inventory(sqlite=False)
     prof = profile(dim("B1", {"value": "있음", "kinds": ["in-memory-session"]}))
     fit = build_fit(inv, prof, caps, rules)
     rec = build_recommendation(inv, prof, fit, caps, rules)
     by = {c["assignment"]["w-web"]: c for c in rec["candidates"]}
+    # 서비스형(gcp)은 워크로드마다 비용을 아는 쪽(요청 기반 고정 $13.8)을 고른다. 인스턴스 기반은 고정 비용 출처가 없다
+    assert set(by) == {REQ, EC2}
     assert by[REQ]["cost"]["monthly_baseline_usd"] == 13.8
     assert by[REQ]["cost"]["breakdown"][0]["item"] == "monthly_pinned"
-    assert by[INS]["cost"]["monthly_baseline_usd"] is None                  # 고정 비용 출처 없음 → 모름
-    assert by[INS]["cost"]["unknown_cost_components"] == [INS]
     assert by[EC2]["cost"]["monthly_baseline_usd"] == 10                    # scale-to-zero가 아니면 바닥 비용 그대로
-    assert [c["assignment"]["w-web"] for c in rec["candidates"]] == [EC2, REQ, INS]
+    assert [c["assignment"]["w-web"] for c in rec["candidates"]] == [EC2, REQ]
     # 워커가 min-instances를 강제해도 같다
     pinned(caps[1], 59.9)
     prof = profile(dim("A1", ["웹", "워커"]))
@@ -357,20 +376,26 @@ def test_pinned_instance_uses_pinned_cost_on_scale_to_zero_platform():
     # 고정 설정이 없으면 바닥 비용
     fit = build_fit(inv, profile(), caps, rules)
     rec = build_recommendation(inv, profile(), fit, caps, rules)
-    assert {c["assignment"]["w-web"]: c["cost"]["monthly_baseline_usd"] for c in rec["candidates"]}[INS] == 0
+    assert {c["topology"]: c["cost"]["monthly_baseline_usd"] for c in rec["candidates"]}["services"] == 0
 
 
 def test_ranking_known_cost_then_total_then_unknown_cells():
+    """근거 있는 차원(detector)에서 나온 모름은 비용이 싸도 뒤로, 가정 값에서 나온 모름은 순위를 내리지 않는다."""
     rules = RULES
     caps = [comp(RUN, "gcp", cost=5, CP__websocket=True),                 # A4 키 없음 → unknown 셀
-            comp(EC2, "aws", cost=10, CP__websocket=True, CP__cpu_after_response=True),
+            comp(EC2, "aws", cost=10, target="aws_ec2", CP__websocket=True, CP__cpu_after_response=True),
             comp(ECS, "aws", CP__websocket=True, CP__cpu_after_response=True)]   # 비용 모름
     inv = inventory(sqlite=False)
     prof = profile(dim("A4", "있음"))
     fit = build_fit(inv, prof, caps, rules)
     rec = build_recommendation(inv, prof, fit, caps, rules)
+    assert [c["assignment"]["w-web"] for c in rec["candidates"]] == [EC2, ECS, RUN]
+    assert rec["candidates"][2]["unknown_count"] == 1
+    assumed = {**dim("A4", "있음"), "source": "assumption", "evidence": []}
+    prof = profile(assumed)
+    fit = build_fit(inv, prof, caps, rules)
+    rec = build_recommendation(inv, prof, fit, caps, rules)
     assert [c["assignment"]["w-web"] for c in rec["candidates"]] == [RUN, EC2, ECS]
-    assert rec["candidates"][0]["unknown_count"] == 1
 
 
 def test_billing_mode_tie_prefers_request_billing_unless_background_needed():
@@ -453,7 +478,7 @@ def test_null_totals_compare_known_part_when_unknown_parts_match():
                               "evidence": [DS_EV], "status": "confirmed"})
     inv["current_components"].append({"scope": "ds-supabase", "component": SUPA, "evidence": [DS_EV],
                                       "status": "confirmed"})
-    caps = [comp(EC2, "aws", cost=20), comp(RUN, "gcp", cost=0), comp(ECS, "aws")]
+    caps = [comp(EC2, "aws", cost=20, target="aws_ec2"), comp(RUN, "gcp", cost=0), comp(ECS, "aws")]
     fit = build_fit(inv, profile(), caps, RULES)
     rec = build_recommendation(inv, profile(), fit, caps, RULES)
     assert [c["assignment"]["w-web"] for c in rec["candidates"]] == [RUN, EC2, ECS]

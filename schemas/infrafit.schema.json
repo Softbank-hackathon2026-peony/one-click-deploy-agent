@@ -1385,6 +1385,47 @@
             "$ref": "#/$defs/ScopeId"
           },
           "description": "현재 구성 요소(BaaS 등)를 바꾸지 않고 그대로 배정한 데이터 범위"
+        },
+        "topology": {
+          "type": "string",
+          "enum": [
+            "vm-compose",
+            "services",
+            "kubernetes"
+          ],
+          "description": "배포 형태: vm-compose(워크로드 전부 VM 한 대 + docker compose), services(워크로드마다 서비스형 플랫폼), kubernetes(클러스터 하나에 워크로드 전부)"
+        },
+        "placement": {
+          "type": "array",
+          "description": "워크로드(compute 범위)마다 배치: 구성 요소, AgentCore 대상, 최소 레플리카(scaling.min, 없으면 1)",
+          "items": {
+            "type": "object",
+            "properties": {
+              "scope": {
+                "$ref": "#/$defs/ScopeId"
+              },
+              "component": {
+                "$ref": "#/$defs/ComponentId"
+              },
+              "target": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "min_replicas": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "scope",
+              "component",
+              "target",
+              "min_replicas"
+            ]
+          }
         }
       },
       "additionalProperties": false,

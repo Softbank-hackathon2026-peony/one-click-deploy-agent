@@ -264,6 +264,15 @@ def check_s4(rec: dict, fit: dict, inventory: dict, profile: dict | None,
             cell = cells.get((scope, comp))
             if cell is not None and cell["result"] == "infeasible":
                 issues.append(f"candidate {cand['id']}: infeasible assignment {scope} × {comp}")
+        placement = cand.get("placement") or []
+        for p in placement:
+            if cand["assignment"].get(p["scope"]) != p["component"]:
+                issues.append(f"candidate {cand['id']}: placement {p['scope']} × {p['component']} not in assignment")
+        compute_scopes = {s for s, c in cand["assignment"].items() if c.startswith("cp:")}
+        if "placement" in cand and compute_scopes != {p["scope"] for p in placement}:
+            issues.append(f"candidate {cand['id']}: placement does not cover compute scopes")
+        if cand.get("topology") in ("vm-compose", "kubernetes") and len({p["component"] for p in placement}) > 1:
+            issues.append(f"candidate {cand['id']}: {cand['topology']} places workloads on several compute components")
         known_tf = {t["id"] for t in rec["transforms"]}
         for t in cand["transforms"]:
             if t not in known_tf:
@@ -273,6 +282,8 @@ def check_s4(rec: dict, fit: dict, inventory: dict, profile: dict | None,
             issues.append("recommended is null although candidates exist")
     elif rec["recommended"] not in ids:
         issues.append(f"recommended {rec['recommended']} is not a candidate")
+    if ((profile or {}).get("batch_only") or {}).get("value") and (ids or rec["outcome"] != "not_deployable"):
+        issues.append("profile.batch_only is true but recommendation is not not_deployable without candidates")
     return sorted(set(issues))
 
 

@@ -196,6 +196,8 @@ class Cell:
     requires_config: list[dict] = field(default_factory=list)
     unknown_keys: list[str] = field(default_factory=list)
     is_current: bool = False
+    # 모름이 근거 있는 차원 값(source=detector)에서 나왔는가(가정 값에서 나온 모름은 순위를 내리지 않는다). 출력하지 않는다.
+    evidence_unknown: bool = False
 
     @property
     def result(self) -> str:
@@ -242,6 +244,8 @@ def evaluate(scope: str, kind: str, component_id: str, component: dict | None,
             continue
         if state == "unknown":
             cell.unknown_keys += [k for k, e in refs if e is None]
+            if any(d.get("source") == "detector" for d in hit):
+                cell.evidence_unknown = True
             continue
         required = required_spec(rule.get("require"))
         if rule.get("otherwise") == "config" and rule.get("config_from"):

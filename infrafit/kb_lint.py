@@ -355,6 +355,8 @@ CAPABILITY_KEYS = {
     "CP.single_instance_config": lambda v: isinstance(v, str) and bool(v),
     "CP.always_on": lambda v: isinstance(v, bool),
     "CP.always_on_config": lambda v: isinstance(v, str) and bool(v),
+    # 요청 시간 상한(CP.max_request_seconds)을 늘리는 설정 이름(예: GKE BackendConfig timeoutSec)
+    "CP.max_request_seconds_config": lambda v: isinstance(v, str) and bool(v),
     # 인스턴스(레플리카)를 여러 개로 늘릴 수 있는가 / 한 클러스터·환경에 여러 워크로드를 두는가
     "CP.horizontal_scaling": lambda v: isinstance(v, bool),
     "CP.multi_workload": lambda v: isinstance(v, bool),
@@ -508,6 +510,24 @@ def _lint_require(name: str, cond) -> list[str]:
     return issues
 
 
+def _when_leaves(when) -> list[dict] | None:
+    """when 조건의 잎(차원 비교) 목록. {all|any: [...]}는 펼친다. 형식이 틀리면 None."""
+    if not isinstance(when, dict):
+        return None
+    if set(when) in ({"all"}, {"any"}):
+        children = when[next(iter(when))]
+        if not isinstance(children, list) or not children:
+            return None
+        out: list[dict] = []
+        for child in children:
+            leaves = _when_leaves(child)
+            if leaves is None:
+                return None
+            out += leaves
+        return out
+    return [when]
+
+
 def _lint_rules(entries: list[dict] | None = None, research_dir=None) -> list[str]:
     """규칙: id, when의 차원 ID, require의 능력 키, otherwise ∈ {infeasible, config}, config일 때 config_from."""
     issues: list[str] = []
@@ -524,14 +544,23 @@ def _lint_rules(entries: list[dict] | None = None, research_dir=None) -> list[st
             issues.append(f"rules: 중복 ID {rid}")
         seen.add(rid)
         when = r.get("when")
-        if not isinstance(when, dict) or when.get("dimension") not in dims:
-            issues.append(f"{rid}: when.dimension이 dimensions.md의 차원 ID가 아님 "
-                          f"{when.get('dimension') if isinstance(when, dict) else when}")
-        elif len(set(when) - {"dimension"}) != 1 or not set(when) - {"dimension"} <= WHEN_OPS:
-            issues.append(f"{rid}: when 연산자는 {sorted(WHEN_OPS)} 중 하나")
-        elif "in" in when and (not isinstance(when["in"], list) or not when["in"]):
-            issues.append(f"{rid}: when.in은 비지 않은 목록이어야 함")
-        issues += _lint_require(rid, r.get("require"))
+        conds = _when_leaves(when)
+        if conds is None:
+            issues.append(f"{rid}: when이 매핑이 아니거나 all/any가 비었음")
+        for leaf in conds or []:
+            if leaf.get("dimension") not in dims:
+                issues.append(f"{rid}: when.dimension이 dimensions.md의 차원 ID가 아님 {leaf.get('dimension')}")
+            elif len(set(leaf) - {"dimension"}) != 1 or not set(leaf) - {"dimension"} <= WHEN_OPS:
+                issues.append(f"{rid}: when 연산자는 {sorted(WHEN_OPS)} 중 하나")
+            elif "in" in leaf and (not isinstance(leaf["in"], list) or not leaf["in"]):
+                issues.append(f"{rid}: when.in은 비지 않은 목록이어야 함")
+        if r.get("require") is None:
+            # 요구끼리 부딪치는 규칙: 능력 없이 when 조건 둘 이상(all)이 모두 맞으면 infeasible
+            if not (isinstance(when, dict) and "all" in when and len(conds or []) >= 2
+                    and r.get("otherwise") == "infeasible"):
+                issues.append(f"{rid}: require가 없으면 when은 all(조건 둘 이상)이고 otherwise는 infeasible")
+        else:
+            issues += _lint_require(rid, r.get("require"))
         otherwise = r.get("otherwise")
         if otherwise not in ("infeasible", "config"):
             issues.append(f"{rid}: otherwise는 infeasible 또는 config")
@@ -555,16 +584,17 @@ def _lint_rule_vocabulary(entries: list[dict] | None = None, detectors: dict | N
         if not isinstance(when, dict):
             continue
         rid = str(r.get("id", f"rule {i}"))
-        dim = when.get("dimension")
-        spec = dims.get(dim)
-        if not isinstance(spec, dict):
-            issues.append(f"{rid}: when.dimension {dim}은 profile_detectors.yaml에 정의되지 않은 차원(S2가 내지 않음)")
-            continue
-        vocab = spec.get("values") or []
-        values = [when["equals"]] if "equals" in when else list(when.get("in") or [])
-        for v in values:
-            if v not in vocab:
-                issues.append(f"{rid}: when 값 {v!r}이 {dim} 어휘 {vocab}에 없음")
+        for leaf in _when_leaves(when) or []:
+            dim = leaf.get("dimension")
+            spec = dims.get(dim)
+            if not isinstance(spec, dict):
+                issues.append(f"{rid}: when.dimension {dim}은 profile_detectors.yaml에 정의되지 않은 차원(S2가 내지 않음)")
+                continue
+            vocab = spec.get("values") or []
+            values = [leaf["equals"]] if "equals" in leaf else list(leaf.get("in") or [])
+            for v in values:
+                if v not in vocab:
+                    issues.append(f"{rid}: when 값 {v!r}이 {dim} 어휘 {vocab}에 없음")
     return issues
 
 WORKLOAD_KINDS = {"web", "worker", "scheduled", "realtime", "batch", "static-frontend", "migration-job",
