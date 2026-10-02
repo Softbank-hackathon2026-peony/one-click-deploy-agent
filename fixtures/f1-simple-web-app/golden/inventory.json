@@ -16,6 +16,24 @@
           "snippet": "\"asyncpg>=0.29\","
         },
         {
+          "kind": "tech",
+          "line": 17,
+          "path": "services/board/src/board/migrate.py",
+          "snippet": "return url.replace(\"postgresql+asyncpg://\", \"postgresql://\", 1)"
+        },
+        {
+          "kind": "tech",
+          "line": 5,
+          "path": "docker-compose.yml",
+          "snippet": "DATABASE_URL: postgresql+asyncpg://app:app@postgres:5432/app"
+        },
+        {
+          "kind": "tech",
+          "line": 25,
+          "path": "k8s/overlays/local/kustomization.yaml",
+          "snippet": "- DATABASE_URL=postgresql+asyncpg://app:app@postgres:5432/app"
+        },
+        {
           "line": 15,
           "path": "docker-compose.yml",
           "snippet": "postgres:"
@@ -172,6 +190,24 @@
           "line": 9,
           "path": "services/board/pyproject.toml",
           "snippet": "\"asyncpg>=0.29\","
+        },
+        {
+          "kind": "tech",
+          "line": 17,
+          "path": "services/board/src/board/migrate.py",
+          "snippet": "return url.replace(\"postgresql+asyncpg://\", \"postgresql://\", 1)"
+        },
+        {
+          "kind": "tech",
+          "line": 5,
+          "path": "docker-compose.yml",
+          "snippet": "DATABASE_URL: postgresql+asyncpg://app:app@postgres:5432/app"
+        },
+        {
+          "kind": "tech",
+          "line": 25,
+          "path": "k8s/overlays/local/kustomization.yaml",
+          "snippet": "- DATABASE_URL=postgresql+asyncpg://app:app@postgres:5432/app"
         },
         {
           "line": 15,
@@ -4292,9 +4328,9 @@
           "component": "nw:app/uvicorn/default",
           "evidence": [
             {
-              "line": 4,
-              "path": "k8s/base/auth.yaml",
-              "snippet": "name: auth"
+              "line": 20,
+              "path": "services/auth/Dockerfile",
+              "snippet": "CMD [\"uvicorn\", \"auth.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\", \"--no-access-log\"]"
             }
           ],
           "kind": "app-server",
@@ -4426,9 +4462,9 @@
           "component": "nw:app/uvicorn/default",
           "evidence": [
             {
-              "line": 4,
-              "path": "k8s/base/auth.yaml",
-              "snippet": "name: auth"
+              "line": 20,
+              "path": "services/auth/Dockerfile",
+              "snippet": "CMD [\"uvicorn\", \"auth.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\", \"--no-access-log\"]"
             }
           ],
           "kind": "app-server",
@@ -4676,9 +4712,9 @@
           "component": "nw:app/uvicorn/default",
           "evidence": [
             {
-              "line": 4,
-              "path": "k8s/base/auth.yaml",
-              "snippet": "name: auth"
+              "line": 20,
+              "path": "services/auth/Dockerfile",
+              "snippet": "CMD [\"uvicorn\", \"auth.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\", \"--no-access-log\"]"
             }
           ],
           "kind": "app-server",
@@ -4810,9 +4846,9 @@
           "component": "nw:app/uvicorn/default",
           "evidence": [
             {
-              "line": 4,
-              "path": "k8s/base/auth.yaml",
-              "snippet": "name: auth"
+              "line": 20,
+              "path": "services/auth/Dockerfile",
+              "snippet": "CMD [\"uvicorn\", \"auth.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\", \"--no-access-log\"]"
             }
           ],
           "kind": "app-server",
@@ -4921,9 +4957,9 @@
           "component": "nw:app/uvicorn/default",
           "evidence": [
             {
-              "line": 4,
-              "path": "k8s/base/auth.yaml",
-              "snippet": "name: auth"
+              "line": 20,
+              "path": "services/auth/Dockerfile",
+              "snippet": "CMD [\"uvicorn\", \"auth.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\", \"--no-access-log\"]"
             }
           ],
           "kind": "app-server",
@@ -5032,9 +5068,9 @@
           "component": "nw:app/uvicorn/default",
           "evidence": [
             {
-              "line": 4,
-              "path": "k8s/base/auth.yaml",
-              "snippet": "name: auth"
+              "line": 20,
+              "path": "services/auth/Dockerfile",
+              "snippet": "CMD [\"uvicorn\", \"auth.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\", \"--no-access-log\"]"
             }
           ],
           "kind": "app-server",
@@ -5166,9 +5202,9 @@
           "component": "nw:app/uvicorn/default",
           "evidence": [
             {
-              "line": 6,
-              "path": "k8s/base/auth-verify.yaml",
-              "snippet": "name: auth-verify"
+              "line": 20,
+              "path": "services/auth/Dockerfile",
+              "snippet": "CMD [\"uvicorn\", \"auth.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\", \"--no-access-log\"]"
             }
           ],
           "kind": "app-server",
@@ -5300,9 +5336,9 @@
           "component": "nw:app/uvicorn/default",
           "evidence": [
             {
-              "line": 6,
-              "path": "k8s/base/auth-verify.yaml",
-              "snippet": "name: auth-verify"
+              "line": 20,
+              "path": "services/auth/Dockerfile",
+              "snippet": "CMD [\"uvicorn\", \"auth.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\", \"--no-access-log\"]"
             }
           ],
           "kind": "app-server",
@@ -5434,9 +5470,9 @@
           "component": "nw:app/uvicorn/default",
           "evidence": [
             {
-              "line": 6,
-              "path": "k8s/base/auth-verify.yaml",
-              "snippet": "name: auth-verify"
+              "line": 20,
+              "path": "services/auth/Dockerfile",
+              "snippet": "CMD [\"uvicorn\", \"auth.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\", \"--no-access-log\"]"
             }
           ],
           "kind": "app-server",
@@ -5568,9 +5604,9 @@
           "component": "nw:app/uvicorn/default",
           "evidence": [
             {
-              "line": 6,
-              "path": "k8s/base/auth-verify.yaml",
-              "snippet": "name: auth-verify"
+              "line": 20,
+              "path": "services/auth/Dockerfile",
+              "snippet": "CMD [\"uvicorn\", \"auth.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\", \"--no-access-log\"]"
             }
           ],
           "kind": "app-server",
@@ -5679,9 +5715,9 @@
           "component": "nw:app/uvicorn/default",
           "evidence": [
             {
-              "line": 6,
-              "path": "k8s/base/auth-verify.yaml",
-              "snippet": "name: auth-verify"
+              "line": 20,
+              "path": "services/auth/Dockerfile",
+              "snippet": "CMD [\"uvicorn\", \"auth.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\", \"--no-access-log\"]"
             }
           ],
           "kind": "app-server",
@@ -5790,9 +5826,9 @@
           "component": "nw:app/uvicorn/default",
           "evidence": [
             {
-              "line": 6,
-              "path": "k8s/base/auth-verify.yaml",
-              "snippet": "name: auth-verify"
+              "line": 20,
+              "path": "services/auth/Dockerfile",
+              "snippet": "CMD [\"uvicorn\", \"auth.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\", \"--no-access-log\"]"
             }
           ],
           "kind": "app-server",
@@ -5924,9 +5960,9 @@
           "component": "nw:app/uvicorn/default",
           "evidence": [
             {
-              "line": 4,
-              "path": "k8s/base/board-api.yaml",
-              "snippet": "name: board-api"
+              "line": 23,
+              "path": "services/board/Dockerfile",
+              "snippet": "CMD [\"uvicorn\", \"board.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\", \"--no-access-log\"]"
             }
           ],
           "kind": "app-server",
@@ -6058,9 +6094,9 @@
           "component": "nw:app/uvicorn/default",
           "evidence": [
             {
-              "line": 4,
-              "path": "k8s/base/board-api.yaml",
-              "snippet": "name: board-api"
+              "line": 23,
+              "path": "services/board/Dockerfile",
+              "snippet": "CMD [\"uvicorn\", \"board.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\", \"--no-access-log\"]"
             }
           ],
           "kind": "app-server",
@@ -6303,9 +6339,9 @@
           "component": "nw:app/uvicorn/default",
           "evidence": [
             {
-              "line": 4,
-              "path": "k8s/base/board-api.yaml",
-              "snippet": "name: board-api"
+              "line": 23,
+              "path": "services/board/Dockerfile",
+              "snippet": "CMD [\"uvicorn\", \"board.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\", \"--no-access-log\"]"
             }
           ],
           "kind": "app-server",
@@ -6437,9 +6473,9 @@
           "component": "nw:app/uvicorn/default",
           "evidence": [
             {
-              "line": 4,
-              "path": "k8s/base/board-api.yaml",
-              "snippet": "name: board-api"
+              "line": 23,
+              "path": "services/board/Dockerfile",
+              "snippet": "CMD [\"uvicorn\", \"board.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\", \"--no-access-log\"]"
             }
           ],
           "kind": "app-server",
@@ -6548,9 +6584,9 @@
           "component": "nw:app/uvicorn/default",
           "evidence": [
             {
-              "line": 4,
-              "path": "k8s/base/board-api.yaml",
-              "snippet": "name: board-api"
+              "line": 23,
+              "path": "services/board/Dockerfile",
+              "snippet": "CMD [\"uvicorn\", \"board.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\", \"--no-access-log\"]"
             }
           ],
           "kind": "app-server",
@@ -6659,9 +6695,9 @@
           "component": "nw:app/uvicorn/default",
           "evidence": [
             {
-              "line": 4,
-              "path": "k8s/base/board-api.yaml",
-              "snippet": "name: board-api"
+              "line": 23,
+              "path": "services/board/Dockerfile",
+              "snippet": "CMD [\"uvicorn\", \"board.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\", \"--no-access-log\"]"
             }
           ],
           "kind": "app-server",

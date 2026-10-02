@@ -228,9 +228,9 @@
           "component": "nw:app/flask-dev/default",
           "evidence": [
             {
-              "line": 1,
-              "path": "requirements.txt",
-              "snippet": "flask==3.0.3"
+              "line": 7,
+              "path": "Dockerfile",
+              "snippet": "CMD [\"flask\", \"run\", \"--host=0.0.0.0\"]"
             }
           ],
           "kind": "app-server",
