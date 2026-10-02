@@ -24,6 +24,7 @@ PROXY_DIRECTIVES = {"server", "upstream", "location", "proxy_pass"}
 TIME_KEYS = ("proxy_read_timeout", "proxy_send_timeout", "proxy_connect_timeout", "keepalive_timeout")
 SETTING_KEYS = TIME_KEYS + ("client_max_body_size", "proxy_http_version")
 NGINX_ROOT = "/etc/nginx/"
+NGINX_MAIN = "/etc/nginx/nginx.conf"
 TEMPLATE_DIR = "/etc/nginx/templates/"
 CONFD_DIR = "/etc/nginx/conf.d"
 MAX_INCLUDE_DEPTH = 10
@@ -108,8 +109,12 @@ def _has(nodes, names) -> bool:
 
 
 def _config_files(snap: Snapshot, cache: dict) -> list[str]:
-    return [rel for rel in snap.files
-            if _is_conf_name(rel) and _has(_parse(snap, rel, cache), PROXY_DIRECTIVES)]
+    """읽을 수 있는 nginx 이름의 설정 파일 전부(http 설정만 있는 nginx.conf도 포함)."""
+    return [rel for rel in snap.files if _is_conf_name(rel) and _parse(snap, rel, cache) is not None]
+
+
+def _proxy_configs(snap: Snapshot, configs: list[str], cache: dict) -> list[str]:
+    return [rel for rel in configs if _has(_parse(snap, rel, cache), PROXY_DIRECTIVES)]
 
 
 # --- 컨테이너 경로 → 저장소 경로 ---------------------------------------------
@@ -516,15 +521,16 @@ def _upstreams(snap: Snapshot, trees: list[list[dict]]) -> dict[str, dict]:
 
 # --- 설정 ↔ 워크로드 연결 -------------------------------------------------------
 
-def _is_entry(cpath: str | None) -> bool:
-    if cpath is None:
-        return False
-    return cpath == "/etc/nginx/nginx.conf" or (posixpath.dirname(cpath) == CONFD_DIR and cpath.endswith(".conf"))
+def _is_confd_entry(cpath: str | None) -> bool:
+    return cpath is not None and posixpath.dirname(cpath) == CONFD_DIR and cpath.endswith(".conf")
 
 
 def _links(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[ParsedArtifact],
-           configs: list[str], dockerfiles: dict[str, ParsedArtifact | None]) -> tuple[dict, dict]:
-    """워크로드 id → 경로 매핑, 워크로드 id → [(저장소 파일, 컨테이너 경로 또는 None, 연결 상태)]."""
+           configs: list[str], proxy_configs: list[str],
+           dockerfiles: dict[str, ParsedArtifact | None]) -> tuple[dict, dict]:
+    """워크로드 id → 경로 매핑, 워크로드 id → [(저장소 파일, 컨테이너 경로 또는 None, 연결 상태)].
+    컨테이너에 들어간 설정은 프록시 지시어가 없어도(http 설정만 있는 nginx.conf 등) 연결하고,
+    어디에도 들어가지 않은 설정을 하나뿐인 nginx 워크로드에 붙이는 대체 규칙은 프록시 지시어가 있는 설정만 쓴다."""
     services = _compose_services(artifacts)
     mappings: dict[str, dict[str, str]] = {}
     for w in workloads:
@@ -545,12 +551,15 @@ def _links(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[Parsed
                 links[w.id].append((rel, cpath, "confirmed"))
                 linked.add(rel)
     if len(nginx_based) == 1:
-        links[nginx_based[0].id].extend((rel, None, "candidate") for rel in configs if rel not in linked)
+        links[nginx_based[0].id].extend((rel, None, "candidate") for rel in proxy_configs if rel not in linked)
     return mappings, links
 
 
 def _entries(snap: Snapshot, links: list[tuple[str, str | None, str]], cache: dict) -> list[tuple[str, str]]:
-    entries = [(rel, status) for rel, cpath, status in links if _is_entry(cpath)]
+    # /etc/nginx/nginx.conf가 들어가 있으면 그것 하나가 진입점이다(conf.d는 그 include로 들어오고 http 설정도 거기 있다)
+    entries = [(rel, status) for rel, cpath, status in links if cpath == NGINX_MAIN]
+    if not entries:
+        entries = [(rel, status) for rel, cpath, status in links if _is_confd_entry(cpath)]
     if not entries:
         entries = [(rel, status) for rel, _, status in links if _has(_parse(snap, rel, cache), {"server"})]
     seen, out = set(), []
@@ -570,10 +579,11 @@ def find_proxies(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[
                  environments: list[Environment]) -> tuple[list[ProxyServer], list[ProxyRoute]]:
     cache: dict = {}
     configs = _config_files(snap, cache)
-    if not configs:
+    proxy_configs = _proxy_configs(snap, configs, cache)
+    if not proxy_configs:
         return [], []
     dockerfiles = {w.id: _workload_dockerfile(w, artifacts) for w in workloads}
-    mappings, links = _links(snap, workloads, artifacts, configs, dockerfiles)
+    mappings, links = _links(snap, workloads, artifacts, configs, proxy_configs, dockerfiles)
     raw_k8s = [d for a in artifacts if a.kind == "k8s" and not is_build_path(a.path) and isinstance(a.objects, list)
                for d in a.objects if isinstance(d, dict)]
     services = _compose_services(artifacts)

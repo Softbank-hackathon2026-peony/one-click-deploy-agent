@@ -301,3 +301,31 @@ def test_exposure_reverse_mapping_only_under_uri(tmp_path):
     _, eps = _analyze(tmp_path)
     # /api/users → /v1/users. /admin은 /v1/ 아래가 아니어서 어떤 요청으로도 닿지 않는다
     assert _exposure(eps) == {("w-app", "/v1/users"): "routed", ("w-app", "/admin"): "not-routed"}
+
+
+MAIN_CONF = "events {}\nhttp {\n  client_max_body_size 50m;\n  proxy_read_timeout 300s;\n  include conf.d/*.conf;\n}\n"
+
+
+def test_http_settings_from_mapped_main_conf(tmp_path):
+    proxies = {
+        "copy": ("    build: ./proxy\n",
+                 "FROM nginx:1.27\nCOPY nginx.conf /etc/nginx/nginx.conf\nCOPY conf.d/ /etc/nginx/conf.d/\n"),
+        "mount": ("    image: nginx:1.27\n    volumes:\n      - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro\n"
+                  "      - ./proxy/conf.d:/etc/nginx/conf.d:ro\n", None),
+    }
+    for form, (svc, dockerfile) in proxies.items():
+        root = tmp_path / form
+        _write(root, "docker-compose.yml", f"services:\n  proxy:\n{svc}  app:\n    build: ./app\n")
+        if dockerfile:
+            _write(root, "proxy/Dockerfile", dockerfile)
+        # nginx.conf에는 프록시 지시어가 없다(server·location은 conf.d에)
+        _write(root, "proxy/nginx.conf", MAIN_CONF)
+        _write(root, "proxy/conf.d/app.conf", "server {\n  location / { proxy_pass http://app:8000; }\n}\n")
+        _write(root, "app/Dockerfile", "FROM python:3.12\nCMD uvicorn main:app\n")
+        hop = _by_id(_analyze(root)[0])["path-app"]["hops"][0]
+        assert hop["kind"] == "reverse-proxy", form
+        facts = {s["key"]: s for s in hop["settings"]}
+        for key, value, line in (("client_max_body_size", "50m", 3), ("proxy_read_timeout", 300, 4)):
+            assert facts[key]["value"] == value and facts[key]["defaulted"] is False, (form, key)
+            assert (facts[key]["evidence"]["path"], facts[key]["evidence"]["line"]) == ("proxy/nginx.conf", line)
+        assert [e["path"] for e in hop["evidence"]] == ["proxy/conf.d/app.conf"]
