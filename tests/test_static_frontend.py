@@ -104,3 +104,15 @@ def test_worker_dir_with_worker_command_is_worker(tmp_path):
     _two_dirs(tmp_path / "repo", '["celery", "-A", "tasks", "worker"]')
     inv = _inventory(tmp_path)
     assert [(w["id"], w["kind"]) for w in inv["workloads"]] == [("w-server", "web"), ("w-worker", "worker")]
+
+
+def test_routes_kept_when_web_workload_has_no_code_root(tmp_path):
+    repo = tmp_path / "repo"
+    _write(repo, "requirements.txt", "fastapi==0.115\ncelery==5\n")
+    _write(repo, "main.py", "from fastapi import FastAPI\napp = FastAPI()\n\n@app.get('/items')\ndef h():\n    return 'ok'\n")
+    _write(repo, "Dockerfile", 'FROM python:3.12\nCOPY . .\nCMD ["uvicorn", "main:app"]\n')
+    _write(repo, "docker-compose.yml", "services:\n  api:\n    image: ghcr.io/acme/api:1\n"
+                                       "  worker:\n    build: .\n    command: celery -A tasks worker\n")
+    inv = _inventory(tmp_path)
+    assert [(w["id"], w["kind"]) for w in inv["workloads"]] == [("w-api", "web"), ("w-worker", "worker")]
+    assert [(e["workload"], e["route"], e["status"]) for e in inv["endpoints"]] == [("w-api", "/items", "confirmed")]

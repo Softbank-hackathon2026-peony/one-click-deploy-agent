@@ -566,12 +566,15 @@ def _root_depth(rel: str, w: WorkloadInfo) -> int | None:
 
 def _owned_by_other(rel: str, webs: list[WorkloadInfo], others: list[WorkloadInfo]) -> bool:
     """핸들러 파일이 web이 아닌 워크로드(워커 등)의 코드 뿌리 안에 어느 web 뿌리보다 깊게 있으면 그 워크로드의
-    코드다. 그 HTTP 라우트는 web 엔드포인트가 아니다."""
+    코드다. 그 HTTP 라우트는 web 엔드포인트가 아니다. 코드 뿌리를 모르는 web 워크로드가 있으면 그 코드일 수 있으므로
+    버리지 않는다(이미지만 있는 compose·k8s 앱)."""
+    if any(not _roots(w) for w in webs):
+        return False
     other = max((d for w in others if (d := _root_depth(rel, w)) is not None), default=None)
     if other is None:
         return False
-    web = max((d for w in webs if (d := _root_depth(rel, w)) is not None), default=None)
-    return web is None or other > web
+    web = max((d for w in webs if (d := _root_depth(rel, w)) is not None), default=-1)
+    return other > web
 
 
 def _owners(rel: str, webs: list[WorkloadInfo]) -> list[WorkloadInfo]:
