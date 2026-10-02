@@ -88,3 +88,9 @@ def test_app_server_parses_shell_wrappers_and_chains():
     assert app_server("gunicorn -k uvicorn.workers.UvicornWorker app:app") == ("nw:app/gunicorn/default", {})
     assert app_server("npx prisma db push") is None
     assert app_server('sh -c "unterminated') is None
+
+
+def test_app_server_splits_background_and_pipes():
+    assert app_server("redis-server --daemonize no & node app.js") == ("nw:app/node-http/default", {})
+    assert app_server("uvicorn a:app & node b.js") == ("nw:app/node-http/default", {})
+    assert app_server("cat banner.txt | gunicorn app:app") == ("nw:app/gunicorn/default", {})

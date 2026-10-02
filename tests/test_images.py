@@ -255,7 +255,7 @@ def test_test_dockerfile_does_not_block_single_link(tmp_path):
 
 
 def test_dev_dockerfile_name_parts():
-    from infrafit.detect.workloads import _is_dev_dockerfile
+    from infrafit.detect.testpaths import is_dev_dockerfile as _is_dev_dockerfile
     assert all(_is_dev_dockerfile(p) for p in ("Dockerfile.dev", "app/local.Dockerfile", "e2e/Dockerfile",
                                                "x/Dockerfile.debug", "spec/Dockerfile", "a/__tests__/Dockerfile",
                                                "test.dockerfile"))
@@ -352,7 +352,7 @@ def test_lint_images_shadowed_duplicate_family_and_keys():
 
 
 def test_development_and_testing_dockerfiles_are_dev():
-    from infrafit.detect.workloads import _is_dev_dockerfile
+    from infrafit.detect.testpaths import is_dev_dockerfile as _is_dev_dockerfile
     assert _is_dev_dockerfile("Dockerfile.development")
     assert _is_dev_dockerfile("api/testing.Dockerfile")
 

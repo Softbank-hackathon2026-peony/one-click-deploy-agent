@@ -98,3 +98,14 @@ def test_dockerfile_package_installs(tmp_path):
         assert name not in m.deps
     # Dockerfile 설치 목록은 워크로드를 만들지 않는다(모듈 의존성이 아니다)
     assert m.deps_by_dir == {}
+
+
+def test_dev_and_test_dockerfile_installs_are_ignored(tmp_path):
+    (tmp_path / "Dockerfile.dev").write_text("FROM python:3.12\nRUN pip install psycopg debugpy\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "Dockerfile").write_text("FROM node:20\nRUN npm i pg\n")
+    (tmp_path / "Dockerfile").write_text("FROM python:3.12\nRUN pip install redis & pip install celery | tee x\n")
+    m = parse_manifests(open_snapshot(str(tmp_path), tmp_path / "_w"))
+    assert "psycopg" not in m.deps and "debugpy" not in m.deps and "pg" not in m.deps
+    assert m.deps["redis"] == ("Dockerfile", 2) and m.deps["celery"] == ("Dockerfile", 2)
+    assert "x" not in m.deps

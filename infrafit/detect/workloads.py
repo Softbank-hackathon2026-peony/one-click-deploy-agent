@@ -16,13 +16,11 @@ from infrafit.detect.compose import DEVCONTAINER, compose_build, compose_service
 from infrafit.detect.images import base_class, image_class, image_name, service_class
 from infrafit.detect.jvm import build_location, jvm_build_dirs, spring_apps, spring_web
 from infrafit.detect.manifests import Manifests
-from infrafit.detect.testpaths import is_test_dir, is_test_path
+from infrafit.detect.testpaths import is_dev_dockerfile, is_test_dir
 from infrafit.evidence import evidence, line_of
 from infrafit.repo import Snapshot, parent_dir
 
 WEB_FRAMEWORKS = ("next", "express", "fastify", "koa", "@nestjs/core", "hono", "fastapi", "flask", "django")
-# 개발·테스트용 Dockerfile(배포하지 않는 이미지): 파일 이름의 변형 부분 조각, 경로 조각
-DEV_DOCKERFILE_PARTS = {"dev", "development", "test", "tests", "testing", "ci", "local", "debug", "e2e"}
 STATIC_OUTPUT_DIRS = ("dist", "build", "out")  # 정적 프런트엔드 빌드 결과 디렉터리
 PROC_KINDS = {"web": "web", "worker": "worker", "clock": "scheduled", "release": "migration-job"}
 # 워커 프로세스를 뜻하는 토큰 끝(`board.worker`, `jobs/worker.py` 등). `--workers 4`, `uvicorn.workers.UvicornWorker`는 아니다
@@ -304,27 +302,13 @@ def _from_code(snap: Snapshot, manifests: Manifests, artifacts: list[ParsedArtif
     return out
 
 
-def _is_dev_dockerfile(path: str) -> bool:
-    """`Dockerfile.<x>`·`<x>.Dockerfile`·`<x>.dockerfile`의 x를 `.`·`-`·`_`로 나눈 조각이 개발·테스트용이거나,
-    테스트 경로(testpaths.is_test_path)에 있는 Dockerfile."""
-    p = PurePosixPath(path)
-    name = p.name
-    variant = ""
-    if name.startswith("Dockerfile."):
-        variant = name[len("Dockerfile."):]
-    elif name.lower().endswith(".dockerfile"):
-        variant = name[:-len(".dockerfile")]
-    parts = set(re.split(r"[._-]", variant.lower())) if variant else set()
-    return bool(parts & DEV_DOCKERFILE_PARTS) or is_test_path(path)
-
-
 def _app_dockerfiles(workloads: list[WorkloadInfo], artifacts: list[ParsedArtifact]) -> list[ParsedArtifact]:
     """어떤 워크로드에도 연결되지 않은 앱 Dockerfile: 마지막 체인에 CMD나 ENTRYPOINT가 있고, 마지막 FROM이
     리버스 프록시 이미지가 아니며, 개발 컨테이너용·개발·테스트용이 아닌 것. 경로 순."""
     linked = {df.path for w in workloads if (df := workload_dockerfile(w, artifacts))}
     return [df for df in dockerfiles(artifacts)
             if df.path not in linked and DEVCONTAINER not in PurePosixPath(df.path).parts
-            and not _is_dev_dockerfile(df.path)
+            and not is_dev_dockerfile(df.path)
             and (df.get("cmd") or df.get("entrypoint"))
             and (base_class(df) or {}).get("role") != "reverse-proxy"]
 

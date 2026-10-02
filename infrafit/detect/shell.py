@@ -8,13 +8,13 @@ from pathlib import PurePosixPath
 
 _SHELLS = {"sh", "bash", "ash", "dash", "zsh"}
 _COMMAND_PREFIXES = {"exec", "npx"}
-_SEPARATORS = {"&&", ";", "||"}
+_SEPARATORS = {"&&", ";", "||", "&", "|"}
 _ENV_ASSIGN = re.compile(r"^[A-Za-z_]\w*=")
 _PYTHON = re.compile(r"^python[\d.]*$")
 
 
 def shell_tokens(command: str) -> list[str]:
-    """셸 규칙으로 나눈 낱말(`&&`·`;`·`||`는 따로 떼어 낸다). 따옴표가 깨졌으면 공백으로만 나눈다."""
+    """셸 규칙으로 나눈 낱말(`&&`·`;`·`||`·`&`·`|`는 따로 떼어 낸다). 따옴표가 깨졌으면 공백으로만 나눈다."""
     try:
         lex = shlex.shlex(command, posix=True, punctuation_chars=";&|")
         lex.whitespace_split = True
@@ -24,7 +24,7 @@ def shell_tokens(command: str) -> list[str]:
 
 
 def simple_commands(tokens: list[str], depth: int = 0) -> list[list[str]]:
-    """명령 낱말들 → 단순 명령들(실행 순서). `&&`·`;`·`||`로 나누고, 앞의 환경 변수 대입과 `exec`·`npx`를 떼고,
+    """명령 낱말들 → 단순 명령들(실행 순서). `&&`·`;`·`||`·`&`(백그라운드)·`|`(파이프)로 나누고, 앞의 환경 변수 대입과 `exec`·`npx`를 떼고,
     `sh -c "..."`·`bash -c ...`는 그 안의 명령으로, `python -m <모듈>`은 모듈 명령으로 바꾼다."""
     out: list[list[str]] = []
     group: list[str] = []

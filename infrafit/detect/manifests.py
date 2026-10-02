@@ -11,6 +11,7 @@ from pathlib import PurePosixPath
 from infrafit.detect.artifacts import is_dockerfile, parse_dockerfile
 from infrafit.detect.jvm import read_gradle, read_maven
 from infrafit.detect.shell import shell_tokens, simple_commands
+from infrafit.detect.testpaths import is_dev_dockerfile
 from infrafit.evidence import line_of
 from infrafit.repo import Snapshot, parent_dir
 
@@ -155,8 +156,9 @@ def _package_name(kind: str, token: str) -> str | None:
 
 def _dockerfile_installs(snap: Snapshot, m: Manifests) -> None:
     """Dockerfile `RUN`의 패키지 설치 이름(옵션·버전 고정을 뗀다). 근거는 그 RUN 줄. 모듈 의존성이 아니므로
-    워크로드를 만들지 않고 위치만 남긴다(시그니처 판정). 전역 설치(`npm install -g` 등 도구)는 뺀다."""
-    for rel in sorted(rel for rel in snap.files if is_dockerfile(rel)):
+    워크로드를 만들지 않고 위치만 남긴다(시그니처 판정). 전역 설치(`npm install -g` 등 도구)와 개발·테스트용
+    Dockerfile(testpaths.is_dev_dockerfile)은 뺀다."""
+    for rel in sorted(rel for rel in snap.files if is_dockerfile(rel) and not is_dev_dockerfile(rel)):
         for op, arg, line in parse_dockerfile(snap, rel).objects:
             if op != "RUN":
                 continue
