@@ -140,3 +140,35 @@ def test_k8s_file_with_hash_in_name_keeps_line_evidence(tmp_path):
     ws = _run(tmp_path)
     assert ws[0].entrypoint["path"] == "k8s/a#b.yaml"
     assert ws[0].entrypoint["line"] == 4
+
+
+def test_compose_workload_facts_come_from_base_file_first(tmp_path):
+    # F4: compose.prod.yml이 이름순으로 앞서도 사실은 기본 파일에서, 종류는 토큰 규칙으로 정한다
+    _write(tmp_path, "compose.yml", "services:\n  api:\n    build: ./api\n    command: uvicorn main:app\n")
+    _write(tmp_path, "compose.prod.yml", "services:\n  api:\n"
+           "    command: gunicorn -k uvicorn.workers.UvicornWorker main:app\n")
+    _write(tmp_path, "api/Dockerfile", "FROM python:3.12\nCMD uvicorn main:app\n")
+    [w] = _run(tmp_path)
+    assert (w.kind, w.entrypoint["path"], w.code_root, w.dockerfile, w.command) == (
+        "web", "compose.yml", "api", "api/Dockerfile", "uvicorn main:app")
+
+
+def test_worker_kind_is_token_based(tmp_path):
+    # F4: `--workers 4`나 gunicorn 워커 클래스는 워커 프로세스가 아니다
+    _write(tmp_path, "docker-compose.yml", "services:\n"
+           "  a:\n    image: acme/a:1\n    command: uvicorn main:app --workers 4\n"
+           "  b:\n    image: acme/b:1\n    command: gunicorn -k uvicorn.workers.UvicornWorker main:app\n"
+           "  c:\n    image: acme/c:1\n    command: celery -A app worker\n"
+           "  d:\n    image: acme/d:1\n    command: python jobs/worker.py\n"
+           "  e:\n    image: acme/e:1\n    command: node dist/worker.js\n"
+           "  f:\n    image: acme/f:1\n    command: rq worker --with-scheduler\n"
+           "  g:\n    image: acme/g:1\n    command: python -m app.worker\n")
+    assert [(w.name, w.kind) for w in _run(tmp_path)] == [
+        ("a", "web"), ("b", "web"), ("c", "worker"), ("d", "worker"), ("e", "worker"), ("f", "worker"), ("g", "worker")]
+
+
+def test_k8s_workers_option_is_not_worker(tmp_path):
+    _write(tmp_path, "k8s/api.yaml", "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: api\nspec:\n"
+           "  template:\n    spec:\n      containers:\n      - name: api\n        image: acme/api:1\n"
+           '        command: ["uvicorn", "main:app", "--workers", "4"]\n')
+    assert [(w.name, w.kind) for w in _run(tmp_path)] == [("api", "web")]

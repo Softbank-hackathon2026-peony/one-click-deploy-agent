@@ -15,6 +15,13 @@ from infrafit.repo import Snapshot
 INFRA_IMAGE_TOKENS = ("postgres", "redis", "mysql", "mongo", "valkey", "memcached", "rabbitmq", "minio", "localstack")
 WEB_FRAMEWORKS = ("next", "express", "fastify", "koa", "@nestjs/core", "hono", "fastapi", "flask", "django")
 PROC_KINDS = {"web": "web", "worker": "worker", "clock": "scheduled", "release": "migration-job"}
+# 워커 프로세스를 뜻하는 토큰 끝(`board.worker`, `jobs/worker.py` 등). `--workers 4`, `uvicorn.workers.UvicornWorker`는 아니다
+WORKER_SUFFIXES = (".worker", "/worker", ":worker", "worker.py", "worker.js", "worker.ts")
+# 한 디렉터리에 기본 파일이 여럿이면 docker compose와 같은 순서로 하나를 고른다
+COMPOSE_BASE_NAMES = ("compose.yaml", "compose.yml", "docker-compose.yaml", "docker-compose.yml")
+COMPOSE_PREFIXES = ("docker-compose.", "compose.", "docker-compose-")
+COMPOSE_OVERRIDE_NAMES = ("compose.override.yaml", "compose.override.yml",
+                          "docker-compose.override.yaml", "docker-compose.override.yml")
 
 
 def slug(text: str) -> str:
@@ -39,6 +46,49 @@ class WorkloadInfo:
     def to_dict(self) -> dict:
         return {"id": self.id, "kind": self.kind, "name": self.name,
                 "entrypoint": self.entrypoint, "status": self.status}
+
+
+def compose_variant(rel: str) -> str | None:
+    """compose 파일 이름의 변형 부분: 기본 파일이면 "", `docker-compose.<x>.yml`·`compose.<x>.yaml`·
+    `docker-compose-<x>.yml`이면 x, 그 밖의 이름은 None."""
+    name = PurePosixPath(rel).name
+    if name in COMPOSE_BASE_NAMES:
+        return ""
+    for prefix in COMPOSE_PREFIXES:
+        for suffix in (".yml", ".yaml"):
+            if name.startswith(prefix) and name.endswith(suffix) and len(name) > len(prefix) + len(suffix):
+                return name[len(prefix):-len(suffix)]
+    return None
+
+
+def is_compose_override(rel: str) -> bool:
+    """`docker-compose.override.yml`·`compose.override.yaml` 등: 같은 계열 기본 파일 위에 늘 병합하는 파일(docker 동작).
+    `compose.prod.override.yml`, `docker-compose-override.yml` 같은 이름은 변형 파일이다."""
+    return PurePosixPath(rel).name in COMPOSE_OVERRIDE_NAMES
+
+
+def compose_family(rel: str) -> str:
+    """`docker-compose` 또는 `compose`: override는 같은 계열의 기본 파일에만 병합한다."""
+    return "docker-compose" if PurePosixPath(rel).name.startswith("docker-compose") else "compose"
+
+
+def compose_file_order(rel: str) -> tuple:
+    """compose 파일을 읽는 순서: 기본 파일(docker compose가 고르는 순서), override, 변형 파일, 그 밖의 이름."""
+    name = PurePosixPath(rel).name
+    if name in COMPOSE_BASE_NAMES:
+        return (0, COMPOSE_BASE_NAMES.index(name), rel)
+    if is_compose_override(rel):
+        return (1, 0, rel)
+    return (2 if compose_variant(rel) else 3, 0, rel)
+
+
+def is_worker_command(text: str) -> bool:
+    """옵션(`-`로 시작)이 아닌 토큰이 `worker`이거나 WORKER_SUFFIXES로 끝나면 워커 프로세스다."""
+    for token in text.lower().split():
+        token = token.strip("'\"[],")
+        if token and not token.startswith("-") and (token == "worker" or token.endswith(WORKER_SUFFIXES)):
+            return True
+    return False
 
 
 def _dockerfiles(artifacts: list[ParsedArtifact]) -> list[ParsedArtifact]:
@@ -167,7 +217,7 @@ def _from_k8s(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[WorkloadI
             elif kind == "Job":
                 wkind = "migration-job" if "migrat" in text else "worker"
             else:
-                wkind = "worker" if "worker" in text else "web"
+                wkind = "worker" if is_worker_command(text) else "web"
             # 렌더된 kustomize 결과(`...#build`)는 실제 파일이 아니므로 kustomization.yaml을 근거로 쓴다
             path = build_source(art.path)
             line = None if is_build_path(art.path) else line_of(snap, path, f"name: {name}")
@@ -182,9 +232,8 @@ def _from_k8s(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[WorkloadI
 def _from_compose(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[WorkloadInfo]:
     out: list[WorkloadInfo] = []
     names: set[str] = set()
-    for art in artifacts:
-        if art.kind != "compose":
-            continue
+    # 같은 서비스가 여러 파일에 있으면 기본 파일, override, 변형 파일 순으로 먼저 본 정의의 사실을 쓴다
+    for art in sorted((a for a in artifacts if a.kind == "compose"), key=lambda a: compose_file_order(a.path)):
         for obj in art.objects:
             if not isinstance(obj, tuple) or len(obj) != 2 or not isinstance(obj[0], str):
                 continue
@@ -196,7 +245,7 @@ def _from_compose(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[Workl
             build = compose_build(art.path, svc)
             cmd = compose_command(art.path, svc, artifacts)
             text = f"{name} {cmd}".lower()
-            wkind = "migration-job" if "migrat" in text else "worker" if "worker" in text else "web"
+            wkind = "migration-job" if "migrat" in text else "worker" if is_worker_command(text) else "web"
             out.append(WorkloadInfo(
                 id=f"w-{slug(name)}", kind=wkind, name=name,
                 entrypoint=evidence(snap, art.path, line_of(snap, art.path, f"{name}:")),
