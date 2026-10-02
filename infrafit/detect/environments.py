@@ -1,4 +1,4 @@
-"""환경: kustomize 최종 overlay 하나가 환경 하나다."""
+"""환경: kustomize 환경 overlay(말단, 또는 overlays 아래의 환경 디렉터리) 하나가 환경 하나다."""
 
 from __future__ import annotations
 

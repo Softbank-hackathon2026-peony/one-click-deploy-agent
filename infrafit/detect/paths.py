@@ -130,9 +130,8 @@ def build_paths(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[P
             own = _front(snap, w, artifacts, env)
             if w.id in proxy_ids:
                 mine = [s for s in servers if s.proxy == w.id and s.environment == env_name]
-                if not mine:
-                    return own
-                return own + [_proxy_hop([s.settings for s in mine], [s.evidence for s in mine])]
+                # 이 환경의 server가 없어도 프록시 구간은 기본값만으로 둔다
+                return own + [_proxy_hop([s.settings for s in mine] or [[]], [s.evidence for s in mine])]
             incoming = [r for r in routes if r.target == w.id and r.environment == env_name and r.proxy != w.id
                         and r.proxy in by_id]
             if own or not incoming:

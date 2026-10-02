@@ -2,7 +2,7 @@ import subprocess
 
 import pytest
 
-from infrafit.detect.artifacts import build_overlays, kustomize_binary, kustomize_leaves
+from infrafit.detect.artifacts import build_overlays, environment_dirs, kustomize_binary, kustomize_leaves
 from infrafit.repo import open_snapshot
 
 BASE = """apiVersion: apps/v1
@@ -134,3 +134,31 @@ def test_build_renders_patched_objects(tmp_path):
     assert prod.parsed
     assert prod.get("Deployment/api.terminationGracePeriodSeconds") == 45
     assert prod.get("Deployment/api.image") == "acme/api:1"
+
+
+def test_environment_dirs_include_referenced_overlays(tmp_path):
+    files = {
+        "k8s/base/kustomization.yaml": "resources: [api.yaml]\n",
+        "k8s/base/api.yaml": BASE,
+        "k8s/overlays/local/kustomization.yaml": "resources: [../../base]\n",
+        "k8s/overlays/local-loadtest/kustomization.yaml": "resources: [../local, ../shared]\ncomponents: [../extra]\n",
+        "k8s/overlays/aws/base/kustomization.yaml": "resources: [../../../base]\n",
+        "k8s/overlays/aws/prod/kustomization.yaml": "resources: [../base]\n",
+        "k8s/overlays/shared/kustomization.yaml": "resources: [../../base]\n",
+        "k8s/overlays/extra/kustomization.yaml": "apiVersion: kustomize.config.k8s.io/v1alpha1\nkind: Component\n",
+    }
+    for rel, text in files.items():
+        p = tmp_path / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text)
+    snap = open_snapshot(str(tmp_path), tmp_path / "_w")
+    dirs = ["k8s/overlays/aws/prod", "k8s/overlays/local", "k8s/overlays/local-loadtest"]
+    assert environment_dirs(snap) == dirs  # aws/base·shared·Component는 참조되므로 환경이 아니다
+
+    class Failed:
+        returncode = 1
+        stdout = ""
+
+    built = [a.path for a in build_overlays(snap, runner=lambda *a, **k: Failed())]
+    assert "k8s/overlays/local/kustomization.yaml#build" in built
+    assert "k8s/overlays/aws/base/kustomization.yaml#build" not in built

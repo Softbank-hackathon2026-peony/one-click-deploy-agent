@@ -1,8 +1,8 @@
 from infrafit.detect.artifacts import parse_artifacts
-from infrafit.detect.endpoints import extract_endpoints, select_location
+from infrafit.detect.endpoints import _request_path, extract_endpoints, select_location
 from infrafit.detect.environments import detect_environments
 from infrafit.detect.manifests import parse_manifests
-from infrafit.detect.nginx import LocationInfo, find_proxies
+from infrafit.detect.nginx import LocationInfo, ProxyServer, find_proxies
 from infrafit.detect.paths import build_paths
 from infrafit.detect.workloads import WorkloadInfo, detect_workloads
 from infrafit.repo import open_snapshot
@@ -193,7 +193,7 @@ def test_select_location_rules():
     assert _pick(locs, "/x.Png") == ("~*", r"\.PNG$")
     assert _pick(locs, "/img/c") == ("", "/img/")
     assert _pick(locs, "fallback") is None
-    assert _pick(locs, "/hidden/x") == ("", "/")
+    assert _pick(locs, "/hidden/x") == ("", "/hidden/")  # internal도 후보다(외부 요청은 404)
     assert select_location([_loc("", "/a/", 0)], "/b") is None
 
 
@@ -242,3 +242,36 @@ def test_subrequest_target_routed_without_calling_endpoint(tmp_path):
     _write(tmp_path, "b/main.py", '@app.get("/internal/v")\ndef v(): ...\n@app.post("/other")\ndef o(): ...\n')
     _, eps = _analyze(tmp_path)
     assert _exposure(eps) == {("w-b", "/internal/v"): "routed", ("w-b", "/other"): "not-routed"}
+
+
+def test_select_location_nested_regex_beats_outer_regex():
+    outer = _loc("", "/api/", 0, children=[_loc("~", r"\.json$", 1)])
+    locs = [outer, _loc("~", "^/api/", 2)]
+    assert _pick(locs, "/api/x.json") == ("~", r"\.json$")
+    assert _pick(locs, "/api/x") == ("~", "^/api/")
+
+
+def test_internal_location_blocks_external_request(tmp_path):
+    _compose_repo(tmp_path, "server {\n  location /internal/ { internal; }\n"
+                  "  location / { proxy_pass http://a; }\n}\n", ["a"])
+    _write(tmp_path, "a/main.py", '@app.get("/internal/y")\ndef y(): ...\n@app.get("/z")\ndef z(): ...\n')
+    _, eps = _analyze(tmp_path)
+    assert _exposure(eps) == {("w-a", "/internal/y"): "not-routed", ("w-a", "/z"): "routed"}
+
+
+def test_request_path_parameters():
+    assert _request_path("/^api/items/(?P<pk>[0-9]+)/$", "django") == "/api/items/x1/"
+    assert _request_path("/items/<int:pk>/<slug>") == "/items/x1/x1"
+    assert _request_path("/v1/items:batch") == "/v1/items:batch"
+    assert _request_path("/users/:id/[post]/{x}") == "/users/x1/x1/x1"
+    assert _request_path("api/x") == "/api/x"
+
+
+def test_proxy_without_server_in_environment_gets_default_hop(tmp_path):
+    snap = open_snapshot(str(tmp_path), tmp_path / "_w")
+    w = WorkloadInfo(id="w-proxy", kind="web", name="proxy", entrypoint=EV, status="confirmed", source="k8s")
+    other = ProxyServer("w-proxy", "elsewhere", [], [], {"path": "x", "line": 1, "snippet": "x"})
+    paths = build_paths(snap, [w], [], {}, [], ([other], []))
+    hops = paths[0]["hops"]
+    assert [(h["kind"], h["evidence"]) for h in hops] == [("reverse-proxy", [])]
+    assert hops[0]["settings"] and all(s["defaulted"] for s in hops[0]["settings"])

@@ -422,14 +422,17 @@ def _is_remote(ref: str) -> bool:
     return "://" in ref or ref.startswith(("github.com/", "git@"))
 
 
-def _kustomization_refs(snap: Snapshot, rel: str) -> list[str]:
-    """kustomization의 resources/bases/components 문자열 항목."""
+def _kustomization_data(snap: Snapshot, rel: str) -> dict:
     try:
         data = yaml.safe_load(snap.read(rel)) or {}
     except yaml.YAMLError:
-        return []
-    if not isinstance(data, dict):
-        return []
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _kustomization_refs(snap: Snapshot, rel: str) -> list[str]:
+    """kustomization의 resources/bases/components 문자열 항목."""
+    data = _kustomization_data(snap, rel)
     out: list[str] = []
     for key in ("resources", "bases", "components"):
         items = data.get(key)
@@ -454,6 +457,23 @@ def kustomize_leaves(snap: Snapshot) -> list[str]:
     return sorted(d for d in files if d not in referenced)
 
 
+NON_ENV_DIR_NAMES = {"base", "common", "shared"}
+
+
+def environment_dirs(snap: Snapshot) -> list[str]:
+    """환경으로 렌더할 kustomization 디렉터리: 말단 ∪ 조상에 `overlays` 디렉터리가 있는 kustomization.
+    단 후자는 자기 이름이 base·common·shared가 아니고 kind가 Component가 아니어야 한다
+    (다른 overlay가 참조하는 overlay도 그 자체로 환경일 수 있다)."""
+    files = _kustomization_files(snap)
+    out = set(kustomize_leaves(snap))
+    for d, rel in files.items():
+        parts = d.split("/") if d else []
+        if ("overlays" in parts[:-1] and parts[-1] not in NON_ENV_DIR_NAMES
+                and _kustomization_data(snap, rel).get("kind") != "Component"):
+            out.add(d)
+    return sorted(out)
+
+
 def _uses_remote(snap: Snapshot, files: dict[str, str], leaf: str) -> bool:
     """leaf에서 따라가는 kustomization 트리 어딘가가 원격 소스를 참조하는가."""
     stack, seen = [leaf], set()
@@ -470,11 +490,11 @@ def _uses_remote(snap: Snapshot, files: dict[str, str], leaf: str) -> bool:
 
 
 def build_overlays(snap: Snapshot, runner=subprocess.run) -> list[ParsedArtifact]:
-    """말단 kustomization을 렌더한다. 실패·시간 초과·원격 소스·실행 파일 없음은 parsed: false로 남긴다."""
+    """환경 kustomization(environment_dirs)을 렌더한다. 실패·시간 초과·원격 소스·실행 파일 없음은 parsed: false로 남긴다."""
     cmd = kustomize_binary()
     files = _kustomization_files(snap)
     out: list[ParsedArtifact] = []
-    for d in kustomize_leaves(snap):
+    for d in environment_dirs(snap):
         rel = (f"{d}/kustomization.yaml" if d else "kustomization.yaml") + BUILD_SUFFIX
         if cmd is None or _uses_remote(snap, files, d):  # 네트워크를 쓰지 않는다
             out.append(ParsedArtifact("k8s", rel, False))

@@ -22,8 +22,8 @@ _ROUTE_CALL = re.compile(r"\b(\w+)\.(get|post|put|delete|patch|all)\(\s*['\"`]([
 _DJANGO = re.compile(r"\b(?:re_)?path\(\s*r?['\"]([^'\"]*)['\"]")
 _NEXT_EXPORT = re.compile(rf"export\s+(?:async\s+)?function\s+({NEXT_METHODS})\b|export\s+const\s+({NEXT_METHODS})\s*=")
 
-# 경로 매개변수: {x}, :x, [x](·[...x]·[[...x]]), <x>, <int:x>
-_PARAM = re.compile(r"\{[^}/]*\}|<[^>/]*>|\[\[?[^\]/]*\]?\]|:[A-Za-z_]\w*")
+# 경로 매개변수: (?P<x>...), {x}, /:x(세그먼트 시작만), [x](·[...x]·[[...x]]), <x>, <int:x>
+_PARAM = re.compile(r"\(\?P<[^>]+>[^)]*\)|\{[^}/]*\}|<[^>/]*>|\[\[?[^\]/]*\]?\]|(?<=/):[A-Za-z_]\w*")
 PREFIX_MODIFIERS = ("", "^~")
 
 Raw = tuple[str, str, str, int, str]  # (메서드, 경로, 파일, 줄, 프레임워크)
@@ -307,25 +307,38 @@ def _matches(loc: LocationInfo, path: str) -> bool:
         return False
 
 
+REGEX_MODIFIERS = ("~", "~*")
+
+
+def _nested(loc: LocationInfo, request_path: str) -> LocationInfo:
+    return (select_location(loc.children, request_path) if loc.children else None) or loc
+
+
 def select_location(locations: list[LocationInfo], request_path: str) -> LocationInfo | None:
-    """nginx 규칙: `=` 정확 일치 → 가장 긴 접두어(`^~`면 확정) → 설정 순서상 첫 정규식 → 기억한 접두어.
-    명명·internal location은 외부 요청 대상이 아니다. 고른 location 안의 중첩 location에 같은 규칙을 다시 적용한다."""
-    cands = [loc for loc in locations if loc.modifier != "@" and not loc.internal]
-    chosen = next((loc for loc in cands if loc.modifier == "=" and loc.pattern == request_path), None)
-    if chosen is None:
-        prefixes = [loc for loc in cands if loc.modifier in PREFIX_MODIFIERS and request_path.startswith(loc.pattern)]
-        best = max(prefixes, key=lambda loc: (len(loc.pattern), -loc.order), default=None)
-        if best is not None and best.modifier == "^~":
-            chosen = best
-        else:
-            regexes = sorted((loc for loc in cands if loc.modifier in ("~", "~*")), key=lambda loc: loc.order)
-            chosen = next((loc for loc in regexes if _matches(loc, request_path)), best)
-    if chosen is not None and chosen.children:
-        return select_location(chosen.children, request_path) or chosen
-    return chosen
+    """nginx 규칙: `=` 정확 일치 → 가장 긴 접두어(`^~`면 확정) → 그 접두어 안의 중첩 정규식 → 바깥 정규식(설정 순서)
+    → 기억한 접두어(또는 그 안의 중첩 선택). 명명 location(`@x`)만 후보에서 뺀다. internal location도 고를 수 있고,
+    고른 것이 internal이면 외부 요청은 아무 데도 닿지 않는다(nginx 404)."""
+    cands = [loc for loc in locations if loc.modifier != "@"]
+    exact = next((loc for loc in cands if loc.modifier == "=" and loc.pattern == request_path), None)
+    if exact is not None:
+        return _nested(exact, request_path)
+    prefixes = [loc for loc in cands if loc.modifier in PREFIX_MODIFIERS and request_path.startswith(loc.pattern)]
+    best = max(prefixes, key=lambda loc: (len(loc.pattern), -loc.order), default=None)
+    if best is not None and best.modifier == "^~":
+        return _nested(best, request_path)
+    inner = select_location(best.children, request_path) if best is not None and best.children else None
+    if inner is not None and inner.modifier in REGEX_MODIFIERS:
+        return inner
+    regexes = sorted((loc for loc in cands if loc.modifier in REGEX_MODIFIERS), key=lambda loc: loc.order)
+    regex = next((loc for loc in regexes if _matches(loc, request_path)), None)
+    if regex is not None:
+        return _nested(regex, request_path)
+    return inner or best
 
 
-def _request_path(route: str) -> str:
+def _request_path(route: str, framework: str = "") -> str:
+    if framework == "django":  # 정규식 경로의 앵커는 요청 경로에 없다
+        route = route.replace("^", "").removesuffix("$")
     path = _PARAM.sub("x1", route)
     return path if path.startswith("/") else "/" + path
 
@@ -349,7 +362,7 @@ def _all_locations(locations: list[LocationInfo]) -> list[LocationInfo]:
 def _reached(server: ProxyServer, path: str) -> set[tuple[str, str]]:
     """외부 요청 path가 이 server에서 고른 location으로 닿는 (워크로드 id, 전달 경로)들."""
     loc = select_location(server.locations, path)
-    if loc is None:
+    if loc is None or loc.internal:  # internal location을 고른 외부 요청은 404
         return set()
     return {(t, _forwarded(loc, uri, path)) for t, uri in loc.proxies if t}
 
@@ -387,13 +400,13 @@ def _mark_exposure(out: list[dict], routes: list[ProxyRoute], servers: list[Prox
     for ep in out:
         if ep["workload"] not in routed:
             continue
-        path = _request_path(ep["route"])
+        path = _request_path(ep["route"], ep["framework"])
         for server in servers:
             if server.proxy in proxies_of[ep["workload"]]:
                 reached |= _reached(server, path)
     for ep in out:
         if ep["workload"] in routed:
-            ep["exposure"] = "routed" if (ep["workload"], _request_path(ep["route"])) in reached else "not-routed"
+            ep["exposure"] = "routed" if (ep["workload"], _request_path(ep["route"], ep["framework"])) in reached else "not-routed"
 
 
 def extract_endpoints(snap: Snapshot, workloads: list[WorkloadInfo], routes: list[ProxyRoute] | None = None,
