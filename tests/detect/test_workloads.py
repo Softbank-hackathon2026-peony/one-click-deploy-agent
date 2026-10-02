@@ -172,3 +172,19 @@ def test_k8s_workers_option_is_not_worker(tmp_path):
            "  template:\n    spec:\n      containers:\n      - name: api\n        image: acme/api:1\n"
            '        command: ["uvicorn", "main:app", "--workers", "4"]\n')
     assert [(w.name, w.kind) for w in _run(tmp_path)] == [("api", "web")]
+
+
+def _k8s_deploy(name, command):
+    return (f"apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: {name}\nspec:\n"
+            f"  template:\n    spec:\n      containers:\n      - name: {name}\n        image: acme/{name}:1\n"
+            f"        command: {command}\n")
+
+
+def test_worker_name_segment_makes_worker(tmp_path):
+    # F4a: 이름 조각(-, _, .로 나눈)이 worker·workers면 명령과 상관없이 워커다
+    _write(tmp_path, "k8s/email-worker.yaml", _k8s_deploy("email-worker", '["node", "dist/index.js"]'))
+    _write(tmp_path, "k8s/api.yaml", _k8s_deploy("api", '["uvicorn", "main:app", "--workers", "4"]'))
+    _write(tmp_path, "k8s/jobs.yaml", _k8s_deploy("mail_workers", '["node", "dist/index.js"]'))
+    _write(tmp_path, "k8s/networker.yaml", _k8s_deploy("networker", '["node", "dist/index.js"]'))
+    assert [(w.name, w.kind) for w in _run(tmp_path)] == [
+        ("api", "web"), ("email-worker", "worker"), ("mail_workers", "worker"), ("networker", "web")]

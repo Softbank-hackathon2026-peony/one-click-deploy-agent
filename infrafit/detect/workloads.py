@@ -91,6 +91,12 @@ def is_worker_command(text: str) -> bool:
     return False
 
 
+def is_worker(name: str, command: str) -> bool:
+    """워커 프로세스인가: 이름 조각(`-`·`_`·`.`로 나눈)이 `worker`·`workers`이면 명령과 상관없이
+    (`email-worker`가 `node dist/index.js`를 실행하는 경우 등), 아니면 명령 토큰 규칙(is_worker_command)."""
+    return bool({"worker", "workers"} & set(re.split(r"[-_.]", name.lower()))) or is_worker_command(command)
+
+
 def _dockerfiles(artifacts: list[ParsedArtifact]) -> list[ParsedArtifact]:
     return [a for a in artifacts if a.kind == "dockerfile"]
 
@@ -217,7 +223,7 @@ def _from_k8s(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[WorkloadI
             elif kind == "Job":
                 wkind = "migration-job" if "migrat" in text else "worker"
             else:
-                wkind = "worker" if is_worker_command(text) else "web"
+                wkind = "worker" if is_worker(name, cmd) else "web"
             # 렌더된 kustomize 결과(`...#build`)는 실제 파일이 아니므로 kustomization.yaml을 근거로 쓴다
             path = build_source(art.path)
             line = None if is_build_path(art.path) else line_of(snap, path, f"name: {name}")
@@ -245,7 +251,7 @@ def _from_compose(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[Workl
             build = compose_build(art.path, svc)
             cmd = compose_command(art.path, svc, artifacts)
             text = f"{name} {cmd}".lower()
-            wkind = "migration-job" if "migrat" in text else "worker" if is_worker_command(text) else "web"
+            wkind = "migration-job" if "migrat" in text else "worker" if is_worker(name, cmd) else "web"
             out.append(WorkloadInfo(
                 id=f"w-{slug(name)}", kind=wkind, name=name,
                 entrypoint=evidence(snap, art.path, line_of(snap, art.path, f"{name}:")),
