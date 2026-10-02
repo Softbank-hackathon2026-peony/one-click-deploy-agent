@@ -167,3 +167,20 @@
 ## 미뤄 둔 작은 항목
 - Task 1: minor (deferred): unparsed proxy path does not follow chains; compose evidence can feed _users location check
 - Task 3: minor (deferred): root module reads submodule application configs; `${X:20s}` placeholders not resolved; RED evidence for one test missing
+
+# 계획 1e: 판정과 후속 과제
+
+계획: docs/superpowers/plans/2026-10-02-infrafit-1e-external-deploy-targets.md (작업 2개 병렬 구현, 최종 리뷰 1회)
+
+## 판정
+- Python 라우트의 framework는 파일이 import하는 웹 프레임워크(fastapi, flask)로 적는다(자동 라우트와 일치).
+- socket.io `ns.Server(`는 ns가 socket.io를 가져온 이름일 때만 엔드포인트로 본다(`new http.Server(` 오탐 제거).
+- Firebase env 조건에서 `GOOGLE_APPLICATION_CREDENTIALS`를 뺀다(GCP 공용 자격 증명).
+- 예시 env 파일(.env.example 등)의 자리표시자만 근거인 외부 서비스는 만들지 않는다(아직 구현되지 않은 기능일 수 있음).
+- platform·ci-deploy 환경은 출력에만 더하고, 요청 경로·exposure·nginx 범위는 기존 환경 목록을 쓴다.
+
+## 후속 과제
+- 요청 경로를 platform·ci-deploy 환경에도 만들지(예: Cloud Run 앞단 구간).
+- pydantic Settings 필드 이름을 env 이름으로 읽기.
+- GitHub Actions `${VAR}` 치환은 휴리스틱(워크플로·job·step env, 앞 step의 `X=`·`GITHUB_ENV`).
+- STOMP 규칙은 `@EnableWebSocketMessageBroker`만으로 simple broker로 본다(외부 브로커 릴레이 구분 없음).
