@@ -377,6 +377,19 @@ def _external(locations: list[LocationInfo]) -> list[LocationInfo]:
     return out
 
 
+def _requests_for(server: ProxyServer, workload: str, path: str) -> list[str]:
+    """upstream 경로 path가 workload에 닿을 수 있는 외부 요청 후보: path 자체, 그리고 workload로 uri U를 붙여
+    넘기는 외부 접두사 location L마다 path가 U로 시작하면 L.pattern + path[len(U):](접두사를 떼는 프록시)."""
+    out = [path]
+    for loc in _external(server.locations):
+        if loc.modifier not in PREFIX_MODIFIERS:
+            continue
+        for t, uri in loc.proxies:
+            if t == workload and uri is not None and path.startswith(uri):
+                out.append(loc.pattern + path[len(uri):])
+    return sorted(set(out))
+
+
 def _subrequest_reached(server: ProxyServer) -> set[tuple[str, str]]:
     """외부에서 고를 수 있는 location의 하위 요청(auth_request)은 호출 엔드포인트와 상관없이 닿는다."""
     internal = [x for x in _all_locations(server.locations) if x.internal]
@@ -403,7 +416,8 @@ def _mark_exposure(out: list[dict], routes: list[ProxyRoute], servers: list[Prox
         path = _request_path(ep["route"], ep["framework"])
         for server in servers:
             if server.proxy in proxies_of[ep["workload"]]:
-                reached |= _reached(server, path)
+                for request in _requests_for(server, ep["workload"], path):
+                    reached |= _reached(server, request)
     for ep in out:
         if ep["workload"] in routed:
             ep["exposure"] = "routed" if (ep["workload"], _request_path(ep["route"], ep["framework"])) in reached else "not-routed"

@@ -151,8 +151,8 @@ def test_exposure_with_uri_rewrite(tmp_path):
     _compose_repo(tmp_path, "server {\n  location /api/ { proxy_pass http://a/v1/; }\n}\n", ["a"])
     _write(tmp_path, "a/main.py", '@app.get("/v1/items/{i}")\ndef i(): ...\n@app.get("/api/items")\ndef j(): ...\n')
     _, eps = _analyze(tmp_path)
-    # /api/items → /v1/items 로 전달되므로 /v1/items/{i}는 /api/items/x1 요청으로만 닿는다
-    assert _exposure(eps) == {("w-a", "/v1/items/{i}"): "not-routed", ("w-a", "/api/items"): "not-routed"}
+    # /api/items/x1 요청이 /v1/items/x1로 전달되므로 /v1/items/{i}는 닿는다. /api/items는 /v1/items로 바뀌어 닿지 않는다
+    assert _exposure(eps) == {("w-a", "/v1/items/{i}"): "routed", ("w-a", "/api/items"): "not-routed"}
     _write(tmp_path, "a/main.py", '@app.get("/v1/items/{i}")\ndef i(): ...\n@app.get("/api/items/{i}")\ndef j(): ...\n')
     _, eps = _analyze(tmp_path)
     assert _exposure(eps) == {("w-a", "/v1/items/{i}"): "routed", ("w-a", "/api/items/{i}"): "not-routed"}
@@ -275,3 +275,29 @@ def test_proxy_without_server_in_environment_gets_default_hop(tmp_path):
     hops = paths[0]["hops"]
     assert [(h["kind"], h["evidence"]) for h in hops] == [("reverse-proxy", [])]
     assert hops[0]["settings"] and all(s["defaulted"] for s in hops[0]["settings"])
+
+
+def _express_compose_repo(tmp_path, conf, routes):
+    _write(tmp_path, "docker-compose.yml", "services:\n  proxy:\n    image: nginx:1.27\n    volumes:\n"
+           "      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro\n"
+           "  app:\n    build: ./app\n    command: node server.js\n")
+    _write(tmp_path, "nginx.conf", conf)
+    _write(tmp_path, "app/Dockerfile", 'FROM node:20\nCMD ["node", "server.js"]\n')
+    _write(tmp_path, "app/package.json", '{"dependencies": {"express": "^4"}}\n')
+    _write(tmp_path, "app/server.js", "const app = express();\n"
+           + "".join(f"app.get('{r}', h);\n" for r in routes))
+
+
+def test_exposure_through_prefix_stripping_proxy(tmp_path):
+    # /api/users 요청이 /users로 전달된다
+    _express_compose_repo(tmp_path, "server {\n  location /api/ { proxy_pass http://app:3000/; }\n}\n", ["/users"])
+    _, eps = _analyze(tmp_path)
+    assert _exposure(eps) == {("w-app", "/users"): "routed"}
+
+
+def test_exposure_reverse_mapping_only_under_uri(tmp_path):
+    _express_compose_repo(tmp_path, "server {\n  location /api/ { proxy_pass http://app:3000/v1/; }\n}\n",
+                          ["/v1/users", "/admin"])
+    _, eps = _analyze(tmp_path)
+    # /api/users → /v1/users. /admin은 /v1/ 아래가 아니어서 어떤 요청으로도 닿지 않는다
+    assert _exposure(eps) == {("w-app", "/v1/users"): "routed", ("w-app", "/admin"): "not-routed"}
