@@ -1,0 +1,193 @@
+# 추천 후보 구성 요소의 능력 값(계획 2 MVP, 고정 형식).
+#
+# 값 규칙(README §3, docs/research/source-audit.md):
+# - 값은 docs/research/capabilities/*.md 의 한 줄에서만 가져온다. 그 줄의 인용이 적격(A) 출처이고
+#   ` ⚠️근거없음`·` ⚠️출처부적격` 표시가 없어야 한다.
+# - source.quote 는 그 줄(doc:line)에 그대로 있는 문구다. 가능하면 그 값을 직접 뒷받침하는 공식 문서 인용을 쓴다.
+#   source.url 은 그 줄이 인용한 URL이다([PL] 표기는 그 문서 머리말의 AWS Price List 오퍼 파일).
+# - 조사 문서에 적격 인용으로 적힌 값이 없거나, 줄의 인용이 그 값을 뒷받침하지 않으면 키를 생략한다(엔진은 unknown).
+#   추론·반올림·외부 지식은 쓰지 않는다.
+# - COST.monthly_floor_usd 는 조사 문서가 서울 리전 최소 월 비용을 적격 인용과 함께 적은 경우에만 둔다.
+# - ops_burden 은 조사 문서의 해당 줄이 모두 ` ⚠️근거없음`(평가)이라 어느 구성 요소에도 두지 않았다.
+#
+# 생략한 키와 이유(조사 문서 줄 번호):
+# - Lambda: CP.websocket(05:487 '미확인'), CP.persistent_local_disk(05:492 인용이 /tmp 임시성을 말하지 않음),
+#   CP.scale_to_zero(적힌 줄 없음), CP.single_instance_config(적힌 줄 없음)
+# - Cloud Run(두 모드): CP.single_instance_config — max-instances 는 "잠시 초과될 수 있다"(05:139)고 적혀 있어
+#   인스턴스 1개 고정 수단으로 쓸 수 없다. 요청 기반의 CP.cpu_after_response_config — 켜는 방법은 다른 후보
+#   (인스턴스 기반 과금)이다. 인스턴스 기반의 CP.always_on — 유휴 인스턴스는 언제든 종료될 수 있다(05:175·178).
+# - ECS Fargate: CP.cpu_after_response(05:331 인용은 초 단위 과금만 말함), CP.scale_to_zero(05:332 인용은 SOCI),
+#   CP.always_on(05:328 인용은 DAEMON 미지원), COST(05:345에 합계 없음, 05:348 합계는 인용 없음)
+# - EC2: CP.max_request_seconds(05:903 '평가'), CP.websocket·CP.cpu_after_response·CP.scale_to_zero(⚠️근거없음),
+#   CP.always_on(05:902 인용은 compose 재시작 기본값만 말함)
+# - Compute Engine: 능력 줄이 모두 ⚠️근거없음·평가·미확인이거나 인용이 값을 말하지 않음(05:940~957).
+#   COST(05:957 디스크·외부 IP 서울 단가 미확인)
+# - Cloud SQL: COST(01:391 us-central1 인스턴스 단가뿐, 서울 단가 미확인, 스토리지 미포함)
+# - SQLite: COST(01:83·119 ⚠️근거없음)
+
+components:
+  # ---------- 컴퓨트 ----------
+  - id: "cp:aws/lambda/function-url"
+    target: aws_lambda
+    cloud: aws
+    family: cp
+    capabilities:
+      CP.max_request_seconds:
+        value: 900
+        source: {doc: "capabilities/05-compute-tier1-2.md", line: 486, url: "https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html", quote: "900 seconds (15 minutes)."}
+      CP.cpu_after_response:
+        value: false
+        source: {doc: "capabilities/05-compute-tier1-2.md", line: 488, url: "https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtime-environment.html", quote: "Background processes or callbacks that were initiated by your Lambda function and did not complete when the function ended resume if Lambda reuses the execution environment."}
+      CP.always_on:
+        value: false
+        source: {doc: "capabilities/05-compute-tier1-2.md", line: 485, url: "https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html", quote: "Lambda is designed for short-lived compute tasks that do not retain or rely upon state between invocations."}
+      COST.monthly_floor_usd:
+        value: 0
+        source: {doc: "capabilities/05-compute-tier1-2.md", line: 502, url: "https://aws.amazon.com/lambda/pricing/", quote: "one million requests and 400,000 GB-seconds per month"}
+
+  - id: "cp:gcp/cloud-run/request-billing"
+    target: gcp_cloud_run
+    cloud: gcp
+    family: cp
+    capabilities:
+      CP.max_request_seconds:
+        value: 3600
+        source: {doc: "capabilities/05-compute-tier1-2.md", line: 132, url: "https://docs.cloud.google.com/run/docs/configuring/request-timeout", quote: "set by default to 5 minutes (300 seconds) and can be extended up to 60 minutes (3600 seconds)"}
+      CP.websocket:
+        value: true
+        source: {doc: "capabilities/05-compute-tier1-2.md", line: 133, url: "https://docs.cloud.google.com/run/docs/triggering/websockets", quote: "WebSockets streams are HTTP requests, which are still subject to the request timeout configured for your Cloud Run service."}
+      CP.cpu_after_response:
+        value: false
+        source: {doc: "capabilities/05-compute-tier1-2.md", line: 134, url: "https://docs.cloud.google.com/run/docs/configuring/billing-settings", quote: "CPU is only allocated during request processing."}
+      # 05:138(§2.1 자기 줄)은 ⚠️근거없음이라, §2.1과 값이 같다고 적힌(05:171) §2.2 줄의 container contract 인용을 쓴다.
+      CP.persistent_local_disk:
+        value: false
+        source: {doc: "capabilities/05-compute-tier1-2.md", line: 182, url: "https://docs.cloud.google.com/run/docs/container-contract", quote: "It is an in-memory file system"}
+      CP.scale_to_zero:
+        value: true
+        source: {doc: "capabilities/05-compute-tier1-2.md", line: 135, url: "https://docs.cloud.google.com/run/docs/about-instance-autoscaling", quote: "when a revision does not receive any traffic, by default, it is scaled to zero instances"}
+      CP.always_on:
+        value: false
+        source: {doc: "capabilities/05-compute-tier1-2.md", line: 131, url: "https://docs.cloud.google.com/run/docs/configuring/billing-settings", quote: "CPU is only allocated during request processing."}
+      COST.monthly_floor_usd:
+        value: 0
+        source: {doc: "capabilities/05-compute-tier1-2.md", line: 148, url: "https://cloud.google.com/run/pricing", quote: "Idle instances that are not minimum instances are not charged."}
+
+  - id: "cp:gcp/cloud-run/instance-billing"
+    target: gcp_cloud_run
+    cloud: gcp
+    family: cp
+    capabilities:
+      CP.max_request_seconds:
+        value: 3600
+        source: {doc: "capabilities/05-compute-tier1-2.md", line: 176, url: "https://docs.cloud.google.com/run/docs/configuring/request-timeout", quote: "can be extended up to 60 minutes (3600 seconds)"}
+      CP.websocket:
+        value: true
+        source: {doc: "capabilities/05-compute-tier1-2.md", line: 177, url: "https://docs.cloud.google.com/run/docs/triggering/websockets", quote: "WebSockets streams are HTTP requests, which are still subject to the request timeout"}
+      CP.cpu_after_response:
+        value: true
+        source: {doc: "capabilities/05-compute-tier1-2.md", line: 178, url: "https://docs.cloud.google.com/run/docs/configuring/billing-settings", quote: "CPU is allocated for the entire container instance lifecycle."}
+      CP.persistent_local_disk:
+        value: false
+        source: {doc: "capabilities/05-compute-tier1-2.md", line: 182, url: "https://docs.cloud.google.com/run/docs/container-contract", quote: "It is an in-memory file system"}
+      CP.scale_to_zero:
+        value: true
+        source: {doc: "capabilities/05-compute-tier1-2.md", line: 179, url: "https://docs.cloud.google.com/run/docs/configuring/services/gpu", quote: "Services that are set to instance-based billing can still scale to zero."}
+      COST.monthly_floor_usd:
+        value: 0
+        source: {doc: "capabilities/05-compute-tier1-2.md", line: 192, url: "https://cloud.google.com/run/pricing", quote: "from the time the container is started to when it is terminated, with a minimum of 1 minute"}
+
+  - id: "cp:aws/ecs-fargate/alb"
+    target: aws_ecs_fargate
+    cloud: aws
+    family: cp
+    capabilities:
+      # 조사 문서: Fargate 자체 상한은 미확인, "실질 상한은 ALB 유휴 타임아웃 기본 60초(1~4,000초)"(05:329). 기본값을 쓴다.
+      CP.max_request_seconds:
+        value: 60
+        source: {doc: "capabilities/05-compute-tier1-2.md", line: 329, url: "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-load-balancer-attributes.html", quote: "By default, Elastic Load Balancing sets the idle timeout value for your load balancer to 60 seconds."}
+      CP.websocket:
+        value: true
+        source: {doc: "capabilities/05-compute-tier1-2.md", line: 330, url: "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html", quote: "Application Load Balancers provide native support for WebSockets."}
+      CP.persistent_local_disk:
+        value: false
+        source: {doc: "capabilities/05-compute-tier1-2.md", line: 335, url: "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ebs-volumes.html", quote: "Volumes that are attached to tasks that are managed by a service aren't preserved and are always deleted upon task termination."}
+
+  - id: "cp:aws/ec2/docker-compose"
+    target: aws_ec2
+    cloud: aws
+    family: cp
+    capabilities:
+      CP.persistent_local_disk:
+        value: true
+        source: {doc: "capabilities/05-compute-tier1-2.md", line: 909, url: "https://docs.aws.amazon.com/ebs/latest/userguide/ebs-volumes.html", quote: "EBS volumes persist independently from the running life of an EC2 instance."}
+      # 05:919 "t4g.small … + gp3 20 GB $1.82 + 공인 IPv4 $3.65 → 월 $20.7~24.5. LB·NAT 없음". 범위의 최솟값.
+      COST.monthly_floor_usd:
+        value: 20.7
+        source: {doc: "capabilities/05-compute-tier1-2.md", line: 919, url: "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/ap-northeast-2/index.csv", quote: "$0.0208 per On Demand Linux t4g.small Instance Hour"}
+
+  - id: "cp:gcp/compute-engine/docker-compose"
+    target: gcp_compute_engine
+    cloud: gcp
+    family: cp
+    capabilities: {}
+
+  # ---------- 저장소·캐시 ----------
+  - id: "ds:aws/rds-postgres/single-az"
+    cloud: aws
+    family: ds
+    capabilities:
+      DS.engine:
+        value: postgres
+        source: {doc: "capabilities/01-sql-databases.md", line: 220, url: "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Storage.html", quote: "You can create Db2, MySQL, MariaDB, and PostgreSQL RDS DB instances with up to 64 tebibytes (TiB) of storage."}
+      # 01:229 "서울 db.t4g.micro $0.025/시간 ≈ $18.25/월 + gp3 … (20GB ≈ $2.62) → 약 $20.9/월"
+      COST.monthly_floor_usd:
+        value: 20.9
+        source: {doc: "capabilities/01-sql-databases.md", line: 229, url: "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonRDS/current/ap-northeast-2/index.json", quote: "APN2-InstanceUsage:db.t4g.micro"}
+
+  - id: "ds:gcp/cloudsql-postgres/single"
+    cloud: gcp
+    family: ds
+    capabilities:
+      DS.engine:
+        value: postgres
+        source: {doc: "capabilities/01-sql-databases.md", line: 389, url: "https://docs.cloud.google.com/sql/docs/postgres/locations", quote: "https://docs.cloud.google.com/sql/docs/postgres/locations"}
+
+  - id: "ca:aws/elasticache/node-based"
+    cloud: aws
+    family: ca
+    capabilities:
+      DS.engine:
+        value: redis
+        source: {doc: "capabilities/03-cache-queue-scheduler-realtime-storage.md", line: 258, url: "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/AutoFailover.html", quote: "Valkey and Redis OSS replication is asynchronous."}
+      # 03:264 "Redis OSS $0.024/시간이면 약 $17.5/월(1노드, HA 없음)". Valkey 노드($14.0)는 엔진이 달라 쓰지 않는다.
+      COST.monthly_floor_usd:
+        value: 17.5
+        source: {doc: "capabilities/03-cache-queue-scheduler-realtime-storage.md", line: 264, url: "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonElastiCache/current/ap-northeast-2/index.json", quote: "$0.024 per T4G Micro Cache node-hour … running Redis"}
+
+  - id: "ca:gcp/memorystore/redis-basic"
+    cloud: gcp
+    family: ca
+    capabilities:
+      DS.engine:
+        value: redis
+        source: {doc: "capabilities/03-cache-queue-scheduler-realtime-storage.md", line: 348, url: "https://docs.cloud.google.com/memorystore/docs/redis/memorystore-for-redis-overview", quote: "Redis instances are protected from the internet using private IPs"}
+      COST.monthly_floor_usd:
+        value: 47.45
+        source: {doc: "capabilities/03-cache-queue-scheduler-realtime-storage.md", line: 353, url: "https://cloud.google.com/memorystore/docs/redis/pricing", quote: "$47.45 / 1 gibibyte month"}
+
+  - id: "ds:local/sqlite/default"
+    cloud: local
+    family: ds
+    capabilities:
+      DS.engine:
+        value: sqlite
+        source: {doc: "capabilities/01-sql-databases.md", line: 72, url: "https://www.sqlite.org/whentouse.html", quote: "SQLite only supports one writer at a time per database file."}
+
+  - id: "ds:local/sqlite/wal"
+    cloud: local
+    family: ds
+    capabilities:
+      DS.engine:
+        value: sqlite
+        source: {doc: "capabilities/01-sql-databases.md", line: 72, url: "https://www.sqlite.org/whentouse.html", quote: "SQLite only supports one writer at a time per database file."}
