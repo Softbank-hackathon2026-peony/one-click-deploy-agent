@@ -284,3 +284,25 @@ def test_compose_environment_beats_dockerfile_env_and_env_space_form(tmp_path):
            "server { location / { proxy_pass http://${UP}; } location /o { proxy_pass http://${OTHER}; } }\n")
     _, routes = _run(tmp_path)
     assert {r.location[1]: r.target for r in routes} == {"/": "w-b", "/o": "w-a"}
+
+
+def test_copy_sources_resolve_against_compose_build_context(tmp_path):
+    cases = {
+        # 컨텍스트가 저장소 루트
+        "root": ("{context: ., dockerfile: services/web/Dockerfile}", "services/web/nginx/", "services/web/nginx"),
+        # 컨텍스트가 Dockerfile 디렉터리도 저장소 루트도 아니다
+        "sub": ("{context: services, dockerfile: web/Dockerfile}", "web/nginx/", "services/web/nginx"),
+        # Dockerfile 디렉터리 기준 경로도 있지만 실제 빌드는 컨텍스트(루트) 기준이다
+        "decoy": ("{context: ., dockerfile: services/web/Dockerfile}", "nginx/", "nginx"),
+    }
+    for name, (build, src, conf_dir) in cases.items():
+        root = tmp_path / name
+        _write(root, "docker-compose.yml", _compose([("web", f"    build: {build}\n"),
+                                                     ("api", "    image: acme/api:1\n")]))
+        _write(root, "services/web/Dockerfile", f"FROM nginx:1.27\nCOPY {src} /etc/nginx/conf.d/\n")
+        _write(root, f"{conf_dir}/app.conf", "server { location / { proxy_pass http://api:8000; } }\n")
+        if name == "decoy":
+            _write(root, "services/web/nginx/app.conf", "server { location / { proxy_pass http://other:1; } }\n")
+        _, routes = _run(root)
+        assert [(r.proxy, r.target, r.status, r.evidence["path"]) for r in routes] == [
+            ("w-web", "w-api", "confirmed", f"{conf_dir}/app.conf")], name

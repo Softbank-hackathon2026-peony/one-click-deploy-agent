@@ -120,7 +120,9 @@ def _proxy_configs(snap: Snapshot, configs: list[str], cache: dict) -> list[str]
 # --- 컨테이너 경로 → 저장소 경로 ---------------------------------------------
 
 def _workload_dockerfile(w: WorkloadInfo, artifacts: list[ParsedArtifact]) -> ParsedArtifact | None:
-    df = dockerfile_for_image(w.image, artifacts) if w.image else None
+    df = next((a for a in artifacts if a.kind == "dockerfile" and a.path == w.dockerfile), None) if w.dockerfile else None
+    if df is None and w.image:
+        df = dockerfile_for_image(w.image, artifacts)
     if df is None and w.code_root is not None:
         local = sorted((a for a in artifacts if a.kind == "dockerfile" and parent_dir(a.path) == w.code_root),
                        key=lambda a: (PurePosixPath(a.path).name != "Dockerfile", a.path))
@@ -183,11 +185,12 @@ def _norm(path: str) -> str:
     return "" if p == "." else p
 
 
-def _dockerfile_mapping(snap: Snapshot, df: ParsedArtifact | None) -> dict[str, str]:
+def _dockerfile_mapping(snap: Snapshot, df: ParsedArtifact | None, context: str | None) -> dict[str, str]:
     out: dict[str, str] = {}
     if df is None:
         return out
-    base = parent_dir(df.path)
+    # 빌드 컨텍스트 후보: compose build 컨텍스트, Dockerfile 디렉터리, 저장소 루트 순서
+    bases = list(dict.fromkeys(b for b in (context, parent_dir(df.path), "") if b is not None))
     workdir = "/"
     for op, arg, _ in _chain_instrs(df):
         if op == "WORKDIR" and arg:
@@ -206,8 +209,7 @@ def _dockerfile_mapping(snap: Snapshot, df: ParsedArtifact | None) -> dict[str, 
         for src in sources:
             if "://" in src:
                 continue
-            # 빌드 컨텍스트: Dockerfile 디렉터리 기준을 먼저, 없으면 저장소 루트 기준
-            for cand in (_norm(posixpath.join(base, src)), _norm(src)):
+            for cand in (_norm(posixpath.join(base, src)) for base in bases):
                 if not cand.startswith("..") and _repo_files_under(snap, cand) is not None:
                     _map_source(snap, cand, posixpath.normpath(dest) if not dest.endswith("/") else dest,
                                 out, is_dir_dest)
@@ -534,7 +536,7 @@ def _links(snap: Snapshot, workloads: list[WorkloadInfo], artifacts: list[Parsed
     services = _compose_services(artifacts)
     mappings: dict[str, dict[str, str]] = {}
     for w in workloads:
-        mapping = _dockerfile_mapping(snap, dockerfiles[w.id])
+        mapping = _dockerfile_mapping(snap, dockerfiles[w.id], w.build_context)
         for path, name, svc in services:  # 런타임 바인드 마운트가 이미지 내용을 덮는다
             if name == w.name:
                 mapping.update(_compose_mapping(snap, path, svc))

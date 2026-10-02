@@ -33,6 +33,8 @@ class WorkloadInfo:
     command: str = ""
     image: str = ""
     code_root: str | None = None
+    build_context: str | None = None  # compose build 컨텍스트(저장소 경로)
+    dockerfile: str | None = None  # compose build가 쓰는 Dockerfile(저장소 경로)
 
     def to_dict(self) -> dict:
         return {"id": self.id, "kind": self.kind, "name": self.name,
@@ -61,19 +63,29 @@ def _code_root_for_image(image: str, artifacts: list[ParsedArtifact]) -> str | N
     return parent_dir(df.path) if df else None
 
 
-def _compose_code_root(compose_path: str, svc: dict, image: str, artifacts: list[ParsedArtifact]) -> str | None:
+def _repo_path(path: str) -> str:
+    p = posixpath.normpath(path)
+    return "" if p == "." else p
+
+
+def compose_build(compose_path: str, svc: dict) -> tuple[str, str] | None:
+    """compose 서비스의 build → (빌드 컨텍스트, Dockerfile) 저장소 경로. build가 없으면 None."""
     build = svc.get("build")
     base = parent_dir(compose_path)
     if isinstance(build, str):
-        root = posixpath.normpath(posixpath.join(base, build))
-        return "" if root == "." else root
+        context = _repo_path(posixpath.join(base, build))
+        return context, _repo_path(posixpath.join(context, "Dockerfile"))
     if isinstance(build, dict):
-        context = posixpath.normpath(posixpath.join(base, str(build.get("context") or ".")))
-        context = "" if context == "." else context
-        if build.get("dockerfile"):
-            return parent_dir(posixpath.normpath(posixpath.join(context, str(build["dockerfile"]))))
-        return context
-    return _code_root_for_image(image, artifacts)
+        context = _repo_path(posixpath.join(base, str(build.get("context") or ".")))
+        return context, _repo_path(posixpath.join(context, str(build.get("dockerfile") or "Dockerfile")))
+    return None
+
+
+def _compose_code_root(compose_path: str, svc: dict, image: str, artifacts: list[ParsedArtifact]) -> str | None:
+    build = compose_build(compose_path, svc)
+    if build is None:
+        return _code_root_for_image(image, artifacts)
+    return parent_dir(build[1])
 
 
 def _dockerfile_cmd_for_dir(app_dir: str, artifacts: list[ParsedArtifact]) -> str:
@@ -146,6 +158,7 @@ def _from_compose(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[Workl
             if name in names or _is_infra(image):
                 continue
             names.add(name)
+            build = compose_build(art.path, svc)
             cmd = svc.get("command") or ""
             cmd = " ".join(str(x) for x in cmd) if isinstance(cmd, list) else str(cmd) if isinstance(cmd, str) else ""
             text = f"{name} {cmd}".lower()
@@ -154,7 +167,8 @@ def _from_compose(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[Workl
                 id=f"w-{slug(name)}", kind=wkind, name=name,
                 entrypoint=evidence(snap, art.path, line_of(snap, art.path, f"{name}:")),
                 status="confirmed", source="compose", image=image, command=cmd,
-                code_root=_compose_code_root(art.path, svc, image, artifacts)))
+                code_root=_compose_code_root(art.path, svc, image, artifacts),
+                build_context=build[0] if build else None, dockerfile=build[1] if build else None))
     return out
 
 
