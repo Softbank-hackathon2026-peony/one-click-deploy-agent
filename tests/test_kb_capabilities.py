@@ -194,7 +194,7 @@ def test_rule_when_values_follow_s2_vocabulary():
     assert _lint_rule_vocabulary([RULE]) == []
     english = _rule(when={"dimension": "A1", "in": ["워커", "worker"]})
     assert _lint_rule_vocabulary([english]) == [
-        "CAP-WEBSOCKET-001: when 값 'worker'이 A1 어휘 ['웹', '워커', '정기 작업', '실시간 연결']에 없음"]
+        "CAP-WEBSOCKET-001: when 값 'worker'이 A1 어휘 ['웹', '워커', '정기 작업', '실시간 연결', '일회성 실행']에 없음"]
     unknown_dim = _rule(when={"dimension": "D2", "equals": "낮음"})
     assert _lint_rule_vocabulary([unknown_dim]) == [
         "CAP-WEBSOCKET-001: when.dimension D2은 profile_detectors.yaml에 정의되지 않은 차원(S2가 내지 않음)"]

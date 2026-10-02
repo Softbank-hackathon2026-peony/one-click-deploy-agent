@@ -171,10 +171,20 @@ def test_worker_has_no_request_dimensions(tmp_path):
     assert len(_app(p, "A1")["aggregated_from"]) == 2
 
 
-def test_no_app_workload_keeps_assumptions_only(tmp_path):
+def test_no_app_workload_has_no_dimensions_or_assumptions(tmp_path):
     p = _run(tmp_path, {"README.md": "hello\n"})
     assert p["dimensions"] == []
-    assert [a["key"] for a in p["assumptions"]] == ["D2", "G3"]
+    assert p["assumptions"] == []
+
+
+def test_batch_entrypoint_is_one_off_run_with_low_confidence(tmp_path):
+    main = 'def main(): ...\n\n\nif __name__ == "__main__":\n    main()\n'
+    p = _run(tmp_path, {"jobs/collect.py": main})
+    a1 = _app(p, "A1")
+    assert a1["value"] == ["일회성 실행"] and a1["confidence"] == "low"
+    w = next(r for r in p["dimensions"] if r["scope"] == "w-collect" and r["dimension"] == "A1")
+    assert w["confidence"] == "low"
+    assert {a["key"] for a in p["assumptions"]} >= {"D2", "G3"}
 
 
 def test_deterministic_and_cached(tmp_path):

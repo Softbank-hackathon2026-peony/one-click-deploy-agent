@@ -20,7 +20,7 @@ def _write(tmp_path, rel, text):
 MAIN = 'import sys\n\n\ndef main(): ...\n\n\nif __name__ == "__main__":\n    main()\n'
 
 
-def test_python_main_becomes_worker_one_per_directory(tmp_path):
+def test_python_main_becomes_batch_one_per_directory(tmp_path):
     _write(tmp_path, "jobs/collect.py", MAIN)
     _write(tmp_path, "jobs/report.py", MAIN)
     _write(tmp_path, "tests/test_x.py", MAIN)
@@ -28,7 +28,7 @@ def test_python_main_becomes_worker_one_per_directory(tmp_path):
     _write(tmp_path, "cli/__main__.py", "print('hi')\n")
     ws = _run(tmp_path)
     assert [(w.id, w.kind, w.status, w.code_root) for w in ws] == [
-        ("w-cli", "worker", "candidate", "cli"), ("w-collect", "worker", "candidate", "jobs")]
+        ("w-cli", "batch", "candidate", "cli"), ("w-collect", "batch", "candidate", "jobs")]
     collect = next(w for w in ws if w.id == "w-collect")
     assert collect.entrypoint["line"] == 7 and collect.entrypoint["snippet"].startswith("if __name__")
     assert schedule_matches(ws) == []
@@ -64,7 +64,7 @@ def test_package_bin_and_pyproject_scripts(tmp_path):
            "on:\n  schedule:\n    - cron: '0 0 * * *'\njobs:\n  a:\n    steps:\n      - run: pip install . && sync-data\n")
     ws = _run(tmp_path)
     assert [(w.id, w.kind, w.entrypoint["path"], w.entrypoint["line"]) for w in ws] == [
-        ("w-notify", "worker", "tool/package.json", 3), ("w-sync-data", "scheduled", "pyproject.toml", 5)]
+        ("w-notify", "batch", "tool/package.json", 3), ("w-sync-data", "scheduled", "pyproject.toml", 5)]
 
 
 def test_batch_rule_off_when_repo_has_workloads(tmp_path):
@@ -79,4 +79,13 @@ def test_malformed_workflow_and_manifests_do_not_crash(tmp_path):
     _write(tmp_path, ".github/workflows/odd.yml", "on:\n  schedule: 3\njobs: [1, 2]\n")
     _write(tmp_path, "package.json", "{not json")
     _write(tmp_path, "pyproject.toml", "[project\n")
-    assert [(w.id, w.kind) for w in _run(tmp_path)] == [("w-run", "worker")]
+    assert [(w.id, w.kind) for w in _run(tmp_path)] == [("w-run", "batch")]
+
+
+def test_entrypoint_with_loop_stays_worker(tmp_path):
+    _write(tmp_path, "poller/poll.py", 'import time\n\n\ndef main():\n    while True:\n        time.sleep(5)\n\n\n'
+                                        'if __name__ == "__main__":\n    main()\n')
+    _write(tmp_path, "consumer/__main__.py", "import pika\nch.start_consuming()\n")
+    _write(tmp_path, "once/run.py", MAIN)
+    assert [(w.id, w.kind) for w in _run(tmp_path)] == [
+        ("w-consumer", "worker"), ("w-poll", "worker"), ("w-run", "batch")]

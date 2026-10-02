@@ -536,7 +536,8 @@ def _lint_rule_vocabulary(entries: list[dict] | None = None, detectors: dict | N
                 issues.append(f"{rid}: when 값 {v!r}이 {dim} 어휘 {vocab}에 없음")
     return issues
 
-WORKLOAD_KINDS = {"web", "worker", "scheduled", "realtime", "static-frontend", "migration-job", "reverse-proxy"}
+WORKLOAD_KINDS = {"web", "worker", "scheduled", "realtime", "batch", "static-frontend", "migration-job",
+                  "reverse-proxy"}
 DIM_SHAPES = {"set", "ordered", "flag", "kinds"}
 DIM_ID = re.compile(r"^[A-G][0-9]+$")
 PROFILE_SCOPES = {"handler", "request-path", "workload"}
