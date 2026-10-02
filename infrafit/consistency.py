@@ -59,6 +59,14 @@ def check_s1(inventory: dict, repo_root: Path | None) -> list[str]:
     env_names = set(env_list)
     for dup in sorted({n for n in env_list if env_list.count(n) > 1}):
         issues.append(f"duplicate environment name: {dup}")
+    for e in inventory["endpoints"]:
+        seen_env: set = set()
+        for x in e.get("exposure", []):
+            if x["environment"] is not None and x["environment"] not in env_names:
+                issues.append(f"endpoint {e['id']}: exposure unknown environment {x['environment']}")
+            if x["environment"] in seen_env:
+                issues.append(f"endpoint {e['id']}: duplicate exposure environment {x['environment']}")
+            seen_env.add(x["environment"])
     for p in inventory["request_paths"]:
         if p["workload"] not in workloads:
             issues.append(f"request path {p['id']}: unknown workload {p['workload']}")

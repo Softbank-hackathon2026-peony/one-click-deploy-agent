@@ -27,11 +27,11 @@ def _analyze(tmp_path):
     return paths, endpoints
 
 
-def _deploy(name, image, command=None):
+def _deploy(name, image, command=None, extra=""):
     cmd = f"        command: {command}\n" if command else ""
     return (f"apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: {name}\nspec:\n"
             f"  selector:\n    matchLabels: {{app: {name}}}\n  template:\n    metadata:\n      labels: {{app: {name}}}\n"
-            f"    spec:\n      containers:\n      - name: {name}\n        image: {image}\n{cmd}"
+            f"    spec:\n      containers:\n      - name: {name}\n        image: {image}\n{cmd}{extra}"
             f"---\napiVersion: v1\nkind: Service\nmetadata:\n  name: {name}\nspec:\n  selector: {{app: {name}}}\n"
             f"  ports:\n  - port: 80\n")
 
@@ -126,7 +126,18 @@ def _compose_repo(tmp_path, conf, apps):
 
 
 def _exposure(endpoints):
-    return {(e["workload"], e["route"]): e.get("exposure") for e in endpoints}
+    """환경이 하나뿐인 저장소용: 엔드포인트별 exposure 배열을 그 환경의 값 하나로 줄인다."""
+    out = {}
+    for e in endpoints:
+        vals = e.get("exposure")
+        assert vals is None or len(vals) == 1
+        out[(e["workload"], e["route"])] = vals[0]["value"] if vals else None
+    return out
+
+
+def _exposure_by_env(endpoints):
+    return {(e["workload"], e["route"]): {x["environment"]: x["value"] for x in e.get("exposure", [])}
+            for e in endpoints}
 
 
 def test_exposure_return_location_not_routed(tmp_path):
@@ -344,3 +355,48 @@ def test_compose_build_without_command_uses_dockerfile_command(tmp_path):
         _write(root, "app/Dockerfile", dockerfile)
         hops = _by_id(_analyze(root)[0])["path-app.compose"]["hops"]
         assert [(h["kind"], h["component"]) for h in hops] == [("app-server", component)], name
+
+
+def test_exposure_per_environment_with_configmap_upstream(tmp_path):
+    # 두 overlay가 같은 nginx 설정을 쓰고 ConfigMap의 upstream만 다르다
+    _write(tmp_path, "nginx/default.conf.template", "server {\n  location /api/ { proxy_pass http://${UP}; }\n}\n")
+    _write(tmp_path, "proxy/Dockerfile", "FROM nginx:1.27\n"
+           "COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template\n")
+    envfrom = "        envFrom:\n        - configMapRef: {name: proxy-cfg}\n"
+    cmd = '["uvicorn", "main:app"]'
+    _write(tmp_path, "k8s/base/proxy.yaml", _deploy("proxy", "acme/proxy:1", extra=envfrom)
+           + "---\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: proxy-cfg\ndata:\n  UP: a:80\n")
+    _write(tmp_path, "k8s/base/a.yaml", _deploy("a", "acme/a:1", cmd))
+    _write(tmp_path, "k8s/base/b.yaml", _deploy("b", "acme/b:1", cmd))
+    _write(tmp_path, "k8s/base/kustomization.yaml", "resources: [proxy.yaml, a.yaml, b.yaml]\n")
+    _write(tmp_path, "k8s/overlays/dev/kustomization.yaml", "resources: [../../base]\n")
+    _write(tmp_path, "k8s/overlays/prod/kustomization.yaml",
+           "resources: [../../base]\nconfigMapGenerator:\n- name: proxy-cfg\n  behavior: merge\n"
+           "  literals: [UP=b:80]\n")
+    _write(tmp_path, "a/main.py", '@app.get("/api/x")\ndef x(): ...\n')
+    _write(tmp_path, "b/main.py", '@app.get("/api/x")\ndef x(): ...\n')
+    _, eps = _analyze(tmp_path)
+    got = _exposure_by_env(eps)
+    assert got == {("w-a", "/api/x"): {"dev": "routed"}, ("w-b", "/api/x"): {"prod": "routed"}}
+    assert all(e["exposure"] == sorted(e["exposure"], key=lambda x: (x["environment"] is not None,
+                                                                    x["environment"] or "")) for e in eps)
+
+
+def test_exposure_differs_between_compose_and_kustomize(tmp_path):
+    _write(tmp_path, "proxy/Dockerfile", "FROM nginx:1.27\n"
+           "COPY nginx/image.conf /etc/nginx/conf.d/default.conf\n")
+    _write(tmp_path, "nginx/image.conf", "server {\n  location /api/ { proxy_pass http://a:80; }\n}\n")
+    _write(tmp_path, "nginx/compose.conf",
+           "server {\n  location /api/ { proxy_pass http://a:80; }\n  location /debug/ { proxy_pass http://a:80; }\n}\n")
+    cmd = '["uvicorn", "main:app"]'
+    _write(tmp_path, "k8s/base/proxy.yaml", _deploy("proxy", "acme/proxy:1"))
+    _write(tmp_path, "k8s/base/a.yaml", _deploy("a", "acme/a:1", cmd))
+    _write(tmp_path, "k8s/base/kustomization.yaml", "resources: [proxy.yaml, a.yaml]\n")
+    _write(tmp_path, "k8s/overlays/dev/kustomization.yaml", "resources: [../../base]\n")
+    _write(tmp_path, "docker-compose.yml", "services:\n  proxy:\n"
+           "    build: {context: ., dockerfile: proxy/Dockerfile}\n    volumes:\n"
+           "      - ./nginx/compose.conf:/etc/nginx/conf.d/default.conf:ro\n"
+           "  a:\n    image: acme/a:1\n    command: uvicorn main:app\n")
+    _write(tmp_path, "a/main.py", '@app.get("/debug/x")\ndef d(): ...\n')
+    _, eps = _analyze(tmp_path)
+    assert _exposure_by_env(eps) == {("w-a", "/debug/x"): {"compose": "routed", "dev": "not-routed"}}

@@ -401,7 +401,10 @@ def _subrequest_reached(server: ProxyServer) -> set[tuple[str, str]]:
     return out
 
 
-def _mark_exposure(out: list[dict], routes: list[ProxyRoute], servers: list[ProxyServer]) -> None:
+def _exposure_in(env: str | None, out: list[dict], routes: list[ProxyRoute], servers: list[ProxyServer]) -> dict[str, str]:
+    """환경 env의 server·route만 써서, 그 환경 route가 target으로 하는 워크로드의 엔드포인트 id별 값을 계산한다."""
+    routes = [r for r in routes if r.environment == env]
+    servers = [s for s in servers if s.environment == env]
     routed = {r.target for r in routes if r.target}
     proxies_of: dict[str, set[str]] = defaultdict(set)
     for r in routes:
@@ -418,9 +421,18 @@ def _mark_exposure(out: list[dict], routes: list[ProxyRoute], servers: list[Prox
             if server.proxy in proxies_of[ep["workload"]]:
                 for request in _requests_for(server, ep["workload"], path):
                     reached |= _reached(server, request)
-    for ep in out:
-        if ep["workload"] in routed:
-            ep["exposure"] = "routed" if (ep["workload"], _request_path(ep["route"], ep["framework"])) in reached else "not-routed"
+    return {ep["id"]: "routed" if (ep["workload"], _request_path(ep["route"], ep["framework"])) in reached
+            else "not-routed" for ep in out if ep["workload"] in routed}
+
+
+def _mark_exposure(out: list[dict], routes: list[ProxyRoute], servers: list[ProxyServer]) -> None:
+    """엔드포인트마다 exposure를 [{environment, value}]로 쓴다. route가 없는 환경은 넣지 않는다."""
+    envs = sorted({r.environment for r in routes if r.target}, key=lambda e: (e is not None, e or ""))
+    for env in envs:
+        values = _exposure_in(env, out, routes, servers)
+        for ep in out:
+            if ep["id"] in values:
+                ep.setdefault("exposure", []).append({"environment": env, "value": values[ep["id"]]})
 
 
 def extract_endpoints(snap: Snapshot, workloads: list[WorkloadInfo], routes: list[ProxyRoute] | None = None,

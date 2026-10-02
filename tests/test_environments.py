@@ -96,3 +96,15 @@ def test_consistency_environment_rules():
     inv["environments"].append(dict(inv["environments"][0]))
     assert any("duplicate environment" in i for i in check_s1(inv, None))
     assert check_s1(_inv(env=None, pid="path-web"), None) == []
+
+
+def test_consistency_exposure_environment_rules():
+    def inv(*exposure):
+        i = _inv()
+        i["endpoints"] = [{"id": "ep-web-001", "workload": "w-web", "method": "GET", "route": "/", "handler": EV,
+                           "status": "confirmed", "exposure": list(exposure)}]
+        return i
+    ok = {"environment": "prod", "value": "routed"}
+    assert check_s1(inv(ok, {"environment": None, "value": "not-routed"}), None) == []
+    assert any("unknown environment" in i for i in check_s1(inv({"environment": "x", "value": "routed"}), None))
+    assert any("duplicate exposure" in i for i in check_s1(inv(ok, dict(ok)), None))
