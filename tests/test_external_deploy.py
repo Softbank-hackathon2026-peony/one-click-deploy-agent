@@ -211,3 +211,18 @@ def test_example_env_placeholder_alone_is_not_an_external_service(tmp_path):
     files[".env.example"] = "# 4차 스프린트에서 사용 예정\nANTHROPIC_API_KEY=\nGOOGLE_APPLICATION_CREDENTIALS=\n"
     inv = _inventory(tmp_path, files)
     assert "ext:anthropic" not in _ext(inv) and "ext:firebase" not in _ext(inv)
+
+
+def test_service_from_dependency_or_code_lists_example_env_names(tmp_path):
+    """서비스가 의존성·코드 근거로 만들어지면 예시 env 파일에만 있는 이름도 secrets에 든다."""
+    files = _app()
+    files["requirements.txt"] += "openai==1.0\n"
+    files["llm.py"] = "from openai import OpenAI\nclient = OpenAI()\n"
+    files[".env.example"] = "OPENAI_API_KEY=\n"
+    files["notify.py"] = "URL = 'https://hooks.slack.com/services/x'\n"
+    files["deploy/.env.prod.example"] = "SLACK_WEBHOOK_URL=\n"
+    files["web/.env.sample"] = "STRIPE_SECRET_KEY=\n"            # 예시 파일만으로는 서비스가 생기지 않는다
+    ext = _ext(_inventory(tmp_path, files))
+    assert ext["ext:openai"]["secrets"] == ["OPENAI_API_KEY"]
+    assert ext["ext:slack-webhook"]["secrets"] == ["SLACK_WEBHOOK_URL"]
+    assert "ext:stripe" not in ext
