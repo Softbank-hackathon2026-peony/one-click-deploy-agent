@@ -487,3 +487,12 @@ def test_root_app_ignores_child_module_spring_configs(tmp_path):
     hop = inv["request_paths"][0]["hops"][0]
     assert hop["settings"][0]["defaulted"] is True
     assert hop["settings"][0]["value"] == 60
+
+
+def test_subprojects_dependencies_without_child_build_files_still_match_signatures(tmp_path):
+    _write(tmp_path, "build.gradle", SUBPROJECTS_ROOT)
+    snap, m, workloads, _ = _detect(tmp_path)
+    assert workloads == []
+    assert m.locations["org.postgresql:postgresql"] == [("build.gradle", 7)]
+    assert m.deps_by_dir == {}
+    assert "SIG-DS-POSTGRES" in {x.signature for x in match_signatures(snap, m, kb.signatures())}

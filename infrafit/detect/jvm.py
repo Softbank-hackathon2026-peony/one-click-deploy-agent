@@ -179,6 +179,8 @@ def read_gradle(snap: Snapshot, m: Manifests) -> None:
                     found.append((x.start(), coord))
             in_shared = any(a <= conf.start() < b for a, b in shared)
             for pos, coord in sorted(found):
+                # 하위 모듈이 없어도 저장소가 쓰는 의존성이므로 위치는 남긴다(시그니처 판정)
+                m.add_location(coord.lower(), rel, line_at(clean, pos))
                 for module in children if in_shared else [here]:
                     m.add(coord.lower(), rel, line_at(clean, pos), module)
 

@@ -32,12 +32,16 @@ class Manifests:
     def add(self, name: str, rel: str, line: int | None, module: str | None = None) -> None:
         """module: 의존성이 속한 모듈 디렉터리(없으면 파일의 디렉터리)."""
         d = parent_dir(rel) if module is None else module
-        self.deps.setdefault(name, (rel, line))
+        self.add_location(name, rel, line)
         self.deps_by_dir.setdefault(d, set()).add(name)
-        if (rel, line) not in self.locations.setdefault(name, []):
-            self.locations[name].append((rel, line))
         if (rel, line) not in self.module_locations.setdefault((d, name), []):
             self.module_locations[(d, name)].append((rel, line))
+
+    def add_location(self, name: str, rel: str, line: int | None) -> None:
+        """어느 모듈에도 속하지 않는 의존성 위치(시그니처 판정에만 쓴다)."""
+        self.deps.setdefault(name, (rel, line))
+        if (rel, line) not in self.locations.setdefault(name, []):
+            self.locations[name].append((rel, line))
 
 
 def _node(snap: Snapshot, m: Manifests) -> None:
