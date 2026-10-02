@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass
 
 from infrafit.detect.manifests import Manifests
+from infrafit.detect.testpaths import is_test_path
 from infrafit.evidence import evidence
 from infrafit.repo import Snapshot
 
@@ -40,6 +41,8 @@ def _eval(cond: dict, snap: Snapshot, manifests: Manifests) -> list[dict]:
         rx = re.compile(code["regex"], flags)
         out = []
         for rel in snap.glob(code["glob"]):
+            if is_test_path(rel):  # 테스트 코드의 흔적은 실제 배포 구성의 근거가 아니다
+                continue
             for i, text in enumerate(snap.lines(rel), 1):
                 if rx.search(text):
                     out.append(evidence(snap, rel, i, "tech"))

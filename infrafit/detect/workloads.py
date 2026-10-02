@@ -11,6 +11,7 @@ from pathlib import PurePosixPath
 from infrafit import kb
 from infrafit.detect.artifacts import ParsedArtifact, as_dict, build_source, is_build_path, pod_spec
 from infrafit.detect.manifests import Manifests, parent_dir
+from infrafit.detect.testpaths import is_test_path
 from infrafit.evidence import evidence, line_of
 from infrafit.repo import Snapshot
 
@@ -18,7 +19,6 @@ WEB_FRAMEWORKS = ("next", "express", "fastify", "koa", "@nestjs/core", "hono", "
 DEVCONTAINER = ".devcontainer"  # 개발 컨테이너용 compose·Dockerfile은 배포 대상(워크로드·환경)이 아니다
 # 개발·테스트용 Dockerfile(배포하지 않는 이미지): 파일 이름의 변형 부분 조각, 경로 조각
 DEV_DOCKERFILE_PARTS = {"dev", "test", "tests", "ci", "local", "debug", "e2e"}
-TEST_PATH_SEGMENTS = {"test", "tests", "__tests__", "e2e", "spec"}
 PROC_KINDS = {"web": "web", "worker": "worker", "clock": "scheduled", "release": "migration-job"}
 # 워커 프로세스를 뜻하는 토큰 끝(`board.worker`, `jobs/worker.py` 등). `--workers 4`, `uvicorn.workers.UvicornWorker`는 아니다
 WORKER_SUFFIXES = (".worker", "/worker", ":worker", "worker.py", "worker.js", "worker.ts")
@@ -427,7 +427,7 @@ def _from_code(snap: Snapshot, manifests: Manifests, artifacts: list[ParsedArtif
 
 def _is_dev_dockerfile(path: str) -> bool:
     """`Dockerfile.<x>`·`<x>.Dockerfile`·`<x>.dockerfile`의 x를 `.`·`-`·`_`로 나눈 조각이 개발·테스트용이거나,
-    디렉터리 조각이 테스트 디렉터리인 Dockerfile."""
+    테스트 경로(testpaths.is_test_path)에 있는 Dockerfile."""
     p = PurePosixPath(path)
     name = p.name
     variant = ""
@@ -436,7 +436,7 @@ def _is_dev_dockerfile(path: str) -> bool:
     elif name.lower().endswith(".dockerfile"):
         variant = name[:-len(".dockerfile")]
     parts = set(re.split(r"[._-]", variant.lower())) if variant else set()
-    return bool(parts & DEV_DOCKERFILE_PARTS) or bool(set(p.parts[:-1]) & TEST_PATH_SEGMENTS)
+    return bool(parts & DEV_DOCKERFILE_PARTS) or is_test_path(path)
 
 
 def _app_dockerfiles(workloads: list[WorkloadInfo], artifacts: list[ParsedArtifact]) -> list[ParsedArtifact]:

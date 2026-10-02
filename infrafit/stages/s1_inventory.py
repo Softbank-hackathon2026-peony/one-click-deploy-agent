@@ -32,7 +32,7 @@ def run_s1(ctx: RunContext, snap: Snapshot) -> dict:
     environments = detect_environments(artifacts, workloads)
     servers, routes = find_proxies(snap, workloads, artifacts, environments)
     endpoints = extract_endpoints(snap, workloads, routes, servers,
-                                  fronted_proxies(snap, workloads, artifacts, environments, servers))
+                                  fronted_proxies(snap, workloads, artifacts, environments, servers), manifests)
     matches = match_signatures(snap, manifests, kb.signatures())
     services = image_services(snap, artifacts)
     datastores, components, compute = map_components(snap, matches, workloads, artifacts, services)

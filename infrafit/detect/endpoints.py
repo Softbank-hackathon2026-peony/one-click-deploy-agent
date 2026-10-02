@@ -7,8 +7,10 @@ import re
 from collections import defaultdict
 from pathlib import PurePosixPath
 
+from infrafit.detect.manifests import Manifests, parse_manifests, parent_dir
 from infrafit.detect.nginx import LocationInfo, ProxyRoute, ProxyServer
 from infrafit.detect.proxy_graph import fronted_in, upstream_chains
+from infrafit.detect.testpaths import is_test_path
 from infrafit.detect.workloads import WorkloadInfo
 from infrafit.evidence import evidence
 from infrafit.repo import Snapshot
@@ -20,6 +22,21 @@ _SERVER_VAR = re.compile(
     r"(?:express\s*\(|express\.Router\s*\(|require\(\s*['\"]express['\"]\s*\)(?:\.Router)?\s*\(|Router\s*\("
     r"|fastify\s*\(|Fastify\s*\(|new\s+Koa\s*\(|new\s+Router\s*\(|new\s+Hono\s*\()")
 _ROUTE_CALL = re.compile(r"\b(\w+)\.(get|post|put|delete|patch|all)\(\s*['\"`]([^'\"`]+)['\"`]")
+# `X.route({ method: ..., url: ... })`(Fastify 등의 라우트 객체)
+_ROUTE_OBJECT = re.compile(r"\b(\w+)\.route\(\s*\{")
+_OBJ_METHOD = re.compile(r"\bmethod\s*:\s*(\[[^\]]*\]|['\"`][^'\"`]+['\"`])")
+_OBJ_URL = re.compile(r"\burl\s*:\s*['\"`]([^'\"`]+)['\"`]")
+_STRING = re.compile(r"['\"`]([^'\"`]+)['\"`]")
+# 함수 매개변수 목록: `function x(a, b)`, `(a, b) =>`, `(a: T): R =>`, `a =>`
+_FUNC_PARAMS = re.compile(r"\bfunction\b\s*\*?\s*\w*\s*\(([^)]*)\)"
+                          r"|\(([^()]*)\)\s*(?::\s*[^=;{}()]+)?=>"
+                          r"|\b(\w+)\s*=>")
+_PARAM_NAME = re.compile(r"^\s*(?:\.\.\.)?(\w+)")
+# 가장 가까운 package.json에 이 중 하나가 있으면 매개변수 이름만으로 서버 변수로 본다
+SERVER_DEPS = ("express", "fastify", "koa", "hono", "@koa/router")
+SERVER_PARAMS = frozenset({"app", "router", "server", "fastify", "instance", "api"})
+# Express 계열 framework 이름: 가장 가까운 package.json 의존성 중 이 순서로 처음 있는 것, 없으면 express
+EXPRESS_FAMILY = ("fastify", "koa", "hono", "express")
 _DJANGO = re.compile(r"\b(?:re_)?path\(\s*r?['\"]([^'\"]*)['\"]")
 _NEXT_EXPORT = re.compile(rf"export\s+(?:async\s+)?function\s+({NEXT_METHODS})\b|export\s+const\s+({NEXT_METHODS})\s*=")
 
@@ -176,9 +193,49 @@ def _include_prefixes(ref: Ref, mounts: dict[Ref, list[tuple[Ref, str]]], own: d
     return out or {""}
 
 
+def _code_files(snap: Snapshot, pattern: str) -> list[str]:
+    """pattern에 맞는 파일 중 테스트 코드가 아닌 것."""
+    return [rel for rel in snap.glob(pattern) if not is_test_path(rel)]
+
+
+def _str_arg(call: ast.Call) -> str | None:
+    """첫 인자가 문자열 상수면 그 값."""
+    if call.args and isinstance(call.args[0], ast.Constant) and isinstance(call.args[0].value, str):
+        return call.args[0].value
+    return None
+
+
+def _kw_methods(call: ast.Call) -> list[str]:
+    """`methods=[...]` 키워드의 문자열 메서드들. 키워드가 없으면 GET."""
+    for kw in call.keywords:
+        if kw.arg == "methods" and isinstance(kw.value, (ast.List, ast.Tuple)):
+            return [str(e.value).upper() for e in kw.value.elts if isinstance(e, ast.Constant) and isinstance(e.value, str)]
+    return ["GET"]
+
+
+def _route_calls(tree: ast.AST):
+    """(라우트 호출, 메서드들): 데코레이터 라우트(`@X.get("/r")`, `@X.route("/r", methods=...)`)와
+    Flask `X.add_url_rule("/r", methods=...)`. 경로가 문자열 상수인 것만."""
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            for dec in node.decorator_list:
+                if not (isinstance(dec, ast.Call) and isinstance(dec.func, ast.Attribute)) or _str_arg(dec) is None:
+                    continue
+                attr = dec.func.attr
+                if attr in HTTP_METHODS:
+                    yield dec, [attr.upper()]
+                elif attr == "route":
+                    yield dec, _kw_methods(dec)
+                elif attr == "websocket":
+                    yield dec, ["WEBSOCKET"]
+        elif (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+              and node.func.attr == "add_url_rule" and _str_arg(node) is not None):
+            yield node, _kw_methods(node)
+
+
 def _python(snap: Snapshot) -> list[Raw]:
     trees: dict[str, ast.AST] = {}
-    for rel in snap.glob("**/*.py"):
+    for rel in _code_files(snap, "**/*.py"):
         try:
             trees[rel] = ast.parse(snap.read(rel))
         except (SyntaxError, ValueError, RecursionError):
@@ -188,58 +245,106 @@ def _python(snap: Snapshot) -> list[Raw]:
     out: list[Raw] = []
     for rel, tree in trees.items():
         prefixes = _prefixes(tree)
-        for node in ast.walk(tree):
-            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                continue
-            for dec in node.decorator_list:
-                if not (isinstance(dec, ast.Call) and isinstance(dec.func, ast.Attribute)):
-                    continue
-                if not dec.args or not isinstance(dec.args[0], ast.Constant) or not isinstance(dec.args[0].value, str):
-                    continue
-                owner = dec.func.value.id if isinstance(dec.func.value, ast.Name) else ""
-                own = _join(prefixes.get(owner, ""), dec.args[0].value)
-                incs = _include_prefixes((rel, owner), mounts, own_prefix) if owner else {""}
-                attr = dec.func.attr
-                methods: list[str] = []
-                if attr in HTTP_METHODS:
-                    methods = [attr.upper()]
-                elif attr == "route":
-                    methods = ["GET"]
-                    for kw in dec.keywords:
-                        if kw.arg == "methods" and isinstance(kw.value, (ast.List, ast.Tuple)):
-                            methods = [str(e.value).upper() for e in kw.value.elts if isinstance(e, ast.Constant) and isinstance(e.value, str)]
-                elif attr == "websocket":
-                    methods = ["WEBSOCKET"]
-                for inc in sorted(incs):
-                    path = _join(inc, own)
-                    out += [(m, path, rel, dec.lineno, "python") for m in methods]
+        for call, methods in _route_calls(tree):
+            owner = call.func.value.id if isinstance(call.func.value, ast.Name) else ""
+            own = _join(prefixes.get(owner, ""), _str_arg(call))
+            incs = _include_prefixes((rel, owner), mounts, own_prefix) if owner else {""}
+            for inc in sorted(incs):
+                path = _join(inc, own)
+                out += [(m, path, rel, call.lineno, "python") for m in methods]
     return out
 
 
 def _django(snap: Snapshot) -> list[Raw]:
     out: list[Raw] = []
-    for rel in snap.glob("**/urls.py"):
+    for rel in _code_files(snap, "**/urls.py"):
         for i, text in enumerate(snap.lines(rel), 1):
             for m in _DJANGO.finditer(text):
                 out.append(("ANY", "/" + m.group(1), rel, i, "django"))
     return out
 
 
-def _express(snap: Snapshot) -> list[Raw]:
+def _package_deps(snap: Snapshot, manifests: Manifests, rel: str) -> set[str]:
+    """파일이 속한 가장 가까운 package.json의 의존성 이름들(없으면 빈 집합)."""
+    d = parent_dir(rel)
+    while True:
+        if snap.exists(f"{d}/package.json" if d else "package.json"):
+            return manifests.deps_by_dir.get(d, set())
+        if not d:
+            return set()
+        d = parent_dir(d)
+
+
+def _param_servers(text: str) -> set[str]:
+    """함수 매개변수 중 서버 변수로 흔히 쓰는 이름(`function x(fastify, opts)`, `async (app) =>` 등)."""
+    out: set[str] = set()
+    for m in _FUNC_PARAMS.finditer(text):
+        params = m.group(1) if m.group(1) is not None else m.group(2) if m.group(2) is not None else m.group(3)
+        for param in params.split(","):
+            name = _PARAM_NAME.match(param)
+            if name and name.group(1) in SERVER_PARAMS:
+                out.add(name.group(1))
+    return out
+
+
+def _top_level(text: str, start: int) -> str:
+    """text[start]의 `{`로 여는 객체에서 바로 아래 단계 글자만 남긴 문자열. 더 깊은 `{}`·`()` 안은 공백으로
+    바꿔 핸들러 본문의 `url:` 같은 글자를 키로 읽지 않는다. 문자열 안 괄호는 세지 않는다."""
+    out: list[str] = []
+    depth = 0
+    quote = ""
+    for ch in text[start:]:
+        if quote:
+            quote = "" if ch == quote else quote
+        elif ch in "'\"`":
+            quote = ch
+        elif ch in "{(":
+            depth += 1
+        elif ch in "})":
+            depth -= 1
+            if depth == 0:
+                break
+        out.append(ch if depth == 1 else " ")
+    return "".join(out)
+
+
+def _route_objects(text: str, servers: set[str]) -> list[tuple[list[str], str, int]]:
+    """`X.route({ method, url })`(X는 서버 변수) → (메서드들, 경로, 줄)."""
+    out = []
+    for m in _ROUTE_OBJECT.finditer(text):
+        if m.group(1) not in servers:
+            continue
+        body = _top_level(text, m.end() - 1)
+        method, url = _OBJ_METHOD.search(body), _OBJ_URL.search(body)
+        if not (method and url):
+            continue
+        methods = sorted({x.upper() for x in _STRING.findall(method.group(1))})
+        out.append((methods, url.group(1), text.count("\n", 0, m.start()) + 1))
+    return out
+
+
+def _express(snap: Snapshot, manifests: Manifests) -> list[Raw]:
     out: list[Raw] = []
     for pattern in ("**/*.js", "**/*.ts", "**/*.mjs", "**/*.cjs"):
-        for rel in snap.glob(pattern):
+        for rel in _code_files(snap, pattern):
             if PurePosixPath(rel).name.startswith("route.") and "/app/" in f"/{rel}":
                 continue
-            servers = set(_SERVER_VAR.findall(snap.read(rel)))
+            text = snap.read(rel)
+            deps = _package_deps(snap, manifests, rel)
+            servers = set(_SERVER_VAR.findall(text))
+            if any(dep in deps for dep in SERVER_DEPS):
+                servers |= _param_servers(text)
             if not servers:
                 continue
-            for i, text in enumerate(snap.lines(rel), 1):
-                for m in _ROUTE_CALL.finditer(text):
+            framework = next((fw for fw in EXPRESS_FAMILY if fw in deps), "express")
+            for i, line in enumerate(snap.lines(rel), 1):
+                for m in _ROUTE_CALL.finditer(line):
                     if m.group(1) not in servers:
                         continue
                     method = "ANY" if m.group(2) == "all" else m.group(2).upper()
-                    out.append((method, m.group(3), rel, i, "express"))
+                    out.append((method, m.group(3), rel, i, framework))
+            for methods, route, i in _route_objects(text, servers):
+                out += [(method, route, rel, i, framework) for method in methods]
     return out
 
 
@@ -251,7 +356,7 @@ def _next_route_path(parts: list[str]) -> str:
 def _next(snap: Snapshot) -> list[Raw]:
     out: list[Raw] = []
     for ext in ("ts", "js", "tsx", "jsx"):
-        for rel in snap.glob(f"**/app/**/route.{ext}"):
+        for rel in _code_files(snap, f"**/app/**/route.{ext}"):
             parts = PurePosixPath(rel).parts
             idx = len(parts) - 1 - list(reversed(parts)).index("app")
             route = _next_route_path(list(parts[idx + 1:-1]))
@@ -259,7 +364,7 @@ def _next(snap: Snapshot) -> list[Raw]:
                 for m in _NEXT_EXPORT.finditer(text):
                     out.append((m.group(1) or m.group(2), route, rel, i, "nextjs"))
     for ext in ("ts", "js"):
-        for rel in snap.glob(f"**/pages/api/**.{ext}"):
+        for rel in _code_files(snap, f"**/pages/api/**.{ext}"):
             parts = list(PurePosixPath(rel).with_suffix("").parts)
             idx = len(parts) - 1 - list(reversed(parts)).index("pages")
             segs = parts[idx + 1:]
@@ -287,15 +392,24 @@ def _assign(rel: str, webs: list[WorkloadInfo]) -> tuple[WorkloadInfo, bool]:
     return sorted(webs, key=lambda w: w.id)[0], False
 
 
+def _roots(w: WorkloadInfo) -> set[str]:
+    """워크로드 코드의 뿌리 디렉터리들. code_root는 `""`(저장소 루트)도 뿌리이고 None만 모름이다.
+    app_dir는 코드에서 찾은 워크로드만 채우고 나머지는 기본값 `""`라서, 비어 있지 않을 때만 뿌리로 본다
+    (코드·Dockerfile 워크로드는 code_root가 app_dir와 같아 루트 앱도 code_root로 잡힌다)."""
+    return {r for r in (w.app_dir or None, w.code_root) if r is not None}
+
+
 def _owners(rel: str, webs: list[WorkloadInfo]) -> list[WorkloadInfo]:
     """핸들러 파일을 app_dir 또는 code_root 아래에 둔 web 워크로드 중 그 루트가 가장 깊은 것들(같으면 모두, id 순)."""
     depth: dict[str, int] = {}
     for w in webs:
-        roots = [r for r in {w.app_dir, w.code_root} if r and rel.startswith(r + "/")]
+        roots = [r for r in _roots(w) if r == "" or rel.startswith(r + "/")]
         if roots:
             depth[w.id] = max(len(PurePosixPath(r).parts) for r in roots)
-    deepest = max(depth.values(), default=0)
-    return sorted((w for w in webs if depth.get(w.id) == deepest and deepest), key=lambda w: w.id)
+    if not depth:
+        return []
+    deepest = max(depth.values())
+    return sorted((w for w in webs if depth.get(w.id) == deepest), key=lambda w: w.id)
 
 
 # --- nginx location 선택과 노출 판정 -------------------------------------------
@@ -484,13 +598,17 @@ def _mark_exposure(out: list[dict], routes: list[ProxyRoute], servers: list[Prox
 
 def extract_endpoints(snap: Snapshot, workloads: list[WorkloadInfo], routes: list[ProxyRoute] | None = None,
                       servers: list[ProxyServer] | None = None,
-                      fronted: set[tuple[str, str | None]] | None = None) -> list[dict]:
-    """fronted: 앞 구간이 있는 (프록시 id, 환경 이름). 프록시 체인이 거기서 끝난다(paths.fronted_proxies)."""
+                      fronted: set[tuple[str, str | None]] | None = None,
+                      manifests: Manifests | None = None) -> list[dict]:
+    """fronted: 앞 구간이 있는 (프록시 id, 환경 이름). 프록시 체인이 거기서 끝난다(paths.fronted_proxies).
+    manifests: Express 계열 서버 변수·framework 판정에 쓰는 의존성(없으면 여기서 읽는다)."""
     # 엔드포인트는 web 워크로드에만 배정한다(리버스 프록시·정적 프런트엔드 제외)
     webs = [w for w in workloads if w.kind == "web"]
     if not webs:
         return []
-    found = sorted(set(_python(snap) + _django(snap) + _express(snap) + _next(snap)),
+    if manifests is None:
+        manifests = parse_manifests(snap)
+    found = sorted(set(_python(snap) + _django(snap) + _express(snap, manifests) + _next(snap)),
                    key=lambda r: (r[2], r[3], r[0], r[1], r[4]))
     # 같은 (메서드, 경로, 파일, 줄)은 하나만 둔다
     seen: set[tuple[str, str, str, int]] = set()
