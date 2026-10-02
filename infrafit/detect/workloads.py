@@ -361,7 +361,7 @@ def _from_compose(snap: Snapshot, artifacts: list[ParsedArtifact]) -> list[Workl
             wkind = "migration-job" if "migrat" in text else "worker" if is_worker(name, cmd) else "web"
         out.append(WorkloadInfo(
             id=f"w-{slug(name)}", kind=wkind, name=name,
-            entrypoint=evidence(snap, art.path, line_of(snap, art.path, f"{name}:")),
+            entrypoint=evidence(snap, art.path, _service_line(snap, art.path, name)),
             status="confirmed", source="compose", image=image, command=cmd,
             code_root=_compose_code_root(art.path, svc, image, artifacts),
             build_context=build[0] if build else None, dockerfile=build[1] if build else None,
@@ -467,16 +467,19 @@ def _from_dockerfiles(snap: Snapshot, workloads: list[WorkloadInfo],
 
 def _link_single_dockerfile(workloads: list[WorkloadInfo], artifacts: list[ParsedArtifact]) -> None:
     """이미지만 있는 k8s·compose 앱 워크로드에 Dockerfile이 없고, 연결되지 않은 앱 Dockerfile이 정확히 하나면
-    그것을 연결한다(code_root, 비어 있으면 실행 명령). 이렇게 정한 code_root는 추측이다."""
+    그것을 연결한다(code_root, 비어 있으면 실행 명령). 연결이 필요한 워크로드가 여럿이면 모두 같은 이미지 이름일
+    때만 연결한다(같은 이미지를 명령만 바꿔 쓰는 경우). 이렇게 정한 code_root는 추측이다."""
     apps = _app_dockerfiles(workloads, artifacts)
     if len(apps) != 1:
         return
     df = apps[0]
-    for w in workloads:
-        if (w.source in ("k8s", "compose") and is_app(w) and w.dockerfile is None
-                and workload_dockerfile(w, artifacts) is None):
-            w.dockerfile, w.code_root, w.root_guessed = df.path, parent_dir(df.path), True
-            w.command = w.command or _image_command(df.path, artifacts)
+    needing = [w for w in workloads if w.source in ("k8s", "compose") and is_app(w) and w.dockerfile is None
+               and workload_dockerfile(w, artifacts) is None]
+    if len({image_name(w.image) for w in needing}) > 1:
+        return
+    for w in needing:
+        w.dockerfile, w.code_root, w.root_guessed = df.path, parent_dir(df.path), True
+        w.command = w.command or _image_command(df.path, artifacts)
 
 
 def detect_workloads(snap: Snapshot, manifests: Manifests, artifacts: list[ParsedArtifact]) -> list[WorkloadInfo]:

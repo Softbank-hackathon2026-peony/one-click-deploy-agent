@@ -128,7 +128,7 @@ def test_endpoints_by_linked_code_root_are_candidates(tmp_path):
     _write(repo, "app/requirements.txt", "fastapi==0.115\n")
     _write(repo, "app/main.py", APP)
     _write(repo, "docker-compose.yml", "services:\n  web:\n    image: registry/x:latest\n"
-                                       "  admin:\n    image: registry/admin:latest\n")
+                                       "  admin:\n    image: registry/x:2\n")
     inv = _inventory(tmp_path)
     assert {(e["workload"], e["status"]) for e in inv["endpoints"]} == {("w-admin", "candidate"),
                                                                        ("w-web", "candidate")}
@@ -201,3 +201,31 @@ def test_compose_evidence_points_at_service_definition(tmp_path):
     ds = next(d for d in inv["datastores"] if d["id"] == "ds-postgresql")
     assert [(e["path"], e["line"]) for e in ds["evidence"]] == [("docker-compose.yml", 9)]
     assert ds["used_by"] == ["w-api"]
+
+
+def test_compose_workload_entrypoint_skips_anchor_value(tmp_path):
+    repo = tmp_path / "repo"
+    _write(repo, "docker-compose.yml",
+           "x-env: &env\n  API_URL: http://api:8000\n  NOTE: 'api: old'\n"
+           "services:\n  api:\n    image: acme/api:1\n")
+    [w] = _workloads(repo)
+    assert (w.entrypoint["path"], w.entrypoint["line"]) == ("docker-compose.yml", 5)
+
+
+def test_single_dockerfile_links_to_workloads_sharing_one_image(tmp_path):
+    repo = tmp_path / "repo"
+    _write(repo, "Dockerfile", 'FROM python:3.12\nCMD ["uvicorn", "main:app"]\n')
+    _write(repo, "docker-compose.yml", "services:\n  web:\n    image: registry/x:latest\n"
+                                       "  jobs:\n    image: registry/x:1\n    command: python -m jobs.worker\n")
+    ws = {w.id: w for w in _workloads(repo)}
+    assert {w.dockerfile for w in ws.values()} == {"Dockerfile"}
+    assert (ws["w-web"].command, ws["w-jobs"].command) == ("uvicorn main:app", "python -m jobs.worker")
+
+
+def test_single_dockerfile_not_linked_to_different_images(tmp_path):
+    repo = tmp_path / "repo"
+    _write(repo, "Dockerfile", 'FROM python:3.12\nCMD ["uvicorn", "main:app"]\n')
+    _write(repo, "docker-compose.yml", "services:\n  web:\n    image: registry/x:latest\n"
+                                       "  admin:\n    image: registry/admin:latest\n")
+    ws = _workloads(repo)
+    assert [(w.dockerfile, w.code_root, w.root_guessed) for w in ws] == [(None, None, False)] * 2
