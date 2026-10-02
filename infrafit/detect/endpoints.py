@@ -41,13 +41,142 @@ def _prefixes(tree: ast.AST) -> dict[str, str]:
     return out
 
 
+_INCLUDE_ATTRS = {"include_router": "prefix", "register_blueprint": "url_prefix"}
+_MAX_DEPTH = 5
+
+Ref = tuple[str, str]  # (파일, 라우터 변수명)
+
+
+def _join(a: str, b: str) -> str:
+    """경로 조각을 '/'가 겹치거나 빠지지 않게 잇는다. 한쪽이 비면 다른 쪽 그대로."""
+    if not a:
+        return b
+    if not b:
+        return a
+    return a.rstrip("/") + "/" + b.lstrip("/")
+
+
+def _module_file(snap: Snapshot, directory: str, parts: list[str]) -> str | None:
+    """directory 기준 점 경로(parts)에 해당하는 모듈 파일(`x.py` 또는 `x/__init__.py`)."""
+    if not parts:
+        return None
+    base = "/".join(([directory] if directory else []) + parts)
+    for cand in (f"{base}.py", f"{base}/__init__.py"):
+        if snap.exists(cand):
+            return cand
+    return None
+
+
+def _abs_module_file(snap: Snapshot, rel: str, parts: list[str]) -> str | None:
+    """절대 import: 현재 파일 디렉터리에서 위로 올라가며 처음 찾은 모듈 파일."""
+    d = str(PurePosixPath(rel).parent)
+    d = "" if d == "." else d
+    while True:
+        found = _module_file(snap, d, parts)
+        if found:
+            return found
+        if not d:
+            return None
+        parent = str(PurePosixPath(d).parent)
+        d = "" if parent == "." else parent
+
+
+def _imports(snap: Snapshot, rel: str, tree: ast.AST) -> dict[str, tuple[str, str | None]]:
+    """지역 이름 -> (모듈 파일, 원래 이름). 원래 이름이 None이면 모듈 자체를 가리킨다."""
+    out: dict[str, tuple[str, str | None]] = {}
+
+    def find(parts: list[str], level: int) -> str | None:
+        if level:
+            d = PurePosixPath(rel).parent
+            for _ in range(level - 1):
+                d = d.parent
+            base = "" if str(d) == "." else str(d)
+            return _module_file(snap, base, parts)
+        return _abs_module_file(snap, rel, parts)
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            mod = node.module.split(".") if node.module else []
+            for alias in node.names:
+                local = alias.asname or alias.name
+                sub = find(mod + [alias.name], node.level)
+                if sub:
+                    out[local] = (sub, None)
+                    continue
+                owner = find(mod, node.level)
+                if owner:
+                    out[local] = (owner, alias.name)
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                if not alias.asname and "." in alias.name:
+                    continue  # `import a.b`는 이름 a만 묶으므로 다루지 않는다
+                f = _abs_module_file(snap, rel, alias.name.split("."))
+                if f:
+                    out[alias.asname or alias.name] = (f, None)
+    return out
+
+
+def _ref(rel: str, node: ast.expr, imports: dict[str, tuple[str, str | None]]) -> Ref | None:
+    """include 대상 표현식을 (파일, 변수명)으로 푼다. 못 풀면 None."""
+    if isinstance(node, ast.Name):
+        imp = imports.get(node.id)
+        if imp is None:
+            return (rel, node.id)
+        return (imp[0], imp[1]) if imp[1] else None
+    if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+        imp = imports.get(node.value.id)
+        if imp and imp[1] is None:
+            return (imp[0], node.attr)
+    return None
+
+
+def _mounts(snap: Snapshot, trees: dict[str, ast.AST]) -> dict[Ref, list[tuple[Ref, str]]]:
+    """자식 라우터 -> [(부모 라우터, include 접두어)]. 접두어가 문자열 상수가 아니면 건너뛴다."""
+    out: dict[Ref, list[tuple[Ref, str]]] = defaultdict(list)
+    for rel, tree in trees.items():
+        imports = _imports(snap, rel, tree)
+        for node in ast.walk(tree):
+            if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                    and node.func.attr in _INCLUDE_ATTRS and isinstance(node.func.value, ast.Name)
+                    and node.args):
+                continue
+            child = _ref(rel, node.args[0], imports)
+            if child is None:
+                continue
+            prefix = ""
+            ok = True
+            for kw in node.keywords:
+                if kw.arg == _INCLUDE_ATTRS[node.func.attr]:
+                    if isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, str):
+                        prefix = kw.value.value
+                    else:
+                        ok = False
+            if ok:
+                out[child].append(((rel, node.func.value.id), prefix))
+    return out
+
+
+def _include_prefixes(ref: Ref, mounts: dict[Ref, list[tuple[Ref, str]]], stack: tuple[Ref, ...] = ()) -> set[str]:
+    """라우터가 앱까지 연결되며 받는 include 접두어 전부. 순환과 깊이 초과는 끊는다."""
+    out: set[str] = set()
+    if len(stack) < _MAX_DEPTH:
+        for parent, prefix in mounts.get(ref, []):
+            if parent == ref or parent in stack:
+                continue
+            out |= {_join(pp, prefix) for pp in _include_prefixes(parent, mounts, stack + (ref,))}
+    return out or {""}
+
+
 def _python(snap: Snapshot) -> list[Raw]:
-    out: list[Raw] = []
+    trees: dict[str, ast.AST] = {}
     for rel in snap.glob("**/*.py"):
         try:
-            tree = ast.parse(snap.read(rel))
+            trees[rel] = ast.parse(snap.read(rel))
         except (SyntaxError, ValueError, RecursionError):
             continue
+    mounts = _mounts(snap, trees)
+    out: list[Raw] = []
+    for rel, tree in trees.items():
         prefixes = _prefixes(tree)
         for node in ast.walk(tree):
             if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -58,18 +187,22 @@ def _python(snap: Snapshot) -> list[Raw]:
                 if not dec.args or not isinstance(dec.args[0], ast.Constant) or not isinstance(dec.args[0].value, str):
                     continue
                 owner = dec.func.value.id if isinstance(dec.func.value, ast.Name) else ""
-                path = prefixes.get(owner, "") + dec.args[0].value
+                own = _join(prefixes.get(owner, ""), dec.args[0].value)
+                incs = _include_prefixes((rel, owner), mounts) if owner else {""}
                 attr = dec.func.attr
+                methods: list[str] = []
                 if attr in HTTP_METHODS:
-                    out.append((attr.upper(), path, rel, dec.lineno, "python"))
+                    methods = [attr.upper()]
                 elif attr == "route":
                     methods = ["GET"]
                     for kw in dec.keywords:
                         if kw.arg == "methods" and isinstance(kw.value, (ast.List, ast.Tuple)):
                             methods = [str(e.value).upper() for e in kw.value.elts if isinstance(e, ast.Constant) and isinstance(e.value, str)]
-                    out += [(m, path, rel, dec.lineno, "python") for m in methods]
                 elif attr == "websocket":
-                    out.append(("WEBSOCKET", path, rel, dec.lineno, "python"))
+                    methods = ["WEBSOCKET"]
+                for inc in sorted(incs):
+                    path = _join(inc, own)
+                    out += [(m, path, rel, dec.lineno, "python") for m in methods]
     return out
 
 
