@@ -84,6 +84,23 @@ S1이 `inventory.json`에 기록하는 것:
 - **기존 산출물:** Dockerfile, compose, k8s(kustomize 렌더 포함), Terraform, CI, 플랫폼 설정. 매핑하지 못한 의존성도 남긴다.
 - **배포 단위(`deploy_units`):** 프로젝트가 정의한 "같이 떠야 하는 컨테이너 묶음"([다중 컨테이너 계약 §1](docs/superpowers/specs/2026-10-03-multi-container-contract.md)). 출처는 compose(기본 파일 + override) → k8s → 코드 순이다. 빌드마다 이미지 하나, 서비스 이름 그대로의 컨테이너, 저장소 컨테이너, 진입 컨테이너(entry)를 적는다. 비밀값([knowledge/secrets.yaml](knowledge/secrets.yaml))은 이름만 남기고, 정하지 못한 값은 `unresolved`에 적는다.
 
+### S4 순위: 서비스 유형별 기준 순서
+
+다루는 경우의 수를 선언한다: 서비스 유형 5개 × 비교 기준 7개(`knowledge/ranking.yaml` `scope`). 순위는 가중합 없이 사전식이고, 유형마다 기준을 보는 순서만 다르다.
+
+| 유형 (판정 우선순위) | 판정 근거 (detector 차원만) | 기준 순서 |
+|---|---|---|
+| 실시간 | A3 웹소켓, A1 실시간 연결 | 확실성 → 상시 응답 → 확장 → 비용 → 설정 부담 |
+| 장시간 처리 | A2 수십 초 이상, E2 llm-api | 확실성 → 처리 시간 여유 → 비용 → 상시 응답 → 설정 부담 |
+| 상태 저장 | B1·B2 있음, 데이터 저장소 | 확실성 → 데이터 안전 → 비용 → 설정 부담 |
+| 백그라운드 | A1 워커·정기 작업, B3, A4 | 확실성 → 상시 응답 → 비용 → 설정 부담 |
+| 가벼운 웹 | 위에 해당 없음 | 확실성 → 비용 → 설정 부담 → 상시 응답 |
+
+- 여러 유형에 걸리면 위 유형 하나를 쓰고 `coverage: partial` + `unprioritized` 로, 해당 없으면 `coverage: default` 로 표시한다.
+- 후보마다 7개 기준 값(`criteria`)과 바로 다음 후보를 이긴 기준(`decided_by`)을 낸다.
+- 확장: 유형 = `service_types` 한 항목, 기준 = 출처 있는 능력 키 + `criteria` 한 줄 + `infrafit/fit/ranking.py` 계산 + 스키마 enum 두 곳(`Candidate.decided_by.criterion`, `Ranking.criteria_order`). `kb_lint` 가 검사한다.
+- 운영 부담은 출처 있는 값이 없어 기준에서 뺐다.
+
 ## 5. 검증 방법
 
 - **테스트:** 362개. 전부 테스트 안에서 만든 합성 저장소로 규칙을 검증한다.

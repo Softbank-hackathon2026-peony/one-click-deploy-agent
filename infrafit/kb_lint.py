@@ -6,6 +6,7 @@ import re
 from fnmatch import fnmatchcase
 
 from infrafit import kb
+from infrafit.fit.ranking import CRITERIA
 
 COMPONENT_ID = re.compile(r"^(cp|ds|ca|qu|sc|rt|fs|nw):[a-z0-9._-]+/[a-z0-9._-]+/[a-z0-9._-]+$")
 ROLES = {"primary-db", "cache", "session", "queue", "scheduler", "realtime", "file-storage", "search", "other"}
@@ -763,8 +764,85 @@ def _lint_profile_detectors(cfg: dict | None = None) -> list[str]:
     return issues
 
 
+CONSIDERATION_ID = re.compile(r"^#{2,4} +([A-Z]+-\d+)\b", re.M)
+RANKING_LEAF_KEYS = ({"dimension", "equals"}, {"dimension", "in"}, {"dimension", "kinds"}, {"datastores"})
+
+
+def _consideration_ids(research_dir) -> set[str]:
+    ids: set[str] = set()
+    for path in sorted((research_dir / "considerations").glob("*.md")):
+        ids |= set(CONSIDERATION_ID.findall(path.read_text(encoding="utf-8")))
+    return ids
+
+
+def _lint_ranking(cfg: dict | None = None, detectors: dict | None = None, research_dir=None) -> list[str]:
+    """ranking.yaml: 범위 숫자, 기준 id(계산 함수 있음), 유형 when 어휘·order·default·refs."""
+    cfg = kb.ranking() if cfg is None else cfg
+    dims = (kb.profile_detectors() if detectors is None else detectors).get("dimensions") or {}
+    research_dir = RESEARCH_DIR if research_dir is None else research_dir
+    known_refs = _consideration_ids(research_dir)
+    issues: list[str] = []
+    criteria = [c.get("id") for c in cfg.get("criteria") or []]
+    types = cfg.get("service_types") or []
+    scope = cfg.get("scope") or {}
+    if scope.get("criteria") != len(criteria) or scope.get("service_types") != len(types):
+        issues.append(f"ranking: scope {scope} 가 실제 개수(criteria {len(criteria)}, service_types {len(types)})와 다름")
+    for cid in criteria:
+        if cid not in CRITERIA:
+            issues.append(f"ranking: 기준 {cid} 의 계산 함수가 없음 (infrafit/fit/ranking.py CRITERIA)")
+    if len(set(criteria)) != len(criteria):
+        issues.append("ranking: 기준 id 중복")
+    if not isinstance(cfg.get("cost_tie_ratio"), (int, float)) or not 0 <= cfg["cost_tie_ratio"] < 1:
+        issues.append("ranking: cost_tie_ratio 는 0 이상 1 미만 숫자")
+    defaults = [i for i, t in enumerate(types) if t.get("when") == "default"]
+    if defaults != [len(types) - 1]:
+        issues.append("ranking: when: default 는 마지막 유형 하나만")
+    seen: set[str] = set()
+    for t in types:
+        tid = str(t.get("id"))
+        if tid in seen:
+            issues.append(f"ranking: 유형 id 중복 {tid}")
+        seen.add(tid)
+        order = t.get("order") or []
+        if not order or order[0] != "certainty":
+            issues.append(f"ranking {tid}: order 첫 기준은 certainty")
+        for c in order:
+            if c not in criteria:
+                issues.append(f"ranking {tid}: order 의 {c} 가 criteria 에 없음")
+        if not t.get("label") or not t.get("why"):
+            issues.append(f"ranking {tid}: label·why 필수")
+        refs = t.get("refs") or []
+        if not refs:
+            issues.append(f"ranking {tid}: refs 필수")
+        for ref in refs:
+            if ref not in known_refs:
+                issues.append(f"ranking {tid}: refs {ref} 가 docs/research/considerations 에 없음")
+        when = t.get("when")
+        if when == "default":
+            continue
+        leaves = when.get("any") if isinstance(when, dict) and set(when) == {"any"} else [when]
+        for leaf in leaves or []:
+            if not isinstance(leaf, dict) or set(leaf) not in RANKING_LEAF_KEYS:
+                issues.append(f"ranking {tid}: when 형식 오류 {leaf}")
+                continue
+            if "datastores" in leaf:
+                continue
+            dim = leaf["dimension"]
+            if dim not in dims:
+                issues.append(f"ranking {tid}: when.dimension {dim} 은 profile_detectors.yaml 에 없는 차원")
+                continue
+            vocab = dims[dim].get("values") or []
+            values = [leaf["equals"]] if "equals" in leaf else (leaf.get("in") or [])
+            for v in values:
+                if v not in vocab:
+                    issues.append(f"ranking {tid}: {dim} 값 {v} 가 어휘 {vocab} 에 없음")
+            if "kinds" in leaf and not (isinstance(leaf["kinds"], list) and leaf["kinds"]):
+                issues.append(f"ranking {tid}: kinds 는 비어 있지 않은 목록")
+    return issues
+
+
 def lint() -> list[str]:
     return (_lint_catalog() + _lint_signatures() + _lint_unmapped_signatures() + _lint_defaults() + _lint_images()
             + _lint_secrets()
             + _lint_implicit_routes() + _lint_external() + _lint_deploy() + _lint_capabilities() + _lint_rules()
-            + _lint_rule_vocabulary() + _lint_profile_detectors())
+            + _lint_rule_vocabulary() + _lint_profile_detectors() + _lint_ranking())
