@@ -291,3 +291,31 @@ def test_knowledge_derived_values_are_marked():
         assert entry["value"] is True and entry["source"]["basis"] == "derived", cid
     for cid in ("cp:aws/ec2/docker-compose", "cp:gcp/compute-engine/docker-compose"):
         assert caps[cid]["capabilities"]["CP.platform_request_timeout"]["value"] is False
+
+
+def test_vm_compose_websocket_is_known_for_websocket_app(tmp_path):
+    """VM 위 Docker Compose 는 CP.websocket 을 유도 값으로 갖는다. 웹소켓 앱(f8)에서 이 후보가 CP.websocket 때문에 unknown 이 되면 안 된다."""
+    import json
+    from pathlib import Path
+
+    from infrafit.pipeline import analyze
+
+    vm = ("cp:aws/ec2/docker-compose", "cp:gcp/compute-engine/docker-compose")
+    caps = kb.capabilities()
+    for cid in vm:
+        entry = caps[cid]["capabilities"]["CP.websocket"]
+        assert entry["value"] is True and entry["source"]["basis"] == "derived" and entry["source"]["reasoning"], cid
+        assert entry["source"]["from"] == caps[cid]["capabilities"]["CP.runs_long_lived_server"]["source"]["from"], cid
+
+    repo = Path(__file__).resolve().parent.parent / "fixtures" / "f8-socketio-chat" / "repo"
+    analyze(str(repo), tmp_path, until="S4", run_id="r")
+    rec = json.loads((tmp_path / "r" / "recommendation.json").read_text(encoding="utf-8"))
+    fit = json.loads((tmp_path / "r" / "fit.json").read_text(encoding="utf-8"))
+    placed = [c for c in rec["candidates"] if any(p["component"] in vm for p in c["placement"])]
+    assert {p["component"] for c in placed for p in c["placement"]} >= set(vm)
+    for c in placed:
+        assert not [u for u in c.get("unknown") or [] if u["capability"] == "CP.websocket"], c["id"]
+    cells = [m for m in fit["matrix"] if m["candidate"] in vm and m["scope"] == "w-web"]
+    assert {m["candidate"] for m in cells} == set(vm)
+    for m in cells:
+        assert "CP.websocket" not in m["unknown_keys"], m["candidate"]
