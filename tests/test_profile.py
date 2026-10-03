@@ -97,6 +97,28 @@ def test_a2_long_work_in_next_route_and_a4_unawaited(tmp_path):
     assert a4["value"] == "있음" and [(e["path"], e["line"]) for e in a4["evidence"]] == [("app/api/signup/route.ts", 2)]
 
 
+def test_a2_long_sleep_in_handler(tmp_path):
+    main = ("import time\nfrom fastapi import FastAPI\napp = FastAPI()\n\n"
+            "@app.get('/slow')\ndef slow():\n    time.sleep(40)\n    return 'ok'\n")
+    a2 = _app(_run(tmp_path, _py(main)), "A2")
+    assert (a2["value"], a2["source"]) == ("수십 초", "detector")
+    assert [(e["path"], e["line"]) for e in a2["evidence"]] == [("main.py", 7)]
+
+
+def test_a2_short_sleep_is_not_long(tmp_path):
+    main = "import time\nfrom fastapi import FastAPI\napp = FastAPI()\n\n@app.get('/s')\ndef s():\n    time.sleep(2)\n    return 'ok'\n"
+    assert _app(_run(tmp_path, _py(main)), "A2")["source"] == "assumption"
+
+
+def test_a2_long_settimeout_in_express_route(tmp_path):
+    pkg = '{"dependencies": {"express": "4"}}\n'
+    server = ("const express = require('express');\nconst app = express();\n"
+              "app.get('/slow', async (req, res) => {\n"
+              "  await new Promise((r) => setTimeout(r, 30000));\n  res.send('ok');\n});\napp.listen(3000);\n")
+    a2 = _app(_run(tmp_path, {"package.json": pkg, "server.js": server}), "A2")
+    assert a2["value"] == "수십 초" and a2["evidence"][0]["line"] == 4
+
+
 def test_a4_awaited_promise_is_not_after_response(tmp_path):
     pkg = '{"dependencies": {"next": "15.0.0"}}\n'
     signup = 'export async function POST() {\n  await mailer.sendMail({ to: "a" });\n  return Response.json({});\n}\n'
