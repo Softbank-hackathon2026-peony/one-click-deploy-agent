@@ -25,7 +25,7 @@ images:
   - {match: [redis, "redis/redis-stack*", "redis-stack*", redis-cluster, redis-sentinel, valkey, valkey-cluster],
      role: cache, component: "ca:unspecified/redis/default", port: 6379,
      image: "redis:7-alpine", url_scheme: [redis, rediss], url_template: "{scheme}://{host}:{port}/0"}
-  - {match: [memcached], role: cache, port: 11211, image: "memcached:1.6-alpine"}
+  - {match: [memcached], role: cache, port: 11211}
   - {match: [rabbitmq], role: queue, port: 5672}
   # 기반 서비스
   - {match: ["temporalio/*"], role: infra}

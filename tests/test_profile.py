@@ -119,6 +119,22 @@ def test_a2_long_settimeout_in_express_route(tmp_path):
     assert a2["value"] == "수십 초" and a2["evidence"][0]["line"] == 4
 
 
+def test_a2_async_sleep_in_async_handler(tmp_path):
+    main = ("import asyncio\nfrom fastapi import FastAPI\napp = FastAPI()\n\n"
+            "@app.get('/slow')\nasync def slow():\n    await asyncio.sleep(30)\n    return 'ok'\n")
+    a2 = _app(_run(tmp_path, _py(main)), "A2")
+    assert (a2["value"], a2["source"]) == ("수십 초", "detector")
+
+
+def test_a2_js_setinterval_and_short_settimeout_stay_assumed(tmp_path):
+    pkg = '{"dependencies": {"express": "4"}}\n'
+    server = ("const express = require('express');\nconst app = express();\n"
+              "app.get('/tick', async (req, res) => {\n"
+              "  setInterval(() => poll(), 60000);\n"
+              "  await new Promise((r) => setTimeout(r, 5000));\n  res.send('ok');\n});\napp.listen(3000);\n")
+    assert _app(_run(tmp_path, {"package.json": pkg, "server.js": server}), "A2")["source"] == "assumption"
+
+
 def test_a4_awaited_promise_is_not_after_response(tmp_path):
     pkg = '{"dependencies": {"next": "15.0.0"}}\n'
     signup = 'export async function POST() {\n  await mailer.sendMail({ to: "a" });\n  return Response.json({});\n}\n'

@@ -279,3 +279,38 @@ def test_code_path_without_env_default_adds_container_but_no_env(tmp_path):
     u = _units(tmp_path, tmp_path)
     assert [d["id"] for d in u["datastores"]] == ["redis"]
     assert all("REDIS_URL" not in c["env"] for c in u["containers"])
+
+
+def test_celery_beat_regex_is_tight_for_unknown_procfile_types(tmp_path):
+    _celery_repo(tmp_path)
+    _write(tmp_path, "Procfile", "web: gunicorn -b 0.0.0.0:$PORT app:app\nqueue: celery -A tasks worker -Q beat\n")
+    ctx = analyze(str(tmp_path), tmp_path / "out", until="S1", run_id="r")
+    inv = json.loads((ctx.out_dir / "inventory.json").read_text())
+    assert not any(w["kind"] == "scheduled" for w in inv["workloads"])
+    _write(tmp_path, "Procfile", "web: gunicorn -b 0.0.0.0:$PORT app:app\nclockwork: celery --app=tasks beat -l info\n")
+    ctx = analyze(str(tmp_path), tmp_path / "out2", until="S1", run_id="r")
+    inv = json.loads((ctx.out_dir / "inventory.json").read_text())
+    assert any(w["kind"] == "scheduled" for w in inv["workloads"])
+
+
+def test_code_path_js_redis_env_default(tmp_path):
+    _write(tmp_path, "package.json", '{"dependencies": {"express": "4", "ioredis": "5"}}\n')
+    _write(tmp_path, "server.js", "const express = require('express');\nconst Redis = require('ioredis');\n"
+                                  "const url = process.env.REDIS_URL || \"redis://localhost:6379\";\n"
+                                  "const redis = new Redis(url);\nconst app = express();\n"
+                                  "app.get('/h', (req, res) => res.send('ok'));\napp.listen(process.env.PORT || 3000);\n")
+    u = _units(tmp_path, tmp_path)
+    assert [d["id"] for d in u["datastores"]] == ["redis"]
+    assert u["containers"]
+    for c in u["containers"]:
+        assert c["env"]["REDIS_URL"] == "redis://redis:6379/0"
+
+
+def test_code_path_env_default_only_in_test_path_is_ignored(tmp_path):
+    _write(tmp_path, "requirements.txt", "flask==3.0.3\nredis==5.0.4\n")
+    _write(tmp_path, "app.py", "import redis\nfrom flask import Flask\napp = Flask(__name__)\nr = redis.Redis()\n\n"
+                               "@app.get('/h')\ndef h():\n    return 'ok'\n")
+    _write(tmp_path, "tests/test_x.py", "import os\nURL = os.environ.get(\"REDIS_URL\", \"redis://localhost\")\n")
+    u = _units(tmp_path, tmp_path)
+    assert [d["id"] for d in u["datastores"]] == ["redis"]
+    assert all("REDIS_URL" not in c["env"] for c in u["containers"])
