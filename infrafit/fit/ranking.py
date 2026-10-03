@@ -133,12 +133,16 @@ def sort_key(values: dict, order: list[str]) -> tuple:
 
 
 def decided_by(rows: list[tuple[str, dict]], order: list[str]) -> list[dict | None]:
-    """순위 순서의 (id, 기준 값)마다 바로 다음 후보와 처음 갈린 기준. 마지막은 None."""
+    """순위 순서의 (id, 기준 값)마다 바로 다음 후보와 처음 갈린 기준. 마지막은 None.
+
+    기준 값에 "unknown_count"(모르는 셀 수, 유형 기준 뒤의 동률 깨기)가 있으면 order 다음에 비교한다.
+    """
     out: list[dict | None] = []
     for i, (_, vals) in enumerate(rows):
         if i + 1 == len(rows):
             out.append(None)
             continue
         nid, nvals = rows[i + 1]
-        out.append({"criterion": next((c for c in order if vals[c] != nvals[c]), "name"), "over": nid})
+        keys = [*order, "unknown_count"]
+        out.append({"criterion": next((c for c in keys if vals.get(c) != nvals.get(c)), "name"), "over": nid})
     return out

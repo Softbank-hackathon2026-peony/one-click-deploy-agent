@@ -114,6 +114,8 @@ def test_sort_key_and_decided_by_follow_order():
     assert sort_key(a, order) < sort_key(b, order)
     assert decided_by([("C1", a), ("C2", b), ("C3", c)], order) == [
         {"criterion": "always_on", "over": "C2"}, {"criterion": "name", "over": "C3"}, None]
+    b["unknown_count"], c["unknown_count"] = 0, 2
+    assert decided_by([("C1", b), ("C2", c)], order)[0] == {"criterion": "unknown_count", "over": "C2"}
 
 RUN = "cp:gcp/cloud-run/unspecified"
 EC2 = "cp:aws/ec2/docker-compose"
@@ -213,3 +215,19 @@ def test_unknown_from_assumed_dimension_does_not_demote_cheaper_candidate():
     assert compute_order(rec) == [RUN, EC2]
     assert rec["candidates"][0]["criteria"]["certainty"] == {
         "evidence_unknown": False, "unknown_cost_components": 0, "unknown_count": 1}
+
+
+def test_decided_by_reports_unknown_count_tie_breaker():
+    rule = {"id": "CAP-AFTERRESP-001", "when": {"dimension": "A4", "equals": "있음"},
+            "require": {"capability": "CP.cpu_after_response", "equals": True}, "otherwise": "infeasible",
+            "config_from": None, "message": "after response"}
+    caps = [capc(RUN, "gcp", "gcp_cloud_run", 10),                                 # A4 키 없음 → unknown 셀
+            capc(EC2, "aws", "aws_ec2", 10, CP__cpu_after_response=True)]
+    assumed = {**dim("A4", "있음"), "source": "assumption", "evidence": []}
+    p = prof(assumed)
+    inv = web_inventory()
+    fit = build_fit(inv, p, caps, [rule])
+    rec = build_recommendation(inv, p, fit, caps, [rule])
+    assert compute_order(rec) == [EC2, RUN]
+    assert rec["candidates"][0]["decided_by"] == {"criterion": "unknown_count", "over": "C2"}
+    validate("Candidate", rec["candidates"][0])

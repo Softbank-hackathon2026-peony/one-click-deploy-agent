@@ -1606,6 +1606,7 @@
                 "scaling",
                 "data_safety",
                 "config_burden",
+                "unknown_count",
                 "name"
               ]
             },

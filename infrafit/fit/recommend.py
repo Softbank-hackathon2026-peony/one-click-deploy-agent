@@ -503,7 +503,8 @@ class Recommender:
         feasible.sort(key=lambda c: sort_key(c["_values"], self.order) + (c["_unknown"], c["_name"]))
         for i, cand in enumerate(feasible, start=1):
             cand["id"], cand["rank"] = f"C{i}", i
-        for cand, why in zip(feasible, decided_by([(c["id"], c["_values"]) for c in feasible], self.order)):
+        for cand, why in zip(feasible, decided_by([(c["id"], {**c["_values"], "unknown_count": c["_unknown"]}) for c in feasible],
+                                       self.order)):
             v, total = cand["_values"], cand["_cost"][0]
             cand["criteria"] = {
                 "certainty": {"evidence_unknown": v["certainty"][0], "unknown_cost_components": v["certainty"][1],
