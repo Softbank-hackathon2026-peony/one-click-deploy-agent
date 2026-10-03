@@ -404,8 +404,7 @@ def test_ranking_known_cost_then_total_then_unknown_cells():
     prof = profile(assumed)
     fit = build_fit(inv, prof, caps, rules)
     rec = build_recommendation(inv, prof, fit, caps, rules)
-    # 가벼운 웹 유형: 확실성(모르는 셀 수 포함) → 비용. 모르는 셀 1개인 RUN 은 비용이 더 싸도 EC2 뒤다
-    assert [c["assignment"]["w-web"] for c in rec["candidates"]] == [EC2, RUN, ECS]
+    assert [c["assignment"]["w-web"] for c in rec["candidates"]] == [RUN, EC2, ECS]
 
 
 def test_billing_mode_tie_prefers_request_billing_unless_background_needed():

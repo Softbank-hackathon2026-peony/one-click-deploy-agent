@@ -328,7 +328,7 @@ class Recommender:
         for cid, cell, ev, cost in rows:
             comp = self.components.get(cid)
             values = {
-                "certainty": (bool(ev and cell["result"] == "unknown"), cost is None, cell["result"] == "unknown"),
+                "certainty": (bool(ev and cell["result"] == "unknown"), cost is None),
                 "cost": cost_value(cost, int(cost is None), 0.0, cheapest, self.tie_ratio),
                 "always_on": int(lacks_always_on(comp)),
                 "request_headroom": int(lacks_headroom(comp, a2)),
@@ -336,7 +336,9 @@ class Recommender:
                 "data_safety": 0,
                 "config_burden": len(cell["requires_config"]),
             }
-            scored.append((sort_key(values, self.order) + (self._mode_key(scope, cid), cid), cid))
+            # 모르는 셀 수(가정 값에서 나온 모름 포함)는 유형 기준을 다 비교한 뒤의 동률 깨기
+            scored.append((sort_key(values, self.order) + (cell["result"] == "unknown", self._mode_key(scope, cid), cid),
+                           cid))
         scored.sort()
         return (scored[0][1] if scored else None), reasons
 
@@ -442,7 +444,7 @@ class Recommender:
             return self.components.get(combo.assignment.get(sid))
 
         here = [s for s in self.workloads if s.id in combo.assignment]
-        certainty = (combo.evidence_unknown > 0, len(unknown_cost), unknown_cells + len(unknown_cost))
+        certainty = (combo.evidence_unknown > 0, len(unknown_cost))
         values = {
             "certainty": certainty,
             "cost": None,   # run()에서 최저 합을 알고 나서 채운다
@@ -476,6 +478,7 @@ class Recommender:
                               for c in combo.cells for p in c.get("derived_passes", [])],
             # 순위에만 쓰고 출력하지 않는다
             "_values": values,
+            "_unknown": unknown_cells + len(unknown_cost),
             "_cost": (None if unknown_cost else total, len(unknown_cost), total),
             "_name": combo.name,
         }
@@ -497,19 +500,19 @@ class Recommender:
         for cand in feasible:
             total, unknown_n, partial = cand["_cost"]
             cand["_values"]["cost"] = cost_value(total, unknown_n, partial, cheapest, self.tie_ratio)
-        feasible.sort(key=lambda c: sort_key(c["_values"], self.order) + (c["_name"],))
+        feasible.sort(key=lambda c: sort_key(c["_values"], self.order) + (c["_unknown"], c["_name"]))
         for i, cand in enumerate(feasible, start=1):
             cand["id"], cand["rank"] = f"C{i}", i
         for cand, why in zip(feasible, decided_by([(c["id"], c["_values"]) for c in feasible], self.order)):
             v, total = cand["_values"], cand["_cost"][0]
             cand["criteria"] = {
                 "certainty": {"evidence_unknown": v["certainty"][0], "unknown_cost_components": v["certainty"][1],
-                              "unknown_count": v["certainty"][2]},
+                              "unknown_count": cand["_unknown"]},
                 "cost": {"monthly_usd": total, "tied_with_cheapest": total is not None and v["cost"][1] == 0.0},
                 **{k: v[k] for k in ("always_on", "request_headroom", "scaling", "data_safety", "config_burden")},
             }
             cand["decided_by"] = why
-            for k in ("_values", "_cost", "_name"):
+            for k in ("_values", "_cost", "_name", "_unknown"):
                 del cand[k]
         outcome, detail = self._outcome(feasible, batch)
         no_feasible = None

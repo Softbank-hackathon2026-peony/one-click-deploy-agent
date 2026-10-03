@@ -196,3 +196,20 @@ def test_candidate_criteria_lists_all_seven():
     assert set(crit) == {"certainty", "cost", "always_on", "request_headroom", "scaling", "data_safety",
                          "config_burden"}
     assert crit["certainty"] == {"evidence_unknown": False, "unknown_cost_components": 0, "unknown_count": 0}
+
+
+def test_unknown_from_assumed_dimension_does_not_demote_cheaper_candidate():
+    rule = {"id": "CAP-AFTERRESP-001", "when": {"dimension": "A4", "equals": "있음"},
+            "require": {"capability": "CP.cpu_after_response", "equals": True}, "otherwise": "infeasible",
+            "config_from": None, "message": "after response"}
+    caps = [capc(RUN, "gcp", "gcp_cloud_run", 0),                                  # A4 키 없음 → unknown 셀
+            capc(EC2, "aws", "aws_ec2", 10, CP__cpu_after_response=True)]
+    assumed = {**dim("A4", "있음"), "source": "assumption", "evidence": []}
+    p = prof(assumed)
+    inv = web_inventory()
+    fit = build_fit(inv, p, caps, [rule])
+    rec = build_recommendation(inv, p, fit, caps, [rule])
+    assert rec["ranking"]["service_type"] == "light_web"
+    assert compute_order(rec) == [RUN, EC2]
+    assert rec["candidates"][0]["criteria"]["certainty"] == {
+        "evidence_unknown": False, "unknown_cost_components": 0, "unknown_count": 1}
