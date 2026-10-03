@@ -1,5 +1,7 @@
+import copy
+
 from infrafit import kb
-from infrafit.kb_lint import _lint_catalog, _lint_images, _lint_secrets, lint
+from infrafit.kb_lint import _lint_catalog, _lint_images, _lint_ranking, _lint_secrets, lint
 
 
 def test_knowledge_files_pass_lint():
@@ -55,3 +57,29 @@ def test_secrets_and_image_port_lint():
     assert _lint_secrets({"key": [], "value": ["x"]}) == ["secrets: key 정규식 목록이 비었음"]
     issues = _lint_images([{"match": ["pg"], "role": "datastore", "port": "5432"}])
     assert issues == ["image pg: port는 1~65535 정수여야 함 '5432'"]
+
+
+def test_ranking_file_passes_lint_and_declares_scope():
+    cfg = kb.ranking()
+    assert _lint_ranking() == []
+    assert cfg["scope"] == {"service_types": 5, "criteria": 7}
+    assert [t["id"] for t in cfg["service_types"]] == ["realtime", "long_request", "stateful", "background", "light_web"]
+    assert all(t["order"][0] == "certainty" for t in cfg["service_types"])
+
+
+def test_ranking_lint_catches_bad_entries():
+    good = kb.ranking()
+
+    def issues(mutate):
+        cfg = copy.deepcopy(good)
+        mutate(cfg)
+        return " ".join(_lint_ranking(cfg))
+
+    assert "certainty" in issues(lambda c: c["service_types"][0]["order"].reverse())
+    assert "nope" in issues(lambda c: c["service_types"][0]["order"].append("nope"))
+    assert "Z9" in issues(lambda c: c["service_types"][0]["when"]["any"].append({"dimension": "Z9", "equals": "x"}))
+    assert "없는값" in issues(lambda c: c["service_types"][0]["when"]["any"].append({"dimension": "A3", "equals": "없는값"}))
+    assert "default" in issues(lambda c: c["service_types"].append(dict(c["service_types"][-1], id="x2")))
+    assert "T-999" in issues(lambda c: c["service_types"][0]["refs"].append("T-999"))
+    assert "scope" in issues(lambda c: c["scope"].update(criteria=8))
+    assert "계산 함수" in issues(lambda c: c["criteria"].append({"id": "latency", "label": "지연", "better": "lower"}))
