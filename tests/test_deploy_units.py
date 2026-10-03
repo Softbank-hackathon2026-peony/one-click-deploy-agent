@@ -215,3 +215,36 @@ def test_secret_env_values_go_only_to_names(tmp_path):
     assert c["env"] == {"CACHE_URL": "redis://cache:6379/0", "DEBUG": "false"}
     assert c["env_names"] == ["ADMIN", "AUTH_TOKEN", "BROKER_URL", "CACHE_URL", "DEBUG", "FROM_HOST",
                               "OPENAI_API_KEY", "REGION", "SESSION_SECRET"]
+
+
+def _celery_repo(root):
+    _write(root, "requirements.txt", "flask==3.0.3\ncelery==5.4.0\nredis==5.0.4\ngunicorn==22.0.0\n")
+    _write(root, "Procfile", "web: gunicorn -b 0.0.0.0:$PORT app:app\nworker: celery -A tasks worker --loglevel=info\n"
+                             "beat: celery -A tasks beat --loglevel=info\n")
+    _write(root, "app.py", "from flask import Flask\nfrom tasks import send_report\napp = Flask(__name__)\n\n"
+                           "@app.get('/health')\ndef health():\n    return 'ok'\n")
+    _write(root, "tasks.py", "import os\nfrom celery import Celery\n\n"
+                             "REDIS_URL = os.environ.get(\"REDIS_URL\", \"redis://localhost:6379/0\")\n"
+                             "celery = Celery(\"tasks\", broker=REDIS_URL, backend=REDIS_URL)\n\n"
+                             "@celery.task\ndef send_report(kind):\n    return kind\n")
+
+
+def test_procfile_beat_is_scheduled_workload_and_container(tmp_path):
+    _celery_repo(tmp_path)
+    ctx = analyze(str(tmp_path), tmp_path / "out", until="S1", run_id="r")
+    inv = json.loads((ctx.out_dir / "inventory.json").read_text())
+    kinds = {w["name"]: w["kind"] for w in inv["workloads"]}
+    assert kinds["scheduled"] == "scheduled"
+    sched = next(w for w in inv["workloads"] if w["kind"] == "scheduled")
+    assert sched["entrypoint"]["path"] == "Procfile" and sched["entrypoint"]["line"] == 3
+    cs = {c["workload"]: c for c in inv["deploy_units"]["containers"]}
+    assert cs[sched["id"]]["command"] == "celery -A tasks beat --loglevel=info"
+    assert cs[sched["id"]]["one_shot"] is False
+
+
+def test_unknown_procfile_type_with_celery_beat_command_is_scheduled(tmp_path):
+    _celery_repo(tmp_path)
+    _write(tmp_path, "Procfile", "web: gunicorn -b 0.0.0.0:$PORT app:app\nclockwork: celery -A tasks beat\n")
+    ctx = analyze(str(tmp_path), tmp_path / "out", until="S1", run_id="r")
+    inv = json.loads((ctx.out_dir / "inventory.json").read_text())
+    assert any(w["kind"] == "scheduled" for w in inv["workloads"])
