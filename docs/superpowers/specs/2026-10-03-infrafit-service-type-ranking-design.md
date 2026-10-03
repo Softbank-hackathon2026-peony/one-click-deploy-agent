@@ -118,7 +118,7 @@ service_types:                  # 위에서부터 검사, 처음 맞는 하나�
 | certainty | 튜플 (근거 있는 모름 셀 > 0, 모르는 비용 구성 요소 수, 모름 셀 수 + 모르는 비용 수). 지금 키의 해당 부분 그대로 |
 | cost | 튜플 (합이 null, 비용 값). 비용 값 = 합을 아는 실현 가능 후보 중 최저 합 × (1 + cost_tie_ratio) 이하면 0, 아니면 합. 합이 null 인 후보끼리는 지금처럼 (모르는 비용 수, 아는 부분합) |
 | always_on | `CP.always_on` 이 true 가 아닌 구성 요소에 놓인 앱 워크로드 수 |
-| request_headroom | A2 가 근거 있는 워크로드 중, 놓인 구성 요소의 요청 상한이 **필요 등급보다 한 단계 위 기준** 미만인 수. 기준: 수십 초 → 600초, 수 분 → 상한 없음(`CP.platform_request_timeout: false` 또는 `CP.max_request_seconds` 없음), 그 이상 → 상한 없음, 1초 미만 → 60초. 상한 없음 플랫폼은 항상 통과 |
+| request_headroom | A2 가 근거 있는 워크로드 중, 놓인 구성 요소의 요청 상한이 **필요 등급보다 한 단계 위 기준** 미만인 수. 기준: 1초 미만 → 60초, 수십 초 → 600초, 수 분 → 상한 없음, 그 이상 → 상한 없음. 상한 없음 = `CP.platform_request_timeout: false` 이고 항상 통과. `CP.max_request_seconds` 가 없으면(모름) 여유 없음으로 센다 |
 | scaling | `CP.horizontal_scaling` 이 true 가 아닌 구성 요소에 놓인 web·realtime 워크로드 수 |
 | data_safety | VM 안 컨테이너 저장소(`DS.colocated_vm: true`) 또는 로컬 SQLite 에 놓인 데이터 범위 수. 관리형·BaaS 는 0 |
 | config_burden | (feasible_with_config 셀 수 + 서로 다른 구성 요소 수) |
