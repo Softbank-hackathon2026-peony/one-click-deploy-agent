@@ -118,7 +118,7 @@ service_types:                  # 위에서부터 검사, 처음 맞는 하나�
 | certainty | 튜플 (근거 있는 모름 셀 > 0, 모르는 비용 구성 요소 수). 모름 셀 수 + 모르는 비용 수(가정 값에서 나온 모름 포함)는 순위에 넣지 않고, 유형 기준을 모두 비교한 뒤 이름 앞의 마지막 동률 깨기로만 쓴다(기존 "가정 값에서 나온 모름은 내리지 않는다" 유지). 출력 criteria.certainty 에는 세 값을 모두 적는다 |
 | cost | 튜플 (합이 null, 비용 값). 비용 값 = 합을 아는 실현 가능 후보 중 최저 합 × (1 + cost_tie_ratio) 이하면 0, 아니면 합. 합이 null 인 후보끼리는 지금처럼 (모르는 비용 수, 아는 부분합) |
 | always_on | `CP.always_on` 이 true 가 아닌 구성 요소에 놓인 앱 워크로드 수 |
-| request_headroom | A2 가 근거 있는 워크로드 중, 놓인 구성 요소의 요청 상한이 **필요 등급보다 한 단계 위 기준** 미만인 수. 기준: 1초 미만 → 60초, 수십 초 → 600초, 수 분 → 상한 없음, 그 이상 → 상한 없음. 상한 없음 = `CP.platform_request_timeout: false` 이고 항상 통과. `CP.max_request_seconds` 가 없으면(모름) 여유 없음으로 센다 |
+| request_headroom | A2 가 근거 있는 워크로드 중, 놓인 구성 요소의 요청 상한이 **필요 등급보다 한 단계 위 기준** 미만인 수. 기준: 1초 미만 → 60초, 수십 초 → 600초, 수 분 → 상한 없음, 그 이상 → 상한 없음. 상한 없음 = `CP.platform_request_timeout: false` 이고 항상 통과. `CP.max_request_seconds` 가 없으면(모름) 여유 없음으로 센다. 근거 있는 A2 가 없고 근거 있는 E2 에 llm-api 가 있으면 필요 등급을 "수십 초"로 본다(LLM 호출은 수십 초가 걸린다, W-011) |
 | scaling | `CP.horizontal_scaling` 이 true 가 아닌 구성 요소에 놓인 web·realtime 워크로드 수 |
 | data_safety | VM 안 컨테이너 저장소(`DS.colocated_vm: true`) 또는 로컬 SQLite 에 놓인 데이터 범위 수. 관리형·BaaS 는 0 |
 | config_burden | (feasible_with_config 셀 수 + 서로 다른 구성 요소 수) |
@@ -162,7 +162,7 @@ outcome 이 recommended 가 아니면(no_feasible, static_only, not_deployable) 
 
 ## 7. 확장과 검사
 
-- 유형 추가 = `service_types` 한 항목. 기준 추가 = capabilities.yaml 에 출처 있는 능력 키 + `criteria` 한 줄 + recommend.py 의 기준 계산 함수 하나(기준 id → 함수 표).
+- 유형 추가 = `service_types` 한 항목. 기준 추가 = capabilities.yaml 에 출처 있는 능력 키 + `criteria` 한 줄 + recommend.py 의 기준 계산 함수 하나(기준 id → 함수 표) + 스키마 enum 두 곳(`Candidate.decided_by.criterion`, `Ranking.criteria_order`).
 - `kb_lint` 추가 검사: `order` 의 기준이 `criteria` 에 있음, `order` 첫 번째는 `certainty`, `when` 의 차원 ID·값이 profile_detectors.yaml 어휘에 있음, `default` 는 마지막 유형 하나만, `refs` 가 considerations 문서에 존재, `scope` 숫자가 실제 개수와 같음.
 - 기준 계산 함수가 없는 기준 id 는 시작 시 오류(조용히 무시하지 않음).
 

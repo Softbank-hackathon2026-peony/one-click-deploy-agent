@@ -1,9 +1,13 @@
 """S4 서비스 유형별 순위(knowledge/ranking.yaml)."""
 
+import copy
+
+import pytest
+
 from infrafit import kb
 from infrafit.consistency import check_s4
 from infrafit.fit.matrix import build_fit
-from infrafit.fit.ranking import (a2_of, classify, cost_value, decided_by, lacks_always_on, lacks_headroom,
+from infrafit.fit.ranking import (a2_need, a2_of, classify, cost_value, decided_by, lacks_always_on, lacks_headroom,
                                   lacks_scaling, sort_key, unsafe_data)
 from infrafit.fit.recommend import build_recommendation
 from infrafit.schema import validate
@@ -231,3 +235,44 @@ def test_decided_by_reports_unknown_count_tie_breaker():
     assert compute_order(rec) == [EC2, RUN]
     assert rec["candidates"][0]["decided_by"] == {"criterion": "unknown_count", "over": "C2"}
     validate("Candidate", rec["candidates"][0])
+
+
+def test_a2_need_uses_llm_api_when_no_detector_a2():
+    llm = dim("E2", {"value": "있음", "kinds": ["llm-api"]})
+    assert a2_need([llm]) == "수십 초"
+    assert a2_need([{**llm, "source": "assumption"}]) is None
+    assert a2_need([llm, dim("A2", "수 분")]) == "수 분"
+    assert a2_need([dim("E2", {"value": "있음", "kinds": ["payments"]})]) is None
+
+
+def test_llm_api_headroom_orders_candidates():
+    short = capc("cp:gcp/cloud-run/short", "gcp", "gcp_cloud_run", 0, CP__platform_request_timeout=True,
+                 CP__max_request_seconds=300)
+    long_ = capc("cp:aws/ecs/long", "aws", "aws_ecs_fargate", 0, CP__platform_request_timeout=True,
+                 CP__max_request_seconds=3600)
+    rec, _, _ = recommend(prof(dim("E2", {"value": "있음", "kinds": ["llm-api"]})), [short, long_])
+    assert rec["ranking"]["service_type"] == "long_request"
+    assert compute_order(rec) == ["cp:aws/ecs/long", "cp:gcp/cloud-run/short"]
+    assert rec["candidates"][0]["decided_by"]["criterion"] == "request_headroom"
+
+
+def test_choose_follows_type_order_among_services_options():
+    lam = capc("cp:aws/lambda/x", "aws", "aws_lambda", 0, CP__always_on=False, CP__horizontal_scaling=True,
+               CP__websocket=True)
+    ecs = capc("cp:aws/ecs/x", "aws", "aws_ecs_fargate", 30, CP__always_on=True, CP__horizontal_scaling=True,
+               CP__websocket=True)
+    for dims, want in (([dim("A3", "장시간 양방향(웹소켓)")], "cp:aws/ecs/x"), ([], "cp:aws/lambda/x")):
+        rec, _, _ = recommend(prof(*dims), [lam, ecs])
+        services = [c for c in rec["candidates"] if c["topology"] == "services"]
+        assert len(services) == 1 and services[0]["placement"][0]["component"] == want
+
+
+def test_unknown_criterion_in_order_fails_at_startup():
+    cfg = copy.deepcopy(kb.ranking())
+    cfg["service_types"][-1]["order"] = [*cfg["service_types"][-1]["order"], "nope"]
+    inv = web_inventory()
+    p = prof()
+    caps = three_platforms()
+    fit = build_fit(inv, p, caps, [WS_RULE])
+    with pytest.raises(ValueError, match="nope"):
+        build_recommendation(inv, p, fit, caps, [WS_RULE], cfg)

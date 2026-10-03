@@ -300,6 +300,13 @@ components:
           basis: derived
           from: {doc: "post-response-work.md", line: 95, url: "https://docs.cloud.google.com/compute/docs/instances/instance-lifecycle", quote: "You control the lifecycle of your compute instances."}
           reasoning: "플랫폼이 요청 유무로 VM을 멈추지 않으므로 응답 뒤에도 VM 안 프로세스가 CPU를 쓴다"
+      # post-response-work.md §4 D7 와 같은 전제: VM 은 사용자가 멈추기 전까지 계속 실행된다
+      CP.always_on:
+        value: true
+        source:
+          basis: derived
+          from: {doc: "post-response-work.md", line: 95, url: "https://docs.cloud.google.com/compute/docs/instances/instance-lifecycle", quote: "You control the lifecycle of your compute instances."}
+          reasoning: "VM 인스턴스는 사용자가 멈추기 전까지 계속 실행된다(수명 주기를 사용자가 제어). 요청이 없어도 프로세스가 유지된다"
       # post-response-work.md §4 D14
       CP.platform_request_timeout:
         value: false

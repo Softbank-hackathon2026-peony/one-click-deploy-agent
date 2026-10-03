@@ -6,7 +6,7 @@ compute 범위는 워크로드마다 하나다(scopes.app_scopes). 조합은 토
   같은 클라우드 관리형 변형(`/managed-data`) 두 가지. 비용 = VM 바닥 비용(+ 관리형 데이터 바닥 비용).
   확장 요구(D6 고정 다중·자동 확장)는 CAP-SCALE-001(CP.horizontal_scaling false)로 탈락한다.
 - services: 워크로드마다 같은 클라우드의 서비스형 플랫폼(Lambda·Cloud Run 두 과금·ECS) 중 규칙을 통과한 가장 나은 것
-  (서비스 유형의 기준 순서 → 과금 방식 → ID, knowledge/ranking.yaml).
+  (유형 기준 순서 → 모르는 셀 → 과금 방식 → ID, knowledge/ranking.yaml).
 - kubernetes: 워크로드 전부를 클러스터 하나(GKE Autopilot·EKS)에.
 데이터 범위: BaaS(Supabase·Firestore 등)는 그대로(external_scopes). SQLite는 그 조합의 compute가 모두 영속 로컬
 디스크를 가질 때만 그대로 두고, 아니면 변형 "SQLite→관리형 Postgres"를 적용한다.
@@ -24,7 +24,7 @@ compute 범위는 워크로드마다 하나다(scopes.app_scopes). 조합은 토
 순위(knowledge/ranking.yaml, 설계 2026-10-03-infrafit-service-type-ranking-design.md): 실현 불가 제외 → 앱 워크로드의 근거 있는
 차원으로 서비스 유형 하나를 정하고(실시간 > 장시간 처리 > 상태 저장 > 백그라운드 > 가벼운 웹, 해당 없으면 가벼운 웹) 그 유형의
 기준 순서로 사전식 정렬 → 모르는 수(unknown_count) → 조합 이름. 기준: certainty(근거 있는 모름 셀이 있는지, 모르는 비용 구성
-요소 수; 가정 값에서 나온 모름은 내리지 않는다) / cost(최저 합 × 1.15 이내 동률, 합이 null이면 뒤) / always_on /
+요소 수; 가정 값에서 나온 모름은 내리지 않는다) / cost(최저 합 × (1 + cost_tie_ratio, ranking.yaml 기본 0.15) 이내 동률, 합이 null이면 뒤) / always_on /
 request_headroom(필요 등급보다 한 단계 위 상한) / scaling / data_safety / config_burden. 모르는 수(셀 + 모르는 비용 구성 요소,
 가정 값에서 나온 것 포함)는 유형 기준 순서에 없고 그 뒤의 동률 깨기다. 능력 값을 모르면 나쁜 쪽. 운영 부담은 출처 있는 값이 없어
 순위에 쓰지 않는다. 출력: ranking(유형·coverage·근거·기준 순서), 후보마다 criteria·decided_by(갈린 기준; unknown_count 또는 name일 수 있다).
@@ -39,7 +39,7 @@ from dataclasses import dataclass, field
 from infrafit import kb
 from infrafit.fit.engine import cap_entry, cap_value, evaluate, match_when, source_of
 from infrafit.fit.matrix import all_scopes, components_by_id
-from infrafit.fit.ranking import (SCALING_KINDS, a2_of, classify, cost_value, decided_by, lacks_always_on,
+from infrafit.fit.ranking import (CRITERIA, SCALING_KINDS, a2_need, classify, cost_value, decided_by, lacks_always_on,
                                   lacks_headroom, lacks_scaling, sort_key, unsafe_data)
 from infrafit.fit.scopes import Scope, _family
 
@@ -173,6 +173,9 @@ class Recommender:
         self.workloads = [s for s in self.app if s.workload_kind != "reverse-proxy"]
         self.ranking = classify([d for s in self.workloads for d in s.dims], inventory.get("datastores", []), ranking)
         self.order = self.ranking["criteria_order"]
+        missing = set(self.order) - set(CRITERIA)
+        if missing:
+            raise ValueError(f"ranking.yaml: 계산 함수가 없는 기준 {sorted(missing)}")
         self.tie_ratio = float(ranking["cost_tie_ratio"])
 
     # ----- 셀 -----
@@ -317,7 +320,7 @@ class Recommender:
         return combo
 
     def _choose(self, scope: Scope, options: list[str], transformed: bool):
-        """services: 워크로드 하나에 둘 플랫폼(유형의 기준 순서 → 과금 방식 → ID). (선택 또는 None, 탈락 사유)"""
+        """services: 워크로드 하나에 둘 플랫폼(유형 기준 순서 → 모르는 셀 → 과금 방식 → ID). (선택 또는 None, 탈락 사유)"""
         rows, reasons = [], []
         for cid in options:
             cell, ev = self._cell(scope, cid, transformed)
@@ -327,7 +330,7 @@ class Recommender:
                 continue
             rows.append((cid, cell, ev, self._option_cost(scope, cid, cell)))
         cheapest = min((cost for *_, cost in rows if cost is not None), default=None)
-        a2 = a2_of(scope.dims)
+        a2 = a2_need(scope.dims)
         scored = []
         for cid, cell, ev, cost in rows:
             comp = self.components.get(cid)
@@ -453,7 +456,7 @@ class Recommender:
             "certainty": certainty,
             "cost": None,   # run()에서 최저 합을 알고 나서 채운다
             "always_on": int(sum(lacks_always_on(placed(s.id)) for s in here)),
-            "request_headroom": int(sum(lacks_headroom(placed(s.id), a2_of(s.dims)) for s in here)),
+            "request_headroom": int(sum(lacks_headroom(placed(s.id), a2_need(s.dims)) for s in here)),
             "scaling": int(sum(s.workload_kind in SCALING_KINDS and lacks_scaling(placed(s.id)) for s in here)),
             "data_safety": int(sum(unsafe_data(combo.assignment[s.id], self.components.get(combo.assignment[s.id]))
                                    for s in self.data if s.id in combo.assignment and not s.external)),

@@ -93,6 +93,18 @@ def a2_of(dims: list[dict]) -> str | None:
     return max(vals, key=A2_ORDER.index) if vals else None
 
 
+def a2_need(dims: list[dict]) -> str | None:
+    """처리 시간 필요 등급. 근거 있는 A2 가 없고 근거 있는 E2 에 llm-api 가 있으면 "수십 초"(LLM 호출, W-011)."""
+    a2 = a2_of(dims)
+    if a2 is not None:
+        return a2
+    for d in dims:
+        if d["dimension"] == "E2" and d.get("source") == "detector" and isinstance(d.get("value"), dict) \
+                and "llm-api" in (d["value"].get("kinds") or []):
+            return "수십 초"
+    return None
+
+
 def lacks_always_on(component: dict | None) -> bool:
     return cap_value(component, "CP.always_on") is not True
 

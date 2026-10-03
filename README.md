@@ -98,7 +98,7 @@ S1이 `inventory.json`에 기록하는 것:
 
 - 여러 유형에 걸리면 위 유형 하나를 쓰고 `coverage: partial` + `unprioritized` 로, 해당 없으면 `coverage: default` 로 표시한다.
 - 후보마다 7개 기준 값(`criteria`)과 바로 다음 후보를 이긴 기준(`decided_by`)을 낸다.
-- 확장: 유형 = `service_types` 한 항목, 기준 = 출처 있는 능력 키 + `criteria` 한 줄 + `infrafit/fit/ranking.py` 계산. `kb_lint` 가 검사한다.
+- 확장: 유형 = `service_types` 한 항목, 기준 = 출처 있는 능력 키 + `criteria` 한 줄 + `infrafit/fit/ranking.py` 계산 + 스키마 enum 두 곳(`Candidate.decided_by.criterion`, `Ranking.criteria_order`). `kb_lint` 가 검사한다.
 - 운영 부담은 출처 있는 값이 없어 기준에서 뺐다.
 
 ## 5. 검증 방법
