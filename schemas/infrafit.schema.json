@@ -3103,6 +3103,63 @@
         "transform_fits",
         "perspectives",
         "outcome"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "outcome": {
+                "enum": [
+                  "static_only",
+                  "not_deployable"
+                ]
+              }
+            },
+            "required": [
+              "outcome"
+            ]
+          },
+          "then": {
+            "required": [
+              "outcome_detail"
+            ],
+            "properties": {
+              "outcome_detail": {
+                "type": "object",
+                "required": [
+                  "message",
+                  "current"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "outcome": {
+                "const": "unverified"
+              }
+            },
+            "required": [
+              "outcome"
+            ]
+          },
+          "then": {
+            "required": [
+              "outcome_detail"
+            ],
+            "properties": {
+              "outcome_detail": {
+                "type": "object",
+                "required": [
+                  "message",
+                  "unknown_capabilities"
+                ]
+              }
+            }
+          }
+        }
       ]
     },
     "Adjustment": {

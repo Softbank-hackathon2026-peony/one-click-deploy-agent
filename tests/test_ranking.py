@@ -333,3 +333,27 @@ def test_check_s4_flags_unknown_candidate_recommended_and_bad_unverified():
     ok, fit2, inv2 = recommend(prof(), caps)
     bad2 = {**ok, "outcome": "unverified"}
     assert any("unverified" in i for i in check_s4(bad2, fit2, inv2, prof()))
+
+
+def test_outcome_detail_shape_is_required_per_outcome(tmp_path):
+    from infrafit.schema import SchemaError
+    ctx = RunContext.create(tmp_path / "r", run_id="r")
+    caps = [capc(RUN, "gcp", "gcp_cloud_run", 0, CP__always_on=False)]
+    p = prof(dim("A3", "장시간 양방향(웹소켓)"))
+    inv = web_inventory()
+    unverified = run_s4(ctx, inv, p, build_fit(inv, p, caps, [WS_RULE]), caps, [WS_RULE])
+    assert unverified["outcome"] == "unverified"
+    validate("Recommendation", unverified)
+    for bad in ({**unverified, "outcome_detail": {"message": "m"}}, {**unverified, "outcome_detail": None}):
+        with pytest.raises(SchemaError):
+            validate("Recommendation", bad)
+    static = {"workloads": [{"id": "w-s", "kind": "static-frontend", "name": "s", "status": "confirmed",
+                             "entrypoint": {"path": "index.html", "line": 1, "snippet": "<html>"}}],
+              "endpoints": [], "request_paths": [], "datastores": [], "current_components": []}
+    ctx2 = RunContext.create(tmp_path / "r2", run_id="r2")
+    rec = run_s4(ctx2, static, prof(), build_fit(static, prof(), caps, [WS_RULE]), caps, [WS_RULE])
+    assert rec["outcome"] == "static_only"
+    validate("Recommendation", rec)
+    no_current = {k: v for k, v in rec["outcome_detail"].items() if k != "current"}
+    with pytest.raises(SchemaError):
+        validate("Recommendation", {**rec, "outcome_detail": no_current})
