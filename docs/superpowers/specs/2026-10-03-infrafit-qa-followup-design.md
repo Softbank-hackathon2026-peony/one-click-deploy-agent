@@ -19,15 +19,16 @@ agentcore 저장소의 별도 설계 문서가 다룬다. 이 변경은 main 에
 
 ## 2. 코드 경로 deploy_units 에 저장소 컨테이너
 
-compose·k8s 가 없을 때(`_from_code`) 인벤토리 데이터 저장소 중 **컨테이너로 띄울 수 있는 것**을 `deploy_units.datastores` 로 만든다.
+compose·k8s 가 없을 때(`_from_code`) 인벤토리 데이터 저장소 중 **접속 정보 없이 띄울 수 있는 것**을 `deploy_units.datastores` 로 만든다.
 
-- 대상: `inventory.datastores` 항목 중 `status: confirmed` 이고, 그 범위의 현재 구성 요소(`current_components`)가 `images.yaml` 항목의 `component` 와 같은 것(예: `ca:unspecified/redis/default`, `ds:unspecified/postgresql/default`). 라이브러리 구성 요소(`qu:lib/celery/default` 등)와 BaaS·클라우드 관리형(`provider` 가 `unspecified` 가 아닌 것)은 만들지 않는다.
-- `images.yaml` 에 선택 필드 `image` 를 더한다: 코드 경로가 쓸 공식 레지스트리 이미지(태그 포함). 예: postgres 항목 `image: "postgres:16-alpine"`, mysql `mysql:8`, mongo `mongo:7`, redis `redis:7-alpine`, rabbitmq `rabbitmq:3-management-alpine`. `kb_lint._lint_images`: `image` 는 `^[a-z0-9][a-z0-9._/-]*:[A-Za-z0-9._-]+$`(태그 필수, 레지스트리 호스트 없음) 이어야 하고, `role` 이 datastore·cache·queue 일 때만 허용.
-- 단위 모양은 compose 경로의 저장소 항목과 같다: `{id, datastore(범위 id), image, ports: [images.yaml port], env: {}, env_names: [], evidence}`. `id` 는 `images.yaml` 첫 match 이름(`redis`, `postgres`)으로 하되 컨테이너 id 와 겹치면 `-db`/`-cache` 를 붙인다. `evidence` 는 저장소 범위의 첫 근거(코드 file:line).
-- 앱 컨테이너의 `depends_on` 에 그 저장소 id 를 넣는다(`used_by` 기준).
-- `detect_deploy_units` 시그니처: `datastores` 외에 `current_components` 를 받는다(`run_s1` 에서 `components` 전달).
-- 접속 URL 바꾸기(코드의 `redis://localhost:6379/0` → 서비스 이름)는 agentcore 가 지금 compose 경로에서 하는 방식 그대로 한다(InfraFit 범위 밖). `env_names` 에 저장소 URL 환경변수 이름(인벤토리 external/datastore 근거의 환경변수, 있으면)을 남겨 agentcore 가 찾을 수 있게 한다 — 인벤토리에 그 정보가 없으면 비워 둔다.
-- 테스트: 합성 c2 → `deploy_units.datastores == [{id: "redis", datastore: "svc-redis", image: "redis:7-alpine", ports: [6379], ...}]`, web·worker·beat 의 `depends_on` 에 `redis`; SQLite 전용 저장소(`ds:local/sqlite/*`)·BaaS(supabase) 는 만들지 않음; images.yaml lint 테스트(태그 없는 image, role 불일치 거부).
+- `images.yaml` 에 선택 필드 `image`(공식 레지스트리 이미지, 태그 필수)를 **비밀번호 없이 뜨는 저장소에만** 둔다: redis `redis:7-alpine`, memcached `memcached:1.6-alpine`. postgres·mysql·mongo 공식 이미지는 비밀번호 환경변수 없이는 뜨지 않으므로 `image` 를 두지 않는다(코드 경로에서 컨테이너를 만들지 않고 `unresolved` 에 `datastores.<범위>: 접속 정보(비밀번호)가 필요한 저장소라 컨테이너를 만들지 않는다` 를 남긴다).
+- `kb_lint._lint_images`: `image` 는 `^[a-z0-9][a-z0-9._/-]*:[A-Za-z0-9._-]+$`(태그 필수, 레지스트리 호스트 없음), `role` 이 datastore·cache·queue 일 때만 허용. `IMAGE_KEYS` 에 `image` 추가.
+- 대상: `inventory.datastores` 중 `status: confirmed` 이고, 그 범위의 현재 구성 요소(`current_components` 의 component)가 `image` 가 있는 `images.yaml` 항목의 `component` 와 같은 것(예: `ca:unspecified/redis/default`). 라이브러리(`qu:lib/...`), BaaS·클라우드 관리형, SQLite 는 대상이 아니다.
+- 단위 모양은 compose 경로의 저장소 항목과 같다: `{id, datastore: <범위 id>, image, ports: [images.yaml port], env: {}, env_names: [], evidence: <저장소 범위 첫 근거>}`. `id` 는 그 `images.yaml` 항목의 첫 match 이름(`redis`)이고, 컨테이너 id 와 겹치면 `<이름>-store`.
+- 앱 컨테이너 중 `workload` 가 그 범위 `used_by` 에 있는 것의 `depends_on` 에 저장소 id 를 넣는다.
+- **접속 주소 환경변수**: 그 앱 워크로드 코드(`code_root` 아래, 테스트·보조 경로 제외)에서 기본값이 그 저장소 주소인 환경변수 읽기를 찾는다 — Python `os.environ.get("X", "redis://…")`·`os.getenv("X", "redis://…")`, JS/TS `process.env.X || "redis://…"`·`process.env.X ?? "redis://…"` (주소 스킴은 images.yaml 항목의 새 선택 필드 `url_scheme: ["redis", "rediss"]` 로 정한다). 찾으면 그 컨테이너의 `env[X] = "<스킴>://<저장소 id>:<port>/0"`(redis 는 `/0`, 스킴별 경로는 `url_template` 필드로: redis `"{scheme}://{host}:{port}/0"`, memcached 는 `url_template` 없음 → 넣지 않음), `env_names` 에 `X`. 단위에는 `env` 값만 두고 근거 줄은 출력하지 않는다(DeployUnits 스키마 그대로). 찾지 못하면 env 를 넣지 않는다(지어내지 않음).
+- `detect_deploy_units` 시그니처: `datastores` 외에 `current_components` 를 받는다(`run_s1` 이 `components` 를 넘김).
+- 테스트: 합성 Flask+Celery+Redis(Procfile web/worker/beat, `REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")`) → `deploy_units.datastores == [{id: "redis", datastore: "svc-redis", image: "redis:7-alpine", ports: [6379], ...}]`, web·worker·beat 의 `depends_on` 에 `redis`, `env["REDIS_URL"] == "redis://redis:6379/0"`, `env_names` 에 `REDIS_URL`. postgres 를 코드에서만 쓰는 앱 → datastores 비어 있고 unresolved 에 비밀번호 항목. SQLite·BaaS 는 만들지 않음. images.yaml lint 테스트(태그 없는 image, role 불일치, url_template 형식).
 
 ## 3. A2 시그니처: 요청 경로의 긴 동기 대기
 
@@ -38,16 +39,16 @@ compose·k8s 가 없을 때(`_from_code`) 인벤토리 데이터 저장소 중 *
 - 상수가 아닌 인자(변수)는 잡지 않는다. 60초 이상 상수도 같은 값 "수십 초" 로 낸다(등급 상한은 규칙이 다룬다; 더 긴 값은 근거 부족).
 - 테스트: `time.sleep(40)` 핸들러 → `w-web` A2 "수십 초"(detector, file:line); `time.sleep(2)` 는 잡지 않음; `setTimeout(resolve, 30000)` 잡음.
 
-## 4. S4: 근거 있는 차원에서 unknown 인 후보는 추천에서 분리
+## 4. S4: 근거 있는 차원에서 확인 못 한 후보는 추천하지 않는다
 
-사용자 결정: "모르는 것은 모른다고 표시". 값을 지어내지 않는다.
+사용자 결정: "모르는 것은 모른다고 표시". 값을 지어내지 않는다. agentcore(PR #6)가 `candidates` 와 `criteria.certainty.evidence_unknown` 을 쓰므로 후보 목록 모양은 바꾸지 않는다(하위 호환).
 
-- `run()` 에서 실현 가능 후보 중 `combo.evidence_unknown > 0`(근거 있는 차원의 규칙이 unknown 셀을 냄)인 조합은 `candidates` 에 넣지 않고 새 최상위 `unverified` 목록에 넣는다. 항목: `{id: "U1"…, topology, assignment, placement, cost, unknown: [{scope, component, rule, dimension, dimension_value, capability, at: [file:line]}]}`. 순서는 같은 정렬 키.
-- `recommended` 는 `candidates` (확인된 후보) 중 1순위. 확인된 후보가 하나도 없고 `unverified` 가 있으면 `recommended: null`, `outcome: "unverified"`, `outcome_detail: {message: "조건을 만족하는지 확인하지 못한 후보만 남았다", unknown_capabilities: [...]}`. outcome enum 에 `unverified` 추가.
-- 가정 값에서 나온 unknown 은 지금처럼 `candidates` 에 남는다(순위 뒤쪽, `criteria.certainty.unknown_count`).
-- `check_s4`: `unverified` id 가 `U1..Un` 연속, `candidates` 와 겹치지 않음, `recommended` 가 null 이면 candidates 비어 있음.
-- 스키마: `Recommendation.unverified`(선택), `Unverified` 정의, outcome enum.
-- 테스트: 웹소켓 앱 + Lambda(CP.websocket 없음) → Lambda 조합은 `unverified` 에 있고 `unknown[0].capability == "CP.websocket"`, `dimension == "A3"`, `at` 에 server.js 줄; 확인된 후보가 있으면 `recommended` 는 그중 1순위; 모든 후보가 unknown 이면 outcome `unverified`. 기존 `test_ranking_feasible_then_unknown_then_cost` 류는 기대값을 이 규칙에 맞춘다(순위 로직 자체는 그대로).
+- 근거 있는 차원(source=detector)에서 unknown 셀이 난 후보에 `unknown: [{scope, component, rule, dimension, dimension_value, capability, at: [file:line…]}]` 를 붙인다(셀마다, 중복 제거). `engine.Cell` 에 출력하지 않는 `evidence_unknowns` 목록을 두고 `evaluate` 가 unknown 판정 때 채운다. `Recommender` 가 `_add` 에서 조합에 모은다.
+- `recommended` = `candidates` 중 `unknown` 이 없는 첫 후보. 모든 후보가 그렇다면 `recommended: null`, `outcome: "unverified"`, `outcome_detail: {message: "조건을 만족하는지 확인하지 못한 후보만 남았다", unknown_capabilities: [중복 없는 capability 키]}`. outcome enum 에 `unverified` 추가.
+- 순위·`decided_by` 는 지금 그대로(확실성 첫 요소가 이미 이런 후보를 뒤로 보낸다).
+- `check_s4`: `recommended` 가 있으면 그 후보에 `unknown` 이 없어야 함; outcome `unverified` 면 recommended 가 null 이고 모든 후보에 `unknown` 이 있어야 함.
+- 스키마: `Candidate.unknown`(선택, 항목 정의), outcome enum.
+- 테스트: 웹소켓 앱 + Lambda(CP.websocket 없음)·EC2(websocket true) → Lambda 후보에 `unknown[0] == {capability: "CP.websocket", dimension: "A3", rule: "CAP-WEBSOCKET-001", at: [server.js 줄] …}`, recommended 는 EC2; 모든 후보가 unknown 이면 outcome `unverified`, recommended null.
 - 모듈 docstring·README S4 절에 한 문단 추가.
 
 ## 바뀌지 않는 것
