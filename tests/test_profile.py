@@ -328,3 +328,32 @@ def test_lint_profile_detectors_negative(mutate, needle):
     mutate(cfg)
     issues = _lint_profile_detectors(cfg)
     assert any(needle in i for i in issues), issues
+
+
+FLASK_SOCKETIO = "flask==3.0.3\nFlask-SocketIO==5.3.6\n"
+CHAT = """from flask import Flask
+from flask_socketio import SocketIO, emit
+app = Flask(__name__)
+socketio = SocketIO(app{opts})
+
+@app.get("/")
+def index():
+    return "chat"
+
+@socketio.on("message")
+def on_message(data):
+    emit("message", data, broadcast=True)
+"""
+
+
+def test_a3_python_socketio(tmp_path):
+    p = _run(tmp_path / "a", {"requirements.txt": FLASK_SOCKETIO, "app.py": CHAT.format(opts="")})
+    a3 = _app(p, "A3")
+    assert a3["value"] == "장시간 양방향(웹소켓)" and a3["evidence"][0]["path"] in ("app.py", "requirements.txt")
+    assert _app(p, "A1")["value"] == ["웹", "실시간 연결"]
+    assert _app(p, "B1")["value"] == {"value": "있음", "kinds": ["websocket-rooms"]}   # 방·연결이 프로세스 메모리에
+    # 인스턴스끼리 Redis 로 메시지를 나누면 어댑터 있음 → 메모리 상태 아님
+    shared = CHAT.format(opts=", message_queue='redis://redis:6379/0'")
+    p = _run(tmp_path / "b", {"requirements.txt": FLASK_SOCKETIO, "app.py": shared})
+    assert _app(p, "A3")["value"] == "장시간 양방향(웹소켓)"
+    assert _app(p, "B1")["value"]["value"] == "없음"

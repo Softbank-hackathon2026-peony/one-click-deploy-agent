@@ -163,3 +163,19 @@ def test_socketio_ignores_other_namespaces_server_classes(tmp_path):
     _write(tmp_path, "server.js", "import http from 'http';\nimport { Server } from 'socket.io';\n"
            "const server = new http.Server(app);\nconst io = new Server(server);\n")
     assert [r[:3] + r[4:] for r in _rows(_eps(tmp_path))] == [("WEBSOCKET", "/socket.io", "socket.io", "server.js", 4)]
+
+
+def test_python_socketio_servers(tmp_path):
+    """Flask-SocketIO `SocketIO(app)`(옵션 `path`)와 python-socketio `socketio.Server(`·`AsyncServer(`. 클라이언트는 아니다."""
+    _write(tmp_path, "requirements.txt", "Flask==3.0.3\nFlask-SocketIO==5.3.6\npython-socketio==5.11.0\n")
+    _write(tmp_path, "app.py", "from flask import Flask\nfrom flask_socketio import SocketIO\n"
+                               "app = Flask(__name__)\nsocketio = SocketIO(app)\n")
+    _write(tmp_path, "rt/server.py", "import socketio\nsio = socketio.AsyncServer(async_mode='asgi')\n"
+                                     "other = socketio.Server()\n")
+    _write(tmp_path, "admin.py", "from flask_socketio import SocketIO as S\nws = S(path='/admin-ws')\n")
+    _write(tmp_path, "client.py", "import socketio\nc = socketio.Client()\nc.connect('http://x', socketio_path='/nope')\n")
+    assert _rows(_eps(tmp_path)) == [
+        ("WEBSOCKET", "/admin-ws", "socket.io", "confirmed", "admin.py", 2),
+        ("WEBSOCKET", "/socket.io", "socket.io", "confirmed", "app.py", 4),
+        ("WEBSOCKET", "/socket.io", "socket.io", "confirmed", "rt/server.py", 2),
+        ("WEBSOCKET", "/socket.io", "socket.io", "confirmed", "rt/server.py", 3)]
