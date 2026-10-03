@@ -10,7 +10,9 @@ from infrafit.fit.matrix import build_fit
 from infrafit.fit.ranking import (a2_need, a2_of, classify, cost_value, decided_by, lacks_always_on, lacks_headroom,
                                   lacks_scaling, sort_key, unsafe_data)
 from infrafit.fit.recommend import build_recommendation
+from infrafit.run import RunContext
 from infrafit.schema import validate
+from infrafit.stages.s4_recommend import run_s4
 
 
 def dim(d, value, source="detector", path="app.py", line=3, scope="w-web"):
@@ -276,3 +278,58 @@ def test_unknown_criterion_in_order_fails_at_startup():
     fit = build_fit(inv, p, caps, [WS_RULE])
     with pytest.raises(ValueError, match="nope"):
         build_recommendation(inv, p, fit, caps, [WS_RULE], cfg)
+
+
+def test_evidence_unknown_candidate_is_not_recommended(tmp_path):
+    caps = [capc(RUN, "gcp", "gcp_cloud_run", 0, CP__always_on=False, CP__horizontal_scaling=True),   # websocket 모름
+            capc(ECS, "aws", "aws_ecs_fargate", 30, CP__websocket=True, CP__always_on=True,
+                 CP__horizontal_scaling=True)]
+    p = prof(dim("A3", "장시간 양방향(웹소켓)", path="server.js", line=8))
+    rec, fit, inv = recommend(p, caps)
+    run = next(c for c in rec["candidates"] if c["placement"][0]["component"] == RUN)
+    assert run["unknown"] == [{"scope": "w-web", "component": RUN, "rule": "CAP-WEBSOCKET-001", "dimension": "A3",
+                               "dimension_value": "장시간 양방향(웹소켓)", "capability": "CP.websocket",
+                               "at": ["server.js:8"]}]
+    top = next(c for c in rec["candidates"] if c["id"] == rec["recommended"])
+    assert top["placement"][0]["component"] == ECS and "unknown" not in top
+    assert rec["outcome"] == "recommended"
+    assert check_s4(rec, fit, inv, p) == []
+    for c in rec["candidates"]:
+        validate("Candidate", c)
+
+
+def test_all_candidates_unknown_gives_unverified_outcome(tmp_path):
+    caps = [capc(RUN, "gcp", "gcp_cloud_run", 0, CP__always_on=False)]
+    p = prof(dim("A3", "장시간 양방향(웹소켓)"))
+    inv = web_inventory()
+    fit = build_fit(inv, p, caps, [WS_RULE])
+    rec = run_s4(RunContext.create(tmp_path / "r", run_id="r"), inv, p, fit, caps, [WS_RULE])
+    assert rec["candidates"] and rec["recommended"] is None
+    assert rec["outcome"] == "unverified"
+    assert rec["outcome_detail"]["unknown_capabilities"] == ["CP.websocket"]
+    assert check_s4(rec, fit, inv, p) == []
+    validate("Recommendation", rec)
+
+
+def test_assumed_dimension_unknown_is_not_detailed_and_still_recommended():
+    rule = {"id": "CAP-AFTERRESP-001", "when": {"dimension": "A4", "equals": "있음"},
+            "require": {"capability": "CP.cpu_after_response", "equals": True}, "otherwise": "infeasible",
+            "config_from": None, "message": "after response"}
+    caps = [capc(RUN, "gcp", "gcp_cloud_run", 0)]
+    assumed = {**dim("A4", "있음"), "source": "assumption", "evidence": []}
+    inv, p = web_inventory(), prof(assumed)
+    fit = build_fit(inv, p, caps, [rule])
+    rec = build_recommendation(inv, p, fit, caps, [rule])
+    assert rec["outcome"] == "recommended" and rec["recommended"] == "C1"
+    assert "unknown" not in rec["candidates"][0]
+
+
+def test_check_s4_flags_unknown_candidate_recommended_and_bad_unverified():
+    caps = [capc(RUN, "gcp", "gcp_cloud_run", 0, CP__always_on=False)]
+    p = prof(dim("A3", "장시간 양방향(웹소켓)"))
+    rec, fit, inv = recommend(p, caps)
+    bad = {**rec, "recommended": "C1", "outcome": "recommended"}
+    assert any("unknown" in i for i in check_s4(bad, fit, inv, p))
+    ok, fit2, inv2 = recommend(prof(), caps)
+    bad2 = {**ok, "outcome": "unverified"}
+    assert any("unverified" in i for i in check_s4(bad2, fit2, inv2, prof()))

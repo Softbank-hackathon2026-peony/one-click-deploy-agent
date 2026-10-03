@@ -100,6 +100,7 @@ S1이 `inventory.json`에 기록하는 것:
 - 후보마다 7개 기준 값(`criteria`)과 바로 다음 후보를 이긴 기준(`decided_by`)을 낸다.
 - 확장: 유형 = `service_types` 한 항목, 기준 = 출처 있는 능력 키 + `criteria` 한 줄 + `infrafit/fit/ranking.py` 계산 + 스키마 enum 두 곳(`Candidate.decided_by.criterion`, `Ranking.criteria_order`). `kb_lint` 가 검사한다.
 - 운영 부담은 출처 있는 값이 없어 기준에서 뺐다.
+- 모르는 것은 모른다고 표시한다: 근거 있는 요구(detector 차원)에 대해 플랫폼 능력 표가 값을 모르는 후보에는 `unknown`(범위·컴포넌트·규칙·차원·필요한 능력 키·근거 위치)을 붙인다. `recommended` 는 `unknown` 이 없는 첫 후보이고, 모든 후보에 있으면 `recommended: null`, `outcome: unverified` 로 확인하지 못한 능력 키를 알린다. 순위와 탈락·비용은 그대로다.
 
 ## 5. 검증 방법
 
