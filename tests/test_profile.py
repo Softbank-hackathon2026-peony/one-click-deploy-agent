@@ -357,3 +357,24 @@ def test_a3_python_socketio(tmp_path):
     p = _run(tmp_path / "b", {"requirements.txt": FLASK_SOCKETIO, "app.py": shared})
     assert _app(p, "A3")["value"] == "장시간 양방향(웹소켓)"
     assert _app(p, "B1")["value"]["value"] == "없음"
+
+
+def test_a2_js_fire_and_forget_timers_stay_assumed(tmp_path):
+    pkg = '{"dependencies": {"express": "4"}}\n'
+    server = ("const express = require('express');\nconst app = express();\n"
+              "app.get('/t', (req, res) => {\n"
+              "  setTimeout(() => socket.disconnect(), 30000);\n"
+              "  setTimeout(cleanup, 60000);\n"
+              "  retry.delay(10000);\n"
+              "  res.send('ok');\n});\napp.listen(3000);\n")
+    assert _app(_run(tmp_path, {"package.json": pkg, "server.js": server}), "A2")["source"] == "assumption"
+
+
+def test_a2_js_awaited_sleep_and_delay_are_long(tmp_path):
+    pkg = '{"dependencies": {"express": "4"}}\n'
+    for i, call in enumerate(("sleep(20000)", "delay(30000)")):
+        server = ("const express = require('express');\nconst app = express();\n"
+                  f"app.get('/slow', async (req, res) => {{\n  await {call};\n  res.send('ok');\n}});\n"
+                  "app.listen(3000);\n")
+        a2 = _app(_run(tmp_path, {"package.json": pkg, "server.js": server}, name=f"out{i}"), "A2")
+        assert a2["value"] == "수십 초" and a2["evidence"][0]["line"] == 4

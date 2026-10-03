@@ -164,8 +164,8 @@ def _lint_images(entries: list[dict] | None = None) -> list[str]:
             issues.append(f"{name}: url_scheme 은 영숫자 문자열 목록")
         if "url_template" in e:
             fields = set(URL_FIELDS.findall(str(e["url_template"])))
-            if not fields <= {"scheme", "host", "port"} or "url_scheme" not in e:
-                issues.append(f"{name}: url_template 자리표시자는 scheme·host·port 만, url_scheme 이 필요함")
+            if not fields <= {"scheme", "host", "port", "path"} or "url_scheme" not in e:
+                issues.append(f"{name}: url_template 자리표시자는 scheme·host·port·path 만, url_scheme 이 필요함")
         family = IMAGE_ROLE_FAMILIES.get(e.get("role"))
         if family and isinstance(e.get("component"), str) and e["component"].split(":")[0] != family:
             issues.append(f"{name}: role {e['role']}의 component family는 {family}여야 함 {e['component']}")

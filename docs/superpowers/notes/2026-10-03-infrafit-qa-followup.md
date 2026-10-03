@@ -7,7 +7,7 @@ QA에서 나온 네 항목을 고치고, 재현 픽스처 두 개(f7·f8)를 추
 | 항목 | 전 | 후 |
 |---|---|---|
 | Procfile `beat` (f7) | `beat: celery … beat` 가 워크로드가 아니다. 워크로드는 `web`·`worker` 둘뿐 | `scheduled` 워크로드(진입점 `Procfile:3`)와 컨테이너가 생긴다. 알 수 없는 Procfile 타입도 명령이 `celery [옵션] beat` 모양일 때만 `scheduled` (`worker -Q beat` 는 아님) |
-| 코드 경로 저장소 (f7) | `deploy_units.datastores` 가 비어 있고 컨테이너 `env` 도 `{}` | `redis`(`redis:7-alpine`) 저장소 컨테이너가 생기고 모든 앱 컨테이너가 `depends_on: [redis]`, `env.REDIS_URL = redis://redis:6379/0` (코드의 `os.environ.get("REDIS_URL", …)` 에서 찾은 이름에만). postgres 등 비밀번호가 필요한 저장소는 컨테이너 없이 `unresolved` |
+| 코드 경로 저장소 (f7) | `deploy_units.datastores` 가 비어 있고 컨테이너 `env` 도 `{}` | `redis`(`redis:7-alpine`) 저장소 컨테이너가 생기고 모든 앱 컨테이너가 `depends_on: [redis]`, `env.REDIS_URL = redis://redis:6379/0` (코드의 `os.environ.get("REDIS_URL", …)` 에서 찾은 이름에만, 기본값이 루프백일 때만, 경로는 기본값 그대로; 못 넣으면 `unresolved`). postgres 등 비밀번호가 필요한 저장소는 컨테이너 없이 `unresolved` |
 | sleep A2 (f7) | `/slow` 의 `time.sleep(40)` 을 못 봐서 A2 `1초 미만` (assumption) | A2 `수십 초` (detector, `app.py:16`). 순위 유형이 `stateful` → `long_request` |
 | 웹소켓 unknown (f8) | 플랫폼 능력 표가 모르는 후보도 아무 표시 없이 순위에 섞인다 | 모르는 후보(ecs-fargate `B1`/`CP.single_instance_config`; 처음에는 compute-engine·ec2 `A3`/`CP.websocket` 도 있었으나 아래 후속에서 두 VM compose 에 `CP.websocket` 유도 값을 넣어 해소)에 `unknown` 이 붙고 `recommended` 는 `unknown` 없는 첫 후보(C1 gke)다. 모든 후보에 `unknown` 이면 `recommended: null`, `outcome: unverified` |
 

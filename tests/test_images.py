@@ -420,7 +420,7 @@ def test_dockerfile_workload_context_is_repo_root_when_sources_live_there(tmp_pa
 def test_image_field_lint():
     from infrafit.kb_lint import _lint_images
     assert _lint_images([{"match": ["redis"], "role": "cache", "image": "redis:7-alpine",
-                          "url_scheme": ["redis"], "url_template": "{scheme}://{host}:{port}/0"}]) == []
+                          "url_scheme": ["redis"], "url_template": "redis://{host}:{port}{path}"}]) == []
     issues = " ".join(_lint_images([
         {"match": ["a"], "role": "cache", "image": "redis"},                       # 태그 없음
         {"match": ["b"], "role": "reverse-proxy", "image": "nginx:1"},             # 저장소가 아님

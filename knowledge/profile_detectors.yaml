@@ -194,7 +194,7 @@ code:
     value: "수십 초"
     scope: request-path
     glob: ["**/*.js", "**/*.mjs", "**/*.cjs", "**/*.ts", "**/*.tsx", "**/*.jsx"]
-    regex: '\bsetTimeout\([^,]*,\s*[1-9]\d{4,}\s*\)|\b(?:sleep|delay)\(\s*[1-9]\d{4,}\s*\)'
+    regex: 'Promise\b[^;\n]*\bsetTimeout\([^,]*,\s*[1-9]\d{4,}\s*\)|\bawait\s+(?:new\s+Promise\b[^;\n]*\bsetTimeout\([^,]*,\s*[1-9]\d{4,}\s*\)|(?<![\w.])(?:sleep|delay)\(\s*[1-9]\d{4,}\s*\))|(?<![\w.])(?:sleep|delay)\(\s*[1-9]\d{4,}\s*\)'
   # A3: SSE 응답
   - id: PD-A3-SSE
     dimension: A3

@@ -279,10 +279,58 @@ def test_code_path_without_env_default_adds_container_but_no_env(tmp_path):
     u = _units(tmp_path, tmp_path)
     assert [d["id"] for d in u["datastores"]] == ["redis"]
     assert all("REDIS_URL" not in c["env"] for c in u["containers"])
+    why = "앱이 redis 주소를 읽는 환경변수를 찾지 못했다 (코드가 localhost 로 접속하면 실패)"
+    for c in u["containers"]:
+        assert {"field": f"containers.{c['id']}.env", "why": why} in u["unresolved"]
+
+
+def _redis_default_repo(root, line):
+    _celery_repo(root)
+    _write(root, "tasks.py", "import os\nfrom celery import Celery\n\n" + line + "\n"
+                             "celery = Celery(\"tasks\", broker=REDIS_URL)\n\n"
+                             "@celery.task\ndef send_report(kind):\n    return kind\n")
+
+
+def test_code_path_rediss_default_is_wired_as_plain_redis_keeping_db_path(tmp_path):
+    _redis_default_repo(tmp_path, 'REDIS_URL = os.environ.get("REDIS_URL", "rediss://localhost:6379/1")')
+    u = _units(tmp_path, tmp_path)
+    assert u["containers"]
+    for c in u["containers"]:
+        assert c["env"]["REDIS_URL"] == "redis://redis:6379/1"
+    assert not any(x["field"].endswith(".env") for x in u["unresolved"])
+
+
+def test_code_path_external_redis_default_is_not_overwritten(tmp_path):
+    _redis_default_repo(tmp_path, 'REDIS_URL = os.environ.get("REDIS_URL", "redis://cache.example.com:6380/2")')
+    u = _units(tmp_path, tmp_path)
+    assert [d["id"] for d in u["datastores"]] == ["redis"]
+    why = "앱이 외부 cache.example.com 주소를 기본값으로 쓴다 (컨테이너 대신 그 주소를 환경변수로 넣어야 할 수 있다)"
+    for c in u["containers"]:
+        assert "REDIS_URL" not in c["env"]
+        assert {"field": f"containers.{c['id']}.env", "why": why} in u["unresolved"]
+
+
+def test_code_path_loopback_default_without_path_adds_no_path(tmp_path):
+    _redis_default_repo(tmp_path, 'REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379")')
+    u = _units(tmp_path, tmp_path)
+    assert all(c["env"]["REDIS_URL"] == "redis://redis:6379" for c in u["containers"])
+
+
+def test_code_store_id_stays_unique():
+    from infrafit.detect.deploy_units import _code_stores
+    taken = [{"id": "redis"}, {"id": "redis-store"}, {"id": "redis-store2"}]
+    ds = [{"id": "svc-redis", "status": "confirmed", "used_by": [], "evidence": [{"path": "r.txt", "line": 1}]}]
+    cur = [{"scope": "svc-redis", "component": "ca:unspecified/redis/default"}]
+    out = _code_stores(None, taken, [], ds, cur, [])
+    assert [d["id"] for d in out] == ["redis-store3"]
 
 
 def test_celery_beat_regex_is_tight_for_unknown_procfile_types(tmp_path):
     _celery_repo(tmp_path)
+    _write(tmp_path, "Procfile", "web: gunicorn -b 0.0.0.0:$PORT app:app\nqueue: celery -A beat worker\n")
+    ctx = analyze(str(tmp_path), tmp_path / "out0", until="S1", run_id="r")
+    inv = json.loads((ctx.out_dir / "inventory.json").read_text())
+    assert not any(w["kind"] == "scheduled" for w in inv["workloads"])
     _write(tmp_path, "Procfile", "web: gunicorn -b 0.0.0.0:$PORT app:app\nqueue: celery -A tasks worker -Q beat\n")
     ctx = analyze(str(tmp_path), tmp_path / "out", until="S1", run_id="r")
     inv = json.loads((ctx.out_dir / "inventory.json").read_text())
@@ -303,7 +351,7 @@ def test_code_path_js_redis_env_default(tmp_path):
     assert [d["id"] for d in u["datastores"]] == ["redis"]
     assert u["containers"]
     for c in u["containers"]:
-        assert c["env"]["REDIS_URL"] == "redis://redis:6379/0"
+        assert c["env"]["REDIS_URL"] == "redis://redis:6379"  # 기본값에 경로가 없으면 경로도 붙이지 않는다
 
 
 def test_code_path_env_default_only_in_test_path_is_ignored(tmp_path):

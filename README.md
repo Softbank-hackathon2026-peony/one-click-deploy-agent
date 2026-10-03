@@ -108,7 +108,7 @@ S1이 `inventory.json`에 기록하는 것:
 
 ## 5. 검증 방법
 
-- **테스트:** 528개. 전부 테스트 안에서 만든 합성 저장소로 규칙을 검증한다. QA 후속 기록: [docs/superpowers/notes/2026-10-03-infrafit-qa-followup.md](docs/superpowers/notes/2026-10-03-infrafit-qa-followup.md).
+- **테스트:** 537개. 전부 테스트 안에서 만든 합성 저장소로 규칙을 검증한다. QA 후속 기록: [docs/superpowers/notes/2026-10-03-infrafit-qa-followup.md](docs/superpowers/notes/2026-10-03-infrafit-qa-followup.md).
 - **픽스처 8개와 골든 스냅샷:** 골든은 엔진 출력을 저장한 회귀 스냅샷이다. 기대값이 아니다. 정답을 미리 적어 두면 엔진이 실제로 동작하지 않고 그 값을 맞추는 쪽으로 만들어질 수 있어서, 픽스처의 기대 출력은 어디에도 기록하지 않는다.
 - **실제 저장소 12개:** 코드와 결과를 대조하는 독립 감사로 틀린 사실을 찾아 고쳤다. 대상 스택은 Python, Node, Java·Kotlin(Spring), Next.js, 정적 사이트, 배치다.
 - **결정성과 일관성 검사:** 같은 입력이면 `meta`를 뺀 출력이 바이트 단위로 같다. 단계 출력은 스키마 검증과 일관성 검사(참조 무결성, 근거 파일·줄 존재)를 통과해야 쓴다.

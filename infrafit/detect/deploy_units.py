@@ -32,10 +32,12 @@ LOOPBACK_HOSTS = ("127.", "localhost", "[::1]", "::1")
 # 실행 명령이 듣는 포트: `--port 8000`, `--port=8000`, `--bind 0.0.0.0:8000`, `-b :8000`
 _CMD_PORT = re.compile(r"(?:^|\s)(?:--port|--bind|-b)[ =](?:\S*:)?(\d{2,5})(?=\s|$)")
 _INTERPOLATION = re.compile(r"\$\{?[A-Za-z_]")  # 실행하는 호스트의 환경변수로 채우는 값
-# 코드에서 저장소 주소를 기본값으로 읽는 환경변수: os.environ.get("X", "redis://…"), os.getenv(…), process.env.X || "…"
+# 코드에서 저장소 주소를 기본값으로 읽는 환경변수: os.environ.get("X", "redis://…"), os.getenv(…), process.env.X || "…".
+# 기본값 URL 은 (스킴, 호스트, 포트, 경로)까지 잡는다(사용자 정보는 건너뛴다)
+_URL_DEFAULT = r"""(\w+)://(?:[^/@\s"'`]*@)?(\[[^\]\s]*\]|[^/:\s"'`@]+)(?::(\d+))?(/[^\s"'`]*)?"""
 _ENV_DEFAULT = (
-    re.compile(r"""os\.(?:environ\.get|getenv)\(\s*["']([A-Z][A-Z0-9_]*)["']\s*,\s*["'](\w+)://"""),
-    re.compile(r"""process\.env\.([A-Z][A-Z0-9_]*)\s*(?:\|\||\?\?)\s*["'`](\w+)://"""),
+    re.compile(r"""os\.(?:environ\.get|getenv)\(\s*["']([A-Z][A-Z0-9_]*)["']\s*,\s*["']""" + _URL_DEFAULT),
+    re.compile(r"""process\.env\.([A-Z][A-Z0-9_]*)\s*(?:\|\||\?\?)\s*["'`]""" + _URL_DEFAULT),
 )
 CODE_EXTS = (".py", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx")
 
@@ -450,28 +452,34 @@ def _image_entry(component: str) -> dict | None:
     return next((e for e in kb.images() if component and e.get("component") == component), None)
 
 
-def _env_defaults(snap: Snapshot, w: WorkloadInfo | None, schemes: list[str]) -> list[tuple[str, str]]:
-    """워크로드 코드에서 저장소 주소(스킴)를 기본값으로 읽는 환경변수 (이름, 스킴). 테스트·보조 경로는 보지 않는다."""
+def _is_loopback(host: str) -> bool:
+    return host.startswith("127.") or host in LOOPBACK_HOSTS
+
+
+def _env_defaults(snap: Snapshot, w: WorkloadInfo | None, schemes: list[str]) -> list[tuple[str, str, str, str]]:
+    """워크로드 코드에서 저장소 주소(스킴)를 기본값으로 읽는 환경변수 (이름, 스킴, 호스트, 경로).
+    테스트·보조 경로는 보지 않는다. 같은 이름은 먼저 찾은 기본값만."""
     if w is None or not schemes:
         return []
     root = (w.code_root or "").rstrip("/")
-    found: dict[str, str] = {}
+    found: dict[str, tuple[str, str, str]] = {}
     for rel in snap.files:
         if not rel.endswith(CODE_EXTS) or (root and not rel.startswith(root + "/")) \
                 or is_test_path(rel) or is_aux_path(rel):
             continue
         for line in snap.lines(rel):
             for rx in _ENV_DEFAULT:
-                for name, scheme in rx.findall(line):
+                for name, scheme, host, _port, path in rx.findall(line):
                     if scheme in schemes:
-                        found.setdefault(name, scheme)
-    return sorted(found.items())
+                        found.setdefault(name, (scheme, host, path))
+    return [(name, *v) for name, v in sorted(found.items())]
 
 
 def _code_stores(snap: Snapshot, containers: list[dict], apps: list[WorkloadInfo], datastores: list[dict],
                  current: list[dict], unresolved: list[dict]) -> list[dict]:
     """compose·k8s 없이 코드에서만 쓰는 저장소: 비밀번호 없이 뜨는 공식 이미지가 있으면 같은 묶음의 컨테이너로 만든다.
-    앱 코드가 저장소 주소를 기본값으로 읽는 환경변수가 있으면 그 이름에 컨테이너 주소를 넣는다(없으면 넣지 않는다)."""
+    앱 코드가 루프백 주소를 기본값으로 읽는 환경변수가 있으면 그 이름에 컨테이너 주소(스킴은 url_scheme 첫 값, 경로는 기본값 그대로)를
+    넣는다. 하나도 넣지 못한 사용자 컨테이너는 unresolved 에 남긴다."""
     comp_of = {c["scope"]: c["component"] for c in current}
     used_ids = {c["id"] for c in containers}
     out = []
@@ -484,8 +492,11 @@ def _code_stores(snap: Snapshot, containers: list[dict], apps: list[WorkloadInfo
         if not entry.get("image"):
             _unresolved(unresolved, f"datastores.{d['id']}", "접속 정보(비밀번호)가 필요한 저장소라 컨테이너를 만들지 않는다")
             continue
-        sid = entry["match"][0]
-        sid = f"{sid}-store" if sid in used_ids else sid
+        base = entry["match"][0]
+        sid, n = base, 1
+        while sid in used_ids:
+            n += 1
+            sid = f"{base}-store" if n == 2 else f"{base}-store{n - 1}"
         used_ids.add(sid)
         port = entry.get("port")
         ev = (d.get("evidence") or [{}])[0]
@@ -498,13 +509,22 @@ def _code_stores(snap: Snapshot, containers: list[dict], apps: list[WorkloadInfo
                 continue
             c["depends_on"] = list(dict.fromkeys([*c["depends_on"], sid]))
             w = next((a for a in apps if a.id == c["workload"]), None)
-            for name, scheme in _env_defaults(snap, w, entry.get("url_scheme") or []):
+            wired, external = False, None
+            for name, _scheme, host, path in _env_defaults(snap, w, entry.get("url_scheme") or []):
+                if not _is_loopback(host):
+                    external = external or host
+                    continue
                 if not (entry.get("url_template") and port):
                     continue
-                value = entry["url_template"].format(scheme=scheme, host=sid, port=port)
+                value = entry["url_template"].format(scheme=entry["url_scheme"][0], host=sid, port=port, path=path)
                 if not is_secret(name, value):
                     c["env"][name] = value
                     c["env_names"] = sorted({*c["env_names"], name})
+                    wired = True
+            if not wired:
+                _unresolved(unresolved, f"containers.{c['id']}.env",
+                            f"앱이 외부 {external} 주소를 기본값으로 쓴다 (컨테이너 대신 그 주소를 환경변수로 넣어야 할 수 있다)"
+                            if external else f"앱이 {sid} 주소를 읽는 환경변수를 찾지 못했다 (코드가 localhost 로 접속하면 실패)")
     return out
 
 
