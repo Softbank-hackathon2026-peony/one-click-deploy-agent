@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from infrafit.fit.engine import dim_value, match_when
+from infrafit.fit.engine import cap_value, dim_value, match_when
 
 # 계산 함수가 있는 기준. ranking.yaml criteria 는 이 안에서만 고른다(kb_lint)
 CRITERIA = ("certainty", "cost", "always_on", "request_headroom", "scaling", "data_safety", "config_burden")
@@ -78,3 +78,67 @@ def classify(dims: list[dict], datastores: list[dict], cfg: dict) -> dict:
         "criteria_order": list(chosen["order"]), "why": chosen["why"], "refs": list(chosen["refs"]),
         "scope": dict(cfg["scope"]),
     }
+
+
+A2_ORDER = ("1초 미만", "수십 초", "수 분", "그 이상")
+# 필요 등급 → 한 단계 여유 있는 요청 상한(초). None = 상한이 없어야 함(CP.platform_request_timeout false)
+HEADROOM_NEED = {"1초 미만": 60, "수십 초": 600, "수 분": None, "그 이상": None}
+SCALING_KINDS = ("web", "realtime")
+
+
+def a2_of(dims: list[dict]) -> str | None:
+    """근거 있는(detector) A2 값 중 가장 높은 등급. 없으면 None."""
+    vals = [dim_value(d.get("value")) for d in dims if d["dimension"] == "A2" and d.get("source") == "detector"]
+    vals = [v for v in vals if v in A2_ORDER]
+    return max(vals, key=A2_ORDER.index) if vals else None
+
+
+def lacks_always_on(component: dict | None) -> bool:
+    return cap_value(component, "CP.always_on") is not True
+
+
+def lacks_headroom(component: dict | None, a2: str | None) -> bool:
+    """필요 등급보다 한 단계 위 상한이 없는가. 근거 있는 A2 가 없으면 따지지 않는다. 상한을 모르면 여유 없음."""
+    if a2 not in HEADROOM_NEED:
+        return False
+    if cap_value(component, "CP.platform_request_timeout") is False:
+        return False
+    need = HEADROOM_NEED[a2]
+    if need is None:
+        return True
+    limit = cap_value(component, "CP.max_request_seconds")
+    return not (isinstance(limit, (int, float)) and not isinstance(limit, bool) and limit >= need)
+
+
+def lacks_scaling(component: dict | None) -> bool:
+    return cap_value(component, "CP.horizontal_scaling") is not True
+
+
+def unsafe_data(cid: str, component: dict | None) -> bool:
+    """VM 안 컨테이너 저장소나 로컬 SQLite 인가(관리형·BaaS 가 아님)."""
+    return (cap_value(component, "DS.colocated_vm") is True or cap_value(component, "DS.engine") == "sqlite"
+            or cid.startswith("ds:local/sqlite"))
+
+
+def cost_value(total: float | None, unknown_n: int, partial: float, cheapest: float | None, ratio: float) -> tuple:
+    """비용 기준 값. 합을 모르면 (True, 모르는 수, 아는 부분합). 알면 최저 합 × (1 + ratio) 이하는 0(동률)."""
+    if total is None:
+        return (True, unknown_n, partial)
+    tied = cheapest is not None and total <= cheapest * (1 + ratio)
+    return (False, 0.0 if tied else total, 0)
+
+
+def sort_key(values: dict, order: list[str]) -> tuple:
+    return tuple(values[c] for c in order)
+
+
+def decided_by(rows: list[tuple[str, dict]], order: list[str]) -> list[dict | None]:
+    """순위 순서의 (id, 기준 값)마다 바로 다음 후보와 처음 갈린 기준. 마지막은 None."""
+    out: list[dict | None] = []
+    for i, (_, vals) in enumerate(rows):
+        if i + 1 == len(rows):
+            out.append(None)
+            continue
+        nid, nvals = rows[i + 1]
+        out.append({"criterion": next((c for c in order if vals[c] != nvals[c]), "name"), "over": nid})
+    return out
