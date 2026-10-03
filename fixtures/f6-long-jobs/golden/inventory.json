@@ -105,6 +105,10 @@
       {
         "field": "containers.web.ports",
         "why": "듣는 포트를 정하는 설정이 없다"
+      },
+      {
+        "field": "datastores.ds-postgresql",
+        "why": "접속 정보(비밀번호)가 필요한 저장소라 컨테이너를 만들지 않는다"
       }
     ]
   },

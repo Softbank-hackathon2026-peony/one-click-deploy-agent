@@ -248,3 +248,34 @@ def test_unknown_procfile_type_with_celery_beat_command_is_scheduled(tmp_path):
     ctx = analyze(str(tmp_path), tmp_path / "out", until="S1", run_id="r")
     inv = json.loads((ctx.out_dir / "inventory.json").read_text())
     assert any(w["kind"] == "scheduled" for w in inv["workloads"])
+
+
+def test_code_path_redis_becomes_store_container_with_env(tmp_path):
+    _celery_repo(tmp_path)
+    u = _units(tmp_path, tmp_path)
+    assert u["source"]["kind"] == "code"
+    stores = {d["id"]: d for d in u["datastores"]}
+    assert stores["redis"]["datastore"] == "svc-redis"
+    assert stores["redis"]["image"] == "redis:7-alpine" and stores["redis"]["ports"] == [6379]
+    assert stores["redis"]["env"] == {} and stores["redis"]["evidence"]["path"] == "requirements.txt"
+    for c in u["containers"]:
+        assert "redis" in c["depends_on"]
+        assert c["env"]["REDIS_URL"] == "redis://redis:6379/0" and "REDIS_URL" in c["env_names"]
+
+
+def test_code_path_postgres_needs_credentials_so_no_container(tmp_path):
+    _write(tmp_path, "requirements.txt", "flask==3.0.3\npsycopg2-binary==2.9.9\n")
+    _write(tmp_path, "app.py", "import os, psycopg2\nfrom flask import Flask\napp = Flask(__name__)\n"
+                               "conn = psycopg2.connect(os.environ.get('DATABASE_URL', 'postgres://localhost/app'))\n\n"
+                               "@app.get('/h')\ndef h():\n    return 'ok'\n")
+    u = _units(tmp_path, tmp_path)
+    assert u["datastores"] == []
+    assert any(x["field"].startswith("datastores.") and "비밀번호" in x["why"] for x in u["unresolved"])
+
+
+def test_code_path_without_env_default_adds_container_but_no_env(tmp_path):
+    _celery_repo(tmp_path)
+    _write(tmp_path, "tasks.py", "from celery import Celery\ncelery = Celery('tasks', broker='redis://localhost:6379/0')\n")
+    u = _units(tmp_path, tmp_path)
+    assert [d["id"] for d in u["datastores"]] == ["redis"]
+    assert all("REDIS_URL" not in c["env"] for c in u["containers"])

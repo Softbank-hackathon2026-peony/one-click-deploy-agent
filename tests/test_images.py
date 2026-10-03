@@ -415,3 +415,15 @@ def test_dockerfile_workload_context_is_repo_root_when_sources_live_there(tmp_pa
     ws = {w.id: w for w in _workloads(repo)}
     assert (ws["w-worker"].code_root, ws["w-worker"].build_context) == ("", "")
     assert (ws["w-api"].code_root, ws["w-api"].build_context) == ("api", None)
+
+
+def test_image_field_lint():
+    from infrafit.kb_lint import _lint_images
+    assert _lint_images([{"match": ["redis"], "role": "cache", "image": "redis:7-alpine",
+                          "url_scheme": ["redis"], "url_template": "{scheme}://{host}:{port}/0"}]) == []
+    issues = " ".join(_lint_images([
+        {"match": ["a"], "role": "cache", "image": "redis"},                       # 태그 없음
+        {"match": ["b"], "role": "reverse-proxy", "image": "nginx:1"},             # 저장소가 아님
+        {"match": ["c"], "role": "cache", "image": "x:1", "url_template": "{user}@{host}"},   # 모르는 자리표시자
+    ]))
+    assert "태그" in issues and "role" in issues and "url_template" in issues
