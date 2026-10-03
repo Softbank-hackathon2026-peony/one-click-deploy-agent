@@ -338,9 +338,13 @@ def test_ranking_cheapest_known_feasible_first_across_topologies():
     first = rec["candidates"][0]
     # 서비스형 gcp(Cloud Run 0 + Cloud SQL 12.21)가 VM 안 Postgres(20.64)보다 싸다
     assert first["topology"] == "services" and first["cost"]["monthly_baseline_usd"] == 12.21
-    costs = [c["cost"]["monthly_baseline_usd"] for c in rec["candidates"]]
-    known = [x for x in costs if x is not None]
-    assert known == sorted(known) and costs[:len(known)] == known
+    # 데이터 저장 유형: 인증성 → 데이터 안전 → 비용 순이라 VM 안 Postgres 는 더 싸도 안전한 쪽 뒤로 간다
+    assert rec["ranking"]["service_type"] == "stateful"
+    for unsafe in (0, 1):
+        group = [c["cost"]["monthly_baseline_usd"] for c in rec["candidates"] if c["criteria"]["data_safety"] == unsafe]
+        assert group == sorted(group)
+    flags = [c["criteria"]["data_safety"] for c in rec["candidates"]]
+    assert flags == sorted(flags) and flags[0] == 0 and flags[-1] == 1
     assert {c["topology"] for c in rec["candidates"]} == {"vm-compose", "services", "kubernetes"}
 
 

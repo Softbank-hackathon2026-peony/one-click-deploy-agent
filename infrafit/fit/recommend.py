@@ -32,8 +32,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from infrafit import kb
 from infrafit.fit.engine import cap_entry, cap_value, evaluate, match_when, source_of
 from infrafit.fit.matrix import all_scopes, components_by_id
+from infrafit.fit.ranking import (SCALING_KINDS, a2_of, classify, cost_value, decided_by, lacks_always_on,
+                                  lacks_headroom, lacks_scaling, sort_key, unsafe_data)
 from infrafit.fit.scopes import Scope, _family
 
 SQLITE_TRANSFORM = "TF-SQLITE-TO-MANAGED-POSTGRES"
@@ -148,7 +151,8 @@ def _strip_sqlite_b2(dims: list[dict], sqlite_scopes: list[Scope], inventory: di
 
 
 class Recommender:
-    def __init__(self, inventory: dict, profile: dict, fit: dict, capabilities: list[dict], rules: list[dict]):
+    def __init__(self, inventory: dict, profile: dict, fit: dict, capabilities: list[dict], rules: list[dict],
+                 ranking: dict):
         self.inventory = inventory
         self.profile = profile
         self.rules = rules
@@ -161,6 +165,11 @@ class Recommender:
         self.cache: dict[tuple, tuple[dict, bool]] = {}
         self.transform_cells: dict[tuple, dict] = {}
         self.pin_rules = {r["id"] for r in rules if r.get("config_from") in PIN_CONFIG_KEYS}
+        # 서비스 유형별 순위: 앱 워크로드(리버스 프록시 제외)의 차원으로 유형 하나를 정한다
+        self.workloads = [s for s in self.app if s.workload_kind != "reverse-proxy"]
+        self.ranking = classify([d for s in self.workloads for d in s.dims], inventory.get("datastores", []), ranking)
+        self.order = self.ranking["criteria_order"]
+        self.tie_ratio = float(ranking["cost_tie_ratio"])
 
     # ----- 셀 -----
     def _cell(self, scope: Scope, cid: str, transformed: bool = False) -> tuple[dict, bool]:
@@ -304,18 +313,30 @@ class Recommender:
         return combo
 
     def _choose(self, scope: Scope, options: list[str], transformed: bool):
-        """services: 워크로드 하나에 둘 플랫폼. (선택 또는 None, 탈락 사유)"""
-        scored, reasons = [], []
+        """services: 워크로드 하나에 둘 플랫폼(유형의 기준 순서 → 과금 방식 → ID). (선택 또는 None, 탈락 사유)"""
+        rows, reasons = [], []
         for cid in options:
             cell, ev = self._cell(scope, cid, transformed)
             if cell["result"] == "infeasible":
                 reasons += [{"type": "violation", "detail": f"{scope.id} × {cid} — {v['rule']}: {v.get('message', '')}",
                              "violation": v} for v in cell["violations"]]
                 continue
-            cost = self._option_cost(scope, cid, cell)
-            scored.append(((ev and cell["result"] == "unknown", cost is None, cost or 0.0,
-                            cell["result"] == "unknown", OPS_ORDER.get(ops_of(self.components[cid]), 3),
-                            len(cell["requires_config"]), self._mode_key(scope, cid), cid), cid))
+            rows.append((cid, cell, ev, self._option_cost(scope, cid, cell)))
+        cheapest = min((cost for *_, cost in rows if cost is not None), default=None)
+        a2 = a2_of(scope.dims)
+        scored = []
+        for cid, cell, ev, cost in rows:
+            comp = self.components.get(cid)
+            values = {
+                "certainty": (bool(ev and cell["result"] == "unknown"), cost is None, cell["result"] == "unknown"),
+                "cost": cost_value(cost, int(cost is None), 0.0, cheapest, self.tie_ratio),
+                "always_on": int(lacks_always_on(comp)),
+                "request_headroom": int(lacks_headroom(comp, a2)),
+                "scaling": int(scope.workload_kind in SCALING_KINDS and lacks_scaling(comp)),
+                "data_safety": 0,
+                "config_burden": len(cell["requires_config"]),
+            }
+            scored.append((sort_key(values, self.order) + (self._mode_key(scope, cid), cid), cid))
         scored.sort()
         return (scored[0][1] if scored else None), reasons
 
@@ -416,6 +437,22 @@ class Recommender:
                       "target": self.components.get(combo.assignment[s.id], {}).get("target"),
                       "min_replicas": s.min_replicas} for s in self.app]
         configs = sum(len(c["requires_config"]) for c in combo.cells)
+
+        def placed(sid):
+            return self.components.get(combo.assignment.get(sid))
+
+        here = [s for s in self.workloads if s.id in combo.assignment]
+        certainty = (combo.evidence_unknown > 0, len(unknown_cost), unknown_cells + len(unknown_cost))
+        values = {
+            "certainty": certainty,
+            "cost": None,   # run()에서 최저 합을 알고 나서 채운다
+            "always_on": int(sum(lacks_always_on(placed(s.id)) for s in here)),
+            "request_headroom": int(sum(lacks_headroom(placed(s.id), a2_of(s.dims)) for s in here)),
+            "scaling": int(sum(s.workload_kind in SCALING_KINDS and lacks_scaling(placed(s.id)) for s in here)),
+            "data_safety": int(sum(unsafe_data(combo.assignment[s.id], self.components.get(combo.assignment[s.id]))
+                                   for s in self.data if s.id in combo.assignment and not s.external)),
+            "config_burden": configs + len(used),
+        }
         return {
             "id": "", "rank": 0,
             "topology": combo.topology,
@@ -438,8 +475,9 @@ class Recommender:
             "derived_facts": [{"scope": c["scope"], "component": c["candidate"], **p}
                               for c in combo.cells for p in c.get("derived_passes", [])],
             # 순위에만 쓰고 출력하지 않는다
-            "_sort": (combo.evidence_unknown > 0, bool(unknown_cost), len(unknown_cost), total,
-                      unknown_cells + len(unknown_cost), configs, combo.name),
+            "_values": values,
+            "_cost": (None if unknown_cost else total, len(unknown_cost), total),
+            "_name": combo.name,
         }
 
     def run(self) -> dict:
@@ -455,11 +493,24 @@ class Recommender:
                 rejected.append({"id": combo.name, "reasons": reasons})
             else:
                 feasible.append(self._candidate(combo))
-        feasible.sort(key=lambda c: (c["_sort"][0], c["_sort"][1], c["_sort"][2], c["_sort"][3], c["_sort"][4],
-                                     OPS_ORDER[c["ops_burden"]], c["_sort"][5], c["_sort"][6]))
+        cheapest = min((c["_cost"][0] for c in feasible if c["_cost"][0] is not None), default=None)
+        for cand in feasible:
+            total, unknown_n, partial = cand["_cost"]
+            cand["_values"]["cost"] = cost_value(total, unknown_n, partial, cheapest, self.tie_ratio)
+        feasible.sort(key=lambda c: sort_key(c["_values"], self.order) + (c["_name"],))
         for i, cand in enumerate(feasible, start=1):
             cand["id"], cand["rank"] = f"C{i}", i
-            del cand["_sort"]
+        for cand, why in zip(feasible, decided_by([(c["id"], c["_values"]) for c in feasible], self.order)):
+            v, total = cand["_values"], cand["_cost"][0]
+            cand["criteria"] = {
+                "certainty": {"evidence_unknown": v["certainty"][0], "unknown_cost_components": v["certainty"][1],
+                              "unknown_count": v["certainty"][2]},
+                "cost": {"monthly_usd": total, "tied_with_cheapest": total is not None and v["cost"][1] == 0.0},
+                **{k: v[k] for k in ("always_on", "request_headroom", "scaling", "data_safety", "config_burden")},
+            }
+            cand["decided_by"] = why
+            for k in ("_values", "_cost", "_name"):
+                del cand[k]
         outcome, detail = self._outcome(feasible, batch)
         no_feasible = None
         if outcome == "no_feasible":
@@ -490,6 +541,7 @@ class Recommender:
             "transforms": transforms,
             "transform_fits": transform_fits,
             "perspectives": None,
+            "ranking": self.ranking,
             "outcome": outcome,
             "outcome_detail": detail,
         }
@@ -523,5 +575,6 @@ class Recommender:
 
 
 def build_recommendation(inventory: dict, profile: dict, fit: dict,
-                         capabilities: list[dict], rules: list[dict]) -> dict:
-    return Recommender(inventory, profile, fit, capabilities, rules).run()
+                         capabilities: list[dict], rules: list[dict], ranking: dict | None = None) -> dict:
+    return Recommender(inventory, profile, fit, capabilities, rules,
+                       kb.ranking() if ranking is None else ranking).run()

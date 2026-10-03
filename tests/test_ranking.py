@@ -1,8 +1,12 @@
 """S4 서비스 유형별 순위(knowledge/ranking.yaml)."""
 
 from infrafit import kb
+from infrafit.consistency import check_s4
+from infrafit.fit.matrix import build_fit
 from infrafit.fit.ranking import (a2_of, classify, cost_value, decided_by, lacks_always_on, lacks_headroom,
                                   lacks_scaling, sort_key, unsafe_data)
+from infrafit.fit.recommend import build_recommendation
+from infrafit.schema import validate
 
 
 def dim(d, value, source="detector", path="app.py", line=3, scope="w-web"):
@@ -110,3 +114,85 @@ def test_sort_key_and_decided_by_follow_order():
     assert sort_key(a, order) < sort_key(b, order)
     assert decided_by([("C1", a), ("C2", b), ("C3", c)], order) == [
         {"criterion": "always_on", "over": "C2"}, {"criterion": "name", "over": "C3"}, None]
+
+RUN = "cp:gcp/cloud-run/unspecified"
+EC2 = "cp:aws/ec2/docker-compose"
+ECS = "cp:aws/ecs/unspecified"
+WS_RULE = {"id": "CAP-WEBSOCKET-001", "when": {"dimension": "A3", "equals": "장시간 양방향(웹소켓)"},
+           "require": {"capability": "CP.websocket", "equals": True}, "otherwise": "infeasible",
+           "config_from": None, "message": "websocket needed"}
+
+
+def capc(cid, cloud, target, cost, **caps):
+    src = {"doc": "capabilities/05-compute-tier1-2.md", "line": 10, "url": "https://example.com/doc", "quote": "q"}
+    c = {"id": cid, "cloud": cloud, "family": "cp", "ops_burden": "low", "target": target,
+         "capabilities": {k.replace("__", "."): {"value": v, "source": src} for k, v in caps.items()}}
+    c["capabilities"]["COST.monthly_floor_usd"] = {"value": cost, "source": src}
+    return c
+
+
+def three_platforms(run_cost=0, ecs_cost=30, with_ec2=True):
+    caps = [capc(RUN, "gcp", "gcp_cloud_run", run_cost, CP__websocket=True, CP__always_on=False,
+                 CP__horizontal_scaling=True),
+            capc(ECS, "aws", "aws_ecs_fargate", ecs_cost, CP__websocket=True, CP__always_on=True,
+                 CP__horizontal_scaling=True)]
+    if with_ec2:
+        caps.append(capc(EC2, "aws", "aws_ec2", 10, CP__websocket=True, CP__always_on=True,
+                         CP__horizontal_scaling=False))
+    return caps
+
+
+def web_inventory():
+    return {"workloads": [{"id": "w-web", "kind": "web", "name": "web", "status": "confirmed",
+                           "entrypoint": {"path": "app.py", "line": 1, "snippet": "app"}}],
+            "endpoints": [], "request_paths": [], "datastores": [], "current_components": []}
+
+
+def prof(*dims):
+    return {"domain": {"value": "x", "votes": []}, "dimensions": list(dims), "assumptions": [],
+            "dropped_inferences": [], "llm_used": False, "resolutions": []}
+
+
+def recommend(p, caps):
+    inv = web_inventory()
+    fit = build_fit(inv, p, caps, [WS_RULE])
+    rec = build_recommendation(inv, p, fit, caps, [WS_RULE])
+    return rec, fit, inv
+
+
+def compute_order(rec):
+    return [c["placement"][0]["component"] for c in rec["candidates"]]
+
+
+def test_same_candidates_rank_differently_by_service_type():
+    caps = three_platforms()
+    realtime, fit, inv = recommend(prof(dim("A3", "장시간 양방향(웹소켓)")), caps)
+    assert realtime["ranking"]["service_type"] == "realtime"
+    assert compute_order(realtime) == [ECS, EC2, RUN]     # 상시 응답 → 확장 → 비용
+    assert [c["decided_by"] for c in realtime["candidates"]] == [
+        {"criterion": "scaling", "over": "C2"}, {"criterion": "always_on", "over": "C3"}, None]
+    light, _, _ = recommend(prof(), caps)
+    assert light["ranking"]["service_type"] == "light_web" and light["ranking"]["coverage"] == "default"
+    assert compute_order(light) == [RUN, EC2, ECS]        # 비용 0 < 10 < 30
+    for rec in (realtime, light):
+        for cand in rec["candidates"]:
+            validate("Candidate", cand)
+    assert check_s4(realtime, fit, inv, prof(dim("A3", "장시간 양방향(웹소켓)"))) == []
+
+
+def test_cost_within_tie_ratio_falls_through_to_next_criterion():
+    tied, _, _ = recommend(prof(), three_platforms(run_cost=10, ecs_cost=11, with_ec2=False))
+    assert compute_order(tied) == [ECS, RUN]               # 11 ≤ 10×1.15 동률 → 상시 응답에서 ECS
+    assert tied["candidates"][0]["decided_by"] == {"criterion": "always_on", "over": "C2"}
+    assert tied["candidates"][0]["criteria"]["cost"] == {"monthly_usd": 11.0, "tied_with_cheapest": True}
+    apart, _, _ = recommend(prof(), three_platforms(run_cost=10, ecs_cost=12, with_ec2=False))
+    assert compute_order(apart) == [RUN, ECS]
+    assert apart["candidates"][0]["decided_by"]["criterion"] == "cost"
+
+
+def test_candidate_criteria_lists_all_seven():
+    rec, _, _ = recommend(prof(dim("A3", "장시간 양방향(웹소켓)")), three_platforms())
+    crit = rec["candidates"][0]["criteria"]
+    assert set(crit) == {"certainty", "cost", "always_on", "request_headroom", "scaling", "data_safety",
+                         "config_burden"}
+    assert crit["certainty"] == {"evidence_unknown": False, "unknown_cost_components": 0, "unknown_count": 0}

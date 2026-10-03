@@ -1510,6 +1510,110 @@
               "message"
             ]
           }
+        },
+        "criteria": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "certainty",
+            "cost",
+            "always_on",
+            "request_headroom",
+            "scaling",
+            "data_safety",
+            "config_burden"
+          ],
+          "properties": {
+            "certainty": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "evidence_unknown",
+                "unknown_cost_components",
+                "unknown_count"
+              ],
+              "properties": {
+                "evidence_unknown": {
+                  "type": "boolean"
+                },
+                "unknown_cost_components": {
+                  "type": "integer"
+                },
+                "unknown_count": {
+                  "type": "integer"
+                }
+              }
+            },
+            "cost": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "monthly_usd",
+                "tied_with_cheapest"
+              ],
+              "properties": {
+                "monthly_usd": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "tied_with_cheapest": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "always_on": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "request_headroom": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "scaling": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "data_safety": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "config_burden": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "decided_by": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "criterion",
+            "over"
+          ],
+          "properties": {
+            "criterion": {
+              "type": "string",
+              "enum": [
+                "certainty",
+                "cost",
+                "always_on",
+                "request_headroom",
+                "scaling",
+                "data_safety",
+                "config_burden",
+                "name"
+              ]
+            },
+            "over": {
+              "type": "string",
+              "pattern": "^C[0-9]+$"
+            }
+          }
         }
       },
       "additionalProperties": false,
@@ -2933,6 +3037,9 @@
             "message",
             "current"
           ]
+        },
+        "ranking": {
+          "$ref": "#/$defs/Ranking"
         }
       },
       "additionalProperties": false,
@@ -3446,6 +3553,130 @@
         "evidence",
         "status"
       ]
+    },
+    "Ranking": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service_type",
+        "label",
+        "coverage",
+        "matched",
+        "unprioritized",
+        "default_reason",
+        "criteria_order",
+        "why",
+        "refs",
+        "scope"
+      ],
+      "properties": {
+        "service_type": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "coverage": {
+          "type": "string",
+          "enum": [
+            "full",
+            "partial",
+            "default"
+          ]
+        },
+        "matched": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "by"
+            ],
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "by": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "dimension",
+                    "value",
+                    "at"
+                  ],
+                  "properties": {
+                    "dimension": {
+                      "type": "string"
+                    },
+                    "value": {},
+                    "at": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "unprioritized": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "default_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "criteria_order": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "certainty",
+              "cost",
+              "always_on",
+              "request_headroom",
+              "scaling",
+              "data_safety",
+              "config_burden"
+            ]
+          }
+        },
+        "why": {
+          "type": "string"
+        },
+        "refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "scope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "service_types",
+            "criteria"
+          ],
+          "properties": {
+            "service_types": {
+              "type": "integer"
+            },
+            "criteria": {
+              "type": "integer"
+            }
+          }
+        }
+      }
     }
   },
   "description": "infrafit 결과와 단계 출력. 단계 출력은 $defs의 Intake, Inventory, Profile, Fit, Recommendation, Decision, Changes, VerifyStatic, VerifyDynamic으로 검증한다."
