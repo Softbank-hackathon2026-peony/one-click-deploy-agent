@@ -83,6 +83,8 @@ S1이 `inventory.json`에 기록하는 것:
 - **요청 경로:** `LB → nginx(다단 체인) → 앱 서버` 구간과 구간별 설정을 기록한다. 설정에는 근거 줄을 달고, 없으면 출처 있는 기본값을 쓴다.
 - **기존 산출물:** Dockerfile, compose, k8s(kustomize 렌더 포함), Terraform, CI, 플랫폼 설정. 매핑하지 못한 의존성도 남긴다.
 - **배포 단위(`deploy_units`):** 프로젝트가 정의한 "같이 떠야 하는 컨테이너 묶음"([다중 컨테이너 계약 §1](docs/superpowers/specs/2026-10-03-multi-container-contract.md)). 출처는 compose(기본 파일 + override) → k8s → 코드 순이다. 빌드마다 이미지 하나, 서비스 이름 그대로의 컨테이너, 저장소 컨테이너, 진입 컨테이너(entry)를 적는다. 비밀값([knowledge/secrets.yaml](knowledge/secrets.yaml))은 이름만 남기고, 정하지 못한 값은 `unresolved`에 적는다.
+  - 코드 경로 저장소: 코드에서 찾은 redis는 `redis:7-alpine` 저장소 컨테이너가 되고, 코드의 환경변수 기본값에서 찾은 이름에만 접속 주소(`env`)를 넣는다. 비밀번호가 필요한 저장소(postgres·mysql·mongo)는 컨테이너를 만들지 않고 `unresolved`에 남긴다.
+  - Procfile의 `celery … beat` 명령은 타입 이름과 관계없이 `scheduled` 워크로드다.
 
 ### S4 순위: 서비스 유형별 기준 순서
 
@@ -100,12 +102,13 @@ S1이 `inventory.json`에 기록하는 것:
 - 후보마다 7개 기준 값(`criteria`)과 바로 다음 후보를 이긴 기준(`decided_by`)을 낸다.
 - 확장: 유형 = `service_types` 한 항목, 기준 = 출처 있는 능력 키 + `criteria` 한 줄 + `infrafit/fit/ranking.py` 계산 + 스키마 enum 두 곳(`Candidate.decided_by.criterion`, `Ranking.criteria_order`). `kb_lint` 가 검사한다.
 - 운영 부담은 출처 있는 값이 없어 기준에서 뺐다.
+- A2(요청 처리 시간): 요청 경로의 상수 `time.sleep`·`asyncio.sleep`·`setTimeout`(수십 초 이상)은 `수십 초`로 읽는다. 짧은 sleep과 `setInterval` 은 읽지 않고 가정으로 남는다.
 - 모르는 것은 모른다고 표시한다: 근거 있는 요구(detector 차원)에 대해 플랫폼 능력 표가 값을 모르는 후보에는 `unknown`(범위·컴포넌트·규칙·차원·필요한 능력 키·근거 위치)을 붙인다. `recommended` 는 `unknown` 이 없는 첫 후보이고, 모든 후보에 있으면 `recommended: null`, `outcome: unverified` 로 확인하지 못한 능력 키를 알린다. 순위와 탈락·비용은 그대로다.
 
 ## 5. 검증 방법
 
-- **테스트:** 362개. 전부 테스트 안에서 만든 합성 저장소로 규칙을 검증한다.
-- **픽스처 6개와 골든 스냅샷:** 골든은 엔진 출력을 저장한 회귀 스냅샷이다. 기대값이 아니다. 정답을 미리 적어 두면 엔진이 실제로 동작하지 않고 그 값을 맞추는 쪽으로 만들어질 수 있어서, 픽스처의 기대 출력은 어디에도 기록하지 않는다.
+- **테스트:** 528개. 전부 테스트 안에서 만든 합성 저장소로 규칙을 검증한다. QA 후속 기록: [docs/superpowers/notes/2026-10-03-infrafit-qa-followup.md](docs/superpowers/notes/2026-10-03-infrafit-qa-followup.md).
+- **픽스처 8개와 골든 스냅샷:** 골든은 엔진 출력을 저장한 회귀 스냅샷이다. 기대값이 아니다. 정답을 미리 적어 두면 엔진이 실제로 동작하지 않고 그 값을 맞추는 쪽으로 만들어질 수 있어서, 픽스처의 기대 출력은 어디에도 기록하지 않는다.
 - **실제 저장소 12개:** 코드와 결과를 대조하는 독립 감사로 틀린 사실을 찾아 고쳤다. 대상 스택은 Python, Node, Java·Kotlin(Spring), Next.js, 정적 사이트, 배치다.
 - **결정성과 일관성 검사:** 같은 입력이면 `meta`를 뺀 출력이 바이트 단위로 같다. 단계 출력은 스키마 검증과 일관성 검사(참조 무결성, 근거 파일·줄 존재)를 통과해야 쓴다.
 

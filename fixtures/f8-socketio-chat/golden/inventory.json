@@ -1,0 +1,169 @@
+{
+  "current_components": [
+    {
+      "component": "rt:lib/socketio/no-adapter",
+      "evidence": [
+        {
+          "kind": "tech",
+          "line": 6,
+          "path": "package.json",
+          "snippet": "\"dependencies\": {\"express\": \"4.19.2\", \"socket.io\": \"4.7.5\"}"
+        }
+      ],
+      "label": "SIG-RT-SOCKETIO",
+      "scope": "svc-socketio",
+      "settings": [],
+      "status": "confirmed"
+    },
+    {
+      "component": "unmapped",
+      "evidence": [],
+      "label": "no deployment config",
+      "scope": "w-web",
+      "settings": [],
+      "status": "confirmed"
+    }
+  ],
+  "datastores": [
+    {
+      "evidence": [
+        {
+          "kind": "tech",
+          "line": 6,
+          "path": "package.json",
+          "snippet": "\"dependencies\": {\"express\": \"4.19.2\", \"socket.io\": \"4.7.5\"}"
+        }
+      ],
+      "id": "svc-socketio",
+      "role": "realtime",
+      "status": "confirmed",
+      "used_by": [
+        "w-web"
+      ]
+    }
+  ],
+  "deploy_units": {
+    "containers": [
+      {
+        "command": "node server.js",
+        "depends_on": [],
+        "env": {},
+        "env_names": [],
+        "evidence": {
+          "line": 6,
+          "path": "package.json",
+          "snippet": "\"dependencies\": {\"express\": \"4.19.2\", \"socket.io\": \"4.7.5\"}"
+        },
+        "id": "web",
+        "image": "web",
+        "one_shot": false,
+        "ports": [],
+        "workload": "w-web"
+      }
+    ],
+    "datastores": [],
+    "entry": null,
+    "images": [
+      {
+        "context": "",
+        "evidence": {
+          "line": 6,
+          "path": "package.json",
+          "snippet": "\"dependencies\": {\"express\": \"4.19.2\", \"socket.io\": \"4.7.5\"}"
+        },
+        "id": "web"
+      }
+    ],
+    "source": {
+      "kind": "code",
+      "path": "package.json"
+    },
+    "unresolved": [
+      {
+        "field": "images.web.dockerfile",
+        "why": "Dockerfile이 없다"
+      },
+      {
+        "field": "containers.web.ports",
+        "why": "듣는 포트를 정하는 설정이 없다"
+      }
+    ]
+  },
+  "endpoints": [
+    {
+      "framework": "socket.io",
+      "handler": {
+        "line": 7,
+        "path": "server.js",
+        "snippet": "const io = new Server(server);"
+      },
+      "id": "ep-web-001",
+      "method": "WEBSOCKET",
+      "route": "/socket.io",
+      "status": "confirmed",
+      "workload": "w-web"
+    },
+    {
+      "framework": "express",
+      "handler": {
+        "line": 9,
+        "path": "server.js",
+        "snippet": "app.get('/health', (req, res) => res.send('ok'));"
+      },
+      "id": "ep-web-002",
+      "method": "GET",
+      "route": "/health",
+      "status": "confirmed",
+      "workload": "w-web"
+    }
+  ],
+  "environments": [],
+  "existing_artifacts": [],
+  "external_services": [],
+  "request_paths": [
+    {
+      "environment": null,
+      "hops": [
+        {
+          "component": "nw:app/node-http/default",
+          "evidence": [
+            {
+              "line": 6,
+              "path": "package.json",
+              "snippet": "\"dependencies\": {\"express\": \"4.19.2\", \"socket.io\": \"4.7.5\"}"
+            }
+          ],
+          "kind": "app-server",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keep_alive_timeout",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "id": "path-web",
+      "workload": "w-web"
+    }
+  ],
+  "unmapped": [],
+  "workloads": [
+    {
+      "entrypoint": {
+        "line": 6,
+        "path": "package.json",
+        "snippet": "\"dependencies\": {\"express\": \"4.19.2\", \"socket.io\": \"4.7.5\"}"
+      },
+      "id": "w-web",
+      "kind": "web",
+      "name": "web",
+      "status": "confirmed"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "commit": "tree-afc0db230563d864",
+  "excluded": [],
+  "files_scanned": 2,
+  "files_total": 2,
+  "languages": {
+    "javascript": 1.0
+  },
+  "overrides": null,
+  "repo": "<repo>"
+}

@@ -1,0 +1,308 @@
+{
+  "current_components": [
+    {
+      "component": "qu:lib/celery/default",
+      "evidence": [
+        {
+          "kind": "tech",
+          "line": 2,
+          "path": "requirements.txt",
+          "snippet": "celery==5.4.0"
+        }
+      ],
+      "label": "SIG-QU-CELERY",
+      "scope": "svc-celery",
+      "settings": [],
+      "status": "confirmed"
+    },
+    {
+      "component": "ca:unspecified/redis/default",
+      "evidence": [
+        {
+          "kind": "tech",
+          "line": 3,
+          "path": "requirements.txt",
+          "snippet": "redis==5.0.4"
+        }
+      ],
+      "label": "SIG-CA-REDIS",
+      "scope": "svc-redis",
+      "settings": [],
+      "status": "confirmed"
+    },
+    {
+      "component": "unmapped",
+      "evidence": [],
+      "label": "no deployment config",
+      "scope": "w-scheduled",
+      "settings": [],
+      "status": "confirmed"
+    },
+    {
+      "component": "unmapped",
+      "evidence": [],
+      "label": "no deployment config",
+      "scope": "w-web",
+      "settings": [],
+      "status": "confirmed"
+    },
+    {
+      "component": "unmapped",
+      "evidence": [],
+      "label": "no deployment config",
+      "scope": "w-worker",
+      "settings": [],
+      "status": "confirmed"
+    }
+  ],
+  "datastores": [
+    {
+      "evidence": [
+        {
+          "kind": "tech",
+          "line": 2,
+          "path": "requirements.txt",
+          "snippet": "celery==5.4.0"
+        }
+      ],
+      "id": "svc-celery",
+      "role": "queue",
+      "status": "confirmed",
+      "used_by": [
+        "w-scheduled",
+        "w-web",
+        "w-worker"
+      ]
+    },
+    {
+      "evidence": [
+        {
+          "kind": "tech",
+          "line": 3,
+          "path": "requirements.txt",
+          "snippet": "redis==5.0.4"
+        }
+      ],
+      "id": "svc-redis",
+      "role": "cache",
+      "status": "confirmed",
+      "used_by": [
+        "w-scheduled",
+        "w-web",
+        "w-worker"
+      ]
+    }
+  ],
+  "deploy_units": {
+    "containers": [
+      {
+        "command": "celery -A tasks beat --loglevel=info",
+        "depends_on": [
+          "redis"
+        ],
+        "env": {
+          "REDIS_URL": "redis://redis:6379/0"
+        },
+        "env_names": [
+          "REDIS_URL"
+        ],
+        "evidence": {
+          "line": 3,
+          "path": "Procfile",
+          "snippet": "beat: celery -A tasks beat --loglevel=info"
+        },
+        "id": "scheduled",
+        "image": "scheduled",
+        "one_shot": false,
+        "ports": [],
+        "workload": "w-scheduled"
+      },
+      {
+        "command": "gunicorn -b 0.0.0.0:$PORT app:app",
+        "depends_on": [
+          "redis"
+        ],
+        "env": {
+          "REDIS_URL": "redis://redis:6379/0"
+        },
+        "env_names": [
+          "REDIS_URL"
+        ],
+        "evidence": {
+          "line": 1,
+          "path": "requirements.txt",
+          "snippet": "flask==3.0.3"
+        },
+        "id": "web",
+        "image": "scheduled",
+        "one_shot": false,
+        "ports": [],
+        "workload": "w-web"
+      },
+      {
+        "command": "celery -A tasks worker --loglevel=info",
+        "depends_on": [
+          "redis"
+        ],
+        "env": {
+          "REDIS_URL": "redis://redis:6379/0"
+        },
+        "env_names": [
+          "REDIS_URL"
+        ],
+        "evidence": {
+          "line": 2,
+          "path": "Procfile",
+          "snippet": "worker: celery -A tasks worker --loglevel=info"
+        },
+        "id": "worker",
+        "image": "scheduled",
+        "one_shot": false,
+        "ports": [],
+        "workload": "w-worker"
+      }
+    ],
+    "datastores": [
+      {
+        "datastore": "svc-redis",
+        "env": {},
+        "env_names": [],
+        "evidence": {
+          "line": 3,
+          "path": "requirements.txt",
+          "snippet": "redis==5.0.4"
+        },
+        "id": "redis",
+        "image": "redis:7-alpine",
+        "ports": [
+          6379
+        ]
+      }
+    ],
+    "entry": null,
+    "images": [
+      {
+        "context": "",
+        "evidence": {
+          "line": 3,
+          "path": "Procfile",
+          "snippet": "beat: celery -A tasks beat --loglevel=info"
+        },
+        "id": "scheduled"
+      }
+    ],
+    "source": {
+      "kind": "code",
+      "path": "Procfile"
+    },
+    "unresolved": [
+      {
+        "field": "images.scheduled.dockerfile",
+        "why": "Dockerfile이 없다"
+      },
+      {
+        "field": "containers.web.ports",
+        "why": "듣는 포트를 정하는 설정이 없다"
+      }
+    ]
+  },
+  "endpoints": [
+    {
+      "framework": "flask",
+      "handler": {
+        "line": 9,
+        "path": "app.py",
+        "snippet": "@app.get('/health')"
+      },
+      "id": "ep-web-001",
+      "method": "GET",
+      "route": "/health",
+      "status": "confirmed",
+      "workload": "w-web"
+    },
+    {
+      "framework": "flask",
+      "handler": {
+        "line": 14,
+        "path": "app.py",
+        "snippet": "@app.get('/slow')"
+      },
+      "id": "ep-web-002",
+      "method": "GET",
+      "route": "/slow",
+      "status": "confirmed",
+      "workload": "w-web"
+    }
+  ],
+  "environments": [],
+  "existing_artifacts": [],
+  "external_services": [],
+  "request_paths": [
+    {
+      "environment": null,
+      "hops": [
+        {
+          "component": "nw:app/gunicorn/default",
+          "evidence": [
+            {
+              "line": 1,
+              "path": "requirements.txt",
+              "snippet": "flask==3.0.3"
+            }
+          ],
+          "kind": "app-server",
+          "order": 0,
+          "osi_layer": "L7",
+          "settings": [
+            {
+              "default_source": {
+                "ref": "docs/research/capabilities/09-network-lb-ingress.md"
+              },
+              "defaulted": true,
+              "key": "keepalive",
+              "value": 2
+            }
+          ]
+        }
+      ],
+      "id": "path-web",
+      "workload": "w-web"
+    }
+  ],
+  "unmapped": [],
+  "workloads": [
+    {
+      "entrypoint": {
+        "line": 3,
+        "path": "Procfile",
+        "snippet": "beat: celery -A tasks beat --loglevel=info"
+      },
+      "id": "w-scheduled",
+      "kind": "scheduled",
+      "name": "scheduled",
+      "status": "confirmed"
+    },
+    {
+      "entrypoint": {
+        "line": 1,
+        "path": "requirements.txt",
+        "snippet": "flask==3.0.3"
+      },
+      "id": "w-web",
+      "kind": "web",
+      "name": "web",
+      "status": "confirmed"
+    },
+    {
+      "entrypoint": {
+        "line": 2,
+        "path": "Procfile",
+        "snippet": "worker: celery -A tasks worker --loglevel=info"
+      },
+      "id": "w-worker",
+      "kind": "worker",
+      "name": "worker",
+      "status": "confirmed"
+    }
+  ]
+}
