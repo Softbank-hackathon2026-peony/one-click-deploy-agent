@@ -6,7 +6,7 @@ compute 범위는 워크로드마다 하나다(scopes.app_scopes). 조합은 토
   같은 클라우드 관리형 변형(`/managed-data`) 두 가지. 비용 = VM 바닥 비용(+ 관리형 데이터 바닥 비용).
   확장 요구(D6 고정 다중·자동 확장)는 CAP-SCALE-001(CP.horizontal_scaling false)로 탈락한다.
 - services: 워크로드마다 같은 클라우드의 서비스형 플랫폼(Lambda·Cloud Run 두 과금·ECS) 중 규칙을 통과한 가장 나은 것
-  (근거 있는 모름 없음 → 비용을 앎 → 낮은 비용 → 모르는 셀 → 운영 부담 → 설정 수 → 과금 방식 → ID).
+  (서비스 유형의 기준 순서 → 과금 방식 → ID, knowledge/ranking.yaml).
 - kubernetes: 워크로드 전부를 클러스터 하나(GKE Autopilot·EKS)에.
 데이터 범위: BaaS(Supabase·Firestore 등)는 그대로(external_scopes). SQLite는 그 조합의 compute가 모두 영속 로컬
 디스크를 가질 때만 그대로 두고, 아니면 변형 "SQLite→관리형 Postgres"를 적용한다.
@@ -21,9 +21,13 @@ compute 범위는 워크로드마다 하나다(scopes.app_scopes). 조합은 토
 - services의 scale-to-zero 플랫폼에서 인스턴스 고정 설정(단일 인스턴스·상시 실행)이 필요하거나 저장소가 최소 레플리카 ≥ 2를
   밝힌 워크로드는 바닥 비용 대신 COST.monthly_pinned_usd × 레플리카(인스턴스당 값)를 쓰고, 그 값이 없으면 비용을 모른다.
 - 비용을 모르는 구성 요소가 하나라도 있으면 합(monthly_baseline_usd)은 null이다. 0이나 부분합은 쓰지 않는다.
-순위: 실현 불가 제외 → 근거 있는 차원(source=detector)에서 나온 모름 셀이 없는 후보가 먼저(가정 값에서 나온 모름은 내리지
-않는다) → 합을 아는 후보가 먼저 → 낮은 비용(합이 null인 후보끼리는 모르는 비용 구성 요소 수, 그다음 아는 부분의 합;
-부분합은 순위에만 쓴다) → 모르는 셀·비용 수 → 운영 부담 → 설정 요구 수 → 조합 이름.
+순위(knowledge/ranking.yaml, 설계 2026-10-03-infrafit-service-type-ranking-design.md): 실현 불가 제외 → 앱 워크로드의 근거 있는
+차원으로 서비스 유형 하나를 정하고(실시간 > 장시간 처리 > 상태 저장 > 백그라운드 > 가벼운 웹, 해당 없으면 가벼운 웹) 그 유형의
+기준 순서로 사전식 정렬 → 모르는 수(unknown_count) → 조합 이름. 기준: certainty(근거 있는 모름 셀이 있는지, 모르는 비용 구성
+요소 수; 가정 값에서 나온 모름은 내리지 않는다) / cost(최저 합 × 1.15 이내 동률, 합이 null이면 뒤) / always_on /
+request_headroom(필요 등급보다 한 단계 위 상한) / scaling / data_safety / config_burden. 모르는 수(셀 + 모르는 비용 구성 요소,
+가정 값에서 나온 것 포함)는 유형 기준 순서에 없고 그 뒤의 동률 깨기다. 능력 값을 모르면 나쁜 쪽. 운영 부담은 출처 있는 값이 없어
+순위에 쓰지 않는다. 출력: ranking(유형·coverage·근거·기준 순서), 후보마다 criteria·decided_by(갈린 기준; unknown_count 또는 name일 수 있다).
 결과(outcome): recommended | no_feasible | static_only(정적 프런트엔드만) | not_deployable(앱·정적 워크로드 없음, 또는
 profile.batch_only: 사람이 실행하는 도구).
 """
